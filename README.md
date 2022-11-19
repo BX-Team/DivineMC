@@ -2,7 +2,7 @@
 <div align="center">
   <h1>DivineMC</h1>
   <h3>Fork of Paper compatible with Spigot plugins, offering best performance for your server.</h3>
-  <h4>DivineMC is ❗ under heavy development ❗ and contributions are welcome!</h4>
+  <h4>This branch is reloaded version of DivineMC for future Minecraft version - 1.20.</h4>
   <br>
   
   ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/DivineMC/DivineMC/Build%20DivineMC?style=for-the-badge)
