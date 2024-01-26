@@ -706,10 +706,10 @@ index 9017907c0ec67a37a506f09b7e4499cef7885279..281c810237603e667ad0345a3c93e735
          long expectedChunks = (long)regionFiles.length * (32L * 32L);
  
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 09a290feb90751f3630fd23346c2cc8900fc841a..d7d2f876fb8d2aa2cd24e586f688d5110ffb938b 100644
+index 2b53c6fb21b08f04c378278f1a5e78e1e4b276d7..0cb8adf4a7163f58ec2e2c3d7eda014ff69849e3 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -884,7 +884,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -885,7 +885,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              // Paper start - rewrite chunk system
              worldserver.save((ProgressListener) null, flush, worldserver.noSave && !force, close);
              if (flush) {
@@ -718,7 +718,7 @@ index 09a290feb90751f3630fd23346c2cc8900fc841a..d7d2f876fb8d2aa2cd24e586f688d511
              }
              // Paper end - rewrite chunk system
          }
-@@ -908,7 +908,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -909,7 +909,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  //MinecraftServer.LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", worldserver2.getChunkSource().chunkMap.getStorageName()); // Paper - move up
              }
  
@@ -1446,7 +1446,7 @@ index 4aac1979cf57300825a999c876fcf24d3170e68e..b81636c1aa5b39e1696fdf30a7e2b270
          this.factory = factory;
          this.fixerUpper = dataFixer;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 7a2e6d1c4b1d553c172f7d704036e3dfb39228a7..6256968a0e070eba45f365c4733b616412ac8d0b 100644
+index 9f2d1e3bc19ef541550e4d088343d10ea641cd23..22888aca692b2d0fedbfc4e2c513cd7a5e74f318 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -5,7 +5,7 @@ import com.google.common.base.Predicates;
@@ -1474,7 +1474,7 @@ index 7a2e6d1c4b1d553c172f7d704036e3dfb39228a7..6256968a0e070eba45f365c4733b6164
  import org.bukkit.event.world.TimeSkipEvent;
  import org.bukkit.generator.BiomeProvider;
  import org.bukkit.generator.BlockPopulator;
-@@ -565,7 +563,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -567,7 +565,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
                  world.getChunk(x, z); // make sure we're at ticket level 32 or lower
                  return true;
              }

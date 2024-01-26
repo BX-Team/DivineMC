@@ -21,10 +21,10 @@ index 7deda3f07cbe5c520ae44575d79f4e857f0b44a1..a62fb5529ec7a54a2a3967f96272824a
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
-index c6ef510d335b8baea58c4491853414a52a06b66b..32ed3b9a433bfb87059a54477854d1d9eccb94c0 100644
+index 04b98e23eed926d8473cc2464e04a5b9f18f1140..68463f809aea61d818fc428f1c8b80682b05538b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerEntity.java
 +++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
-@@ -380,7 +380,10 @@ public class ServerEntity {
+@@ -386,7 +386,10 @@ public class ServerEntity {
          }
  
          if (this.entity instanceof LivingEntity) {
@@ -36,7 +36,7 @@ index c6ef510d335b8baea58c4491853414a52a06b66b..32ed3b9a433bfb87059a54477854d1d9
  
              if (!set.isEmpty()) {
                  // CraftBukkit start - Send scaled max health
-@@ -391,7 +394,7 @@ public class ServerEntity {
+@@ -397,7 +400,7 @@ public class ServerEntity {
                  this.broadcastAndSend(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
              }
  
