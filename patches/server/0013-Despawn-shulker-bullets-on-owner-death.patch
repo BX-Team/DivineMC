@@ -5,10 +5,10 @@ Subject: [PATCH] Despawn shulker bullets on owner death
 
 
 diff --git a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
-index 9eede8eb7fefc414f3a1207cd3ca2b33deb5ea13..ca344da743a7503795bdaeff0a1b14e0721f5092 100644
+index 522703fae0898daa8651a34168bfcc78a3c8cb12..53ccff176770be0d41469cbd71b9000f5e0cae3e 100644
 --- a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
 +++ b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
-@@ -84,4 +84,9 @@ public class DivineWorldConfig {
+@@ -89,4 +89,9 @@ public class DivineWorldConfig {
          dontEjectPlayerFromBoatUnderwater = getBoolean("gameplay-mechanics.boat.dont-eject-players-from-boat-underwater", dontEjectPlayerFromBoatUnderwater);
          alwaysAllowToEnterTheBoat = getBoolean("gameplay-mechanics.boat.always-allow-to-enter-the-boat", alwaysAllowToEnterTheBoat);
      }

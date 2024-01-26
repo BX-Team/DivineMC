@@ -5,12 +5,12 @@ Subject: [PATCH] Boat Settings
 
 
 diff --git a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
-index 5d16d2250bae9c982a0af9ad2580a63532b140f7..9eede8eb7fefc414f3a1207cd3ca2b33deb5ea13 100644
+index c74ca3eb638b29f5d981d132ac579d7e1942e244..522703fae0898daa8651a34168bfcc78a3c8cb12 100644
 --- a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
 +++ b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
-@@ -77,4 +77,11 @@ public class DivineWorldConfig {
-         final Map<String, Object> value = DivineConfig.getMap("world-settings." + worldName + "." + path, null);
-         return value.isEmpty() ? fallback : value;
+@@ -82,4 +82,11 @@ public class DivineWorldConfig {
+     private void saveFireworks() {
+         saveFireworks = getBoolean("gameplay-mechanics.should-save-fireworks", saveFireworks);
      }
 +
 +    public boolean dontEjectPlayerFromBoatUnderwater = true;
@@ -22,7 +22,7 @@ index 5d16d2250bae9c982a0af9ad2580a63532b140f7..9eede8eb7fefc414f3a1207cd3ca2b33
  }
 \ No newline at end of file
 diff --git a/src/main/java/net/minecraft/world/entity/vehicle/Boat.java b/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
-index 26475c2d69537053a041ec9c2f8147842848a8fc..2e03520073af9bad8c629e161ebaf747de5197b6 100644
+index 5036941829e4d98adbcfb0354b35244c52fc4472..76ef5000bbd805c40e0c927dc709c20c17d72f79 100644
 --- a/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
 +++ b/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
 @@ -338,7 +338,18 @@ public class Boat extends VehicleEntity implements VariantHolder<Boat.Type> {

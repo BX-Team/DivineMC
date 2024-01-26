@@ -4,8 +4,23 @@ Date: Fri, 31 Mar 2023 22:47:12 +0300
 Subject: [PATCH] Don't save Fireworks
 
 
+diff --git a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
+index 5d16d2250bae9c982a0af9ad2580a63532b140f7..c74ca3eb638b29f5d981d132ac579d7e1942e244 100644
+--- a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
++++ b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
+@@ -77,4 +77,9 @@ public class DivineWorldConfig {
+         final Map<String, Object> value = DivineConfig.getMap("world-settings." + worldName + "." + path, null);
+         return value.isEmpty() ? fallback : value;
+     }
++
++    public boolean saveFireworks = false;
++    private void saveFireworks() {
++        saveFireworks = getBoolean("gameplay-mechanics.should-save-fireworks", saveFireworks);
++    }
+ }
+\ No newline at end of file
 diff --git a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
-index 288910fb168ddc5d3a61971778b8038a56772fa8..f0b208b90f15ffd55572dbe94e2a1cc7a448aa0c 100644
+index b2f08889139dc447f7071f1c81456035bf8de31e..3c364f5c4cafba917edb605de017aca2445b3d6f 100644
 --- a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 @@ -357,4 +357,11 @@ public class FireworkRocketEntity extends Projectile implements ItemSupplier {
@@ -16,7 +31,7 @@ index 288910fb168ddc5d3a61971778b8038a56772fa8..f0b208b90f15ffd55572dbe94e2a1cc7
 +    // DivineMC start - Don't save Fireworks
 +    @Override
 +    public boolean shouldBeSaved() {
-+        return false;
++        return this.level().divinemcConfig.saveFireworks;
 +    }
 +    // DivineMC end
  }

@@ -5,10 +5,10 @@ Subject: [PATCH] Suppress errors from dirty attributes
 
 
 diff --git a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
-index 7deda3f07cbe5c520ae44575d79f4e857f0b44a1..a62fb5529ec7a54a2a3967f96272824a7e7b70af 100644
+index 6273a41b4c06058fae7b20b9afd0563fcc17bda9..f9d3ab7efb1ce51067a975d5d1f1defa59249f0b 100644
 --- a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
 +++ b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
-@@ -110,4 +110,9 @@ public class DivineWorldConfig {
+@@ -115,4 +115,9 @@ public class DivineWorldConfig {
          }
          linearCrashOnBrokenSymlink = getBoolean("region-format.linear.crash-on-broken-symlink", linearCrashOnBrokenSymlink);
      }
