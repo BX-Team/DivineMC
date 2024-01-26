@@ -5,7 +5,7 @@ Subject: [PATCH] Divine Branding
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index 5b8a28969451b12c4fc66976afd052ffa5805932..7aeb4fa6a8342b81558c657120504848c5e32775 100644
+index 0c92d10f334f82d196e065c0811d0c1f48887377..6964b6235bed4455b85aa69cef0049a769c5daad 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -14,7 +14,7 @@ val alsoShade: Configuration by configurations.creating
@@ -27,10 +27,18 @@ index 5b8a28969451b12c4fc66976afd052ffa5805932..7aeb4fa6a8342b81558c657120504848
              "Specification-Title" to "Bukkit",
              "Specification-Version" to project.version,
 diff --git a/src/main/java/com/destroystokyo/paper/Metrics.java b/src/main/java/com/destroystokyo/paper/Metrics.java
-index 8cde30544e14f8fc2dac32966ae3c21f8cf3a551..ad62e0b7deb141d22be4f19ea30f61440b192af2 100644
+index 8cde30544e14f8fc2dac32966ae3c21f8cf3a551..8b06174a9c42ea1d5a1cc5a423a0d6f7304a06c4 100644
 --- a/src/main/java/com/destroystokyo/paper/Metrics.java
 +++ b/src/main/java/com/destroystokyo/paper/Metrics.java
-@@ -593,7 +593,7 @@ public class Metrics {
+@@ -3,6 +3,7 @@ package com.destroystokyo.paper;
+ import net.minecraft.server.MinecraftServer;
+ import org.bukkit.Bukkit;
+ import org.bukkit.configuration.file.YamlConfiguration;
++import org.bukkit.craftbukkit.CraftServer;
+ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+ import org.bukkit.plugin.Plugin;
+ 
+@@ -593,7 +594,7 @@ public class Metrics {
              boolean logFailedRequests = config.getBoolean("logFailedRequests", false);
              // Only start Metrics, if it's enabled in the config
              if (config.getBoolean("enabled", true)) {
@@ -39,6 +47,14 @@ index 8cde30544e14f8fc2dac32966ae3c21f8cf3a551..ad62e0b7deb141d22be4f19ea30f6144
  
                  metrics.addCustomChart(new Metrics.SimplePie("minecraft_version", () -> {
                      String minecraftVersion = Bukkit.getVersion();
+@@ -604,6 +605,7 @@ public class Metrics {
+                 metrics.addCustomChart(new Metrics.SingleLineChart("players", () -> Bukkit.getOnlinePlayers().size()));
+                 metrics.addCustomChart(new Metrics.SimplePie("online_mode", () -> Bukkit.getOnlineMode() ? "online" : (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode() ? "bungee" : "offline"))); // Purpur
+                 metrics.addCustomChart(new Metrics.SimplePie("purpur_version", () -> (org.bukkit.craftbukkit.Main.class.getPackage().getImplementationVersion() != null) ? org.bukkit.craftbukkit.Main.class.getPackage().getImplementationVersion() : "unknown")); // Purpur
++                metrics.addCustomChart(new Metrics.SimplePie("divinemc_version", () -> (CraftServer.class.getPackage().getImplementationVersion() != null) ? CraftServer.class.getPackage().getImplementationVersion() : "unknown")); // DivineMC
+ 
+                 metrics.addCustomChart(new Metrics.DrilldownPie("java_version", () -> {
+                     Map<String, Map<String, Integer>> map = new HashMap<>();
 diff --git a/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java b/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
 index 462a6eed350fd660ddaf25d567bb6e97b77d0b2b..fb3d33117279df26ddd55005d16f80b6ce273ac3 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
@@ -138,7 +154,7 @@ index 3cb56595822799926a8141e60a42f5d1edfc6de5..05478a1ea04ec0396bc8c97090edef4a
                  .completer(new ConsoleCommandCompleter(this.server))
                  .option(LineReader.Option.COMPLETE_IN_WORD, true);
 diff --git a/src/main/java/net/minecraft/server/gui/MinecraftServerGui.java b/src/main/java/net/minecraft/server/gui/MinecraftServerGui.java
-index 64e12201e164f4dc8070711605dcfcb6e56421f6..ad5c7d2f133834fd587ab0b8b5835313b52e6fa2 100644
+index 7f07ffab0835d45d4d170fe171d7fa996d5913d9..fde3e7ef352474566e7259555a5f8ffb2272e98b 100644
 --- a/src/main/java/net/minecraft/server/gui/MinecraftServerGui.java
 +++ b/src/main/java/net/minecraft/server/gui/MinecraftServerGui.java
 @@ -56,7 +56,7 @@ public class MinecraftServerGui extends JComponent {
@@ -154,10 +170,10 @@ index 64e12201e164f4dc8070711605dcfcb6e56421f6..ad5c7d2f133834fd587ab0b8b5835313
          jframe.pack();
          jframe.setLocationRelativeTo((Component) null);
          jframe.setVisible(true);
--        jframe.setName("Purpur Minecraft server"); // Paper // Purpur
-+        jframe.setName("DivineMC Minecraft server"); // Paper // Purpur // DivineMC
+-        jframe.setName("Purpur Minecraft server"); // Paper - Improve ServerGUI // Purpur
++        jframe.setName("DivineMC Minecraft server"); // Paper - Improve ServerGUI // Purpur // DivineMC
  
-         // Paper start - Add logo as frame image
+         // Paper start - Improve ServerGUI
          try {
 @@ -76,7 +76,7 @@ public class MinecraftServerGui extends JComponent {
          jframe.addWindowListener(new WindowAdapter() {
@@ -169,7 +185,7 @@ index 64e12201e164f4dc8070711605dcfcb6e56421f6..ad5c7d2f133834fd587ab0b8b5835313
                      servergui.runFinalizers();
                  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index fd754fc9ff313421d221eea8d21fbde98be24914..ddf481ef8e70a4441e33d26b8acb8f618096c017 100644
+index 7db5fb71e8ffdc9291eadceb2682f7f98d1ab37a..2b9dab43a072206a6980bdfbf4f02e7a398758f7 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -264,7 +264,7 @@ import javax.annotation.Nullable; // Paper
@@ -208,10 +224,10 @@ index e9fc2b4661f5275b93db5d3fdf25a8bdc3b38920..e14a5be13af47162c3f03f7d75ecbe10
          serverModName = getString("settings.server-mod-name", serverModName);
      }
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index 5fc8cc40ab627eba0b2110c73d31af213a935733..3fbad431abf62022d0b343f251f34d899e87090f 100644
+index f7296691cb4af7814de1520347b307ff209082e4..3de4a2d0e208d093143c68c3084ceb4a94069c7d 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
-@@ -185,7 +185,7 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
+@@ -184,7 +184,7 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
                  // Paper end
                  } else
                  {
@@ -220,7 +236,7 @@ index 5fc8cc40ab627eba0b2110c73d31af213a935733..3fbad431abf62022d0b343f251f34d89
                      log.log(Level.SEVERE, "The server has not responded for " + (currentTime - lastTick) / 1000 + " seconds! Creating thread dump");
                  }
                  // Paper end - Different message for short timeout
-@@ -206,7 +206,7 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
+@@ -205,7 +205,7 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
                      WatchdogThread.dumpThread( thread, log );
                  }
                  } else {

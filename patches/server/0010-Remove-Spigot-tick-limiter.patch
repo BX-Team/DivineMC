@@ -7,10 +7,10 @@ Original code by Titaniumtown, modified by NONPLAYT
 You can find the original code on https://gitlab.com/Titaniumtown/JettPack
 
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 20f760e678b3b9c5d5b2184f5b92f05932fb1256..8bd3c55dab2f637ad3e0b3043e560ac62a052cdd 100644
+index 6d64f75c4996cb4ee22876c7822d03da7af0918b..e1409a225fc775ad52ff7bd57ec17ca2177d608b 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -185,8 +185,6 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -184,8 +184,6 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public final gq.bxteam.divinemc.configuration.DivineWorldConfig divinemcConfig; // DivineMC
      public final co.aikar.timings.WorldTimingsHandler timings; // Paper
      public static BlockPos lastPhysicsProblem; // Spigot
@@ -18,13 +18,15 @@ index 20f760e678b3b9c5d5b2184f5b92f05932fb1256..8bd3c55dab2f637ad3e0b3043e560ac6
 -    private org.spigotmc.TickLimiter tileLimiter;
      private int tileTickPosition;
      public final Map<Explosion.CacheKey, Float> explosionDensityCache = new HashMap<>(); // Paper - Optimize explosions
-     public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Move from Map in BlockRedstoneTorch to here
-@@ -349,8 +347,6 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
+@@ -347,9 +345,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         });
          // CraftBukkit end
          this.timings = new co.aikar.timings.WorldTimingsHandler(this); // Paper - code below can generate new world and access timings
-         this.keepSpawnInMemory = this.paperConfig().spawn.keepSpawnLoaded; // Paper
+-        this.keepSpawnInMemory = this.paperConfig().spawn.keepSpawnLoaded; // Paper - Option to keep spawn chunks loaded
 -        this.entityLimiter = new org.spigotmc.TickLimiter(this.spigotConfig.entityMaxTickTime);
 -        this.tileLimiter = new org.spigotmc.TickLimiter(this.spigotConfig.tileMaxTickTime);
++        this.keepSpawnInMemory = this.paperConfig().spawn.keepSpawnLoaded; // Paper - Option to keep spawn chunks loaded // DivineMC - Remove Spigot tick limiter
          this.chunkPacketBlockController = this.paperConfig().anticheat.antiXray.enabled ? new com.destroystokyo.paper.antixray.ChunkPacketBlockControllerAntiXray(this, executor) : com.destroystokyo.paper.antixray.ChunkPacketBlockController.NO_OPERATION_INSTANCE; // Paper - Anti-Xray
          // Paper start - optimise collisions
          this.minSection = io.papermc.paper.util.WorldUtil.getMinSection(this);

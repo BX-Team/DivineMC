@@ -5,7 +5,7 @@ Subject: [PATCH] Configurable Chat message signatures
 
 
 diff --git a/src/main/java/gq/bxteam/divinemc/configuration/DivineConfig.java b/src/main/java/gq/bxteam/divinemc/configuration/DivineConfig.java
-index 72014802c047437cf628f473a109d3186d33a3d5..cc7f95d5460053d2475a62eb087682a2f28840a0 100644
+index def6f834d32b97e1065b17657e73d020a873bd14..c58eb66184d3e7fcf722d8871eb212eebed92646 100644
 --- a/src/main/java/gq/bxteam/divinemc/configuration/DivineConfig.java
 +++ b/src/main/java/gq/bxteam/divinemc/configuration/DivineConfig.java
 @@ -168,4 +168,9 @@ public class DivineConfig {
@@ -71,7 +71,7 @@ index c40979e2fa37acb2f3df493395f3ab6e185345d7..16250b44775b2ccd02e2112600c9f3ba
  
      public static record Favicon(byte[] iconBytes) {
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index eb301cf5e68914980829b1d3c72163ddf337958d..65eee5a4c5dc2cb7175e3c95f08956d1d83d7c12 100644
+index 3f29a112c781790577d2857aee18c66ff3593673..320b1d999d5a790156bd3030bf32d76f9e003ced 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -686,6 +686,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -83,7 +83,7 @@ index eb301cf5e68914980829b1d3c72163ddf337958d..65eee5a4c5dc2cb7175e3c95f08956d1
  
          // Paper start - Add setting for proxy online mode status
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 97571742af5bba4813498f7b25b315657939d463..a0117a58587c1b633dbfc963d47f33026531d5df 100644
+index 352eb214013111e199fff43ded3a7a617fc90c66..d257c69c383aa70b28b27ba22e775e1307001dfe 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -2258,7 +2258,7 @@ public class ServerPlayer extends Player {
@@ -96,7 +96,7 @@ index 97571742af5bba4813498f7b25b315657939d463..a0117a58587c1b633dbfc963d47f3302
  
      @Override
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index da499e0b21eba40d24d95047e3a9220567d4bae7..af52d6c7f18f0837f4ffce95a310ddeedfe30df9 100644
+index 02e65b0bd212d46855baee48fab35dc95a88b43f..1a5b7bbe6638daa0876bbee810e9e1ed92157bf4 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -4,7 +4,7 @@ import com.mojang.authlib.GameProfile;
@@ -157,10 +157,10 @@ index da499e0b21eba40d24d95047e3a9220567d4bae7..af52d6c7f18f0837f4ffce95a310ddee
          if (packet == null || this.processedDisconnect) { // Spigot
              return;
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index ae8db4b212b85adff85c761b2e2083a6ccce7cea..801bb0974652767fa04f47d6b9ba9f4e53ac3ec2 100644
+index b230739cf929c8f2b51a812fffe54be343ce3e05..8b09af2410b57680be026d84f8b8a85c48e0cde6 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
-@@ -1469,7 +1469,7 @@ public abstract class PlayerList {
+@@ -1468,7 +1468,7 @@ public abstract class PlayerList {
          // Paper end
          boolean flag = this.verifyChatTrusted(message);
  
@@ -169,7 +169,7 @@ index ae8db4b212b85adff85c761b2e2083a6ccce7cea..801bb0974652767fa04f47d6b9ba9f4e
          OutgoingChatMessage outgoingchatmessage = OutgoingChatMessage.create(message);
          boolean flag1 = false;
  
-@@ -1498,6 +1498,7 @@ public abstract class PlayerList {
+@@ -1497,6 +1497,7 @@ public abstract class PlayerList {
      }
  
      public boolean verifyChatTrusted(PlayerChatMessage message) { // Paper - private -> public
