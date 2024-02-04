@@ -7,7 +7,7 @@ Original code by RelativityMC, licensed under MIT
 You can find the original code on https://github.com/RelativityMC/VMP-fabric (Yarn mappings)
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 9c3918791b89816d6096d782558d5e92f833efec..8d57e11293ab5d56adfbf9c6ff1f32b1a0bed0eb 100644
+index 8c605b522f0d452238d9aad8adc875c98235d63d..ac609d0483ca2f6b6eaf96ee48991f48bd774725 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -316,6 +316,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -18,7 +18,7 @@ index 9c3918791b89816d6096d782558d5e92f833efec..8d57e11293ab5d56adfbf9c6ff1f32b1
      public boolean onGround;
      public boolean horizontalCollision;
      public boolean verticalCollision;
-@@ -1110,6 +1111,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1107,6 +1108,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      // Paper end - detailed watchdog information
  
      public void move(MoverType movementType, Vec3 movement) {
@@ -31,7 +31,7 @@ index 9c3918791b89816d6096d782558d5e92f833efec..8d57e11293ab5d56adfbf9c6ff1f32b1
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
          io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
-@@ -4149,6 +4156,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4146,6 +4153,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      public final void setBoundingBox(AABB boundingBox) {

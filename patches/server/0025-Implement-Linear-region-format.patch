@@ -40,7 +40,7 @@ index 11dc1af9f8d8ce8c0a855d14a35077f5482ef0e8..def6f834d32b97e1065b17657e73d020
 +    }
  }
 diff --git a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
-index ca344da743a7503795bdaeff0a1b14e0721f5092..7deda3f07cbe5c520ae44575d79f4e857f0b44a1 100644
+index 53ccff176770be0d41469cbd71b9000f5e0cae3e..6273a41b4c06058fae7b20b9afd0563fcc17bda9 100644
 --- a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
 +++ b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
 @@ -1,5 +1,6 @@
@@ -58,7 +58,7 @@ index ca344da743a7503795bdaeff0a1b14e0721f5092..7deda3f07cbe5c520ae44575d79f4e85
  
  import static gq.bxteam.divinemc.configuration.DivineConfig.log;
  
-@@ -89,4 +91,23 @@ public class DivineWorldConfig {
+@@ -94,4 +96,23 @@ public class DivineWorldConfig {
      private void despawnShulkerBulletsOnOwnerDeath() {
          despawnShulkerBulletsOnOwnerDeath = getBoolean("gameplay-mechanics.mob.shulker.despawn-bullets-on-player-death", despawnShulkerBulletsOnOwnerDeath);
      }
@@ -677,7 +677,7 @@ index 9017907c0ec67a37a506f09b7e4499cef7885279..281c810237603e667ad0345a3c93e735
          long expectedChunks = (long)regionFiles.length * (32L * 32L);
  
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 0dc5b32fbd3b3d9bb1189f46aab32057f30b18d1..01e20bdc992f40cea05ff45462acdb29376df6f7 100644
+index b1dd8d66a524254a270a725f5f7a46f28e13b749..cd68584f2f842eea0d932f2baf5dcbd65f03f34a 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -884,7 +884,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
