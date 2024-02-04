@@ -40,6 +40,6 @@ All other files are licensed under MIT.
 
 ## 📈 bStats
 
-**TODO**
+[![bStats](https://bstats.org/signatures/server-implementation/DivineMC.svg)](https://bstats.org/plugin/server-implementation/DivineMC)
 
 ###### And we don't steal logo from YatopiaMC! [List of all forks](https://gist.github.com/SoSeDiK/1773ef2c239722f7083a25b2f78619ed)
