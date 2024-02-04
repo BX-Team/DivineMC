@@ -19,7 +19,7 @@ index fa7ee2b2778a26d0e466bdc05ade26a5ae0c17f4..11dc1af9f8d8ce8c0a855d14a35077f5
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index af592c7c82471d75381d77e43c8f81b525df217d..3de8e2f0c0eaad8527cd2ab35c624a47515b85f0 100644
+index 8352ac55efdfb2ff56c667ceaa0e4d7ce5365a23..c2cb9d6fd3587f33b95b1b60a0f9979a04739706 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -6,6 +6,7 @@ import com.mojang.authlib.GameProfile;
@@ -30,7 +30,7 @@ index af592c7c82471d75381d77e43c8f81b525df217d..3de8e2f0c0eaad8527cd2ab35c624a47
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
  import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-@@ -2324,6 +2325,8 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -2323,6 +2324,8 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
          if (this.player.isRemoved() || this.player.getChatVisibility() == ChatVisiblity.HIDDEN) { // CraftBukkit - dead men tell no tales
              this.send(new ClientboundSystemChatPacket(Component.translatable("chat.disabled.options").withStyle(ChatFormatting.RED), false));
              return Optional.empty();

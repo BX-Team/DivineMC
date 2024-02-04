@@ -7,10 +7,10 @@ Original post on Mojira: https://bugs.mojang.com/browse/MC-2025
 Fix taken from Reddit: https://redd.it/8pgd4q
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 9a9e4b4adbcd1eaed32a9610cfab3e8d71c0833b..9c3918791b89816d6096d782558d5e92f833efec 100644
+index fb2e589c1e7affbb9dfe07ccc5b80f7c96c8fce5..819505f651f86d32f279a7a4f2b7d4642959187e 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -2505,6 +2505,17 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2502,6 +2502,17 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  nbttagcompound.putBoolean("Purpur.FireImmune", immuneToFire);
              }
              // Purpur end
@@ -28,7 +28,7 @@ index 9a9e4b4adbcd1eaed32a9610cfab3e8d71c0833b..9c3918791b89816d6096d782558d5e92
              return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2582,6 +2593,14 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2579,6 +2590,14 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                          this.reapplyPosition();
                      }
  

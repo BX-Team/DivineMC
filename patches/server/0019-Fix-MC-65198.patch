@@ -6,7 +6,7 @@ Subject: [PATCH] Fix MC-65198
 Original post on Mojira: https://bugs.mojang.com/browse/MC-65198
 
 diff --git a/src/main/java/net/minecraft/world/inventory/ItemCombinerMenu.java b/src/main/java/net/minecraft/world/inventory/ItemCombinerMenu.java
-index a578882b64c581ef4f47fa483a9f2988cfa4c8cf..0660c07e1f360cb5e0a865a6b7574ea14a327f10 100644
+index 3756de835ea87e3a4fb87cbf77365ffd87957ea9..e5f40f0a8702c98914384e9ffd204da888f39262 100644
 --- a/src/main/java/net/minecraft/world/inventory/ItemCombinerMenu.java
 +++ b/src/main/java/net/minecraft/world/inventory/ItemCombinerMenu.java
 @@ -141,6 +141,7 @@ public abstract class ItemCombinerMenu extends AbstractContainerMenu {
@@ -27,7 +27,7 @@ index a578882b64c581ef4f47fa483a9f2988cfa4c8cf..0660c07e1f360cb5e0a865a6b7574ea1
          }
  
 diff --git a/src/main/java/net/minecraft/world/inventory/ResultSlot.java b/src/main/java/net/minecraft/world/inventory/ResultSlot.java
-index 8c97a7269040436cacc65fd182fa8e5f931b6c16..bf0335e1441d99844777eb8aa83db0d6d774aa9d 100644
+index 245731757f2593c736916ac6ee59e2c91d179934..537991e3b46d65f4313c42997d7f199a2796241b 100644
 --- a/src/main/java/net/minecraft/world/inventory/ResultSlot.java
 +++ b/src/main/java/net/minecraft/world/inventory/ResultSlot.java
 @@ -45,7 +45,7 @@ public class ResultSlot extends Slot {
@@ -40,10 +40,10 @@ index 8c97a7269040436cacc65fd182fa8e5f931b6c16..bf0335e1441d99844777eb8aa83db0d6
  
          Container var3 = this.container;
 diff --git a/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java b/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
-index f8129dcdcae12ed66ec58e8c749fa88ec3cd85d8..c90eed190d059dc5eb923cda39019a754d19ed05 100644
+index eade15820dd9db38b6af2a5c4314acfb14ca03e9..3cb6a347b3269cb8b451798c7d1606227ebca007 100644
 --- a/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
 +++ b/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
-@@ -258,6 +258,7 @@ public class StonecutterMenu extends AbstractContainerMenu {
+@@ -259,6 +259,7 @@ public class StonecutterMenu extends AbstractContainerMenu {
              Item item = itemstack1.getItem();
  
              itemstack = itemstack1.copy();
@@ -51,7 +51,7 @@ index f8129dcdcae12ed66ec58e8c749fa88ec3cd85d8..c90eed190d059dc5eb923cda39019a75
              if (slot == 1) {
                  item.onCraftedBy(itemstack1, player.level(), player);
                  if (!this.moveItemStackTo(itemstack1, 2, 38, true)) {
-@@ -290,7 +291,7 @@ public class StonecutterMenu extends AbstractContainerMenu {
+@@ -291,7 +292,7 @@ public class StonecutterMenu extends AbstractContainerMenu {
                  return ItemStack.EMPTY;
              }
  

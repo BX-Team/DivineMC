@@ -19,35 +19,6 @@ index 6964b6235bed4455b85aa69cef0049a769c5daad..771ac26bd2ad64ad2861881d6cb223c8
      implementation("org.apache.logging.log4j:log4j-iostreams:2.19.0") // Paper - remove exclusion
      implementation("org.ow2.asm:asm-commons:9.5")
      implementation("org.spongepowered:configurate-yaml:4.2.0-SNAPSHOT") // Paper - config files
-diff --git a/src/main/java/com/destroystokyo/paper/io/PaperFileIOThread.java b/src/main/java/com/destroystokyo/paper/io/PaperFileIOThread.java
-index f2c27e0ac65be4b75c1d86ef6fd45fdb538d96ac..84ef82da3a18341c1f8bc463360e8ba031299da4 100644
---- a/src/main/java/com/destroystokyo/paper/io/PaperFileIOThread.java
-+++ b/src/main/java/com/destroystokyo/paper/io/PaperFileIOThread.java
-@@ -1,10 +1,9 @@
- package com.destroystokyo.paper.io;
- 
- import com.mojang.logging.LogUtils;
-+import gq.bxteam.divinemc.region.AbstractRegionFile;
- import net.minecraft.nbt.CompoundTag;
- import net.minecraft.server.level.ServerLevel;
--import net.minecraft.world.level.ChunkPos;
--import net.minecraft.world.level.chunk.storage.RegionFile;
- import org.slf4j.Logger;
- 
- import java.io.IOException;
-@@ -314,8 +313,10 @@ public final class PaperFileIOThread extends QueueExecutorThread {
-         public abstract void writeData(final int x, final int z, final CompoundTag compound) throws IOException;
-         public abstract CompoundTag readData(final int x, final int z) throws IOException;
- 
--        public abstract <T> T computeForRegionFile(final int chunkX, final int chunkZ, final Function<RegionFile, T> function);
--        public abstract <T> T computeForRegionFileIfLoaded(final int chunkX, final int chunkZ, final Function<RegionFile, T> function);
-+        // DivineMC start - Implement Linear region
-+        public abstract <T> T computeForRegionFile(final int chunkX, final int chunkZ, final Function<AbstractRegionFile, T> function);
-+        public abstract <T> T computeForRegionFileIfLoaded(final int chunkX, final int chunkZ, final Function<AbstractRegionFile, T> function);
-+        // DivineMC end
- 
-         public static final class InProgressWrite {
-             public long writeCounter;
 diff --git a/src/main/java/gq/bxteam/divinemc/configuration/DivineConfig.java b/src/main/java/gq/bxteam/divinemc/configuration/DivineConfig.java
 index 11dc1af9f8d8ce8c0a855d14a35077f5482ef0e8..def6f834d32b97e1065b17657e73d020a873bd14 100644
 --- a/src/main/java/gq/bxteam/divinemc/configuration/DivineConfig.java
@@ -69,7 +40,7 @@ index 11dc1af9f8d8ce8c0a855d14a35077f5482ef0e8..def6f834d32b97e1065b17657e73d020
 +    }
  }
 diff --git a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
-index 53ccff176770be0d41469cbd71b9000f5e0cae3e..6273a41b4c06058fae7b20b9afd0563fcc17bda9 100644
+index ca344da743a7503795bdaeff0a1b14e0721f5092..7deda3f07cbe5c520ae44575d79f4e857f0b44a1 100644
 --- a/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
 +++ b/src/main/java/gq/bxteam/divinemc/configuration/DivineWorldConfig.java
 @@ -1,5 +1,6 @@
@@ -87,7 +58,7 @@ index 53ccff176770be0d41469cbd71b9000f5e0cae3e..6273a41b4c06058fae7b20b9afd0563f
  
  import static gq.bxteam.divinemc.configuration.DivineConfig.log;
  
-@@ -94,4 +96,23 @@ public class DivineWorldConfig {
+@@ -89,4 +91,23 @@ public class DivineWorldConfig {
      private void despawnShulkerBulletsOnOwnerDeath() {
          despawnShulkerBulletsOnOwnerDeath = getBoolean("gameplay-mechanics.mob.shulker.despawn-bullets-on-player-death", despawnShulkerBulletsOnOwnerDeath);
      }
@@ -583,7 +554,7 @@ index 0000000000000000000000000000000000000000..73468daa328a330e432fc2be3721a5c5
 +    }
 +}
 diff --git a/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java b/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java
-index 8a11e10b01fa012b2f98b1c193c53251e848f909..2b3c6d11421bb0f5131eeaae362ee44b2dd7d485 100644
+index 2934f0cf0ef09c84739312b00186c2ef0019a165..4dc416b921ed4730054775e6c2acddbc0b38f0ae 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java
 @@ -7,6 +7,7 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedQueueExecutorT
@@ -594,7 +565,7 @@ index 8a11e10b01fa012b2f98b1c193c53251e848f909..2b3c6d11421bb0f5131eeaae362ee44b
  import io.papermc.paper.util.CoordinateUtils;
  import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.HashCommon;
-@@ -811,7 +812,7 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
+@@ -816,7 +817,7 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
                                                 final ChunkDataController taskController) {
          final ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
          if (intendingToBlock) {
@@ -603,7 +574,7 @@ index 8a11e10b01fa012b2f98b1c193c53251e848f909..2b3c6d11421bb0f5131eeaae362ee44b
                  if (file == null) { // null if no regionfile exists
                      return Boolean.FALSE;
                  }
-@@ -824,7 +825,7 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
+@@ -829,7 +830,7 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
                  return Boolean.FALSE;
              } // else: it either exists or is not known, fall back to checking the loaded region file
  
@@ -612,7 +583,7 @@ index 8a11e10b01fa012b2f98b1c193c53251e848f909..2b3c6d11421bb0f5131eeaae362ee44b
                  if (file == null) { // null if not loaded
                      // not sure at this point, let the I/O thread figure it out
                      return Boolean.TRUE;
-@@ -1126,9 +1127,9 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
+@@ -1131,9 +1132,9 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
              return this.getCache().doesRegionFileNotExistNoIO(new ChunkPos(chunkX, chunkZ));
          }
  
@@ -624,7 +595,7 @@ index 8a11e10b01fa012b2f98b1c193c53251e848f909..2b3c6d11421bb0f5131eeaae362ee44b
              synchronized (cache) {
                  try {
                      regionFile = cache.getRegionFile(new ChunkPos(chunkX, chunkZ), existingOnly, true);
-@@ -1141,19 +1142,19 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
+@@ -1146,19 +1147,19 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
                  return function.apply(regionFile);
              } finally {
                  if (regionFile != null) {
@@ -648,7 +619,7 @@ index 8a11e10b01fa012b2f98b1c193c53251e848f909..2b3c6d11421bb0f5131eeaae362ee44b
                  }
              }
  
-@@ -1161,7 +1162,7 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
+@@ -1166,7 +1167,7 @@ public final class RegionFileIOThread extends PrioritisedQueueExecutorThread {
                  return function.apply(regionFile);
              } finally {
                  if (regionFile != null) {
@@ -706,10 +677,10 @@ index 9017907c0ec67a37a506f09b7e4499cef7885279..281c810237603e667ad0345a3c93e735
          long expectedChunks = (long)regionFiles.length * (32L * 32L);
  
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 2b53c6fb21b08f04c378278f1a5e78e1e4b276d7..0cb8adf4a7163f58ec2e2c3d7eda014ff69849e3 100644
+index 0dc5b32fbd3b3d9bb1189f46aab32057f30b18d1..01e20bdc992f40cea05ff45462acdb29376df6f7 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -885,7 +885,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -884,7 +884,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              // Paper start - rewrite chunk system
              worldserver.save((ProgressListener) null, flush, worldserver.noSave && !force, close);
              if (flush) {
@@ -718,7 +689,7 @@ index 2b53c6fb21b08f04c378278f1a5e78e1e4b276d7..0cb8adf4a7163f58ec2e2c3d7eda014f
              }
              // Paper end - rewrite chunk system
          }
-@@ -909,7 +909,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -908,7 +908,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  //MinecraftServer.LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", worldserver2.getChunkSource().chunkMap.getStorageName()); // Paper - move up
              }
  
