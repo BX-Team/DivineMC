@@ -1,4 +1,4 @@
-<img src="https://api.bxteam.gq/v3/resources/divinemc-logo.png" height="240" alt="DivineMC Face" align="right">
+<img src="https://github.com/DivineMC/DivineMC/assets/76615486/12e5dfef-b2cb-4fe6-8587-342f0d116d23" height="240" alt="DivineMC Face" align="right">
 
 <div align="center">
   <h1>DivineMC</h1>
