@@ -6,10 +6,10 @@ Subject: [PATCH] Option to allow weird movement and disable teleporting
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index c9f714d8aec6460e663c7ce24bc185ea45b56990..376ae7bde8fdf0efed5a7d33f67a1a5ae3b5e6e7 100644
+index 69a5e2362cdea3cb37306b7fe0ac21c3e626b875..c74869da3facf0bb109a165d7a7b4e48dceb462b 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -566,7 +566,7 @@ public class ServerGamePacketListenerImpl
+@@ -593,7 +593,7 @@ public class ServerGamePacketListenerImpl
                      return;
                  }
                  // Paper end - Prevent moving into unloaded chunks
@@ -18,16 +18,16 @@ index c9f714d8aec6460e663c7ce24bc185ea45b56990..376ae7bde8fdf0efed5a7d33f67a1a5a
                      // CraftBukkit end
                      LOGGER.warn(
                          "{} (vehicle of {}) moved too quickly! {},{},{}", rootVehicle.getName().getString(), this.player.getName().getString(), d3, d4, d5
-@@ -596,7 +596,7 @@ public class ServerGamePacketListenerImpl
+@@ -622,7 +622,7 @@ public class ServerGamePacketListenerImpl
                  d5 = d2 - rootVehicle.getZ();
                  d7 = d3 * d3 + d4 * d4 + d5 * d5;
-                 boolean flag2 = false;
+                 boolean flag1 = false;
 -                if (d7 > org.spigotmc.SpigotConfig.movedWronglyThreshold) { // Spigot
 +                if (!org.bxteam.divinemc.DivineConfig.alwaysAllowWeirdMovement && (d7 > org.spigotmc.SpigotConfig.movedWronglyThreshold)) { // Spigot // DivineMC - stop weird movement
-                     flag2 = true; // Paper - diff on change, this should be moved wrongly
+                     flag1 = true;
                      LOGGER.warn("{} (vehicle of {}) moved wrongly! {}", rootVehicle.getName().getString(), this.player.getName().getString(), Math.sqrt(d7));
                  }
-@@ -1512,20 +1512,24 @@ public class ServerGamePacketListenerImpl
+@@ -1513,20 +1513,24 @@ public class ServerGamePacketListenerImpl
                                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                                          float f2 = isFallFlying ? 300.0F : 100.0F;
                                          if (d7 - d6 > Math.max(f2, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed))) {
@@ -35,7 +35,7 @@ index c9f714d8aec6460e663c7ce24bc185ea45b56990..376ae7bde8fdf0efed5a7d33f67a1a5a
 -                                            // Paper start - Add fail move event
 -                                            io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_TOO_QUICKLY,
 +                                            // DivineMC start - Stop teleporting players when they move too quickly
-+                                            if (!org.bxteam.divinemc.DivineConfig.alwaysAllowWeirdMovement && !(org.bxteam.divinemc.DivineConfig.ignoreMovedTooQuicklyWhenLagging && player.serverLevel().getServer().lagging)) {
++                                            if (!org.bxteam.divinemc.DivineConfig.alwaysAllowWeirdMovement && !(org.bxteam.divinemc.DivineConfig.ignoreMovedTooQuicklyWhenLagging && player.level().getServer().lagging)) {
 +                                                // CraftBukkit end
 +                                                // Paper start - Add fail move event
 +                                                io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_TOO_QUICKLY,

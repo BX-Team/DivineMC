@@ -5,19 +5,19 @@ Subject: [PATCH] lithium: fast_util
 
 
 diff --git a/net/minecraft/core/Direction.java b/net/minecraft/core/Direction.java
-index 63fd7b45750430b565d599337d3112cbaa7e7550..4275a2e1e29c15cdda75c29c468255635f5c7bc1 100644
+index 2028c2a1613b36629dab2c8e36689af329596f09..586531a14586171a1c17e43b23a6203a4b37fe92 100644
 --- a/net/minecraft/core/Direction.java
 +++ b/net/minecraft/core/Direction.java
-@@ -222,7 +222,7 @@ public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.pa
+@@ -183,7 +183,7 @@ public enum Direction implements StringRepresentable {
      }
  
      public Direction getOpposite() {
--        return this.opposite; // Paper - optimise collisions
+-        return from3DDataValue(this.oppositeIndex);
 +        return VALUES[this.oppositeIndex]; // DivineMC - lithium: fast_util
      }
  
      public Direction getClockWise(Direction.Axis axis) {
-@@ -355,7 +355,7 @@ public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.pa
+@@ -316,7 +316,7 @@ public enum Direction implements StringRepresentable {
      }
  
      public static Direction getRandom(RandomSource random) {
@@ -27,7 +27,7 @@ index 63fd7b45750430b565d599337d3112cbaa7e7550..4275a2e1e29c15cdda75c29c46825563
  
      public static Direction getApproximateNearest(double x, double y, double z) {
 diff --git a/net/minecraft/world/phys/AABB.java b/net/minecraft/world/phys/AABB.java
-index 1866d857cabde481f23e861e0db7994bfa84ac40..de2a22fde8d91f13ccae347de48f4143d5749a6c 100644
+index 9279420eb96cefd2ad773627609ced35c3b06aee..99771c04d082ea9c5af93c5c12cd6b57754a31b7 100644
 --- a/net/minecraft/world/phys/AABB.java
 +++ b/net/minecraft/world/phys/AABB.java
 @@ -19,6 +19,15 @@ public class AABB {

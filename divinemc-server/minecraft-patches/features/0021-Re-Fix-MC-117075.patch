@@ -5,10 +5,10 @@ Subject: [PATCH] Re-Fix MC-117075
 
 
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 2e90bb96ed90f3debbe5803856ed41a5c08003f8..4eedfc61c7e682a44858703b462eecad17a48904 100644
+index c5f5546dfbadebfcd16074368eaca9ba68607b2d..63b4fd8853f163a6330219b0ccd1c68e95ae34fb 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -104,7 +104,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -103,7 +103,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      public static final int TICKS_PER_DAY = 24000;
      public static final int MAX_ENTITY_SPAWN_Y = 20000000;
      public static final int MIN_ENTITY_SPAWN_Y = -20000000;
@@ -17,10 +17,10 @@ index 2e90bb96ed90f3debbe5803856ed41a5c08003f8..4eedfc61c7e682a44858703b462eecad
      protected final NeighborUpdater neighborUpdater;
      private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
      private boolean tickingBlockEntities;
-@@ -1504,13 +1504,11 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -871,18 +871,16 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+         // Spigot start
          boolean runsNormally = this.tickRateManager().runsNormally();
  
-         int tickedEntities = 0; // Paper - rewrite chunk system
 -        var toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<TickingBlockEntity>(); // Paper - Fix MC-117075; use removeAll
 -        toRemove.add(null); // Paper - Fix MC-117075
          for (this.tileTickPosition = 0; this.tileTickPosition < this.blockEntityTickers.size(); this.tileTickPosition++) { // Paper - Disable tick limiters
@@ -31,9 +31,6 @@ index 2e90bb96ed90f3debbe5803856ed41a5c08003f8..4eedfc61c7e682a44858703b462eecad
 +                this.blockEntityTickers.markAsRemoved(this.tileTickPosition); // DivineMC - optimize block entity removals - Fix MC-117075
              } else if (runsNormally && this.shouldTickBlocksAt(tickingBlockEntity.getPos())) {
                  tickingBlockEntity.tick();
-                 // Paper start - rewrite chunk system
-@@ -1520,7 +1518,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
-                 // Paper end - rewrite chunk system
              }
          }
 -        this.blockEntityTickers.removeAll(toRemove); // Paper - Fix MC-117075
