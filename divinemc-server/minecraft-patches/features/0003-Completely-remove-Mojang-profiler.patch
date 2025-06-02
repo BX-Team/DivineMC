@@ -1098,7 +1098,7 @@ index 4221af18f5087badb5cd8c7cf66ab3312edf0394..e9d861182439eecacfab2ac431726e8a
          ChunkPyramid chunkPyramid = needsGeneration ? ChunkPyramid.GENERATION_PYRAMID : ChunkPyramid.LOADING_PYRAMID;
          return chunkPyramid.getStepTo(this.targetStatus).getAccumulatedRadiusOf(status);
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index f517b0d9d5ad5176f641ac61e2bef3a456b41e57..40369306bafa867566cca6b0b3bb1a1a09e87657 100644
+index f517b0d9d5ad5176f641ac61e2bef3a456b41e57..b18ac84384cf702f95d4a1ba319323a1b266f932 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -62,8 +62,6 @@ import net.minecraft.util.CsvOutput;
@@ -1126,8 +1126,24 @@ index f517b0d9d5ad5176f641ac61e2bef3a456b41e57..40369306bafa867566cca6b0b3bb1a1a
      }
  
      public boolean hasWork() {
+@@ -616,7 +609,6 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 (CompletionStage<? extends Object>)completableFuture1, (optional, object) -> optional
+             )
+             .thenApplyAsync(optional -> {
+-                Profiler.get().incrementCounter("chunkLoad");
+                 if (optional.isPresent()) {
+                     ChunkAccess chunkAccess = optional.get().read(this.level, this.poiManager, this.storageInfo(), chunkPos);
+                     this.markPosition(chunkPos, chunkAccess.getPersistedStatus().getChunkType());
+@@ -814,7 +806,6 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                     }
+                 }
+ 
+-                Profiler.get().incrementCounter("chunkSave");
+                 this.activeChunkWrites.incrementAndGet();
+                 SerializableChunkData serializableChunkData = SerializableChunkData.copyOf(this.level, chunk);
+                 CompletableFuture<CompoundTag> completableFuture = CompletableFuture.supplyAsync(serializableChunkData::write, Util.backgroundExecutor());
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 17ec8224bf5c2eebc7d6bcbe25e275be4bdb0a45..5075a427c0e31cc6cfb8291fca667c03b9ceb78a 100644
+index 17ec8224bf5c2eebc7d6bcbe25e275be4bdb0a45..125394d83e1d0c50ad4150e745f1e88cdcc0d68b 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -26,8 +26,6 @@ import net.minecraft.network.protocol.Packet;
@@ -1139,7 +1155,36 @@ index 17ec8224bf5c2eebc7d6bcbe25e275be4bdb0a45..5075a427c0e31cc6cfb8291fca667c03
  import net.minecraft.util.thread.BlockableEventLoop;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.MobCategory;
-@@ -394,36 +392,26 @@ public class ServerChunkCache extends ChunkSource {
+@@ -230,8 +228,6 @@ public class ServerChunkCache extends ChunkSource {
+                 return ifLoaded;
+             }
+             // Paper end - Perf: Optimise getChunkAt calls for loaded chunks
+-            ProfilerFiller profilerFiller = Profiler.get();
+-            profilerFiller.incrementCounter("getChunk");
+             long packedChunkPos = ChunkPos.asLong(x, z);
+ 
+             for (int i = 0; i < 4; i++) {
+@@ -243,7 +239,6 @@ public class ServerChunkCache extends ChunkSource {
+                 }
+             }
+ 
+-            profilerFiller.incrementCounter("getChunkCacheMiss");
+             CompletableFuture<ChunkResult<ChunkAccess>> chunkFutureMainThread = this.getChunkFutureMainThread(x, z, chunkStatus, requireChunk);
+             this.mainThreadProcessor.managedBlock(chunkFutureMainThread::isDone);
+             // com.destroystokyo.paper.io.SyncLoadFinder.logSyncLoad(this.level, x, z); // Paper - Add debug for sync chunk loads
+@@ -306,11 +301,8 @@ public class ServerChunkCache extends ChunkSource {
+             // CraftBukkit end
+             this.addTicket(new Ticket(TicketType.UNKNOWN, i), chunkPos);
+             if (this.chunkAbsent(visibleChunkIfPresent, i)) {
+-                ProfilerFiller profilerFiller = Profiler.get();
+-                profilerFiller.push("chunkLoad");
+                 this.runDistanceManagerUpdates();
+                 visibleChunkIfPresent = this.getVisibleChunkIfPresent(packedChunkPos);
+-                profilerFiller.pop();
+                 if (this.chunkAbsent(visibleChunkIfPresent, i)) {
+                     throw (IllegalStateException)Util.pauseInIde(new IllegalStateException("No chunk holder after ticket has been added"));
+                 }
+@@ -394,36 +386,26 @@ public class ServerChunkCache extends ChunkSource {
  
      // CraftBukkit start - modelled on below
      public void purgeUnload() {
@@ -1176,7 +1221,7 @@ index 17ec8224bf5c2eebc7d6bcbe25e275be4bdb0a45..5075a427c0e31cc6cfb8291fca667c03
          this.clearCache();
      }
  
-@@ -432,22 +420,15 @@ public class ServerChunkCache extends ChunkSource {
+@@ -432,22 +414,15 @@ public class ServerChunkCache extends ChunkSource {
          long l = gameTime - this.lastInhabitedUpdate;
          this.lastInhabitedUpdate = gameTime;
          if (!this.level.isDebug()) {
@@ -1202,7 +1247,7 @@ index 17ec8224bf5c2eebc7d6bcbe25e275be4bdb0a45..5075a427c0e31cc6cfb8291fca667c03
          for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
              LevelChunk tickingChunk = chunkHolder.getTickingChunk();
              if (tickingChunk != null) {
-@@ -456,17 +437,14 @@ public class ServerChunkCache extends ChunkSource {
+@@ -456,17 +431,14 @@ public class ServerChunkCache extends ChunkSource {
          }
  
          this.chunkHoldersToBroadcast.clear();
@@ -1221,7 +1266,7 @@ index 17ec8224bf5c2eebc7d6bcbe25e275be4bdb0a45..5075a427c0e31cc6cfb8291fca667c03
          boolean _boolean = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !this.level.players().isEmpty(); // CraftBukkit
          int _int = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
          List<MobCategory> filteredSpawningCategories;
-@@ -488,11 +466,8 @@ public class ServerChunkCache extends ChunkSource {
+@@ -488,11 +460,8 @@ public class ServerChunkCache extends ChunkSource {
          List<LevelChunk> list = this.spawningChunks;
  
          try {
@@ -1233,7 +1278,7 @@ index 17ec8224bf5c2eebc7d6bcbe25e275be4bdb0a45..5075a427c0e31cc6cfb8291fca667c03
  
              for (LevelChunk levelChunk : list) {
                  this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, spawnState);
-@@ -501,10 +476,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -501,10 +470,7 @@ public class ServerChunkCache extends ChunkSource {
              list.clear();
          }
  
@@ -1244,7 +1289,7 @@ index 17ec8224bf5c2eebc7d6bcbe25e275be4bdb0a45..5075a427c0e31cc6cfb8291fca667c03
          if (_boolean) {
              this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
          }
-@@ -707,7 +679,6 @@ public class ServerChunkCache extends ChunkSource {
+@@ -707,7 +673,6 @@ public class ServerChunkCache extends ChunkSource {
  
          @Override
          protected void doRunTask(Runnable task) {
@@ -4419,6 +4464,33 @@ index c569074403b1d8b443aaa98ba9cf9bbd0e98bd2d..b1aa7294f9479f45fcde77c5ea46db9f
              if (hasLineOfSight) {
                  this.seen.add(id);
              } else {
+diff --git a/net/minecraft/world/entity/animal/HappyGhast.java b/net/minecraft/world/entity/animal/HappyGhast.java
+index 50a64a312cb6af0f39117993553b66de1f095150..6c5c6aee54ba97b10d797ee989adf8cbae3b39b2 100644
+--- a/net/minecraft/world/entity/animal/HappyGhast.java
++++ b/net/minecraft/world/entity/animal/HappyGhast.java
+@@ -13,8 +13,6 @@ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.tags.ItemTags;
+ import net.minecraft.util.Mth;
+-import net.minecraft.util.profiling.Profiler;
+-import net.minecraft.util.profiling.ProfilerFiller;
+ import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.InteractionResult;
+ import net.minecraft.world.damagesource.DamageSource;
+@@ -406,13 +404,8 @@ public class HappyGhast extends Animal {
+     @Override
+     protected void customServerAiStep(ServerLevel level) {
+         if (this.isBaby()) {
+-            ProfilerFiller profilerFiller = Profiler.get();
+-            profilerFiller.push("happyGhastBrain");
+             ((Brain<HappyGhast>)this.brain).tick(level, this);
+-            profilerFiller.pop();
+-            profilerFiller.push("happyGhastActivityUpdate");
+             HappyGhastAi.updateActivity(this);
+-            profilerFiller.pop();
+         }
+ 
+         this.setRequiresPrecisePosition(this.isPlayerAboveGhast());
 diff --git a/net/minecraft/world/entity/animal/allay/Allay.java b/net/minecraft/world/entity/animal/allay/Allay.java
 index cf6ff7b7b4a007d7ff4b3c5a25d4f5a36422c683..c5275d6069a491c3c2b2de175b76fb871b667b0c 100644
 --- a/net/minecraft/world/entity/animal/allay/Allay.java

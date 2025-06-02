@@ -52,10 +52,10 @@ index b286dc17cda16fca3af9374d2a4a8bd137c24450..51ab710091c83350a1b0a9d2738aea3d
              this.get("generator-settings", property -> GsonHelper.parse(!property.isEmpty() ? property : "{}"), new JsonObject()),
              this.get("level-type", property -> property.toLowerCase(Locale.ROOT), WorldPresets.NORMAL.location().toString())
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 5075a427c0e31cc6cfb8291fca667c03b9ceb78a..25c292a422107604d34eef630ec4fee5cc3a4bd4 100644
+index 125394d83e1d0c50ad4150e745f1e88cdcc0d68b..41ff753dfff94d4cdd86b51f1d6fd47751a8860c 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -514,6 +514,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -508,6 +508,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public ChunkGenerator getGenerator() {

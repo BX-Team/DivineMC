@@ -6,8 +6,8 @@
                  }
 +
 +                // DivineMC start - Fix MC-200418
-+                if (villager.isPassenger() && villager.getVehicle() instanceof net.minecraft.world.entity.animal.Chicken && villager.isBaby()) {
-+                    villager.removeVehicle();
++                if (mob.isPassenger() && mob.getVehicle() instanceof net.minecraft.world.entity.animal.Chicken && mob.isBaby()) {
++                    mob.removeVehicle();
 +                }
 +                // DivineMC end - Fix MC-200418
                  // CraftBukkit start
