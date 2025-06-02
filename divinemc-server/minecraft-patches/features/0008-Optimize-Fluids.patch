@@ -17,10 +17,10 @@ index ae609e0603a78423c4c89b7efb9c41ab8fe7aa52..5c143e3227371c701f36362e24bd3c1f
                      }
                      // CraftBukkit end
 diff --git a/net/minecraft/world/level/material/FlowingFluid.java b/net/minecraft/world/level/material/FlowingFluid.java
-index 1b06e44a267d2d4af844997ac0c557f30aaf9b15..abf1866c26330fc3ec61a4457a7c6966cf0f38a7 100644
+index 169d103491de6a78e1473d9ca8f625c8b23f1a3c..c49ee2dc6dfa5fb5073aae7f677a631569b77c57 100644
 --- a/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/net/minecraft/world/level/material/FlowingFluid.java
-@@ -199,6 +199,7 @@ public abstract class FlowingFluid extends Fluid {
+@@ -157,6 +157,7 @@ public abstract class FlowingFluid extends Fluid {
                  BlockPos blockPos = pos.relative(direction);
                  final BlockState blockStateIfLoaded = level.getBlockStateIfLoaded(blockPos); // Paper - Prevent chunk loading from fluid flowing
                  if (blockStateIfLoaded == null) continue; // Paper - Prevent chunk loading from fluid flowing
@@ -28,7 +28,7 @@ index 1b06e44a267d2d4af844997ac0c557f30aaf9b15..abf1866c26330fc3ec61a4457a7c6966
                  // CraftBukkit start
                  org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
                  org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
-@@ -213,6 +214,39 @@ public abstract class FlowingFluid extends Fluid {
+@@ -171,6 +172,39 @@ public abstract class FlowingFluid extends Fluid {
          }
      }
  
@@ -68,7 +68,7 @@ index 1b06e44a267d2d4af844997ac0c557f30aaf9b15..abf1866c26330fc3ec61a4457a7c6966
      protected FluidState getNewLiquid(ServerLevel level, BlockPos pos, BlockState state) {
          int i = 0;
          int i1 = 0;
-@@ -342,33 +376,46 @@ public abstract class FlowingFluid extends Fluid {
+@@ -290,33 +324,46 @@ public abstract class FlowingFluid extends Fluid {
  
      protected abstract void beforeDestroyingBlock(LevelAccessor level, BlockPos pos, BlockState state);
  

@@ -7,10 +7,10 @@ Subject: [PATCH] SparklyPaper: Allow throttling hopper checks if the target
 Original project: https://github.com/SparklyPower/SparklyPaper
 
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 15d4f60942c0cc612c1468b4c0fda886867a67cb..d701952d940c0da245aa4f9e3664dd5cfcc8771e 100644
+index 94d68fbb3d152b2fd43f989b728c5efabbf3c22c..2c1d5fd29ad0a3c26aca738d4097126967037319 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-@@ -423,6 +423,11 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -185,6 +185,11 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          } else {
              Direction opposite = blockEntity.facing.getOpposite();
              if (isFullContainer(attachedContainer, opposite)) {
@@ -21,4 +21,4 @@ index 15d4f60942c0cc612c1468b4c0fda886867a67cb..d701952d940c0da245aa4f9e3664dd5c
 +                // DivineMC end - SparklyPaper: Allow throttling hopper checks if the target container is full
                  return false;
              } else {
-                 // Paper start - Perf: Optimize Hoppers
+                 for (int i = 0; i < blockEntity.getContainerSize(); i++) {

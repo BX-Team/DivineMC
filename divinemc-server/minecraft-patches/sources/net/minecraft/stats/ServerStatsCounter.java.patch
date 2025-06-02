@@ -1,6 +1,6 @@
 --- a/net/minecraft/stats/ServerStatsCounter.java
 +++ b/net/minecraft/stats/ServerStatsCounter.java
-@@ -100,12 +_,6 @@
+@@ -98,12 +_,6 @@
          this.dirty.add(stat);
      }
  
@@ -12,8 +12,8 @@
 -
      public void parseLocal(DataFixer fixerUpper, String json) {
          try {
-             try (JsonReader jsonReader = new JsonReader(new StringReader(json))) {
-@@ -144,9 +_,11 @@
+             JsonElement jsonElement = StrictJsonParser.parse(json);
+@@ -139,9 +_,11 @@
      public void sendStats(ServerPlayer player) {
          Object2IntMap<Stat<?>> map = new Object2IntOpenHashMap<>();
  

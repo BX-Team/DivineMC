@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -270,11 +_,18 @@
+@@ -225,11 +_,18 @@
      public BlockState getBlockStateFinal(final int x, final int y, final int z) {
          // Copied and modified from below
          final int sectionIndex = this.getSectionIndex(y);

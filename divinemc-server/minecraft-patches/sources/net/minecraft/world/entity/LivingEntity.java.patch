@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -1393,7 +_,7 @@
+@@ -1425,7 +_,7 @@
                  player.setRealHealth(health);
              }
  
@@ -9,7 +9,7 @@
              return;
          }
          // CraftBukkit end
-@@ -2730,6 +_,7 @@
+@@ -2762,6 +_,7 @@
      }
  
      protected void updateSwingTime() {
@@ -17,7 +17,7 @@
          int currentSwingDuration = this.getCurrentSwingDuration();
          if (this.swinging) {
              this.swingTime++;
-@@ -3212,7 +_,13 @@
+@@ -3264,7 +_,13 @@
      }
  
      protected float getFlyingSpeed() {
@@ -32,9 +32,9 @@
      }
  
      public float getSpeed() {
-@@ -3657,6 +_,7 @@
+@@ -3713,6 +_,7 @@
      protected void updateFallFlying() {
-         this.checkSlowFallDistance();
+         this.checkFallDistanceAccumulation();
          if (!this.level().isClientSide) {
 +            if (!this.isFallFlying() && this.fallFlyTicks == 0) return; // DivineMC - lithium: entity.fast_elytra_check
              if (!this.canGlide()) {

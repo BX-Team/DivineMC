@@ -5,7 +5,7 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index debea77d5777b90c6b17b225e27e6b3c72370175..1a8c125a58f7363dbff4f11f5e34537ca1fbd605 100644
+index 443d94273499948dc9622fa3799992688ac902ec..6e4f6b8dc8cae594276a1fcf88b0c802eab9ad39 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -193,6 +193,15 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -25,10 +25,10 @@ index debea77d5777b90c6b17b225e27e6b3c72370175..1a8c125a58f7363dbff4f11f5e34537c
  
          // DivineMC start - Pufferfish SIMD
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 801c4e8e01590beeb3633275f58d436d87ad746e..269011e6ba70c9da42f2bc7c902fed5ab6994042 100644
+index 3177bc44ccd28faa9694b208cb59607701aef5a7..a604bea96adee228fdc7b9ad2626c27d652b397c 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -161,6 +161,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -160,6 +160,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      // Paper end - add paper world config
  
      public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files
@@ -36,7 +36,7 @@ index 801c4e8e01590beeb3633275f58d436d87ad746e..269011e6ba70c9da42f2bc7c902fed5a
      public static @Nullable BlockPos lastPhysicsProblem; // Spigot
      private int tileTickPosition;
      public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
-@@ -885,6 +886,14 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -252,6 +253,14 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName()); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
          this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName(), environment); // Purpur - Purpur config files

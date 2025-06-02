@@ -5,10 +5,10 @@ Subject: [PATCH] Leaf: Improve BlockEntity ticking isRemoved check
 
 
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 7eb6da13dc47eaeac6e70d4e2935c1cc022c6400..d2eed7a0cf0c2c9dbcfb272cf89194f11d37151c 100644
+index 339792d573aae48a783497fc7ec53f0874b0ef0c..6f6290444b69f6c07750c4eee7b0052869714c0a 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -992,13 +992,26 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -924,13 +924,26 @@ public class LevelChunk extends ChunkAccess {
  
      public static class RebindableTickingBlockEntityWrapper implements TickingBlockEntity {
          public TickingBlockEntity ticker;
@@ -35,7 +35,7 @@ index 7eb6da13dc47eaeac6e70d4e2935c1cc022c6400..d2eed7a0cf0c2c9dbcfb272cf89194f1
          }
  
          @Override
-@@ -1008,6 +1021,12 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -940,6 +953,12 @@ public class LevelChunk extends ChunkAccess {
  
          @Override
          public boolean isRemoved() {

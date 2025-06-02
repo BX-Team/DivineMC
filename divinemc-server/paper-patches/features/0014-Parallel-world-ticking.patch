@@ -247,7 +247,7 @@ index a9ec83b5bcb329bf3d2f3fb0e502685a37f9dcbc..adf526bcb5b4df3b798a8b80ad11b7b2
          } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
              // DivineMC start - Multithreaded Tracker
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 7ce39901cb1bd41a214ed4444d2072656943fa0f..c3ea717868c2064ea5ff23a79cbbe4cc81557c86 100644
+index ca80f0fecd39220128013966345db2025a5c009f..775555f5d0628e95aa2920690d3dfb18b96a3140 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -447,7 +447,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
@@ -500,10 +500,10 @@ index a4d5c65edc1db59f3486ce5d3757cc306211a54b..427719a50edc89f4bb7214577279f746
          this.getNMS().tick(level, this.position, level.random);
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
-index 3422970353dcd886934b9ee906467769d39abbde..cb60c1b09f06872c07d05b04b7bacc5921fea78d 100644
+index 11a04c3e8dc4e9aa124977d2aa56716f30d8e759..739fc60b991b788aacf916e0405c48fc700e83c0 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
-@@ -26,6 +26,25 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
+@@ -28,6 +28,25 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
      private final T snapshot;
      public boolean snapshotDisabled; // Paper
      public static boolean DISABLE_SNAPSHOT = false; // Paper
@@ -529,7 +529,7 @@ index 3422970353dcd886934b9ee906467769d39abbde..cb60c1b09f06872c07d05b04b7bacc59
  
      public CraftBlockEntityState(World world, T blockEntity) {
          super(world, blockEntity.getBlockPos(), blockEntity.getBlockState());
-@@ -34,8 +53,10 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
+@@ -36,8 +55,10 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
  
          try { // Paper - Show blockstate location if we failed to read it
          // Paper start
@@ -568,7 +568,7 @@ index 196835bdf95ba0e149b2977e9ef41698971f501f..bf70de08a9f5d49905b253bf549f6aeb
          net.minecraft.world.item.ItemStack nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(item);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
-index 2338e7c115037430cefae26a571ded71f77983c4..6d5af7f72158e9e4abbfb6ae650833a66ea7a934 100644
+index f762b345ee1e4f73a97b1a4095ba72ddd7996306..08722fd2d2acfe7975d8ab6e34773485e9db01fc 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
 @@ -195,14 +195,16 @@ public final class CraftBlockStates {

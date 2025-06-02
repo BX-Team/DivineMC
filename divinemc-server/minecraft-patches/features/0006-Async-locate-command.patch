@@ -5,10 +5,10 @@ Subject: [PATCH] Async locate command
 
 
 diff --git a/net/minecraft/server/commands/LocateCommand.java b/net/minecraft/server/commands/LocateCommand.java
-index 2723d5377567241921fef61952e474c1c0ee9bbf..ee9f84b33a34b5b9d7c3f8928c958c298f780a03 100644
+index a734b2597c3491db35d9660e169f8e8b6320900b..1692724f5406a22702f185f66073dd5e836ce7f8 100644
 --- a/net/minecraft/server/commands/LocateCommand.java
 +++ b/net/minecraft/server/commands/LocateCommand.java
-@@ -103,44 +103,77 @@ public class LocateCommand {
+@@ -100,44 +100,77 @@ public class LocateCommand {
      }
  
      private static int locateStructure(CommandSourceStack source, ResourceOrTagKeyArgument.Result<Structure> structure) throws CommandSyntaxException {
@@ -118,7 +118,7 @@ index 2723d5377567241921fef61952e474c1c0ee9bbf..ee9f84b33a34b5b9d7c3f8928c958c29
      }
  
      public static int showLocateResult(
-@@ -195,7 +228,7 @@ public class LocateCommand {
+@@ -192,7 +225,7 @@ public class LocateCommand {
                      .withHoverEvent(new HoverEvent.ShowText(Component.translatable("chat.coordinates.tooltip")))
              );
          source.sendSuccess(() -> Component.translatable(translationKey, elementName, component, i), false);

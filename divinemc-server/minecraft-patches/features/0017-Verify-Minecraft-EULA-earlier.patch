@@ -5,10 +5,10 @@ Subject: [PATCH] Verify Minecraft EULA earlier
 
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 29dd9a980bb7dc8457dd9ad6eeaa2c5067e3b954..a0553288d99e94d14345f25ec4672e1ca70950b6 100644
+index fc6f488e6c66444630124b4a2149fddbb47d6b25..7b6aded46577076fdf27c2260c8d2e529785e82b 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -123,7 +123,6 @@ public class Main {
+@@ -124,7 +124,6 @@ public class Main {
              dedicatedServerSettings.forceSave();
              RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
              Path path2 = Paths.get("eula.txt");
@@ -16,7 +16,7 @@ index 29dd9a980bb7dc8457dd9ad6eeaa2c5067e3b954..a0553288d99e94d14345f25ec4672e1c
              // Paper start - load config files early for access below if needed
              org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
              org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("spigot-settings"));
-@@ -146,19 +145,6 @@ public class Main {
+@@ -147,19 +146,6 @@ public class Main {
                  return;
              }
  

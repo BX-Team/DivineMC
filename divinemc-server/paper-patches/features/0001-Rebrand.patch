@@ -175,7 +175,7 @@ index d543b1b107ab8d3eeb1fc3c1cadf489928d2786e..00000000000000000000000000000000
 -    }
 -}
 diff --git a/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java b/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
-index b36e30fd4057a938e4d90cb42a2dca661f16478e..4e29f5f55b9a894099bef6f7c7f11e2a96b02fc8 100644
+index 1b0ee48e28aaa68ddb1f28c23d3c5f5f40505c98..4d3518795a238d87ca4f3df0bee074ab5bcc2734 100644
 --- a/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
 +++ b/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
 @@ -23,15 +23,18 @@ public record ServerBuildInfoImpl(
@@ -201,13 +201,13 @@ index b36e30fd4057a938e4d90cb42a2dca661f16478e..4e29f5f55b9a894099bef6f7c7f11e2a
          this(
              getManifestAttribute(manifest, ATTRIBUTE_BRAND_ID)
                  .map(Key::key)
--                .orElse(BRAND_PURPUR_ID), // Purpur - Fix pufferfish issues // Purpur - Rebrand
+-                .orElse(BRAND_PURPUR_ID), // Purpur - Rebrand
 +                .orElse(BRAND_DIVINEMC_ID), // DivineMC - Rebrand
              getManifestAttribute(manifest, ATTRIBUTE_BRAND_NAME)
--                .orElse(BRAND_PURPUR_NAME), // Purpur - Fix pufferfish issues // Purpur - Rebrand
+-                .orElse(BRAND_PURPUR_NAME), // Purpur - Rebrand
 +                .orElse(BRAND_DIVINEMC_NAME), // DivineMC - Rebrand
-             SharedConstants.getCurrentVersion().getId(),
-             SharedConstants.getCurrentVersion().getName(),
+             SharedConstants.getCurrentVersion().id(),
+             SharedConstants.getCurrentVersion().name(),
              getManifestAttribute(manifest, ATTRIBUTE_BUILD_NUMBER)
 @@ -58,6 +61,7 @@ public record ServerBuildInfoImpl(
              getManifestAttribute(manifest, ATTRIBUTE_GIT_BRANCH),
@@ -270,7 +270,7 @@ index 99eb04643fce44c37fd96c99756837ccafe7b559..4aef151bd162c4c99a3eaec1854b5463
  
          if (stream != null) {
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index db1939eeef1d9de36ead4bba003418a03f8f4231..dffff76bf6df39dd26892edc2b4988fafab282e7 100644
+index b8b5c2da54a4875d0d23ae6f3efb6052ef25463a..0df159b65ade979c15992aaec51ea1dbc988085b 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
 @@ -75,14 +75,14 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
@@ -304,7 +304,7 @@ index db1939eeef1d9de36ead4bba003418a03f8f4231..dffff76bf6df39dd26892edc2b4988fa
 -                logger.log(Level.SEVERE, "Server thread dump (Look for plugins here before reporting to Purpur!):" ); // Paper // Purpur - Rebrand
 +                logger.log(Level.SEVERE, "Server thread dump (Look for plugins here before reporting to DivineMC!):" ); // DivineMC - Rebrand
                  FeatureHooks.dumpAllChunkLoadInfo(MinecraftServer.getServer(), isLongTimeout); // Paper - log detailed tick information
-                 WatchdogThread.dumpThread(ManagementFactory.getThreadMXBean().getThreadInfo(MinecraftServer.getServer().serverThread.threadId(), Integer.MAX_VALUE), logger);
+                 WatchdogThread.dumpThread(ManagementFactory.getThreadMXBean().getThreadInfo(MinecraftServer.getServer().serverThread.getId(), Integer.MAX_VALUE), logger);
                  logger.log(Level.SEVERE, "------------------------------");
 @@ -120,7 +120,7 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
                          WatchdogThread.dumpThread(thread, logger);

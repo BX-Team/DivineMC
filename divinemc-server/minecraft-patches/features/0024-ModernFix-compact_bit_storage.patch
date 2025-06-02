@@ -10,10 +10,10 @@ As part of: ModernFix (https://github.com/embeddedt/ModernFix)
 Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 
 diff --git a/net/minecraft/world/level/chunk/PalettedContainer.java b/net/minecraft/world/level/chunk/PalettedContainer.java
-index a512609aaa823b940ed269c981fc9beec49a126e..2829ebdda8e9ad8945fe7d3f96c3cdaad798a40a 100644
+index 61fd23590dfac7a532775d0ab9aa682b67482cca..8a47fa2eb6de3dbea9d22ac10efad99dca772163 100644
 --- a/net/minecraft/world/level/chunk/PalettedContainer.java
 +++ b/net/minecraft/world/level/chunk/PalettedContainer.java
-@@ -275,6 +275,28 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
+@@ -238,6 +238,28 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
              data.palette.read(buffer);
              buffer.readFixedSizeLongArray(data.storage.getRaw());
              this.data = data;
@@ -40,5 +40,5 @@ index a512609aaa823b940ed269c981fc9beec49a126e..2829ebdda8e9ad8945fe7d3f96c3cdaa
 +            }
 +            // DivineMC end - ModernFix: compact_bit_storage
              this.addPresetValues(); // Paper - Anti-Xray - Add preset values (inefficient, but this isn't used by the server)
-             this.updateData(this.data); // Paper - optimise palette reads
          } finally {
+             this.release();

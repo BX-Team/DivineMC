@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/ZombieVillager.java
 +++ b/net/minecraft/world/entity/monster/ZombieVillager.java
-@@ -293,6 +_,12 @@
+@@ -292,6 +_,12 @@
                  if (!this.isSilent()) {
                      level.levelEvent(null, 1027, this.blockPosition(), 0);
                  }
