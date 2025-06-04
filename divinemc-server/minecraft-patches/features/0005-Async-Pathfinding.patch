@@ -9,13 +9,13 @@ You can find the original code on https://github.com/Bloom-host/Petal
 Makes most pathfinding-related work happen asynchronously
 
 diff --git a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
-index 8fc04885e195ee20b93eab9825f1fe1cb71a5f99..5481df95a5cca4c7a0e5db8ad3de26caf058d660 100644
+index 67cbf9f5760fae5db6f31e64095cd1b6be6ade8e..7ad36864d700f3012a3791bf3814465e5e9deffa 100644
 --- a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
 +++ b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
-@@ -90,21 +90,18 @@ public class AcquirePoi {
-                                 .limit(5L)
-                                 .filter(pair1 -> predicate.test(level, pair1.getSecond()))
-                                 .collect(Collectors.toSet());
+@@ -94,21 +94,18 @@ public class AcquirePoi {
+                                 }
+                             }
+                             // Paper end - optimise POI access
 -                            Path path = findPathToPois(mob, set);
 -                            if (path != null && path.canReach()) {
 -                                BlockPos target = path.getTarget();
@@ -43,7 +43,7 @@ index 8fc04885e195ee20b93eab9825f1fe1cb71a5f99..5481df95a5cca4c7a0e5db8ad3de26ca
  
                              return true;
                          }
-@@ -116,6 +113,34 @@ public class AcquirePoi {
+@@ -120,6 +117,34 @@ public class AcquirePoi {
              : BehaviorBuilder.create(instance -> instance.group(instance.absent(existingAbsentMemory)).apply(instance, memoryAccessor -> oneShot));
      }
  
@@ -510,14 +510,15 @@ index ea0f6a19e4a79538e68917ba86cbc98be4dbca8d..c8e881092b0418fcc8123386938c014a
      }
  
 diff --git a/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java b/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
-index 92d906ad590e9a2391b4a5b686a83cc3329f6953..d1e66314d5ece9df1d53cb1d8e30625194fa621e 100644
+index 1f96fd5085bacb4c584576c7cb9f51e7898e9b03..9494dd144ff1115c9f0862614ef618035ee2565f 100644
 --- a/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
-@@ -57,16 +57,32 @@ public class NearestBedSensor extends Sensor<Mob> {
-                     holder -> holder.is(PoiTypes.HOME), predicate, entity.blockPosition(), level.purpurConfig.villagerNearestBedSensorSearchRadius, PoiManager.Occupancy.ANY
-                 )
-                 .collect(Collectors.toSet()); // Purpur - Configurable villager search radius
--            Path path = AcquirePoi.findPathToPois(entity, set);
+@@ -57,17 +57,32 @@ public class NearestBedSensor extends Sensor<Mob> {
+             java.util.List<Pair<Holder<PoiType>, BlockPos>> poiposes = new java.util.ArrayList<>();
+             // don't ask me why it's unbounded. ask mojang.
+             io.papermc.paper.util.PoiAccess.findAnyPoiPositions(poiManager, type -> type.is(PoiTypes.HOME), predicate, entity.blockPosition(), level.purpurConfig.villagerNearestBedSensorSearchRadius, PoiManager.Occupancy.ANY, false, Integer.MAX_VALUE, poiposes); // Purpur - Configurable villager search radius
+-            Path path = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(poiposes));
+-            // Paper end - optimise POI access
 -            if (path != null && path.canReach()) {
 -                BlockPos target = path.getTarget();
 -                Optional<Holder<PoiType>> type = poiManager.getType(target);
@@ -528,12 +529,12 @@ index 92d906ad590e9a2391b4a5b686a83cc3329f6953..d1e66314d5ece9df1d53cb1d8e306251
 -                this.batchCache.long2LongEntrySet().removeIf(entry -> entry.getLongValue() < this.lastUpdate);
 +            // DivineMC start - async pathfinding
 +            if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
-+                Path possiblePath = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(set));
++                Path possiblePath = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(poiposes));
 +                org.bxteam.divinemc.entity.pathfinding.AsyncPathProcessor.awaitProcessing(possiblePath, path -> {
 +                    processPath(entity, poiManager, path);
 +                });
 +            } else {
-+                Path path = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(set));
++                Path path = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(poiposes));
 +                // Paper end - optimise POI access
 +                processPath(entity, poiManager, path);
 +            }

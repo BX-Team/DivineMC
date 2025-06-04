@@ -5,10 +5,10 @@ Subject: [PATCH] Virtual Threads
 
 
 diff --git a/src/main/java/io/papermc/paper/util/MCUtil.java b/src/main/java/io/papermc/paper/util/MCUtil.java
-index 27927bb7967a417dd3542e7d62d67a13118ed98e..e13041562921adae2a02553506ea167dc16b4ddf 100644
+index 8492a06883e2ff597bbbdaa74fe5e5cdd0a0a1b1..9332a1b995ca0b56e4c326c5af17fc592fc62fe4 100644
 --- a/src/main/java/io/papermc/paper/util/MCUtil.java
 +++ b/src/main/java/io/papermc/paper/util/MCUtil.java
-@@ -35,7 +35,7 @@ public final class MCUtil {
+@@ -37,7 +37,7 @@ public final class MCUtil {
              run.run();
          }
      };

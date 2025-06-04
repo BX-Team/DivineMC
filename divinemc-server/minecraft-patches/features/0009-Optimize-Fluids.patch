@@ -1,0 +1,145 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Fri, 31 Jan 2025 22:40:54 +0300
+Subject: [PATCH] Optimize Fluids
+
+
+diff --git a/net/minecraft/world/level/block/LiquidBlock.java b/net/minecraft/world/level/block/LiquidBlock.java
+index ae609e0603a78423c4c89b7efb9c41ab8fe7aa52..5c143e3227371c701f36362e24bd3c1fc8061ed2 100644
+--- a/net/minecraft/world/level/block/LiquidBlock.java
++++ b/net/minecraft/world/level/block/LiquidBlock.java
+@@ -193,6 +193,7 @@ public class LiquidBlock extends Block implements BucketPickup {
+                     Block block = level.getFluidState(pos).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
+                     // CraftBukkit start
+                     if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, block.defaultBlockState(), 3)) {
++                        level.setBlock(pos, block.defaultBlockState(), 3); // DivineMC - Optimize Fluids
+                         this.fizz(level, pos);
+                     }
+                     // CraftBukkit end
+diff --git a/net/minecraft/world/level/material/FlowingFluid.java b/net/minecraft/world/level/material/FlowingFluid.java
+index 1b06e44a267d2d4af844997ac0c557f30aaf9b15..abf1866c26330fc3ec61a4457a7c6966cf0f38a7 100644
+--- a/net/minecraft/world/level/material/FlowingFluid.java
++++ b/net/minecraft/world/level/material/FlowingFluid.java
+@@ -199,6 +199,7 @@ public abstract class FlowingFluid extends Fluid {
+                 BlockPos blockPos = pos.relative(direction);
+                 final BlockState blockStateIfLoaded = level.getBlockStateIfLoaded(blockPos); // Paper - Prevent chunk loading from fluid flowing
+                 if (blockStateIfLoaded == null) continue; // Paper - Prevent chunk loading from fluid flowing
++                if (!shouldSpreadLiquid(level, blockPos, blockStateIfLoaded)) continue; // DivineMC - Optimize Fluids
+                 // CraftBukkit start
+                 org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
+                 org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
+@@ -213,6 +214,39 @@ public abstract class FlowingFluid extends Fluid {
+         }
+     }
+ 
++    // DivineMC start - Optimize Fluids
++    private boolean shouldSpreadLiquid(Level level, BlockPos pos, BlockState state) {
++        if (state.is(Blocks.LAVA)) {
++            boolean isSoulSoil = level.getBlockState(pos.below()).is(Blocks.SOUL_SOIL);
++
++            for (Direction direction : net.minecraft.world.level.block.LiquidBlock.POSSIBLE_FLOW_DIRECTIONS) {
++                BlockPos blockPos = pos.relative(direction.getOpposite());
++                if (level.getFluidState(blockPos).is(net.minecraft.tags.FluidTags.WATER)) {
++                    Block block = level.getFluidState(pos).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, block.defaultBlockState(), 3)) {
++                        this.fizz(level, pos);
++                        level.setBlock(pos, block.defaultBlockState(), 3);
++                    }
++                    return false;
++                }
++
++                if (isSoulSoil && level.getBlockState(blockPos).is(Blocks.BLUE_ICE)) {
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, Blocks.BASALT.defaultBlockState(), 3)) {
++                        this.fizz(level, pos);
++                    }
++                    return false;
++                }
++            }
++        }
++
++        return true;
++    }
++
++    private void fizz(LevelAccessor level, BlockPos pos) {
++        level.levelEvent(1501, pos, 0);
++    }
++    // DivineMC end - Optimize Fluids
++
+     protected FluidState getNewLiquid(ServerLevel level, BlockPos pos, BlockState state) {
+         int i = 0;
+         int i1 = 0;
+@@ -342,33 +376,46 @@ public abstract class FlowingFluid extends Fluid {
+ 
+     protected abstract void beforeDestroyingBlock(LevelAccessor level, BlockPos pos, BlockState state);
+ 
++    // DivineMC start - Optimize Fluids
+     protected int getSlopeDistance(LevelReader level, BlockPos pos, int depth, Direction direction, BlockState state, FlowingFluid.SpreadContext spreadContext) {
+-        int i = 1000;
++        int slopeFindDistance = this.getSlopeFindDistance(level);
++        int minDistance = slopeFindDistance;
+ 
+-        for (Direction direction1 : Direction.Plane.HORIZONTAL) {
+-            if (direction1 != direction) {
+-                BlockPos blockPos = pos.relative(direction1);
+-                BlockState blockState = spreadContext.getBlockStateIfLoaded(blockPos); // Paper - Prevent chunk loading from fluid flowing
+-                if (blockState == null) continue; // Paper - Prevent chunk loading from fluid flowing
+-                FluidState fluidState = blockState.getFluidState();
+-                if (this.canPassThrough(level, this.getFlowing(), pos, state, direction1, blockPos, blockState, fluidState)) {
+-                    if (spreadContext.isHole(blockPos)) {
+-                        return depth;
++        java.util.Deque<net.minecraft.world.level.material.FlowingFluid.Node> stack = new java.util.ArrayDeque<>();
++        stack.push(new Node(pos, depth, direction));
++
++        while (!stack.isEmpty()) {
++            Node current = stack.pop();
++            BlockPos currentPos = current.pos;
++            int currentDepth = current.depth;
++            Direction fromDirection = current.direction;
++
++            for (Direction dir : Direction.Plane.HORIZONTAL) {
++                if (dir == fromDirection) continue;
++
++                BlockPos neighborPos = currentPos.relative(dir);
++                BlockState neighborState = spreadContext.getBlockStateIfLoaded(neighborPos);
++                if (neighborState == null) continue; // Prevent chunk loading
++
++                FluidState fluidState = neighborState.getFluidState();
++                if (this.canPassThrough(level, this.getFlowing(), currentPos, state, dir, neighborPos, neighborState, fluidState)) {
++                    if (spreadContext.isHole(neighborPos)) {
++                        return currentDepth;
+                     }
+ 
+-                    if (depth < this.getSlopeFindDistance(level)) {
+-                        int slopeDistance = this.getSlopeDistance(level, blockPos, depth + 1, direction1.getOpposite(), blockState, spreadContext);
+-                        if (slopeDistance < i) {
+-                            i = slopeDistance;
+-                        }
++                    if (currentDepth + 1 < slopeFindDistance && currentDepth + 1 < minDistance) {
++                        stack.push(new Node(neighborPos, currentDepth + 1, dir.getOpposite()));
+                     }
+                 }
+             }
+         }
+ 
+-        return i;
++        return minDistance;
+     }
+ 
++    private record Node(BlockPos pos, int depth, Direction direction) { }
++    // DivineMC end - Optimize Fluids
++
+     boolean isWaterHole(BlockGetter level, BlockPos pos, BlockState state, BlockPos belowPos, BlockState belowState) {
+         return canPassThroughWall(Direction.DOWN, level, pos, state, belowPos, belowState)
+             && (belowState.getFluidState().getType().isSame(this) || canHoldFluid(level, belowPos, belowState, this.getFlowing()));
+diff --git a/net/minecraft/world/level/material/LavaFluid.java b/net/minecraft/world/level/material/LavaFluid.java
+index 43cdc2f8fdfdeb1426e386e0084087779ef62754..e7ae29a4da3bf36b99fdab39af78f03c06696dbc 100644
+--- a/net/minecraft/world/level/material/LavaFluid.java
++++ b/net/minecraft/world/level/material/LavaFluid.java
+@@ -236,6 +236,7 @@ public abstract class LavaFluid extends FlowingFluid {
+                     // CraftBukkit end
+                 }
+ 
++                level.setBlock(pos, Blocks.STONE.defaultBlockState(), 3); // DivineMC - Optimize Fluids
+                 this.fizz(level, pos);
+                 return;
+             }

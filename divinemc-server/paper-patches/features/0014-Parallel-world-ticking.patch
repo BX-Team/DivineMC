@@ -500,10 +500,10 @@ index a4d5c65edc1db59f3486ce5d3757cc306211a54b..427719a50edc89f4bb7214577279f746
          this.getNMS().tick(level, this.position, level.random);
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
-index 11a04c3e8dc4e9aa124977d2aa56716f30d8e759..739fc60b991b788aacf916e0405c48fc700e83c0 100644
+index b50c982d04cc8bc9d0ba07e4234650d0d6630774..1de0ba73a1cb5046198464c451c3ded83b3c5bdd 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
-@@ -28,6 +28,25 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
+@@ -33,6 +33,25 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
      private final T snapshot;
      public boolean snapshotDisabled; // Paper
      public static boolean DISABLE_SNAPSHOT = false; // Paper
@@ -529,7 +529,7 @@ index 11a04c3e8dc4e9aa124977d2aa56716f30d8e759..739fc60b991b788aacf916e0405c48fc
  
      public CraftBlockEntityState(World world, T blockEntity) {
          super(world, blockEntity.getBlockPos(), blockEntity.getBlockState());
-@@ -36,8 +55,10 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
+@@ -41,8 +60,10 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
  
          try { // Paper - Show blockstate location if we failed to read it
          // Paper start
@@ -568,7 +568,7 @@ index 196835bdf95ba0e149b2977e9ef41698971f501f..bf70de08a9f5d49905b253bf549f6aeb
          net.minecraft.world.item.ItemStack nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(item);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
-index f762b345ee1e4f73a97b1a4095ba72ddd7996306..08722fd2d2acfe7975d8ab6e34773485e9db01fc 100644
+index 732e73ef6d5439782bdcf9346661aecbb7e43038..076452a184275cbab9997be59b71083f0718d09a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
 @@ -195,14 +195,16 @@ public final class CraftBlockStates {

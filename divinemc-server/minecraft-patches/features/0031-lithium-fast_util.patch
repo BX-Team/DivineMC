@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Mon, 24 Feb 2025 19:10:17 +0300
+Subject: [PATCH] lithium: fast_util
+
+
+diff --git a/net/minecraft/core/Direction.java b/net/minecraft/core/Direction.java
+index 63fd7b45750430b565d599337d3112cbaa7e7550..4275a2e1e29c15cdda75c29c468255635f5c7bc1 100644
+--- a/net/minecraft/core/Direction.java
++++ b/net/minecraft/core/Direction.java
+@@ -222,7 +222,7 @@ public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.pa
+     }
+ 
+     public Direction getOpposite() {
+-        return this.opposite; // Paper - optimise collisions
++        return VALUES[this.oppositeIndex]; // DivineMC - lithium: fast_util
+     }
+ 
+     public Direction getClockWise(Direction.Axis axis) {
+@@ -355,7 +355,7 @@ public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.pa
+     }
+ 
+     public static Direction getRandom(RandomSource random) {
+-        return Util.getRandom(VALUES, random);
++        return VALUES[random.nextInt(VALUES.length)]; // DivineMC - lithium: fast_util
+     }
+ 
+     public static Direction getApproximateNearest(double x, double y, double z) {
+diff --git a/net/minecraft/world/phys/AABB.java b/net/minecraft/world/phys/AABB.java
+index f60c1ab58a2e9adfb01e9bd430b92cd1902e5dbe..37ad60f2be694c22bfef402c38c8206348bf36a5 100644
+--- a/net/minecraft/world/phys/AABB.java
++++ b/net/minecraft/world/phys/AABB.java
+@@ -19,6 +19,15 @@ public class AABB {
+     public final double maxY;
+     public final double maxZ;
+ 
++    // DivineMC start - lithium: fast_util
++    static {
++        assert Direction.Axis.X.ordinal() == 0;
++        assert Direction.Axis.Y.ordinal() == 1;
++        assert Direction.Axis.Z.ordinal() == 2;
++        assert Direction.Axis.values().length == 3;
++    }
++    // DivineMC end - lithium: fast_util
++
+     public AABB(double x1, double y1, double z1, double x2, double y2, double z2) {
+         this.minX = Math.min(x1, x2);
+         this.minY = Math.min(y1, y2);
+@@ -80,11 +89,33 @@ public class AABB {
+     }
+ 
+     public double min(Direction.Axis axis) {
+-        return axis.choose(this.minX, this.minY, this.minZ);
++        // DivineMC start - lithium: fast_util
++        switch (axis.ordinal()) {
++            case 0: // X
++                return this.minX;
++            case 1: // Y
++                return this.minY;
++            case 2: // Z
++                return this.minZ;
++        }
++
++        throw new IllegalArgumentException();
++        // DivineMC end - lithium: fast_util
+     }
+ 
+     public double max(Direction.Axis axis) {
+-        return axis.choose(this.maxX, this.maxY, this.maxZ);
++        // DivineMC start - lithium: fast_util
++        switch (axis.ordinal()) {
++            case 0: // X
++                return this.maxX;
++            case 1: // Y
++                return this.maxY;
++            case 2: // Z
++                return this.maxZ;
++        }
++
++        throw new IllegalArgumentException();
++        // DivineMC end - lithium: fast_util
+     }
+ 
+     @Override

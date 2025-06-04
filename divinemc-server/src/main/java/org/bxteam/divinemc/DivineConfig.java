@@ -247,10 +247,7 @@ public class DivineConfig {
             "This functionality compiles density functions from world generation",
             "datapacks (including vanilla generation) to JVM bytecode to increase",
             "performance by allowing JVM JIT to better optimize the code.",
-            "All functions provided by vanilla are implemented.",
-            "",
-            "Please test if this optimization actually benefits your server, as",
-            "it can sometimes slow down chunk performance than speed it up.");
+            "All functions provided by vanilla are implemented.");
         enableStructureLayoutOptimizer = getBoolean("settings.chunks.experimental.enable-structure-layout-optimizer", enableStructureLayoutOptimizer,
             "Enables a port of the mod StructureLayoutOptimizer, which optimizes general Jigsaw structure generation");
         deduplicateShuffledTemplatePoolElementList = getBoolean("settings.chunks.experimental.deduplicate-shuffled-template-pool-element-list", deduplicateShuffledTemplatePoolElementList,
