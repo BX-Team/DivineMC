@@ -4006,7 +4006,7 @@ index 39a604c9a53930b53d959b1d2eb504aa964e9a58..0d0380e3955836ce125f777841477503
  
      @Override
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 068ce6f155abf3bda758f2bcdb4377836c610945..0d11efe93dc067a89103cc7e213d897c999ccc0b 100644
+index 8068d9cf07bbdebfdba53295e4e54208c16252f8..6cb4ab00540830ded70cc286ac4bf57f53e9a409 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -80,8 +80,6 @@ import net.minecraft.tags.TagKey;
@@ -4079,7 +4079,7 @@ index 068ce6f155abf3bda758f2bcdb4377836c610945..0d11efe93dc067a89103cc7e213d897c
              }
          }
          // Paper start - detailed watchdog information
-@@ -3466,8 +3454,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3467,8 +3455,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              this.processPortalCooldown();
              if (this.portalProcess != null) {
                  if (this.portalProcess.processPortalTeleportation(serverLevel, this, this.canUsePortal(false))) {
@@ -4088,7 +4088,7 @@ index 068ce6f155abf3bda758f2bcdb4377836c610945..0d11efe93dc067a89103cc7e213d897c
                      this.setPortalCooldown();
                      TeleportTransition portalDestination = this.portalProcess.getPortalDestination(serverLevel, this);
                      if (portalDestination != null) {
-@@ -3477,8 +3463,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3478,8 +3464,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                              this.teleport(portalDestination);
                          }
                      }
@@ -4097,7 +4097,7 @@ index 068ce6f155abf3bda758f2bcdb4377836c610945..0d11efe93dc067a89103cc7e213d897c
                  } else if (this.portalProcess.hasExpired()) {
                      this.portalProcess = null;
                  }
-@@ -4036,15 +4020,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4037,15 +4021,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              entity.teleport(this.calculatePassengerTransition(teleportTransition, entity));
          }
  
@@ -4113,7 +4113,7 @@ index 068ce6f155abf3bda758f2bcdb4377836c610945..0d11efe93dc067a89103cc7e213d897c
          return this;
      }
  
-@@ -4060,11 +4041,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4061,11 +4042,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              }
          }
  
@@ -4125,7 +4125,7 @@ index 068ce6f155abf3bda758f2bcdb4377836c610945..0d11efe93dc067a89103cc7e213d897c
              return null;
          } else {
              // Paper start - Fix item duplication and teleport issues
-@@ -4084,7 +4062,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4085,7 +4063,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              newLevel.resetEmptyTime();
              teleportTransition.postTeleportTransition().onTransition(entityx);
              this.teleportSpectators(teleportTransition, oldLevel);
@@ -4438,7 +4438,7 @@ index c569074403b1d8b443aaa98ba9cf9bbd0e98bd2d..b1aa7294f9479f45fcde77c5ea46db9f
                  this.seen.add(id);
              } else {
 diff --git a/net/minecraft/world/entity/animal/HappyGhast.java b/net/minecraft/world/entity/animal/HappyGhast.java
-index aaa5f38825e2f36364778e39480b5a11af053f29..4c714c72f94a9703073b302d85a248a55615f29d 100644
+index cc0f7490d51d6d57835b0779240565c373f94c21..bcfd59c400f3a9fe16edd7c21092c2d74360ae9d 100644
 --- a/net/minecraft/world/entity/animal/HappyGhast.java
 +++ b/net/minecraft/world/entity/animal/HappyGhast.java
 @@ -13,8 +13,6 @@ import net.minecraft.sounds.SoundEvents;
@@ -4463,7 +4463,7 @@ index aaa5f38825e2f36364778e39480b5a11af053f29..4c714c72f94a9703073b302d85a248a5
 -            profilerFiller.pop();
          }
  
-         this.setRequiresPrecisePosition(this.isPlayerAboveGhast());
+         this.checkRestriction();
 diff --git a/net/minecraft/world/entity/animal/allay/Allay.java b/net/minecraft/world/entity/animal/allay/Allay.java
 index cf6ff7b7b4a007d7ff4b3c5a25d4f5a36422c683..c5275d6069a491c3c2b2de175b76fb871b667b0c 100644
 --- a/net/minecraft/world/entity/animal/allay/Allay.java
