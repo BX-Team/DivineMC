@@ -12,9 +12,6 @@ datapacks (including vanilla generation) to JVM bytecode to increase
 performance by allowing JVM JIT to better optimize the code.
 All functions provided by vanilla are implemented.
 
-Not all server will benefit performance from this feature, as it
-can sometimes slow down chunk performance than speed it up
-
 diff --git a/net/minecraft/util/CubicSpline.java b/net/minecraft/util/CubicSpline.java
 index f36f8f2d49d4eba5c80eb243883749d6f831eb8a..b43b7e242ea0a4f87704853c03201144ce355565 100644
 --- a/net/minecraft/util/CubicSpline.java

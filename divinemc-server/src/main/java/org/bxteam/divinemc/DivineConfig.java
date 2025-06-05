@@ -261,6 +261,7 @@ public class DivineConfig {
     }
 
     public static boolean skipUselessSecondaryPoiSensor = true;
+    public static boolean clumpOrbs = true;
     public static boolean ignoreMovedTooQuicklyWhenLagging = true;
     public static boolean alwaysAllowWeirdMovement = true;
     public static boolean updateSuppressionCrashFix = true;
@@ -275,6 +276,8 @@ public class DivineConfig {
     public static int hopperThrottleSkipTicks = 0;
     private static void miscSettings() {
         skipUselessSecondaryPoiSensor = getBoolean("settings.misc.skip-useless-secondary-poi-sensor", skipUselessSecondaryPoiSensor);
+        clumpOrbs = getBoolean("settings.misc.clump-orbs", clumpOrbs,
+            "Clumps experience orbs together to reduce entity count");
         ignoreMovedTooQuicklyWhenLagging = getBoolean("settings.misc.ignore-moved-too-quickly-when-lagging", ignoreMovedTooQuicklyWhenLagging,
             "Improves general gameplay experience of the player when the server is lagging, as they won't get lagged back (message 'moved too quickly')");
         alwaysAllowWeirdMovement = getBoolean("settings.misc.always-allow-weird-movement", alwaysAllowWeirdMovement,
