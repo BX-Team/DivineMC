@@ -34,7 +34,7 @@ public final class ResendChunksCommand extends DivineSubCommandPermission {
 
             for (ChunkPos chunkPos : serverPlayer.getBukkitEntity().getSentChunks().stream().map(ResendChunksCommand::bukkitChunk2ChunkPos).collect(Collectors.toSet())) {
                 chunkSender.dropChunk(serverPlayer, chunkPos);
-                PlayerChunkSender.sendChunk(serverPlayer.connection, serverPlayer.serverLevel(), serverPlayer.level().getChunk(chunkPos.x, chunkPos.z));
+                PlayerChunkSender.sendChunk(serverPlayer.connection, serverPlayer.level(), serverPlayer.level().getChunk(chunkPos.x, chunkPos.z));
                 resent++;
             }
             serverPlayer.sendSystemMessage(Component.literal("Resent " + resent + " chunks to client"));

@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 5 Feb 2025 17:48:56 +0300
+Subject: [PATCH] Verify Minecraft EULA earlier
+
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index bc3209d3cbe971af74b7856caa6300b59b0bb6bc..9a19c36074b9d8eb291b15b080687e47bcd5d007 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -124,7 +124,6 @@ public class Main {
+             dedicatedServerSettings.forceSave();
+             RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
+             Path path2 = Paths.get("eula.txt");
+-            Eula eula = new Eula(path2);
+             // Paper start - load config files early for access below if needed
+             org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
+             org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("spigot-settings"));
+@@ -147,19 +146,6 @@ public class Main {
+                 return;
+             }
+ 
+-            // Spigot start
+-            boolean eulaAgreed = Boolean.getBoolean("com.mojang.eula.agree");
+-            if (eulaAgreed) {
+-                LOGGER.error("You have used the Spigot command line EULA agreement flag.");
+-                LOGGER.error("By using this setting you are indicating your agreement to Mojang's EULA (https://aka.ms/MinecraftEULA).");
+-                LOGGER.error("If you do not agree to the above EULA please stop your server and remove this flag immediately.");
+-            }
+-            if (!eula.hasAgreedToEULA() && !eulaAgreed) {
+-                // Spigot end
+-                LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
+-                return;
+-            }
+-
+             // Paper start - Detect headless JRE
+             String awtException = io.papermc.paper.util.ServerEnvironment.awtDependencyCheck();
+             if (awtException != null) {
