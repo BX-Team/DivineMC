@@ -465,7 +465,7 @@ index a18240418a19a95147341a634527d774f3d5bb92..66f74ad2a194a6676574da2932cf4677
      public DebugSampleSubscriptionTracker(PlayerList playerList) {
          this.playerList = playerList;
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 6cb4ab00540830ded70cc286ac4bf57f53e9a409..788a6596b4bd611d3550723d638ec562242d41fc 100644
+index 94ba53d0226bd0fe29e6ae2b4c25664eef1e2582..c7dc1a8ab1f4c13beb660239ade766b1223a3ec2 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -155,7 +155,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -540,6 +540,18 @@ index 6cb4ab00540830ded70cc286ac4bf57f53e9a409..788a6596b4bd611d3550723d638ec562
              int floor = Mth.floor(x);
              int floor1 = Mth.floor(y);
              int floor2 = Mth.floor(z);
+diff --git a/net/minecraft/world/entity/ExperienceOrb.java b/net/minecraft/world/entity/ExperienceOrb.java
+index c8354d46ed909090f7c15f396863bf7d73afcefa..382ef2dad5e995bc01f6492218b8c8f7a930d6ac 100644
+--- a/net/minecraft/world/entity/ExperienceOrb.java
++++ b/net/minecraft/world/entity/ExperienceOrb.java
+@@ -195,6 +195,7 @@ public class ExperienceOrb extends Entity {
+             if (this.age >= 6000) {
+                 this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             }
++            if (this.count == 0) this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD); // DivineMC - discard when count is 0
+         }
+     }
+ 
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
 index e1f5a4814d051a43090bf6df2acbcd20fbbc1934..fd586acb15362a461c77256c6db9cc3a8002750d 100644
 --- a/net/minecraft/world/entity/Mob.java
