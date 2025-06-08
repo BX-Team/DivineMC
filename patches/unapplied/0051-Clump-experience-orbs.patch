@@ -5,7 +5,7 @@ Subject: [PATCH] Clump experience orbs
 
 
 diff --git a/net/minecraft/world/entity/ExperienceOrb.java b/net/minecraft/world/entity/ExperienceOrb.java
-index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..e441aac80736910dfa726788ee34fb1e8a73a1f4 100644
+index ff4648b3be103446ab401d36c14cc80b48840cab..18ccbb1344875dd7a2f2f8084102d341b2a9597e 100644
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
 @@ -47,6 +47,10 @@ public class ExperienceOrb extends Entity {
@@ -19,7 +19,7 @@ index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..e441aac80736910dfa726788ee34fb1e
  
      private void loadPaperNBT(CompoundTag tag) {
          CompoundTag expData = tag.getCompoundOrEmpty("Paper.ExpData");
-@@ -244,6 +248,28 @@ public class ExperienceOrb extends Entity {
+@@ -245,6 +249,28 @@ public class ExperienceOrb extends Entity {
      }
  
      private static boolean tryMergeToExisting(ServerLevel level, Vec3 pos, int amount) {
@@ -48,7 +48,7 @@ index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..e441aac80736910dfa726788ee34fb1e
          // Paper - TODO some other event for this kind of merge
          AABB aabb = AABB.ofSize(pos, 1.0, 1.0, 1.0);
          int randomInt = level.getRandom().nextInt(io.papermc.paper.configuration.GlobalConfiguration.get().misc.xpOrbGroupsPerArea.or(ORB_GROUPS_PER_AREA)); // Paper - Configure how many orb groups per area
-@@ -259,11 +285,11 @@ public class ExperienceOrb extends Entity {
+@@ -260,11 +286,11 @@ public class ExperienceOrb extends Entity {
      }
  
      private boolean canMerge(ExperienceOrb orb) {
@@ -62,7 +62,7 @@ index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..e441aac80736910dfa726788ee34fb1e
      }
  
      private void merge(ExperienceOrb orb) {
-@@ -272,6 +298,18 @@ public class ExperienceOrb extends Entity {
+@@ -273,6 +299,18 @@ public class ExperienceOrb extends Entity {
              return;
          }
          // Paper end - call orb merge event
@@ -81,7 +81,7 @@ index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..e441aac80736910dfa726788ee34fb1e
          this.count = this.count + orb.count;
          this.age = Math.min(this.age, orb.age);
          orb.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause
-@@ -313,6 +351,13 @@ public class ExperienceOrb extends Entity {
+@@ -314,6 +352,13 @@ public class ExperienceOrb extends Entity {
          compound.putInt("Value", this.getValue()); // Paper - save as Integer
          compound.putInt("Count", this.count);
          this.savePaperNBT(compound); // Paper
@@ -95,7 +95,7 @@ index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..e441aac80736910dfa726788ee34fb1e
      }
  
      @Override
-@@ -322,10 +367,53 @@ public class ExperienceOrb extends Entity {
+@@ -323,10 +368,53 @@ public class ExperienceOrb extends Entity {
          this.setValue(compound.getIntOr("Value", 0)); // Paper - load as Integer
          this.count = compound.read("Count", ExtraCodecs.POSITIVE_INT).orElse(1);
          this.loadPaperNBT(compound); // Paper
@@ -149,7 +149,7 @@ index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..e441aac80736910dfa726788ee34fb1e
          if (entity instanceof ServerPlayer serverPlayer) {
              if (entity.takeXpDelay == 0 && new com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent(serverPlayer.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) { // Paper - PlayerPickupExperienceEvent
                  entity.takeXpDelay = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerXpCooldownEvent(entity, this.level().purpurConfig.playerExpPickupDelay, org.bukkit.event.player.PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - entityhuman.takeXpDelay = 2; // Purpur - Configurable player pickup exp delay
-@@ -343,10 +431,60 @@ public class ExperienceOrb extends Entity {
+@@ -344,10 +432,60 @@ public class ExperienceOrb extends Entity {
          }
      }
  
