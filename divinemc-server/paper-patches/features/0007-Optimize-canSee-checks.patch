@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize canSee checks
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index fcc7bc9098e2544588d8b36dd0cff59e6a2563bd..d9b701e4b53b71e7e430ebab6b24220eac710e0d 100644
+index 0d303c3c614142b4183e76f9347e613d7e6db211..e69039ccb6b4d0cc593342a562e4108a78ce2867 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -216,7 +216,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -219,7 +219,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
      private boolean hasPlayedBefore = false;
      private final ConversationTracker conversationTracker = new ConversationTracker();
      private final Set<String> channels = new HashSet<String>();
@@ -17,7 +17,7 @@ index fcc7bc9098e2544588d8b36dd0cff59e6a2563bd..d9b701e4b53b71e7e430ebab6b24220e
      private final Set<UUID> unlistedEntities = new HashSet<>(); // Paper - Add Listing API for Player
      private static final WeakHashMap<Plugin, WeakReference<Plugin>> pluginWeakReferences = new WeakHashMap<>();
      private int hash = 0;
-@@ -2269,9 +2269,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -2272,9 +2272,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
  
      @Override
      public boolean canSee(org.bukkit.entity.Entity entity) {
