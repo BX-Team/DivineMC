@@ -5,7 +5,7 @@ Subject: [PATCH] Completely remove Mojang profiler
 
 
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index ee9e55f4f1505f9a357b7ca678c20fede57adbf7..9fc30c3a7237b8b8e950b6e95cd2223db6f72301 100644
+index 75d167649749d0aa48eca87bcf478a4476bb4a6b..2b4345d16e8e5e903afb723dc41f549613998f7c 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
 @@ -58,7 +58,6 @@ import net.minecraft.server.commands.CloneCommands;
@@ -32,7 +32,7 @@ index ee9e55f4f1505f9a357b7ca678c20fede57adbf7..9fc30c3a7237b8b8e950b6e95cd2223d
          DefaultGameModeCommands.register(this.dispatcher);
          DialogCommand.register(this.dispatcher, context);
          DifficultyCommand.register(this.dispatcher);
-@@ -390,7 +387,6 @@ public class Commands {
+@@ -392,7 +389,6 @@ public class Commands {
      public void performCommand(ParseResults<CommandSourceStack> parseResults, String command, String label, boolean throwCommandError) {
          // Paper end
          CommandSourceStack commandSourceStack = parseResults.getContext().getSource();
@@ -40,7 +40,7 @@ index ee9e55f4f1505f9a357b7ca678c20fede57adbf7..9fc30c3a7237b8b8e950b6e95cd2223d
          ContextChain contextChain = this.finishParsing(parseResults, command, commandSourceStack, label); // CraftBukkit // Paper - Add UnknownCommandEvent
  
          try {
-@@ -426,8 +422,6 @@ public class Commands {
+@@ -428,8 +424,6 @@ public class Commands {
                  commandSourceStack.sendFailure(Component.literal(Util.describeError(var12)));
                  LOGGER.error("'/{}' threw an exception", command, var12);
              }
@@ -49,7 +49,7 @@ index ee9e55f4f1505f9a357b7ca678c20fede57adbf7..9fc30c3a7237b8b8e950b6e95cd2223d
          }
      }
  
-@@ -484,7 +478,7 @@ public class Commands {
+@@ -486,7 +480,7 @@ public class Commands {
              int max = Math.max(1, server.getGameRules().getInt(GameRules.RULE_MAX_COMMAND_CHAIN_LENGTH));
              int _int = server.getGameRules().getInt(GameRules.RULE_MAX_COMMAND_FORK_COUNT);
  
@@ -1157,7 +1157,7 @@ index b72000ce6bdcb97b787bfab79236f60bdb4aa2ee..1406053ef944f93ab815f0ea939c3334
  
      public boolean hasWork() {
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 7d78d270b7a076f595301acd9b3c6275e804496e..aea0d3ec32bca81de2a0986e5d9dba22167116ef 100644
+index 2882cd829d4d8e1f8615f085f6908efcdf68ac62..25150731bb3f3d04b248ebc47fc9b453e49a705e 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -26,8 +26,6 @@ import net.minecraft.network.protocol.Packet;
@@ -4006,7 +4006,7 @@ index 39a604c9a53930b53d959b1d2eb504aa964e9a58..0d0380e3955836ce125f777841477503
  
      @Override
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 8068d9cf07bbdebfdba53295e4e54208c16252f8..6cb4ab00540830ded70cc286ac4bf57f53e9a409 100644
+index 0a1358a37fbd73fdaf26cf90d7911a80f259b5b4..94ba53d0226bd0fe29e6ae2b4c25664eef1e2582 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -80,8 +80,6 @@ import net.minecraft.tags.TagKey;
@@ -4920,7 +4920,7 @@ index 07d7c4737635f671f33b8f73001d67928fc75782..f2c82217811712625df594667330a73f
          LOGGER.info("Loaded {} recipes", object.values().size());
      }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 068ad7a067e3114cadb50b9af5cfb8f06b937dd5..6240f6f0799916f1c95505f3dfaeb00812abea70 100644
+index 69352e2403ad156db0e5ad965c9d3686364ae40a..bfe30b692e5769130f624138202ed0114c4a1bd0 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -35,8 +35,6 @@ import net.minecraft.util.AbortableIterationConsumer;
@@ -4965,7 +4965,7 @@ index 068ad7a067e3114cadb50b9af5cfb8f06b937dd5..6240f6f0799916f1c95505f3dfaeb008
          this.spigotConfig.currentPrimedTnt = 0; // Spigot
      }
  
-@@ -1788,7 +1781,6 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1781,7 +1774,6 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
  
      @Override
      public List<Entity> getEntities(@Nullable Entity entity, AABB boundingBox, Predicate<? super Entity> predicate) {
@@ -4973,7 +4973,7 @@ index 068ad7a067e3114cadb50b9af5cfb8f06b937dd5..6240f6f0799916f1c95505f3dfaeb008
          List<Entity> list = Lists.newArrayList();
  
          // Paper start - rewrite chunk system
-@@ -1817,8 +1809,6 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1810,8 +1802,6 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      public <T extends Entity> void getEntities(final EntityTypeTest<Entity, T> entityTypeTest,
                                                 final AABB boundingBox, final Predicate<? super T> predicate,
                                                 final List<? super T> into, final int maxCount) {

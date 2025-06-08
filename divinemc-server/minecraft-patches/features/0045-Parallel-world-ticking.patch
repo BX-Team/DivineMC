@@ -404,7 +404,7 @@ index f2fd605a564998eb6c4d192fb1f751b6f86f1336..027f7b821b1a2ff42ec89a4f93b0bf72
          serverPlayer.connection = player.connection;
          serverPlayer.restoreFrom(player, keepInventory);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 96d2a49f68f37aa212e8c9da039a1a34e6d6a55c..e5c96be9970fe1f714ae3989145993e0ecc29c4f 100644
+index 6def3e9c0197169c96a1e28da3f21589d954acd2..7a3472d6951a527cad1ba7cd2f7139d520537e59 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -3432,14 +3432,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -705,7 +705,7 @@ index b95acf4c688a9113a34e9be2639536245c66c83e..160fd27bdd02e9c276cdae241b0652ae
                  serverLevel.capturedBlockStates.clear();
                  org.bukkit.event.world.StructureGrowEvent structureEvent = null;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 37f5bd2a63e2ec074fbc55d366e0d128f1918089..ee76259a12b150f07a1e9af019b6dd4b66dc2078 100644
+index d92d54521792c652bf69a08fcaa13d0cb0a2d363..51de0fe7ca75a81bb47b03ddbe9eb00be7d207e8 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -160,6 +160,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -754,15 +754,15 @@ index 37f5bd2a63e2ec074fbc55d366e0d128f1918089..ee76259a12b150f07a1e9af019b6dd4b
      }
  
      // Paper start - Option to prevent armor stands from doing entity lookups
-@@ -1684,6 +1691,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
- 
+@@ -1678,6 +1685,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      @Nullable
-     public BlockEntity getBlockEntity(BlockPos pos, boolean validate) {
+     @Override
+     public BlockEntity getBlockEntity(BlockPos pos) {
 +        if (org.bxteam.divinemc.DivineConfig.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // DivineMC - Parallel world ticking
          // Paper start - Perf: Optimize capturedTileEntities lookup
          net.minecraft.world.level.block.entity.BlockEntity blockEntity;
          if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(pos)) != null) {
-@@ -1701,6 +1709,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1694,6 +1702,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      }
  
      public void setBlockEntity(BlockEntity blockEntity) {
@@ -770,7 +770,7 @@ index 37f5bd2a63e2ec074fbc55d366e0d128f1918089..ee76259a12b150f07a1e9af019b6dd4b
          BlockPos blockPos = blockEntity.getBlockPos();
          if (!this.isOutsideBuildHeight(blockPos)) {
              // CraftBukkit start
-@@ -1785,6 +1794,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1778,6 +1787,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
  
      @Override
      public List<Entity> getEntities(@Nullable Entity entity, AABB boundingBox, Predicate<? super Entity> predicate) {
@@ -778,7 +778,7 @@ index 37f5bd2a63e2ec074fbc55d366e0d128f1918089..ee76259a12b150f07a1e9af019b6dd4b
          List<Entity> list = Lists.newArrayList();
  
          // Paper start - rewrite chunk system
-@@ -2107,8 +2117,15 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -2100,8 +2110,15 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      public abstract RecipeAccess recipeAccess();
  
      public BlockPos getBlockRandomPos(int x, int y, int z, int yMask) {
