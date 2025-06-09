@@ -2,13 +2,14 @@ From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Mon, 9 Jun 2025 13:51:43 +0300
 Subject: [PATCH] Regionized Chunk Ticking
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 
-This patch adds “regionized” parallel chunk ticking by grouping adjacent chunks into regions and processing each region on its own thread.
+This patch adds regionized chunk ticking feature, by grouping adjacent chunks into regions and processing each region on its own thread.
 
 Original idea by Dueris, modified by NONPLAYT and dan28000
+
+Known issues:
+- Some mobs may not tick correctly, they can stand still, walk, and also start running when they hit (refers to peaceful)
+- needs further development of PET
 
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
 index e08d1b25892098175c581bde4bfbdde58e3e7af2..33a2485363e5914f6a688dda5ab8f1658a8e46f9 100644
