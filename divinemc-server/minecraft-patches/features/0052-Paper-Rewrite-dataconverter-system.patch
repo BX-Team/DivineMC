@@ -32327,10 +32327,10 @@ index 175647d57e59e838ea7b4680fbf22c161100c513..a7b772cfc89161414469cd7da374d6c7
          return structureTemplate.save(new CompoundTag());
      }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 35de815d5b9c3065bb62a2799f50b1547c313dd6..cd68fa7756a9f7600040b602dabdc786fb1fd2c2 100644
+index 3a82ce898c38c5d3d971178e2614aed638e03132..b4b1cfda1c5a73d0d3f7627fe477d508de5b3c74 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -292,6 +292,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -293,6 +293,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      public java.util.concurrent.Semaphore serverLevelTickingSemaphore = null; // DivineMC - Parallel world ticking
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
