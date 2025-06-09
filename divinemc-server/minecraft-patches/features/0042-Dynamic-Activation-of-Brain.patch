@@ -31,10 +31,10 @@ index 265f20fd771df850a0bb0029e699d3146d883837..a9326f1acc6ffe7fbacc34bf13f56d87
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index d7ec2dd011a6728e7a1adb5a84f587904166df79..27ff3ae4400de969c95eb337cfd88f8137c77d3b 100644
+index cbb737dec664e9bd836f2e767a914b309c7d55be..7e7d645f122a309e764485e51eabf8a28c7d95a9 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -802,6 +802,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -808,6 +808,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              this.entityTickList
                  .forEach(
                      entity -> {
@@ -43,7 +43,7 @@ index d7ec2dd011a6728e7a1adb5a84f587904166df79..27ff3ae4400de969c95eb337cfd88f81
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  entity.checkDespawn();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 0a23d54a6f03b1d776ab24922f88144762c90875..b98010d6d3d369c680ccc8f15da9574e4f6a139c 100644
+index d80f5b6039a4e49ddbf5598f68137e7c17b388c5..abcaa8a1f9daf4557bb24e2161e9afa01f0b7211 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -344,6 +344,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -68,7 +68,7 @@ index d6a0ad078fd1f0350afaac3f1743896d73b015e1..50bc352f4d918678a479a39b218973f7
      @Nullable
      private Component description;
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index d618752727e2f2f5c0c1afa97f455e349cb7e76c..ed89fe2ccfb5ce3e8384a108243288f6e542bc1d 100644
+index a65c86b411c15bbdfd431dac00e510d2262e65e1..29624bff8655ec8ad6404a4b8438d845f68afc99 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
 @@ -206,10 +206,10 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
@@ -340,7 +340,7 @@ index 0644f425cddebe8e5a65e69acae57db867380981..56fb3c23a265403a20cfab551aa00279
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/piglin/Piglin.java b/net/minecraft/world/entity/monster/piglin/Piglin.java
-index 73049e486fbf8411819551b43e3ca641ed7a5578..acbbe69df488b085de44e7825e9713bdeb600308 100644
+index ce0dca4f8cd903037f6fe011d34a17d08ff5a907..23bf006b0698eed832a3ce28ec8dc8235792c9f6 100644
 --- a/net/minecraft/world/entity/monster/piglin/Piglin.java
 +++ b/net/minecraft/world/entity/monster/piglin/Piglin.java
 @@ -128,6 +128,7 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
@@ -414,7 +414,7 @@ index 97ee07ebbba5ad29f766dff5eb4e51fc0e12cfcb..0898a7ea98b60edb31828d91afb92db4
  
      @Override
 diff --git a/net/minecraft/world/entity/npc/Villager.java b/net/minecraft/world/entity/npc/Villager.java
-index a08818450ed6fd78bb429743ee044726fc7994e7..abf7308a41e7c28e1d9fd82d5f86022a80159bff 100644
+index aace211c23ab9026792a77e5ed5c5eac4311f391..2e2745cd8e3383455656c95214779754cc890b33 100644
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
 @@ -178,6 +178,8 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
