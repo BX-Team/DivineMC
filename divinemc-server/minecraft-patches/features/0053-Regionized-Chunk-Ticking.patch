@@ -7,12 +7,8 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 
 Original idea by Dueris, modified by NONPLAYT and dan28000
 
-Known issues:
-- Some mobs may not tick correctly, they can stand still, walk, and also start running when they hit (refers to peaceful)
-- needs further development of PET
-
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index e08d1b25892098175c581bde4bfbdde58e3e7af2..33a2485363e5914f6a688dda5ab8f1658a8e46f9 100644
+index e08d1b25892098175c581bde4bfbdde58e3e7af2..19c28b9cc63820ae3a88b54b8519f6822e96b88e 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -129,7 +125,7 @@ index e08d1b25892098175c581bde4bfbdde58e3e7af2..33a2485363e5914f6a688dda5ab8f165
      // Paper start - chunk tick iteration optimisations
      private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom shuffleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(0L);
      private void iterateTickingChunksFaster() {
-@@ -169,16 +258,68 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -169,16 +258,69 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          final LevelChunk[] raw = entityTickingChunks.getRawDataUnchecked();
          final int size = entityTickingChunks.size();
  
@@ -148,6 +144,7 @@ index e08d1b25892098175c581bde4bfbdde58e3e7af2..33a2485363e5914f6a688dda5ab8f165
 +
 +            java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(regionCount);
 +
++            io.papermc.paper.entity.activation.ActivationRange.activateEntities(level); // Paper - EAR
 +            try {
 +                java.util.concurrent.ForkJoinPool.managedBlock(new java.util.concurrent.ForkJoinPool.ManagedBlocker() {
 +                    @Override
@@ -205,8 +202,33 @@ index e08d1b25892098175c581bde4bfbdde58e3e7af2..33a2485363e5914f6a688dda5ab8f165
      }
      // Paper end - chunk tick iteration optimisations
  
+@@ -538,14 +680,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+     }
+ 
+     private void broadcastChangedChunks() {
+-        for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
+-            LevelChunk tickingChunk = chunkHolder.getChunkToSend(); // Paper - rewrite chunk system
+-            if (tickingChunk != null) {
+-                chunkHolder.broadcastChanges(tickingChunk);
++        // DivineMC start - Regionized Chunk Ticking
++        synchronized (chunkHoldersToBroadcast) {
++            for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
++                LevelChunk tickingChunk = chunkHolder.getChunkToSend(); // Paper - rewrite chunk system
++                if (tickingChunk != null) {
++                    chunkHolder.broadcastChanges(tickingChunk);
++                }
+             }
+-        }
+ 
+-        this.chunkHoldersToBroadcast.clear();
++            this.chunkHoldersToBroadcast.clear();
++        }
++        // DivineMC end - Regionized Chunk Ticking
+     }
+ 
+     private void tickChunks(long timeInhabited) {
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 1d4e6ffc1c17f2e5ab363b71a2e8cbcc63bdfb7c..c1a16c8fa52c605b179ba1d2065b011943f54972 100644
+index 1d4e6ffc1c17f2e5ab363b71a2e8cbcc63bdfb7c..1052a70b40abe6f822d96bc697c9b40a74e5d93e 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -189,7 +189,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -218,20 +240,21 @@ index 1d4e6ffc1c17f2e5ab363b71a2e8cbcc63bdfb7c..c1a16c8fa52c605b179ba1d2065b0119
      volatile boolean isUpdatingNavigations;
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
-@@ -807,6 +807,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -806,6 +806,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+                 this.dragonFight.tick();
              }
  
-             io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
 +            // DivineMC start - Regionized Chunk Ticking
 +            if (org.bxteam.divinemc.DivineConfig.enableRegionizedChunkTicking) {
 +                this.tickBlockEntities();
 +                return;
 +            }
 +            // DivineMC end - Regionized Chunk Ticking
++
+             io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
              this.entityTickList
                  .forEach(
-                     entity -> {
-@@ -1794,22 +1800,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1794,22 +1801,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (Shapes.joinIsNotEmpty(collisionShape, collisionShape1, BooleanOp.NOT_SAME)) {
              List<PathNavigation> list = new ObjectArrayList<>();
  
