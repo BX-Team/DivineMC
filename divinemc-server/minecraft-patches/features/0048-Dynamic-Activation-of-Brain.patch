@@ -30,11 +30,23 @@ index ae0a3c3d9d6300293a6d0dff5cae49ebe7c11dab..3b08dad7a9fac7ac9acec0bfb85d4826
              }
          }
      }
+diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
+index 83157183ab2363eebd8a19d1e018b6bd5c736507..4377b6712c8990f9bd444d662414b68ab9d92963 100644
+--- a/net/minecraft/server/level/ServerChunkCache.java
++++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -150,6 +150,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+     }
+ 
+     private void tickEntity(Entity entity) {
++        entity.activatedPriorityReset = false; // DivineMC - Dynamic Activation of Brain
+         if (!entity.isRemoved()) {
+             if (!level.tickRateManager().isEntityFrozen(entity)) {
+                 entity.checkDespawn();
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 561066a2cf769e13ef3cea0881f7a2010ecbf2ec..5fe908ce51f95e1eab024dcd41ed108373f17fea 100644
+index a21924072632d8195d803b372058c2557d6428b2..b50f8ff69157c07b509e88c65fb217d3dde73f1e 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -818,6 +818,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -825,6 +825,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              this.entityTickList
                  .forEach(
                      entity -> {
@@ -43,7 +55,7 @@ index 561066a2cf769e13ef3cea0881f7a2010ecbf2ec..5fe908ce51f95e1eab024dcd41ed1083
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  entity.checkDespawn();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 04ae7636d14a40a427b5d9b746632b0c489efa21..f1cd66d7d96771bc4967e214f70c756fec30efe5 100644
+index 07e8bda8eb200d5a7554e0319e1a00dc85454e1a..ed8c715f4a24188e43769fa04af8e71e1573c041 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -336,6 +336,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -414,7 +426,7 @@ index 59a12809e5c7f5ee85ca1f587f6b77383a1ff062..9777f5e99909790b49b05ea64fe12ded
  
      @Override
 diff --git a/net/minecraft/world/entity/npc/Villager.java b/net/minecraft/world/entity/npc/Villager.java
-index fec90e482c8935dfca609bbf90e67f86a1586221..2ac8a11e9afc6f776eba3dbe852d7b680ed21705 100644
+index 4ee1791f293ba3abdbfe69824b85566fd9a36586..2a4b5821d352f828e3c955a6ffa0bfdf6ff6911a 100644
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
 @@ -179,6 +179,8 @@ public class Villager extends AbstractVillager implements ReputationEventHandler

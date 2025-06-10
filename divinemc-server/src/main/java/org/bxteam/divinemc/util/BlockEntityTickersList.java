@@ -95,4 +95,11 @@ public final class BlockEntityTickersList extends ObjectArrayList<TickingBlockEn
         Arrays.fill(a, j, size, null);
         size = j;
     }
+
+    @Override
+    public boolean addAll(int index, final Collection<? extends TickingBlockEntity> c) {
+        synchronized (c) {
+            return super.addAll(index, c);
+        }
+    }
 }

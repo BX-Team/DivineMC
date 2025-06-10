@@ -18,10 +18,10 @@ index 34682217252cb98a70511a8cb25f077ec9f872b8..eccd330a332a927354f47acd16295c23
                  this.scheduleReadIO();
                  return;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index bea62fca118efdd6257188cd53c813dc5fd0c19c..adca106b1100b5c5236f40eb3795ac89c1fa0288 100644
+index b50f8ff69157c07b509e88c65fb217d3dde73f1e..9e0d482065bd6434128cd653c3580b633ed7202d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1403,7 +1403,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1408,7 +1408,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          }
  
          if (doFull) {

@@ -23,7 +23,7 @@ index b402f6a6ecb8047bbb791b212fba375f4c9e6af5..f381f3ecd27315e06ca6883006a8a4c3
                      player.awardStat(Stats.ITEM_USED.get(item));
                      // level.setBlockAndUpdate(pos, Blocks.WATER_CAULDRON.defaultBlockState()); // CraftBukkit
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index c8c8351f5645cf4041d26b0e02c072546ad329c6..75a695aaf0dd2f58e1fa5e1c532ae298c2a2abdb 100644
+index 075987ec1eabb7385918049c54d7210ff2b38847..d7488164313cbf038ff7669da275bfdb41e8343c 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
 @@ -727,13 +727,25 @@ public interface DispenseItemBehavior {

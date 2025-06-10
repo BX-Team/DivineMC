@@ -5,7 +5,7 @@ Subject: [PATCH] Async Chunk Sending
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index 76b8d42ae530b59cdaba0583365a557da6b90ede..235772cc9a7c878235b97c8d84cacda3016f91ca 100644
+index 886825a10bd06b4b656d19a05624c74f2686feb3..1f3f15e3c3eb2c8e71caba069b457cec53f635f2 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 @@ -55,6 +55,8 @@ public final class RegionizedPlayerChunkLoader {

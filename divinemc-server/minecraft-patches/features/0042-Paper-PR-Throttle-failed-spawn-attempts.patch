@@ -22,10 +22,10 @@ Example config in paper-world-defaults.yml:
 ```
 
 diff --git a/net/minecraft/world/level/NaturalSpawner.java b/net/minecraft/world/level/NaturalSpawner.java
-index 650dfce05bfc68d4c664471b430bd5c0f9629283..3e9ab446632ffe56de45f7622db44070e1cbaf1f 100644
+index d3f5242fc66529bf3137da4d505a6cf55e749e43..1056a17c53e7d16d5fba7f9a354dfbc235d4d974 100644
 --- a/net/minecraft/world/level/NaturalSpawner.java
 +++ b/net/minecraft/world/level/NaturalSpawner.java
-@@ -175,29 +175,52 @@ public final class NaturalSpawner {
+@@ -164,29 +164,52 @@ public final class NaturalSpawner {
                  // Copied from getFilteredSpawningCategories
                  int limit = mobCategory.getMaxInstancesPerChunk();
                  SpawnCategory spawnCategory = CraftSpawnCategory.toBukkit(mobCategory);
@@ -91,7 +91,7 @@ index 650dfce05bfc68d4c664471b430bd5c0f9629283..3e9ab446632ffe56de45f7622db44070
                  // Paper end - Optional per player mob spawns
              }
          }
-@@ -221,12 +244,21 @@ public final class NaturalSpawner {
+@@ -210,12 +233,21 @@ public final class NaturalSpawner {
      }
      public static void spawnCategoryForChunk(
          MobCategory category, ServerLevel level, LevelChunk chunk, NaturalSpawner.SpawnPredicate filter, NaturalSpawner.AfterSpawnCallback callback, final int maxSpawns, final Consumer<Entity> trackEntity
@@ -114,7 +114,7 @@ index 650dfce05bfc68d4c664471b430bd5c0f9629283..3e9ab446632ffe56de45f7622db44070
      }
  
      @VisibleForDebug
-@@ -246,16 +278,22 @@ public final class NaturalSpawner {
+@@ -235,16 +267,22 @@ public final class NaturalSpawner {
      }
      public static void spawnCategoryForPosition(
          MobCategory category, ServerLevel level, ChunkAccess chunk, BlockPos pos, NaturalSpawner.SpawnPredicate filter, NaturalSpawner.AfterSpawnCallback callback, final int maxSpawns, final @Nullable Consumer<Entity> trackEntity
@@ -139,7 +139,7 @@ index 650dfce05bfc68d4c664471b430bd5c0f9629283..3e9ab446632ffe56de45f7622db44070
              for (int i1 = 0; i1 < 3; i1++) {
                  int x = pos.getX();
                  int z = pos.getZ();
-@@ -295,13 +333,13 @@ public final class NaturalSpawner {
+@@ -284,13 +322,13 @@ public final class NaturalSpawner {
                              }
                              // Paper end - per player mob count backoff
                              if (doSpawning == PreSpawnStatus.ABORT) {
@@ -155,7 +155,7 @@ index 650dfce05bfc68d4c664471b430bd5c0f9629283..3e9ab446632ffe56de45f7622db44070
                                  }
  
                                  mobForSpawn.moveTo(d, y, d1, level.random.nextFloat() * 360.0F, 0.0F);
-@@ -324,7 +362,7 @@ public final class NaturalSpawner {
+@@ -313,7 +351,7 @@ public final class NaturalSpawner {
                                      }
                                      // CraftBukkit end
                                      if (i >= mobForSpawn.getMaxSpawnClusterSize() || i >= maxSpawns) { // Paper - Optional per player mob spawns
@@ -164,7 +164,7 @@ index 650dfce05bfc68d4c664471b430bd5c0f9629283..3e9ab446632ffe56de45f7622db44070
                                      }
  
                                      if (mobForSpawn.isMaxGroupSizeReached(i3)) {
-@@ -337,6 +375,8 @@ public final class NaturalSpawner {
+@@ -326,6 +364,8 @@ public final class NaturalSpawner {
                  }
              }
          }

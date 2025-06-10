@@ -5,7 +5,7 @@ Subject: [PATCH] Leaf: Improve BlockEntity ticking isRemoved check
 
 
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 0337f4b9ca3c9c9a1e2a7cf19fcbad5e78b949dc..1820069a7c5833b0a13e034c232f06af234788e3 100644
+index 534384727e852dc8ea822f49f182af49eb3a40c1..d779ff76432e498123ed1d70946a9833c939b754 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -989,13 +989,26 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
