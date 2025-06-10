@@ -1,0 +1,79 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Tue, 10 Jun 2025 20:44:52 +0300
+Subject: [PATCH] Sync Paper upstream
+
+
+diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+index af728eec05f67d9c3185bd2ccf7a9088a33be401..9d0835bfae488f6b3f0ac49f1af1b1271a283f1c 100644
+--- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
++++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+@@ -185,8 +185,6 @@ public class GlobalConfiguration extends ConfigurationPart {
+         public CompressionFormat compressionFormat = CompressionFormat.ZLIB;
+         @Comment("This setting controls if equipment should be updated when handling certain player actions.")
+         public boolean updateEquipmentOnPlayerActions = true;
+-        @Comment("Only checks an item's amount and type instead of its full data during inventory desync checks.")
+-        public boolean simplifyRemoteItemMatching = false;
+ 
+         public enum CompressionFormat {
+             GZIP,
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 97c372dca0ec7a8e9f0103676c0baa7a1bb4a855..9c3584f0917bbc482c67ca0fd3429c66cc658a54 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -41,6 +41,7 @@ import java.util.logging.Logger;
+ import java.util.stream.Collectors;
+ import javax.imageio.ImageIO;
+ // import jline.console.ConsoleReader;
++import net.minecraft.Optionull;
+ import net.minecraft.advancements.AdvancementHolder;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.Commands;
+@@ -2420,7 +2421,11 @@ public final class CraftServer implements Server {
+ 
+     @Override
+     public GameMode getDefaultGameMode() {
+-        return GameMode.getByValue(this.console.getLevel(net.minecraft.world.level.Level.OVERWORLD).serverLevelData.getGameType().getId());
++        return GameMode.getByValue(Optionull.mapOrDefault(
++            this.console.getLevel(net.minecraft.world.level.Level.OVERWORLD),
++            l -> l.serverLevelData.getGameType(),
++            this.console.getProperties().gamemode
++        ).getId());
+     }
+ 
+     @Override
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index 3cb2cd294874ece5fbefd0618b4db27701ef118a..c18efc0a7309a749a621b4bc6069cbffcf0bdb6f 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -221,7 +221,6 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+     private BorderChangeListener clientWorldBorderListener = this.createWorldBorderListener();
+     public org.bukkit.event.player.PlayerResourcePackStatusEvent.Status resourcePackStatus; // Paper - more resource pack API
+     private static final boolean DISABLE_CHANNEL_LIMIT = System.getProperty("paper.disableChannelLimit") != null; // Paper - add a flag to disable the channel limit
+-    private boolean simplifyContainerDesyncCheck = GlobalConfiguration.get().unsupportedSettings.simplifyRemoteItemMatching;
+     private long lastSaveTime; // Paper - getLastPlayed replacement API
+ 
+     public CraftPlayer(CraftServer server, ServerPlayer entity) {
+@@ -3639,22 +3638,6 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+         getHandle().setScore(score);
+     }
+ 
+-    /**
+-     * Returns whether container desync checks should skip the full item comparison of remote carried and changed slots
+-     * and should instead only check their type and amount.
+-     * <p>
+-     * This is useful if the client is not able to produce the same item stack (or as of 1.21.5, its data hashes) as the server.
+-     *
+-     * @return whether to simplify container desync checks
+-     */
+-    public boolean simplifyContainerDesyncCheck() {
+-        return simplifyContainerDesyncCheck;
+-    }
+-
+-    public void setSimplifyContainerDesyncCheck(final boolean simplifyContainerDesyncCheck) {
+-        this.simplifyContainerDesyncCheck = simplifyContainerDesyncCheck;
+-    }
+-
+     // Purpur start - Purpur client support
+     @Override
+     public boolean usesPurpurClient() {

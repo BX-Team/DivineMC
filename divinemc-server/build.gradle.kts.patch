@@ -1,5 +1,14 @@
 --- a/purpur-server/build.gradle.kts
 +++ b/purpur-server/build.gradle.kts
+@@ -11,7 +_,7 @@
+ val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
+ 
+ dependencies {
+-    mache("io.papermc:mache:1.21.4+build.7")
++    mache("io.papermc:mache:1.21.4+build.8") // DivineMC - sync upstream mache version
+     paperclip("io.papermc:paperclip:3.0.3")
+     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+ }
 @@ -22,6 +_,7 @@
      // gitFilePatches = true
  

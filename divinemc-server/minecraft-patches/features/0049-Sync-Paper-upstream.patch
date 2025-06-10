@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Tue, 10 Jun 2025 20:44:38 +0300
+Subject: [PATCH] Sync Paper upstream
+
+
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/io/MoonriseRegionFileIO.java b/ca/spottedleaf/moonrise/patches/chunk_system/io/MoonriseRegionFileIO.java
+index 34682217252cb98a70511a8cb25f077ec9f872b8..eccd330a332a927354f47acd16295c23d7b5f7dd 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/io/MoonriseRegionFileIO.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/io/MoonriseRegionFileIO.java
+@@ -1143,7 +1143,7 @@ public final class MoonriseRegionFileIO {
+                 LOGGER.error("Failed to decompress chunk data for task: " + this.toString(), thr);
+             }
+ 
+-            if (compoundTag == null) {
++            if (throwable == null && compoundTag == null) { // DivineMC - Sync Paper upstream
+                 // need to re-try from the start
+                 this.scheduleReadIO();
+                 return;
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index bea62fca118efdd6257188cd53c813dc5fd0c19c..adca106b1100b5c5236f40eb3795ac89c1fa0288 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -1403,7 +1403,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+         }
+ 
+         if (doFull) {
+-            this.saveLevelData(true);
++            this.saveLevelData(false);
+         }
+         // chunk autosave is already called by the ChunkSystem during unload processing (ChunkMap#processUnloads)
+         // Copied from save()
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index 195d9dc696a9a7da0bb041612b73c0bbacf2919e..5173e1365dd700abb8bf3d38ff00b34dcce41039 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -265,13 +265,6 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+         }
+         // Paper end - Sync offhand slot in menus
+ 
+-        // Paper start - add flag to simplify remote matching logic
+-        @Override
+-        public ServerPlayer player() {
+-            return ServerPlayer.this;
+-        }
+-        // Paper end - add flag to simplify remote matching logic
+-
+         @Override
+         public void sendSlotChange(AbstractContainerMenu container, int slot, ItemStack itemStack) {
+             ServerPlayer.this.connection.send(new ClientboundContainerSetSlotPacket(container.containerId, container.incrementStateId(), slot, itemStack));
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index c3e8da14d4faf560d24f877ef9eeb4a5dcb2aa8d..86e1ec473d13745e10a371289bee58791228be1f 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -785,6 +785,7 @@ public class ServerGamePacketListenerImpl
+ 
+     @Override
+     public void handleBundleItemSelectedPacket(ServerboundSelectBundleItemPacket packet) {
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel()); // Paper
+         this.player.containerMenu.setSelectedBundleItemIndex(packet.slotId(), packet.selectedItemIndex());
+     }
+ 
+diff --git a/net/minecraft/world/inventory/AbstractContainerMenu.java b/net/minecraft/world/inventory/AbstractContainerMenu.java
+index b03068bb94c785db51da660361ce28b9f4b45898..f9ae53d04ead53c7de29a3e50da1e257937df44b 100644
+--- a/net/minecraft/world/inventory/AbstractContainerMenu.java
++++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
+@@ -288,7 +288,7 @@ public abstract class AbstractContainerMenu {
+     private void synchronizeSlotToRemote(int slotIndex, ItemStack stack, Supplier<ItemStack> supplier) {
+         if (!this.suppressRemoteUpdates) {
+             ItemStack itemStack = this.remoteSlots.get(slotIndex);
+-            if (!this.matchesRemote(itemStack, stack)) { // Paper - add flag to simplify remote matching logic
++            if (!ItemStack.matches(itemStack, stack)) {
+                 ItemStack itemStack1 = supplier.get();
+                 this.remoteSlots.set(slotIndex, itemStack1);
+                 if (this.synchronizer != null) {
+@@ -312,7 +312,7 @@ public abstract class AbstractContainerMenu {
+ 
+     private void synchronizeCarriedToRemote() {
+         if (!this.suppressRemoteUpdates) {
+-            if (!this.matchesRemote(this.getCarried(), this.remoteCarried)) { // Paper - add flag to simplify remote matching logic
++            if (!ItemStack.matches(this.getCarried(), this.remoteCarried)) {
+                 this.remoteCarried = this.getCarried().copy();
+                 if (this.synchronizer != null) {
+                     this.synchronizer.sendCarriedChange(this, this.remoteCarried);
+@@ -321,16 +321,6 @@ public abstract class AbstractContainerMenu {
+         }
+     }
+ 
+-    // Paper start - add flag to simplify remote matching logic
+-    private boolean matchesRemote(final ItemStack stack, final ItemStack other) {
+-        if (this.synchronizer != null && this.synchronizer.player() != null && this.synchronizer.player().getBukkitEntity().simplifyContainerDesyncCheck()) {
+-            // Only check the item type and count
+-            return stack == other || (stack.getCount() == other.getCount() && ItemStack.isSameItem(stack, other));
+-        }
+-        return ItemStack.matches(stack, other);
+-    }
+-    // Paper end - add flag to simplify remote matching logic
+-
+     public void setRemoteSlot(int slot, ItemStack stack) {
+         this.remoteSlots.set(slot, stack.copy());
+     }
+diff --git a/net/minecraft/world/inventory/ContainerSynchronizer.java b/net/minecraft/world/inventory/ContainerSynchronizer.java
+index 396a8dde4ab85585628e75a60269ebfe9a051423..3200b2ebbdc963385fa6c36975afc062ea248baa 100644
+--- a/net/minecraft/world/inventory/ContainerSynchronizer.java
++++ b/net/minecraft/world/inventory/ContainerSynchronizer.java
+@@ -13,10 +13,4 @@ public interface ContainerSynchronizer {
+     void sendDataChange(AbstractContainerMenu container, int id, int value);
+ 
+     default void sendOffHandSlotChange() {} // Paper - Sync offhand slot in menus
+-
+-    // Paper start - add flag to simplify remote matching logic
+-    default net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerPlayer player() {
+-        return null;
+-    }
+-    // Paper end - add flag to simplify remote matching logic
+ }
