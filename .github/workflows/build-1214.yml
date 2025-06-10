@@ -1,0 +1,82 @@
+name: Build DivineMC 1.21.4
+
+on:
+  push:
+    branches:
+      - "master"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: blacksmith-8vcpu-ubuntu-2204
+    if: "!contains(github.event.commits[0].message, '[ci-skip]')"
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+    outputs:
+      build_number: ${{ env.BUILD_NUMBER }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Gradle Cache
+        uses: useblacksmith/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches/modules-2
+            ~/.gradle/caches/jars-*
+            ~/.gradle/caches/transforms-*
+            ~/.gradle/wrapper
+            ~/.gradle/build-cache-*
+            ~/.gradle/configuration-cache-*
+            .gradle/patchCache
+            .gradle/patched
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'patches/**/*.patch') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Gradle Cache Cleanup
+        run: |
+          mkdir -p ~/.gradle/caches/modules-2
+          [ -f ~/.gradle/caches/modules-2/modules-2.lock ] && rm -f ~/.gradle/caches/modules-2/modules-2.lock
+          find ~/.gradle/caches -name "*.lock" -type f -delete || echo "No lock files found"
+
+      - name: Setup JDK 21
+        uses: useblacksmith/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Configure Git and Gradle
+        run: |
+          git config --global user.email "no-reply@github.com" 
+          git config --global user.name "Github Actions"
+          git config --global core.preloadindex true
+          git config --global core.fscache true
+          git config --global gc.auto 256
+          chmod +x gradlew
+
+      - name: Apply Patches
+        run: |
+          PARALLELISM=$(($(nproc) * 2))
+          ./gradlew applyAllPatches --stacktrace --parallel --max-workers=$PARALLELISM --build-cache --no-daemon
+
+      - name: Build Paperclip Jar
+        run: ./gradlew createMojmapPaperclipJar --stacktrace --parallel --no-daemon
+
+      - name: Prepare Release Info
+        run: bash scripts/releaseInfo.sh
+        env:
+          BUILD_NUMBER: ${{ env.BUILD_NUMBER }}
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1.15.0
+        with:
+          artifacts: ${{ env.jar }}
+          bodyFile: ${{ env.info }}
+          tag: ${{ env.tag }}
+          name: ${{ env.name }}
+          prerelease: ${{ env.experimental }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          makeLatest: ${{ env.make_latest }}
