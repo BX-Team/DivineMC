@@ -198,6 +198,11 @@ public class DivineConfig {
         public static boolean disableHardThrow = false;
         public static boolean pwtCompatabilityMode = false;
 
+        // Regionized chunk ticking
+        public static boolean enableRegionizedChunkTicking = false;
+        public static int regionizedChunkTickingExecutorThreadCount = 4;
+        public static int regionizedChunkTickingExecutorThreadPriority = Thread.NORM_PRIORITY + 2;
+
         // Async pathfinding settings
         public static boolean asyncPathfinding = true;
         public static int asyncPathfindingMaxThreads = 2;
@@ -220,6 +225,7 @@ public class DivineConfig {
 
         public static void load() {
             parallelWorldTicking();
+            regionizedChunkTicking();
             asyncPathfinding();
             multithreadedTracker();
             asyncChunkSending();
@@ -237,6 +243,23 @@ public class DivineConfig {
                 "Disables annoying 'not on main thread' throws. But, THIS IS NOT RECOMMENDED because you SHOULD FIX THE ISSUES THEMSELVES instead of RISKING DATA CORRUPTION! If you lose something, take the blame on yourself.");
             pwtCompatabilityMode = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.compatability-mode"), pwtCompatabilityMode,
                 "Enables compatibility mode for plugins that are not compatible with Parallel World Ticking. This makes all async tasks run synchronously.");
+        }
+
+        private static void regionizedChunkTicking() {
+            enableRegionizedChunkTicking = getBoolean(ConfigCategory.ASYNC.key("regionized-chunk-ticking.enable"), enableRegionizedChunkTicking,
+                "Enables regionized chunk ticking, similar to like Folia works.",
+                "",
+                "Read more info about this feature at https://bxteam.org/docs/divinemc/features/regionized-chunk-ticking");
+
+            regionizedChunkTickingExecutorThreadCount = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-count"), regionizedChunkTickingExecutorThreadCount,
+                "The amount of threads to allocate to regionized chunk ticking.");
+            regionizedChunkTickingExecutorThreadPriority = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-priority"), regionizedChunkTickingExecutorThreadPriority,
+                "Configures the thread priority of the executor");
+
+            if (regionizedChunkTickingExecutorThreadCount < 1 || regionizedChunkTickingExecutorThreadCount > 10) {
+                LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (5)", regionizedChunkTickingExecutorThreadCount);
+                regionizedChunkTickingExecutorThreadCount = 5;
+            }
         }
 
         private static void asyncPathfinding() {

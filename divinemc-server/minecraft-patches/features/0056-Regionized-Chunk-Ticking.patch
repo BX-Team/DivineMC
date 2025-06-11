@@ -8,14 +8,14 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 Original idea by Dueris, modified by NONPLAYT and dan28000
 
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index e08d1b25892098175c581bde4bfbdde58e3e7af2..19c28b9cc63820ae3a88b54b8519f6822e96b88e 100644
+index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..33b0a16ffe1037c4e2c942f09cc3e0398ef878c5 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      private static final Logger LOGGER = LogUtils.getLogger();
      private final DistanceManager distanceManager;
      private final ServerLevel level;
-+    public static final Executor REGION_EXECUTOR = java.util.concurrent.Executors.newFixedThreadPool(org.bxteam.divinemc.DivineConfig.regionizedChunkTickingExecutorThreadCount, new org.bxteam.divinemc.util.NamedAgnosticThreadFactory<>("region_ticking", ca.spottedleaf.moonrise.common.util.TickThread::new, org.bxteam.divinemc.DivineConfig.regionizedChunkTickingExecutorThreadPriority)); // DivineMC - Regionized Chunk Ticking
++    public static final Executor REGION_EXECUTOR = java.util.concurrent.Executors.newFixedThreadPool(org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount, new org.bxteam.divinemc.util.NamedAgnosticThreadFactory<>("Region Ticking", ca.spottedleaf.moonrise.common.util.TickThread::new, org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority)); // DivineMC - Regionized Chunk Ticking
      public final Thread mainThread;
      final ThreadedLevelLightEngine lightEngine;
      public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
@@ -133,7 +133,7 @@ index e08d1b25892098175c581bde4bfbdde58e3e7af2..19c28b9cc63820ae3a88b54b8519f682
 -        for (int i = 0; i < size; ++i) {
 -            world.tickChunk(raw[i], randomTickSpeed);
 +        // DivineMC start - Regionized Chunk Ticking
-+        if (org.bxteam.divinemc.DivineConfig.enableRegionizedChunkTicking) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking) {
 +            List<LevelChunk> chunks = new java.util.ArrayList<>(size);
 +            for (int i = 0; i < size; ++i) {
 +                chunks.add(raw[i]);
@@ -228,7 +228,7 @@ index e08d1b25892098175c581bde4bfbdde58e3e7af2..19c28b9cc63820ae3a88b54b8519f682
  
      private void tickChunks(long timeInhabited) {
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 1d4e6ffc1c17f2e5ab363b71a2e8cbcc63bdfb7c..1052a70b40abe6f822d96bc697c9b40a74e5d93e 100644
+index caa1fd0e35b69c8bd55170af6140442bef5d6b4d..71421bb08875f5a7bd463421e43f307eaa0b7ad7 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -189,7 +189,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -245,7 +245,7 @@ index 1d4e6ffc1c17f2e5ab363b71a2e8cbcc63bdfb7c..1052a70b40abe6f822d96bc697c9b40a
              }
  
 +            // DivineMC start - Regionized Chunk Ticking
-+            if (org.bxteam.divinemc.DivineConfig.enableRegionizedChunkTicking) {
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking) {
 +                this.tickBlockEntities();
 +                return;
 +            }
@@ -286,7 +286,7 @@ index 1d4e6ffc1c17f2e5ab363b71a2e8cbcc63bdfb7c..1052a70b40abe6f822d96bc697c9b40a
              try {
                  this.isUpdatingNavigations = true;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index fe6925c195fb7844e25d3055f18602a56901d87e..eac0c0d939cc5e6edc2a54f34ae3465152fee88b 100644
+index 698f9c3a66dbb4f9ef1fbea873a1769d314d2bb4..6826de840122a7d7bac00a1148ac02ff794c8826 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -106,7 +106,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
