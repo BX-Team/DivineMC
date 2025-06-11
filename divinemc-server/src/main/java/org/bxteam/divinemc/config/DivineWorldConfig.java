@@ -1,4 +1,4 @@
-package org.bxteam.divinemc;
+package org.bxteam.divinemc.config;
 
 import org.bukkit.World;
 import org.jetbrains.annotations.Nullable;

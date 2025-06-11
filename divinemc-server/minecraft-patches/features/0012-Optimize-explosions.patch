@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize explosions
 
 
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index a772f2bd7be00172ad41353c6ad42d9239b9ec88..fb6df8b2d96727b3febfe404be0eb2d77b2edf13 100644
+index a772f2bd7be00172ad41353c6ad42d9239b9ec88..27c7a113b81160eb88021bf259005e3c0ad90ff1 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -372,6 +372,11 @@ public class ServerExplosion implements Explosion {
@@ -13,7 +13,7 @@ index a772f2bd7be00172ad41353c6ad42d9239b9ec88..fb6df8b2d96727b3febfe404be0eb2d7
  
      private List<BlockPos> calculateExplodedPositions() {
 +        // DivineMC start - Optimize explosions
-+        if (org.bxteam.divinemc.DivineConfig.enableFasterTntOptimization && !level.isClientSide && !(getIndirectSourceEntity() instanceof net.minecraft.world.entity.monster.breeze.Breeze)) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableFasterTntOptimization && !level.isClientSide && !(getIndirectSourceEntity() instanceof net.minecraft.world.entity.monster.breeze.Breeze)) {
 +            return doExplosionA(this);
 +        }
 +        // DivineMC end - Optimize explosions
@@ -36,7 +36,7 @@ index a772f2bd7be00172ad41353c6ad42d9239b9ec88..fb6df8b2d96727b3febfe404be0eb2d7
 +    public static @org.jetbrains.annotations.NotNull List<BlockPos> doExplosionA(ServerExplosion e) {
 +        List<BlockPos> toBlow;
 +
-+        if (!org.bxteam.divinemc.DivineConfig.explosionNoBlockDamage && e.damageSource != null) {
++        if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.explosionNoBlockDamage && e.damageSource != null) {
 +            rayCalcDone = false;
 +            firstRay = true;
 +            getAffectedPositionsOnPlaneY(e, 0, 0, 15, 0, 15); // bottom
@@ -118,7 +118,7 @@ index a772f2bd7be00172ad41353c6ad42d9239b9ec88..fb6df8b2d96727b3febfe404be0eb2d7
 +        double yInc = (yRel / len) * 0.3;
 +        double zInc = (zRel / len) * 0.3;
 +        float rand = e.level().random.nextFloat();
-+        float sizeRand = (org.bxteam.divinemc.DivineConfig.tntRandomRange >= 0 ? (float) org.bxteam.divinemc.DivineConfig.tntRandomRange : rand);
++        float sizeRand = (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.tntRandomRange >= 0 ? (float) org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.tntRandomRange : rand);
 +        float size = e.radius() * (0.7F + sizeRand * 0.6F);
 +        Vec3 vec3 = e.center();
 +        double posX = vec3.x;
@@ -170,7 +170,7 @@ index a772f2bd7be00172ad41353c6ad42d9239b9ec88..fb6df8b2d96727b3febfe404be0eb2d7
 +    }
 +
 +    private Optional<Float> noBlockCalcsWithNoBLockDamage(final ExplosionDamageCalculator instance, final Explosion explosion, final BlockGetter blockGetter, final BlockPos blockPos, final BlockState blockState, final FluidState fluidState) {
-+        if (org.bxteam.divinemc.DivineConfig.explosionNoBlockDamage) return Optional.of(net.minecraft.world.level.block.Blocks.BEDROCK.getExplosionResistance());
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.explosionNoBlockDamage) return Optional.of(net.minecraft.world.level.block.Blocks.BEDROCK.getExplosionResistance());
 +        return instance.getBlockExplosionResistance(explosion, blockGetter, blockPos, blockState, fluidState);
 +    }
 +    // DivineMC end - Optimize explosions
@@ -183,7 +183,7 @@ index a772f2bd7be00172ad41353c6ad42d9239b9ec88..fb6df8b2d96727b3febfe404be0eb2d7
  
      private void interactWithBlocks(List<BlockPos> blocks) {
 +        // DivineMC start - Optimize explosions
-+        if (org.bxteam.divinemc.DivineConfig.explosionNoBlockDamage) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.explosionNoBlockDamage) {
 +            blocks.clear();
 +        }
 +        // DivineMC end - Optimize explosions

@@ -113,7 +113,7 @@ index f36f8f2d49d4eba5c80eb243883749d6f831eb8a..b43b7e242ea0a4f87704853c03201144
      }
  }
 diff --git a/net/minecraft/world/level/levelgen/DensityFunctions.java b/net/minecraft/world/level/levelgen/DensityFunctions.java
-index 4c53031cf8f6198825b190955d96f20bbcccd77e..8827b7525de30ce15fccb9ac9f073110ba6c7b50 100644
+index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7a4142ddc 100644
 --- a/net/minecraft/world/level/levelgen/DensityFunctions.java
 +++ b/net/minecraft/world/level/levelgen/DensityFunctions.java
 @@ -275,38 +275,66 @@ public final class DensityFunctions {
@@ -173,7 +173,7 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..8827b7525de30ce15fccb9ac9f073110
 +                        }
 +                }
 +            };
-+            if (org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler && this.type == DensityFunctions.TwoArgumentSimpleFunction.Type.ADD) {
++            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler && this.type == DensityFunctions.TwoArgumentSimpleFunction.Type.ADD) {
 +                this.argument1.fillArray(array, contextProvider);
 +                double[] ds;
  
@@ -341,7 +341,7 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..8827b7525de30ce15fccb9ac9f073110
              FlatCache("flat_cache"),
              Cache2D("cache_2d"),
 diff --git a/net/minecraft/world/level/levelgen/NoiseChunk.java b/net/minecraft/world/level/levelgen/NoiseChunk.java
-index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc909a11d8f7 100644
+index 977b0d595e5637c80e7d4bb20da8896a0b64b844..840c15e4e2613c20b6d4fbcb44cb096997958bd3 100644
 --- a/net/minecraft/world/level/levelgen/NoiseChunk.java
 +++ b/net/minecraft/world/level/levelgen/NoiseChunk.java
 @@ -4,9 +4,11 @@ import com.google.common.collect.Lists;
@@ -455,7 +455,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
  
          NoiseRouter noiseRouter = random.router();
 -        NoiseRouter noiseRouter1 = noiseRouter.mapAll(this::wrap);
-+        NoiseRouter noiseRouter1 = noiseRouter.mapAll(org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler ? modifyVisitor1(this::wrap) : this::wrap); // DivineMC - Density Function Compiler
++        NoiseRouter noiseRouter1 = noiseRouter.mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor1(this::wrap) : this::wrap); // DivineMC - Density Function Compiler
          if (!noiseGeneratorSettings.isAquifersEnabled()) {
              this.aquifer = Aquifer.createDisabled(fluidPicker);
          } else {
@@ -464,7 +464,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
                  DensityFunctions.add(noiseRouter1.finalDensity(), DensityFunctions.BeardifierMarker.INSTANCE)
              )
 -            .mapAll(this::wrap);
-+            .mapAll(org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap); // DivineMC - Density Function Compiler
++            .mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap); // DivineMC - Density Function Compiler
          list.add(context -> this.aquifer.computeSubstance(context, densityFunction.compute(context)));
          if (noiseGeneratorSettings.oreVeinsEnabled()) {
              list.add(OreVeinifier.create(noiseRouter1.veinToggle(), noiseRouter1.veinRidged(), noiseRouter1.veinGap(), random.oreRandom()));
@@ -479,12 +479,12 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
 -            noiseRouter.depth().mapAll(this::wrap),
 -            noiseRouter.ridges().mapAll(this::wrap),
 +            // DivineMC start - Density Function Compiler
-+            noiseRouter.temperature().mapAll(org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
-+            noiseRouter.vegetation().mapAll(org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
-+            noiseRouter.continents().mapAll(org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
-+            noiseRouter.erosion().mapAll(org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
-+            noiseRouter.depth().mapAll(org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
-+            noiseRouter.ridges().mapAll(org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
++            noiseRouter.temperature().mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
++            noiseRouter.vegetation().mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
++            noiseRouter.continents().mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
++            noiseRouter.erosion().mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
++            noiseRouter.depth().mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
++            noiseRouter.ridges().mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap),
 +            // DivineMC end - Density Function Compiler
              points
          );
@@ -494,7 +494,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
  
      private DensityFunction wrapNew(DensityFunction densityFunction) {
 +        // DivineMC start - Density Function Compiler
-+        if (org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler) {
 +            if (this.interpolating && densityFunction instanceof DensityFunctions.Marker) {
 +                throw new IllegalStateException("Cannot create more wrapping during interpolation loop");
 +            }
@@ -677,7 +677,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
 +                        : this.noiseFiller.compute(context);
 +                }
 +            };
-+            if (!org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler || context instanceof NoiseChunk) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler || context instanceof NoiseChunk) {
 +                return run.get();
 +            }
 +            if (context instanceof NoisePosVanillaInterface vif && vif.getType() == EvalType.INTERPOLATION) {
@@ -826,7 +826,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
 +                    return d;
 +                }
 +            };
-+            if (!org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler || context instanceof NoiseChunk) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler || context instanceof NoiseChunk) {
 +                return run.get();
              }
 +            int blockX = context.blockX();
@@ -878,7 +878,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
 +                    this.lastArrayCounter = NoiseChunk.this.arrayInterpolationCounter;
 +                }
 +            };
-+            if (!org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler || contextProvider instanceof NoiseChunk) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler || contextProvider instanceof NoiseChunk) {
 +                run.run();
 +                return;
 +            }
@@ -1115,7 +1115,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
 +                        : this.value;
 +                }
 +            };
-+            if (!org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler || context instanceof NoiseChunk) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler || context instanceof NoiseChunk) {
 +                return original.get();
              }
 +            if (context instanceof NoisePosVanillaInterface vif && vif.getType() == EvalType.INTERPOLATION) {
@@ -1155,7 +1155,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..991025da1005d6c4122897231095dc90
  
          @Override
 diff --git a/net/minecraft/world/level/levelgen/RandomState.java b/net/minecraft/world/level/levelgen/RandomState.java
-index f1e089ecfffa40cd794c49db30fcedf138d3fee9..4e98103b35b03cd67ab9b4bdb91c39a9c94312df 100644
+index f1e089ecfffa40cd794c49db30fcedf138d3fee9..b28221ca337ce8d76bbccdd736a4c5b2c7cd08da 100644
 --- a/net/minecraft/world/level/levelgen/RandomState.java
 +++ b/net/minecraft/world/level/levelgen/RandomState.java
 @@ -122,6 +122,41 @@ public final class RandomState {
@@ -1164,7 +1164,7 @@ index f1e089ecfffa40cd794c49db30fcedf138d3fee9..4e98103b35b03cd67ab9b4bdb91c39a9
          );
 +
 +        // DivineMC start - Density Function Compiler
-+        if (org.bxteam.divinemc.DivineConfig.enableDensityFunctionCompiler) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler) {
 +            com.google.common.base.Stopwatch stopwatch = com.google.common.base.Stopwatch.createStarted();
 +            it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<DensityFunction, DensityFunction> tempCache = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>();
 +            this.router = new NoiseRouter(

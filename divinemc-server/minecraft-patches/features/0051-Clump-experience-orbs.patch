@@ -5,7 +5,7 @@ Subject: [PATCH] Clump experience orbs
 
 
 diff --git a/net/minecraft/world/entity/ExperienceOrb.java b/net/minecraft/world/entity/ExperienceOrb.java
-index ff4648b3be103446ab401d36c14cc80b48840cab..18ccbb1344875dd7a2f2f8084102d341b2a9597e 100644
+index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a83517eceec1 100644
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
 @@ -47,6 +47,10 @@ public class ExperienceOrb extends Entity {
@@ -24,7 +24,7 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..18ccbb1344875dd7a2f2f8084102d341
  
      private static boolean tryMergeToExisting(ServerLevel level, Vec3 pos, int amount) {
 +        // DivineMC start - Clump experience orbs
-+        if (org.bxteam.divinemc.DivineConfig.clumpOrbs) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.clumpOrbs) {
 +            AABB aABB = AABB.ofSize(pos, 1.0D, 1.0D, 1.0D);
 +            int id = level.getRandom().nextInt(40);
 +            List<ExperienceOrb> list = level.getEntities(EntityTypeTest.forClass(ExperienceOrb.class), aABB, (experienceOrbx) -> canMerge(experienceOrbx, id, amount));
@@ -53,12 +53,12 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..18ccbb1344875dd7a2f2f8084102d341
  
      private boolean canMerge(ExperienceOrb orb) {
 -        return orb != this && canMerge(orb, this.getId(), this.getValue());
-+        return org.bxteam.divinemc.DivineConfig.clumpOrbs ? orb.isAlive() && !this.is(orb) : orb != this && ExperienceOrb.canMerge(orb, this.getId(), this.getValue()); // DivineMC - Clump experience orbs
++        return org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.clumpOrbs ? orb.isAlive() && !this.is(orb) : orb != this && ExperienceOrb.canMerge(orb, this.getId(), this.getValue()); // DivineMC - Clump experience orbs
      }
  
      private static boolean canMerge(ExperienceOrb orb, int amount, int other) {
 -        return !orb.isRemoved() && (orb.getId() - amount) % io.papermc.paper.configuration.GlobalConfiguration.get().misc.xpOrbGroupsPerArea.or(ORB_GROUPS_PER_AREA) == 0 && orb.getValue() == other; // Paper - Configure how many orbs will merge together
-+        return org.bxteam.divinemc.DivineConfig.clumpOrbs ? orb.isAlive() : !orb.isRemoved() && (orb.getId() - amount) % io.papermc.paper.configuration.GlobalConfiguration.get().misc.xpOrbGroupsPerArea.or(ORB_GROUPS_PER_AREA) == 0 && orb.getValue() == other; // Paper - Configure how many orbs will merge together // Canvas - optimize orbs
++        return org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.clumpOrbs ? orb.isAlive() : !orb.isRemoved() && (orb.getId() - amount) % io.papermc.paper.configuration.GlobalConfiguration.get().misc.xpOrbGroupsPerArea.or(ORB_GROUPS_PER_AREA) == 0 && orb.getValue() == other; // Paper - Configure how many orbs will merge together // Canvas - optimize orbs
      }
  
      private void merge(ExperienceOrb orb) {
@@ -67,7 +67,7 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..18ccbb1344875dd7a2f2f8084102d341
          }
          // Paper end - call orb merge event
 +        // DivineMC start - Clump experience orbs
-+        if (org.bxteam.divinemc.DivineConfig.clumpOrbs) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.clumpOrbs) {
 +            java.util.Map<Integer, Integer> otherMap = (orb).clumps$getClumpedMap();
 +            this.count = clumps$getClumpedMap().values().stream().reduce(Integer::sum).orElse(1);
 +            this.age = Math.min(this.age, (orb).age);
@@ -117,7 +117,7 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..18ccbb1344875dd7a2f2f8084102d341
      @Override
      public void playerTouch(Player entity) {
 +        // DivineMC start - Clump experience orbs
-+        if (entity instanceof ServerPlayer serverPlayer && org.bxteam.divinemc.DivineConfig.clumpOrbs && new com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent(serverPlayer.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) {
++        if (entity instanceof ServerPlayer serverPlayer && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.clumpOrbs && new com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent(serverPlayer.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) {
 +            entity.takeXpDelay = 0;
 +            entity.take(this, 1);
 +
@@ -191,7 +191,7 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..18ccbb1344875dd7a2f2f8084102d341
 +        Optional<EnchantedItemInUse> randomItemWith = clumps$captureCurrentEntry(level().purpurConfig.useBetterMending ? EnchantmentHelper.getMostDamagedItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, player) : EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, player, ItemStack::isDamaged)); // Purpur - Add option to mend the most damaged equipment first // DivineMC - Clump experience orbs
 +
 +        // DivineMC start - Clump experience orbs
-+        if (org.bxteam.divinemc.DivineConfig.clumpOrbs) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.clumpOrbs) {
 +            return clumps$currentEntry
 +                .map(foundItem -> {
 +                    ItemStack itemstack = foundItem.itemStack();

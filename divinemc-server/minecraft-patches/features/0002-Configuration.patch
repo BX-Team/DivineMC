@@ -5,7 +5,7 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index debea77d5777b90c6b17b225e27e6b3c72370175..1a8c125a58f7363dbff4f11f5e34537ca1fbd605 100644
+index debea77d5777b90c6b17b225e27e6b3c72370175..f5761420749110ca8811533c3fb5d80c8b025c67 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -193,6 +193,15 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -14,7 +14,7 @@ index debea77d5777b90c6b17b225e27e6b3c72370175..1a8c125a58f7363dbff4f11f5e34537c
          // Purpur end - Purpur config files
 +        // DivineMC start - Configuration
 +        try {
-+            org.bxteam.divinemc.DivineConfig.init((java.io.File) options.valueOf("divinemc-settings"));
++            org.bxteam.divinemc.config.DivineConfig.init((java.io.File) options.valueOf("divinemc-settings"));
 +        } catch (Exception e) {
 +            DedicatedServer.LOGGER.error("Unable to load DivineMC configuration", e);
 +            return false;
@@ -25,14 +25,14 @@ index debea77d5777b90c6b17b225e27e6b3c72370175..1a8c125a58f7363dbff4f11f5e34537c
  
          // DivineMC start - Pufferfish SIMD
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 801c4e8e01590beeb3633275f58d436d87ad746e..269011e6ba70c9da42f2bc7c902fed5ab6994042 100644
+index 801c4e8e01590beeb3633275f58d436d87ad746e..5ffaae02967dbc079619d35c2b8e3f7763b75d38 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -161,6 +161,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      // Paper end - add paper world config
  
      public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files
-+    public final org.bxteam.divinemc.DivineWorldConfig divineConfig; // DivineMC - Configuration
++    public final org.bxteam.divinemc.config.DivineWorldConfig divineConfig; // DivineMC - Configuration
      public static @Nullable BlockPos lastPhysicsProblem; // Spigot
      private int tileTickPosition;
      public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
@@ -42,7 +42,7 @@ index 801c4e8e01590beeb3633275f58d436d87ad746e..269011e6ba70c9da42f2bc7c902fed5a
          this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName(), environment); // Purpur - Purpur config files
 +        // DivineMC start - Configuration
 +        try {
-+            this.divineConfig = new org.bxteam.divinemc.DivineWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName(), environment);
++            this.divineConfig = new org.bxteam.divinemc.config.DivineWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName(), environment);
 +        } catch (java.io.IOException e) {
 +            net.minecraft.server.MinecraftServer.LOGGER.error("Failed to load DivineMC configuration for world '{}'", ((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName(), e);
 +            throw new RuntimeException(e);

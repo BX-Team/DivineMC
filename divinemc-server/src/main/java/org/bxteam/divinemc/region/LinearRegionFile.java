@@ -10,7 +10,7 @@ import net.jpountz.lz4.LZ4FastDecompressor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import net.openhft.hashing.LongHashFunction;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 import org.bxteam.divinemc.spark.ThreadDumperRegistry;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -75,7 +75,7 @@ public class LinearRegionFile implements IRegionFile {
         Runnable flushCheck = () -> {
             while (!close) {
                 synchronized (SAVE_LOCK) {
-                    if (markedToSave && activeSaveThreads < DivineConfig.linearFlushMaxThreads) {
+                    if (markedToSave && activeSaveThreads < DivineConfig.MiscCategory.linearFlushMaxThreads) {
                         activeSaveThreads++;
                         Runnable flushOperation = () -> {
                             try {
@@ -88,7 +88,7 @@ public class LinearRegionFile implements IRegionFile {
                                 }
                             }
                         };
-                        Thread saveThread = DivineConfig.linearUseVirtualThread
+                        Thread saveThread = DivineConfig.MiscCategory.linearUseVirtualThread
                             ? Thread.ofVirtual().name("Linear IO - " + this.hashCode()).unstarted(flushOperation)
                             : Thread.ofPlatform().name("Linear IO - " + this.hashCode()).unstarted(flushOperation);
                         saveThread.setPriority(Thread.NORM_PRIORITY - 3);
@@ -96,10 +96,10 @@ public class LinearRegionFile implements IRegionFile {
                         ThreadDumperRegistry.REGISTRY.add(saveThread.getName());
                     }
                 }
-                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(DivineConfig.linearFlushDelay));
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(DivineConfig.MiscCategory.linearFlushDelay));
             }
         };
-        this.schedulingThread = DivineConfig.linearUseVirtualThread
+        this.schedulingThread = DivineConfig.MiscCategory.linearUseVirtualThread
             ? Thread.ofVirtual().unstarted(flushCheck)
             : Thread.ofPlatform().unstarted(flushCheck);
         this.schedulingThread.setName("Linear IO Schedule - " + this.hashCode());

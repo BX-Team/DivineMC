@@ -5,7 +5,7 @@ Subject: [PATCH] Command block parse results caching
 
 
 diff --git a/net/minecraft/world/level/BaseCommandBlock.java b/net/minecraft/world/level/BaseCommandBlock.java
-index 0eb88c24c66b521fd34d2fda6e6e21e3ecc6ac88..d27eca05abcfd524ff3c22770ce94505ce2ad233 100644
+index 0eb88c24c66b521fd34d2fda6e6e21e3ecc6ac88..430084381e9aa3e53afb59b58021ab6c3c70db03 100644
 --- a/net/minecraft/world/level/BaseCommandBlock.java
 +++ b/net/minecraft/world/level/BaseCommandBlock.java
 @@ -37,6 +37,10 @@ public abstract class BaseCommandBlock implements CommandSource {
@@ -25,7 +25,7 @@ index 0eb88c24c66b521fd34d2fda6e6e21e3ecc6ac88..d27eca05abcfd524ff3c22770ce94505
                      });
 -                    server.getCommands().dispatchServerCommand(commandSourceStack, this.command); // CraftBukkit
 +                    // DivineMC start - Command block parse results caching
-+                    if (org.bxteam.divinemc.DivineConfig.commandBlockParseResultsCaching) {
++                    if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.commandBlockParseResultsCaching) {
 +                        String commandCache = this.command;
 +                        // noinspection DuplicatedCode
 +                        com.google.common.base.Joiner joiner = com.google.common.base.Joiner.on(" ");

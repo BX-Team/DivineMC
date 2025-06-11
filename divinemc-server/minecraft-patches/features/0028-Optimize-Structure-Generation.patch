@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize Structure Generation
 
 
 diff --git a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
-index e275dc8395e556e8a9412b121034e91553fbaea4..61386f6534faff3710c5ff309977aaf37b273145 100644
+index 86a54586112b84b7c2026a4cbdad99cdf1c6ef81..e4ca880b5d16ae30676ec25c39c3d5b5f6cb3c24 100644
 --- a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
 +++ b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
 @@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
@@ -23,7 +23,7 @@ index e275dc8395e556e8a9412b121034e91553fbaea4..61386f6534faff3710c5ff309977aaf3
  
 +        // DivineMC start - Optimize Structure Generation
 +        private boolean structureLayoutOptimizer$optimizeJigsawConnecting(StructureTemplate.JigsawBlockInfo jigsaw1, StructureTemplate.JigsawBlockInfo jigsaw2) {
-+            if (!org.bxteam.divinemc.DivineConfig.enableStructureLayoutOptimizer) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
 +                return JigsawBlock.canAttach(jigsaw1, jigsaw2);
 +            }
 +            return org.bxteam.divinemc.util.structure.GeneralUtils.canJigsawsAttach(jigsaw1, jigsaw2);
@@ -41,7 +41,7 @@ index e275dc8395e556e8a9412b121034e91553fbaea4..61386f6534faff3710c5ff309977aaf3
 +        }
 +
 +        private List<StructurePoolElement> structureLayoutOptimizer$removeDuplicateTemplatePoolElementLists(StructureTemplatePool instance, RandomSource random) {
-+            if (!org.bxteam.divinemc.DivineConfig.enableStructureLayoutOptimizer || !org.bxteam.divinemc.DivineConfig.deduplicateShuffledTemplatePoolElementList) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer || !org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.deduplicateShuffledTemplatePoolElementList) {
 +                return instance.getShuffledTemplates(random);
 +            }
 +
@@ -67,7 +67,7 @@ index e275dc8395e556e8a9412b121034e91553fbaea4..61386f6534faff3710c5ff309977aaf3
 +
 +        private ArrayList<StructurePoolElement> structureLayoutOptimizer$skipDuplicateTemplatePoolElementLists1() {
 +            // Swap with trojan list, so we can record what pieces we visited
-+            return org.bxteam.divinemc.DivineConfig.deduplicateShuffledTemplatePoolElementList ? Lists.newArrayList() : new org.bxteam.divinemc.util.structure.TrojanArrayList<>();
++            return org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.deduplicateShuffledTemplatePoolElementList ? Lists.newArrayList() : new org.bxteam.divinemc.util.structure.TrojanArrayList<>();
 +        }
 +
 +        private List structureLayoutOptimizer$skipBlockedJigsaws(
@@ -78,7 +78,7 @@ index e275dc8395e556e8a9412b121034e91553fbaea4..61386f6534faff3710c5ff309977aaf3
 +            StructureTemplate.StructureBlockInfo parentJigsawBlockInfo,
 +            BlockPos parentTargetPosition)
 +        {
-+            if (!org.bxteam.divinemc.DivineConfig.enableStructureLayoutOptimizer) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
 +                return original;
 +            }
 +            if (voxelShapeMutableObject.getValue() instanceof org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape) {
@@ -96,10 +96,10 @@ index e275dc8395e556e8a9412b121034e91553fbaea4..61386f6534faff3710c5ff309977aaf3
 +                                                                                               List<StructurePoolElement> list,
 +                                                                                               StructurePoolElement structurepoolelement1)
 +        {
-+            if (!org.bxteam.divinemc.DivineConfig.enableStructureLayoutOptimizer) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
 +                return original;
 +            }
-+            if (!org.bxteam.divinemc.DivineConfig.deduplicateShuffledTemplatePoolElementList && list instanceof org.bxteam.divinemc.util.structure.TrojanArrayList<net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement> trojanArrayList) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.deduplicateShuffledTemplatePoolElementList && list instanceof org.bxteam.divinemc.util.structure.TrojanArrayList<net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement> trojanArrayList) {
 +                // Do not run this piece's logic since we already checked its 4 rotations in the past.
 +                if (trojanArrayList.elementsAlreadyParsed.contains(structurepoolelement1)) {
 +
@@ -177,7 +177,7 @@ index e275dc8395e556e8a9412b121034e91553fbaea4..61386f6534faff3710c5ff309977aaf3
 +                                            java.util.function.Supplier<Boolean> original = () -> Shapes.joinIsNotEmpty(
 +                                                parentBounds, Shapes.create(AABB.of(boundingBox3).deflate(0.25)), BooleanOp.ONLY_SECOND
 +                                            );
-+                                            if (org.bxteam.divinemc.DivineConfig.enableStructureLayoutOptimizer) {
++                                            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
 +                                                if (parentBounds instanceof org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape) {
 +                                                    AABB pieceAABB = AABB.of(boundingBox3).deflate(0.25D);
 +
@@ -195,7 +195,7 @@ index e275dc8395e556e8a9412b121034e91553fbaea4..61386f6534faff3710c5ff309977aaf3
                                                      Shapes.joinUnoptimized(
                                                          mutableObject1.getValue(), Shapes.create(AABB.of(boundingBox3)), BooleanOp.ONLY_FIRST
 diff --git a/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java b/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
-index 5c081a5b3d10f713e4e82fe1a43758f553fe50e0..b039e451a95ba67140524132285ccf4b3354ad00 100644
+index 5c081a5b3d10f713e4e82fe1a43758f553fe50e0..85e84603a19964f05d9d5e62eb096ca76c36ab00 100644
 --- a/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
 +++ b/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
 @@ -119,8 +119,16 @@ public class SinglePoolElement extends StructurePoolElement {
@@ -205,7 +205,7 @@ index 5c081a5b3d10f713e4e82fe1a43758f553fe50e0..b039e451a95ba67140524132285ccf4b
 -        Util.shuffle(jigsaws, random);
 -        sortBySelectionPriority(jigsaws);
 +        // DivineMC start - Optimize Structure Generation
-+        if (org.bxteam.divinemc.DivineConfig.enableStructureLayoutOptimizer) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
 +            structureLayoutOptimizer$fasterJigsawListShuffling1(jigsaws, random);
 +            structureLayoutOptimizer$fasterJigsawListShuffling2(jigsaws);
 +        } else {
@@ -231,7 +231,7 @@ index 5c081a5b3d10f713e4e82fe1a43758f553fe50e0..b039e451a95ba67140524132285ccf4b
 +    // DivineMC end - Optimize Structure Generation
  }
 diff --git a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
-index df3a1b9ed4ad836bd3358b6b440964e497213ea3..c283d5320c89c0793d59dd107fd9b0ae3b0a9ba6 100644
+index df3a1b9ed4ad836bd3358b6b440964e497213ea3..3730ea5ab8a82ab39b3454c2f5beb971c7b8939e 100644
 --- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 +++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 @@ -247,6 +247,12 @@ public class StructureTemplate {
@@ -253,7 +253,7 @@ index df3a1b9ed4ad836bd3358b6b440964e497213ea3..c283d5320c89c0793d59dd107fd9b0ae
              // CraftBukkit end
 -            List<StructureTemplate.StructureBlockInfo> list = settings.getRandomPalette(this.palettes, offset).blocks();
 +            // DivineMC start - Optimize Structure Generation
-+            List<StructureTemplate.StructureBlockInfo> list = org.bxteam.divinemc.DivineConfig.enableStructureLayoutOptimizer
++            List<StructureTemplate.StructureBlockInfo> list = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer
 +                ? structureLayoutOptimizer$shrinkStructureTemplateBlocksList(settings.getRandomPalette(this.palettes, offset), offset, settings)
 +                : settings.getRandomPalette(this.palettes, offset).blocks();
 +            // DivineMC end - Optimize Structure Generation
@@ -266,7 +266,7 @@ index df3a1b9ed4ad836bd3358b6b440964e497213ea3..c283d5320c89c0793d59dd107fd9b0ae
          Palette(List<StructureTemplate.StructureBlockInfo> blocks) {
 -            this.blocks = blocks;
 +            // DivineMC start - Optimize Structure Generation
-+            this.blocks = org.bxteam.divinemc.DivineConfig.enableStructureLayoutOptimizer
++            this.blocks = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer
 +                ? new org.bxteam.divinemc.util.structure.PalettedStructureBlockInfoList(blocks)
 +                : blocks;
 +            // DivineMC end - Optimize Structure Generation

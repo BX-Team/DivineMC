@@ -5,7 +5,7 @@ Subject: [PATCH] Dynamic Activation of Brain
 
 
 diff --git a/io/papermc/paper/entity/activation/ActivationRange.java b/io/papermc/paper/entity/activation/ActivationRange.java
-index 265f20fd771df850a0bb0029e699d3146d883837..a9326f1acc6ffe7fbacc34bf13f56d87e212027a 100644
+index 265f20fd771df850a0bb0029e699d3146d883837..62aaa45f512ed77e4901a2e703431594a32b615e 100644
 --- a/io/papermc/paper/entity/activation/ActivationRange.java
 +++ b/io/papermc/paper/entity/activation/ActivationRange.java
 @@ -161,6 +161,21 @@ public final class ActivationRange {
@@ -14,14 +14,14 @@ index 265f20fd771df850a0bb0029e699d3146d883837..a9326f1acc6ffe7fbacc34bf13f56d87
                  ActivationRange.activateEntity(entity);
 +
 +                // DivineMC start - Dynamic Activation of Brain
-+                if (org.bxteam.divinemc.DivineConfig.dabEnabled && entity.getType().dabEnabled && (!org.bxteam.divinemc.DivineConfig.dabDontEnableIfInWater || entity.getType().is(net.minecraft.tags.EntityTypeTags.CAN_BREATHE_UNDER_WATER) || !entity.isInWaterOrRain())) {
++                if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabEnabled && entity.getType().dabEnabled && (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabDontEnableIfInWater || entity.getType().is(net.minecraft.tags.EntityTypeTags.CAN_BREATHE_UNDER_WATER) || !entity.isInWaterOrRain())) {
 +                    if (!entity.activatedPriorityReset) {
 +                        entity.activatedPriorityReset = true;
-+                        entity.activatedPriority = org.bxteam.divinemc.DivineConfig.dabMaximumActivationFrequency;
++                        entity.activatedPriority = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabMaximumActivationFrequency;
 +                    }
 +                    int squaredDistance = (int) player.distanceToSqr(entity);
-+                    entity.activatedPriority = squaredDistance > org.bxteam.divinemc.DivineConfig.dabStartDistanceSquared ?
-+                            Math.max(1, Math.min(squaredDistance >> org.bxteam.divinemc.DivineConfig.dabActivationDistanceMod, entity.activatedPriority)) :
++                    entity.activatedPriority = squaredDistance > org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabStartDistanceSquared ?
++                            Math.max(1, Math.min(squaredDistance >> org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabActivationDistanceMod, entity.activatedPriority)) :
 +                            1;
 +                } else {
 +                    entity.activatedPriority = 1;
@@ -31,7 +31,7 @@ index 265f20fd771df850a0bb0029e699d3146d883837..a9326f1acc6ffe7fbacc34bf13f56d87
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 2958419f56eb7d18dd003130c287ee768c07e4ae..9db7c44f4d5985460510e11aa7060109ed51481a 100644
+index 6f62f5751932a1007d63a77a28d07fbd51eaa798..4890db5bf0358d1d3bb1c7d3894339d4bdccfbaa 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -802,6 +802,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -43,7 +43,7 @@ index 2958419f56eb7d18dd003130c287ee768c07e4ae..9db7c44f4d5985460510e11aa7060109
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  entity.checkDespawn();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index d80f5b6039a4e49ddbf5598f68137e7c17b388c5..abcaa8a1f9daf4557bb24e2161e9afa01f0b7211 100644
+index d80f5b6039a4e49ddbf5598f68137e7c17b388c5..3b754db2db36d9e2398efe2f5286b70f20470c2c 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -344,6 +344,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -51,7 +51,7 @@ index d80f5b6039a4e49ddbf5598f68137e7c17b388c5..abcaa8a1f9daf4557bb24e2161e9afa0
      private final int despawnTime; // Paper - entity despawn time limit
      public int totalEntityAge; // Paper - age-like counter for all entities
 +    public boolean activatedPriorityReset = false; // DivineMC - Dynamic Activation of Brain
-+    public int activatedPriority = org.bxteam.divinemc.DivineConfig.dabMaximumActivationFrequency; // DivineMC - Dynamic Activation of Brain
++    public int activatedPriority = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabMaximumActivationFrequency; // DivineMC - Dynamic Activation of Brain
      public final io.papermc.paper.entity.activation.ActivationType activationType = io.papermc.paper.entity.activation.ActivationType.activationTypeFor(this); // Paper - EAR 2/tracking ranges
      // Paper start - EAR 2
      public final boolean defaultActivationState;
@@ -126,7 +126,7 @@ index f6c673b1abe53afcb14fd68d590431027ed29f67..1e5312e02298c63c168526a960d688dc
          }
      }
 diff --git a/net/minecraft/world/entity/ai/goal/GoalSelector.java b/net/minecraft/world/entity/ai/goal/GoalSelector.java
-index b816b2de8eb327060ca6ea7c4afc17373fa77ff6..4eed0bd3670fdcb0a156c29e7db63233a47f539b 100644
+index b816b2de8eb327060ca6ea7c4afc17373fa77ff6..6d90235c35a78d1167181cbaa05c5e7644ff27a8 100644
 --- a/net/minecraft/world/entity/ai/goal/GoalSelector.java
 +++ b/net/minecraft/world/entity/ai/goal/GoalSelector.java
 @@ -36,10 +36,14 @@ public class GoalSelector {
@@ -136,7 +136,7 @@ index b816b2de8eb327060ca6ea7c4afc17373fa77ff6..4eed0bd3670fdcb0a156c29e7db63233
 -    public boolean inactiveTick() {
 +    // DivineMC start - Dynamic Activation of Brain
 +    public boolean inactiveTick(int tickRate, boolean inactive) {
-+        if (inactive && !org.bxteam.divinemc.DivineConfig.dabEnabled) tickRate = 4;
++        if (inactive && !org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabEnabled) tickRate = 4;
 +        tickRate = Math.min(tickRate, 3);
          this.curRate++;
 -        return this.curRate % 3 == 0; // TODO newGoalRate was already unused in 1.20.4, check if this is correct
@@ -210,7 +210,7 @@ index 0b787911c929f1564d859dcba1ee04510b4a9b7f..b3c09fe1a86f6a47448d4e71261ff346
  
      public static AttributeSupplier.Builder createAttributes() {
 diff --git a/net/minecraft/world/entity/animal/frog/Frog.java b/net/minecraft/world/entity/animal/frog/Frog.java
-index 3ccc48afb7a9eb2290f16c6a3218515bee59c2bd..617d47d61dd97fd1c7b56db71e47f4e334a4f491 100644
+index 433233f3fb346c15627cf0ad313ea55579826d86..e11c9aa9c7ba3ed3ecf4812679e23836d3187597 100644
 --- a/net/minecraft/world/entity/animal/frog/Frog.java
 +++ b/net/minecraft/world/entity/animal/frog/Frog.java
 @@ -105,6 +105,7 @@ public class Frog extends Animal {
@@ -369,7 +369,7 @@ index ce0dca4f8cd903037f6fe011d34a17d08ff5a907..23bf006b0698eed832a3ce28ec8dc823
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/warden/Warden.java b/net/minecraft/world/entity/monster/warden/Warden.java
-index 97ee07ebbba5ad29f766dff5eb4e51fc0e12cfcb..0898a7ea98b60edb31828d91afb92db44f63f85e 100644
+index 39b9dc1e78c1f9fc6a5ccad0de56cdb6d0781a05..db05fed2d0050796dfa32cbfc4206323252a30ca 100644
 --- a/net/minecraft/world/entity/monster/warden/Warden.java
 +++ b/net/minecraft/world/entity/monster/warden/Warden.java
 @@ -110,6 +110,7 @@ public class Warden extends Monster implements VibrationSystem {

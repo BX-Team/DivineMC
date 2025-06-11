@@ -5,7 +5,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.pathfinder.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,8 +26,8 @@ public class AsyncPathProcessor {
     private static long lastWarnMillis = System.currentTimeMillis();
     private static final ThreadPoolExecutor pathProcessingExecutor = new ThreadPoolExecutor(
         1,
-        DivineConfig.asyncPathfindingMaxThreads,
-        DivineConfig.asyncPathfindingKeepalive, TimeUnit.SECONDS,
+        DivineConfig.AsyncCategory.asyncPathfindingMaxThreads,
+        DivineConfig.AsyncCategory.asyncPathfindingKeepalive, TimeUnit.SECONDS,
         getQueueImpl(),
         new NamedAgnosticThreadFactory<>(THREAD_PREFIX, TickThread::new, Thread.NORM_PRIORITY - 2),
         new RejectedTaskHandler()
@@ -38,7 +38,7 @@ public class AsyncPathProcessor {
         public void rejectedExecution(Runnable rejectedTask, ThreadPoolExecutor executor) {
             BlockingQueue<Runnable> workQueue = executor.getQueue();
             if (!executor.isShutdown()) {
-                switch (DivineConfig.asyncPathfindingRejectPolicy) {
+                switch (DivineConfig.AsyncCategory.asyncPathfindingRejectPolicy) {
                     case FLUSH_ALL -> {
                         if (!workQueue.isEmpty()) {
                             List<Runnable> pendingTasks = new ArrayList<>(workQueue.size());
@@ -92,7 +92,7 @@ public class AsyncPathProcessor {
     }
 
     private static BlockingQueue<Runnable> getQueueImpl() {
-        final int queueCapacity = DivineConfig.asyncPathfindingQueueSize;
+        final int queueCapacity = DivineConfig.AsyncCategory.asyncPathfindingQueueSize;
 
         return new LinkedBlockingQueue<>(queueCapacity);
     }

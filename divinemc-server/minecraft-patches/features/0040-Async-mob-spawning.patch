@@ -5,7 +5,7 @@ Subject: [PATCH] Async mob spawning
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 7de51e99507dfca76ec5848483fecc9e8df1b86f..172c69d577e53354fd4f37702d395e8f61754336 100644
+index 3deced447eb80fec362e1b8b3bea817b36074fbc..b5103e14f25f4cf92438214f2fc3ada552dce742 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -289,6 +289,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -17,7 +17,7 @@ index 7de51e99507dfca76ec5848483fecc9e8df1b86f..172c69d577e53354fd4f37702d395e8f
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
          AtomicReference<S> atomicReference = new AtomicReference<>();
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 9a65321ce62f21b150d29be30dbae7dba0ff40be..e08d1b25892098175c581bde4bfbdde58e3e7af2 100644
+index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c271f4348 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -182,6 +182,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -37,7 +37,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..e08d1b25892098175c581bde4bfbdde5
          }
 +
 +        // DivineMC start - Async mob spawning
-+        if (org.bxteam.divinemc.DivineConfig.enableAsyncSpawning) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
 +            for (ServerPlayer player : this.level.players) {
 +                for (int ii = 0; ii < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; ii++) {
 +                    player.mobCounts[ii] = 0;
@@ -79,7 +79,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..e08d1b25892098175c581bde4bfbdde5
 -                    int newBackoff = player.mobBackoffCounts[ii] - 1; // TODO make configurable bleed // TODO use nonlinear algorithm?
 -                    if (newBackoff < 0) {
 -                        newBackoff = 0;
-+            if (!org.bxteam.divinemc.DivineConfig.enableAsyncSpawning) {
++            if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
 +                // re-set mob counts
 +                for (ServerPlayer player : this.level.players) {
 +                    // Paper start - per player mob spawning backoff
@@ -137,7 +137,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..e08d1b25892098175c581bde4bfbdde5
 -                NaturalSpawner.spawnForChunk(this.level, chunk, spawnState, spawnCategories);
 -            }
 +        // DivineMC start - Async mob spawning
-+        if (!spawnCategories.isEmpty() && this.level.getWorldBorder().isWithinBounds(pos) && (!org.bxteam.divinemc.DivineConfig.enableAsyncSpawning || spawnCountsReady.get())) { // Paper - rewrite chunk system
++        if (!spawnCategories.isEmpty() && this.level.getWorldBorder().isWithinBounds(pos) && (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning || spawnCountsReady.get())) { // Paper - rewrite chunk system
 +            NaturalSpawner.spawnForChunk(this.level, chunk, spawnState, spawnCategories);
          }
 +        // DivineMC end - Async mob spawning

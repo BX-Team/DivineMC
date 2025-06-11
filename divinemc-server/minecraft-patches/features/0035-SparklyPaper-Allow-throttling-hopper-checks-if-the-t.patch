@@ -7,7 +7,7 @@ Subject: [PATCH] SparklyPaper: Allow throttling hopper checks if the target
 Original project: https://github.com/SparklyPower/SparklyPaper
 
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 15d4f60942c0cc612c1468b4c0fda886867a67cb..d701952d940c0da245aa4f9e3664dd5cfcc8771e 100644
+index 15d4f60942c0cc612c1468b4c0fda886867a67cb..f0d53f83f7d3b4d8aa7d21bd7e3627a7052535aa 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -423,6 +423,11 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
@@ -15,8 +15,8 @@ index 15d4f60942c0cc612c1468b4c0fda886867a67cb..d701952d940c0da245aa4f9e3664dd5c
              Direction opposite = blockEntity.facing.getOpposite();
              if (isFullContainer(attachedContainer, opposite)) {
 +                // DivineMC start - SparklyPaper: Allow throttling hopper checks if the target container is full
-+                if (org.bxteam.divinemc.DivineConfig.hopperThrottleWhenFull && org.bxteam.divinemc.DivineConfig.hopperThrottleSkipTicks > 0) {
-+                    blockEntity.setCooldown(org.bxteam.divinemc.DivineConfig.hopperThrottleSkipTicks);
++                if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.hopperThrottleWhenFull && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.hopperThrottleSkipTicks > 0) {
++                    blockEntity.setCooldown(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.hopperThrottleSkipTicks);
 +                }
 +                // DivineMC end - SparklyPaper: Allow throttling hopper checks if the target container is full
                  return false;

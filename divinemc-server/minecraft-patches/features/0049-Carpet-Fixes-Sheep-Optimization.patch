@@ -19,7 +19,7 @@ we used a prebaked list of all the possible colors and combinations, however thi
 datapack to change it.
 
 diff --git a/net/minecraft/world/item/DyeColor.java b/net/minecraft/world/item/DyeColor.java
-index 6bac07817d2916c64f703586599a2cab226872e6..0b6eb7da40b1dc956da06abfb6145a69525fb89b 100644
+index 6bac07817d2916c64f703586599a2cab226872e6..d8ad2d56d4f0d6e5a58ec0359cecdde384db93e8 100644
 --- a/net/minecraft/world/item/DyeColor.java
 +++ b/net/minecraft/world/item/DyeColor.java
 @@ -112,6 +112,15 @@ public enum DyeColor implements StringRepresentable {
@@ -27,7 +27,7 @@ index 6bac07817d2916c64f703586599a2cab226872e6..0b6eb7da40b1dc956da06abfb6145a69
  
      public static DyeColor getMixedColor(ServerLevel level, DyeColor first, DyeColor second) {
 +        // DivineMC start - Carpet-Fixes: Sheep Optimization
-+        if (org.bxteam.divinemc.DivineConfig.sheepOptimization) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sheepOptimization) {
 +            DyeColor col = properDye(first, second);
 +
 +            if (col == null) col = level.random.nextBoolean() ? first : second;

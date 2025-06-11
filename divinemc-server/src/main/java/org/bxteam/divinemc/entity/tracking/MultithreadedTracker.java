@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,7 +46,7 @@ public class MultithreadedTracker {
 
     public static void tick(ChunkSystemServerLevel level) {
         try {
-            if (!DivineConfig.multithreadedCompatModeEnabled) {
+            if (!DivineConfig.AsyncCategory.multithreadedCompatModeEnabled) {
                 tickAsync(level);
             } else {
                 tickAsyncWithCompatMode(level);
@@ -135,15 +135,15 @@ public class MultithreadedTracker {
     }
 
     private static int getMaxPoolSize() {
-        return DivineConfig.asyncEntityTrackerMaxThreads;
+        return DivineConfig.AsyncCategory.asyncEntityTrackerMaxThreads;
     }
 
     private static long getKeepAliveTime() {
-        return DivineConfig.asyncEntityTrackerKeepalive;
+        return DivineConfig.AsyncCategory.asyncEntityTrackerKeepalive;
     }
 
     private static BlockingQueue<Runnable> getQueueImpl() {
-        final int queueCapacity = DivineConfig.asyncEntityTrackerQueueSize;
+        final int queueCapacity = DivineConfig.AsyncCategory.asyncEntityTrackerQueueSize;
 
         return new LinkedBlockingQueue<>(queueCapacity);
     }

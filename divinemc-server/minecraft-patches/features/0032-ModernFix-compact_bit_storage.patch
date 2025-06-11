@@ -10,7 +10,7 @@ As part of: ModernFix (https://github.com/embeddedt/ModernFix)
 Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 
 diff --git a/net/minecraft/world/level/chunk/PalettedContainer.java b/net/minecraft/world/level/chunk/PalettedContainer.java
-index a512609aaa823b940ed269c981fc9beec49a126e..2829ebdda8e9ad8945fe7d3f96c3cdaad798a40a 100644
+index a512609aaa823b940ed269c981fc9beec49a126e..1469835b298db8d4079b791192849626b972c62f 100644
 --- a/net/minecraft/world/level/chunk/PalettedContainer.java
 +++ b/net/minecraft/world/level/chunk/PalettedContainer.java
 @@ -275,6 +275,28 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
@@ -18,7 +18,7 @@ index a512609aaa823b940ed269c981fc9beec49a126e..2829ebdda8e9ad8945fe7d3f96c3cdaa
              buffer.readFixedSizeLongArray(data.storage.getRaw());
              this.data = data;
 +            // DivineMC start - ModernFix: compact_bit_storage
-+            if (org.bxteam.divinemc.DivineConfig.useCompactBitStorage && _byte > 1) {
++            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.useCompactBitStorage && _byte > 1) {
 +                long[] storageArray = this.data.storage.getRaw();
 +                boolean empty = true;
 +                for (long l : storageArray) {

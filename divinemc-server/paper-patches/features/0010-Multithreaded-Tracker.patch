@@ -5,7 +5,7 @@ Subject: [PATCH] Multithreaded Tracker
 
 
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-index d7398b1ecf2660c29fb7d106b48fe02d3736603e..a9ec83b5bcb329bf3d2f3fb0e502685a37f9dcbc 100644
+index d7398b1ecf2660c29fb7d106b48fe02d3736603e..ab499a7eaccdc1578ec64f90f54f79b0da3c0e96 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 @@ -42,6 +42,12 @@ class PaperEventManager {
@@ -13,7 +13,7 @@ index d7398b1ecf2660c29fb7d106b48fe02d3736603e..a9ec83b5bcb329bf3d2f3fb0e502685a
              throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
          } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
 +            // DivineMC start - Multithreaded Tracker
-+            if (org.bxteam.divinemc.DivineConfig.multithreadedEnabled) {
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
 +                net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(event::callEvent);
 +                return;
 +            }
@@ -22,7 +22,7 @@ index d7398b1ecf2660c29fb7d106b48fe02d3736603e..a9ec83b5bcb329bf3d2f3fb0e502685a
          }
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index f32316b0357f1cb0501a052361a0221f8e9d1438..2e28891cb4c058c022b06040c0283aacf4c2445e 100644
+index 5300a513a295d472752d31a6e8af48bb64b06704..399fd8841e9d7c068b4fccb3754b371ec95c2e59 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -1751,6 +1751,26 @@ public class CraftEventFactory {
@@ -30,7 +30,7 @@ index f32316b0357f1cb0501a052361a0221f8e9d1438..2e28891cb4c058c022b06040c0283aac
  
      public static boolean handleBlockFormEvent(Level world, BlockPos pos, net.minecraft.world.level.block.state.BlockState state, int flags, @Nullable Entity entity, boolean checkSetResult) {
 +        // DivineMC start - Multithreaded Tracker
-+        if (org.bxteam.divinemc.DivineConfig.multithreadedEnabled && Thread.currentThread() instanceof org.bxteam.divinemc.entity.tracking.MultithreadedTracker.MultithreadedTrackerThread) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled && Thread.currentThread() instanceof org.bxteam.divinemc.entity.tracking.MultithreadedTracker.MultithreadedTrackerThread) {
 +            java.util.concurrent.CompletableFuture<Boolean> future = new java.util.concurrent.CompletableFuture<>();
 +            net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
 +                boolean resultFlag = false;

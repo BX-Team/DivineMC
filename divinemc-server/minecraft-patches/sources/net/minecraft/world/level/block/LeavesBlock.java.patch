@@ -5,14 +5,14 @@
  
      protected boolean decaying(BlockState state) {
 -        return !state.getValue(PERSISTENT) && state.getValue(DISTANCE) == 7;
-+        return !org.bxteam.divinemc.DivineConfig.disableLeafDecay && !state.getValue(PERSISTENT) && state.getValue(DISTANCE) == 7; // DivineMC - Disable leaf decay
++        return !org.bxteam.divinemc.config.DivineConfig.FixesCategory.disableLeafDecay && !state.getValue(PERSISTENT) && state.getValue(DISTANCE) == 7; // DivineMC - Disable leaf decay
      }
  
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
 -        level.setBlock(pos, updateDistance(state, level, pos), 3);
 +        // DivineMC start - Make leaves not suffocate the server
-+        if (org.bxteam.divinemc.DivineConfig.disableLeafDecay) return; // DivineMC - Disable leaf decay
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.disableLeafDecay) return; // DivineMC - Disable leaf decay
 +        int newValue = 7;
 +        int oldValue = state.getValue(DISTANCE);
 +        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();

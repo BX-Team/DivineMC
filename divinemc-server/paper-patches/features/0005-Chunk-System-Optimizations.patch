@@ -507,14 +507,14 @@ index ab2fa1563d5e32a5313dfcc1da411cab45fb5ca0..1bababc2515d8c805e4ee0c943065f45
      }
  
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
-index 632920e04686d8a0fd0a60e87348be1fe7862a3c..f10c6c156b8dd9acecc8b1ee81bd28260fb6e4d8 100644
+index 632920e04686d8a0fd0a60e87348be1fe7862a3c..06a0624663a080d8be9f7816fda569fda9fdd1e1 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
 @@ -3,6 +3,12 @@ package ca.spottedleaf.moonrise.common.util;
  import ca.spottedleaf.concurrentutil.executor.thread.PrioritisedThreadPool;
  import ca.spottedleaf.moonrise.common.PlatformHooks;
  import com.mojang.logging.LogUtils;
-+import org.bxteam.divinemc.DivineConfig;
++import org.bxteam.divinemc.config.DivineConfig;
 +import org.bxteam.divinemc.server.chunk.ChunkSystemAlgorithms;
 +import org.bxteam.divinemc.server.chunk.TheChunkSystem;
 +import org.bxteam.divinemc.spark.ThreadDumperRegistry;
@@ -567,7 +567,7 @@ index 632920e04686d8a0fd0a60e87348be1fe7862a3c..f10c6c156b8dd9acecc8b1ee81bd2826
 -
 -        int workerThreads = configWorkerThreads;
 +    public static void init(final int configWorkerThreads, final int configIoThreads) {
-+        ChunkSystemAlgorithms algorithm = DivineConfig.chunkWorkerAlgorithm;
++        ChunkSystemAlgorithms algorithm = DivineConfig.PerformanceCategory.chunkWorkerAlgorithm;
 +        int workerThreads = algorithm.evalWorkers(configWorkerThreads, configIoThreads);
 +        int ioThreads = algorithm.evalIO(configWorkerThreads, configIoThreads);
  
@@ -591,7 +591,7 @@ index 632920e04686d8a0fd0a60e87348be1fe7862a3c..f10c6c156b8dd9acecc8b1ee81bd2826
 +        return new TheChunkSystem(workerThreads, new ThreadBuilder() {
 +            @Override
 +            public void accept(final Thread thread) {
-+                thread.setPriority(DivineConfig.threadPoolPriority);
++                thread.setPriority(DivineConfig.PerformanceCategory.threadPoolPriority);
 +                thread.setDaemon(true);
 +                thread.setUncaughtExceptionHandler((thread1, throwable) -> LOGGER.error("Uncaught exception in thread {}", thread1.getName(), throwable));
 +                thread.setName("World Gen Worker #" + getAndIncrementId());
@@ -651,7 +651,7 @@ index 632920e04686d8a0fd0a60e87348be1fe7862a3c..f10c6c156b8dd9acecc8b1ee81bd2826
          LOGGER.info("Awaiting termination of I/O pool for up to 60s...");
          if (!MoonriseCommon.IO_POOL.join(TimeUnit.SECONDS.toMillis(60L))) {
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseConstants.java b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseConstants.java
-index 559c959aff3c9deef867b9e425fba3e2e669cac6..a5b0585b56d71d21c9da3b129d213def142bb1f6 100644
+index 559c959aff3c9deef867b9e425fba3e2e669cac6..7d0281cc946d6b0dc6f21fa6798e5320ae589bcf 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseConstants.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseConstants.java
 @@ -4,7 +4,7 @@ import ca.spottedleaf.moonrise.common.PlatformHooks;
@@ -659,7 +659,7 @@ index 559c959aff3c9deef867b9e425fba3e2e669cac6..a5b0585b56d71d21c9da3b129d213def
  public final class MoonriseConstants {
  
 -    public static final int MAX_VIEW_DISTANCE = Integer.getInteger(PlatformHooks.get().getBrand() + ".MaxViewDistance", 32);
-+    public static final int MAX_VIEW_DISTANCE = Integer.getInteger(PlatformHooks.get().getBrand() + ".MaxViewDistance", org.bxteam.divinemc.DivineConfig.maxViewDistance); // DivineMC - Configurable view distance
++    public static final int MAX_VIEW_DISTANCE = Integer.getInteger(PlatformHooks.get().getBrand() + ".MaxViewDistance", org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.maxViewDistance); // DivineMC - Configurable view distance
  
      private MoonriseConstants() {}
  

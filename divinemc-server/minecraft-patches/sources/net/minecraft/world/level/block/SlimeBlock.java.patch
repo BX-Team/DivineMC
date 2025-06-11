@@ -4,7 +4,7 @@
          Vec3 deltaMovement = entity.getDeltaMovement();
          if (deltaMovement.y < 0.0) {
              double d = entity instanceof LivingEntity ? 1.0 : 0.8;
-+            if (org.bxteam.divinemc.DivineConfig.fixIncorrectBounceLogic) entity.setOnGround(deltaMovement.y > -0.15); // DivineMC - Carpet-Fixes: Fix Slime Block Bounce Logic
++            if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixIncorrectBounceLogic) entity.setOnGround(deltaMovement.y > -0.15); // DivineMC - Carpet-Fixes: Fix Slime Block Bounce Logic
              entity.setDeltaMovement(deltaMovement.x, -deltaMovement.y * d, deltaMovement.z);
          }
      }

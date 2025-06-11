@@ -1,6 +1,6 @@
 package org.bxteam.divinemc.entity.pathfinding;
 
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 import java.util.Locale;
 
 public enum PathfindTaskRejectPolicy {

@@ -104,7 +104,7 @@ index ba20e87d2105ce53cdaf4049de2388d05fcd1b56..131e673c8eaa2afa801de5913982259d
      }
  
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index 7a52c42845bd74d0bb7649f87764aba12f442f02..03ab44b69725a18ed567826e4417f1d6701f08c9 100644
+index d1148be69ffc03973f097ab421ee59c6999b6e84..529593d4c46b71849e50e2976411186134c51aab 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 @@ -187,13 +187,13 @@ public final class RegionizedPlayerChunkLoader {
@@ -149,7 +149,7 @@ index 7a52c42845bd74d0bb7649f87764aba12f442f02..03ab44b69725a18ed567826e4417f1d6
 -                Math.abs(c2x - centerX) + Math.abs(c2z - centerZ)
 -            );
 +            // DivineMC start - Chunk Loading Priority Optimization
-+            if (org.bxteam.divinemc.DivineConfig.chunkTaskPriority == org.bxteam.divinemc.server.chunk.ChunkTaskPriority.EUCLIDEAN_CIRCLE_PATTERN) {
++            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkTaskPriority == org.bxteam.divinemc.server.chunk.ChunkTaskPriority.EUCLIDEAN_CIRCLE_PATTERN) {
 +                return Integer.compare(
 +                    (c1x - centerX) * (c1x - centerX) + (c1z - centerZ) * (c1z - centerZ),
 +                    (c2x - centerX) * (c2x - centerX) + (c2z - centerZ) * (c2z - centerZ)
@@ -849,7 +849,7 @@ index 93fd23027c00cef76562098306737272fda1350a..44e443768f5163454fd11425afd3bc07
      }
  
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_tick_iteration/ChunkTickConstants.java b/ca/spottedleaf/moonrise/patches/chunk_tick_iteration/ChunkTickConstants.java
-index 6d1fe8028739145b11fce98ad62b2f8044299548..2cd1197fa0d15e19749409cc857a0254de444ba5 100644
+index 6d1fe8028739145b11fce98ad62b2f8044299548..1885339f1ed5f24aa281aa2720a1d511a95740de 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_tick_iteration/ChunkTickConstants.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_tick_iteration/ChunkTickConstants.java
 @@ -2,7 +2,7 @@ package ca.spottedleaf.moonrise.patches.chunk_tick_iteration;
@@ -857,7 +857,7 @@ index 6d1fe8028739145b11fce98ad62b2f8044299548..2cd1197fa0d15e19749409cc857a0254
  public final class ChunkTickConstants {
  
 -    public static final int PLAYER_SPAWN_TRACK_RANGE = 8;
-+    public static final int PLAYER_SPAWN_TRACK_RANGE = (int) Math.round(org.bxteam.divinemc.DivineConfig.playerNearChunkDetectionRange / 16.0); // DivineMC - Chunk System optimization
++    public static final int PLAYER_SPAWN_TRACK_RANGE = (int) Math.round(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.playerNearChunkDetectionRange / 16.0); // DivineMC - Chunk System optimization
      // the smallest distance on x/z is at 45 degrees, we need to subtract 0.5 since this is calculated from chunk center and not chunk perimeter
      // note: vanilla does not subtract 0.5 but the result is (luckily!) the same
      public static final int NARROW_SPAWN_TRACK_RANGE = (int)Math.floor(((double)PLAYER_SPAWN_TRACK_RANGE / Math.sqrt(2.0)) - 0.5);
@@ -904,7 +904,7 @@ index 52b981a05ad5aabb7c85dc1e0f1d2b835163bb87..f4af8e131c2badbe0e57ccec5be8710e
          commands.put(Set.of("fixlight"), new FixLightCommand()); // Paper - rewrite chunk system
          commands.put(Set.of("debug", "chunkinfo", "holderinfo"), new ChunkDebugCommand());  // Paper - rewrite chunk system
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index b5028cc64e2a43c841801114908825102df41765..fb6e0beb35d1d6bb9a159debeb06e861051821b9 100644
+index 5ab3c01d81522caace541bcf96fd6d2e9b49a8c9..3ece4fc97811f680c1dd01913d6bff51722c6ba1 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -132,8 +132,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -983,7 +983,7 @@ index b5028cc64e2a43c841801114908825102df41765..fb6e0beb35d1d6bb9a159debeb06e861
              final ServerPlayer player = raw[i];
 -            if (this.playerIsCloseEnoughForSpawning(player, chunkPos, 16384.0D)) { // Spigot
 +            if (player == null) continue; // DivineMC - Chunk System Optimizations
-+            if (this.playerIsCloseEnoughForSpawning(player, chunkPos, (org.bxteam.divinemc.DivineConfig.playerNearChunkDetectionRange^2))) { // Spigot // DivineMC - Chunk System Optimizations
++            if (this.playerIsCloseEnoughForSpawning(player, chunkPos, (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.playerNearChunkDetectionRange^2))) { // Spigot // DivineMC - Chunk System Optimizations
                  if (ret == null) {
                      ret = new ArrayList<>(len - i);
                      ret.add(player);
@@ -1032,7 +1032,7 @@ index 4d4139b5f42a4db6e22bf1d063a23dc7b9914f85..9a65321ce62f21b150d29be30dbae7db
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 6268bfc05fd9d3669bef20a1ddc5477fbae0f957..2ebd77db2d13d04513689ff332404c6af6a3c11d 100644
+index 6ed2d1aeab17941b67019d45734da46efc53ffdf..d003e36a37cbc39d6467a9c45ad716dc27fd62a7 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -177,6 +177,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -1579,7 +1579,7 @@ index 2ffae24b0cb1a20c7d5a8520f1b5197c2cedea11..c3ec5e5645f680a915c95d833b589b68
      public T valueFor(int id) {
          if (this.value != null && id == 0) {
 diff --git a/net/minecraft/world/level/chunk/storage/IOWorker.java b/net/minecraft/world/level/chunk/storage/IOWorker.java
-index 27e1edbd8d8ffd80c1a3df17bc47f4a6936619f7..fae062a643692369175f58bb1687e766e873d8e3 100644
+index 27e1edbd8d8ffd80c1a3df17bc47f4a6936619f7..67d48ad11671e72e9dfeafbd64dc27031bd395d5 100644
 --- a/net/minecraft/world/level/chunk/storage/IOWorker.java
 +++ b/net/minecraft/world/level/chunk/storage/IOWorker.java
 @@ -212,7 +212,38 @@ public class IOWorker implements ChunkScanAccess, AutoCloseable {
@@ -1588,9 +1588,9 @@ index 27e1edbd8d8ffd80c1a3df17bc47f4a6936619f7..fae062a643692369175f58bb1687e766
  
 +    // DivineMC start - Chunk System optimization
 +    private void checkHardLimit() {
-+        if (this.pendingWrites.size() >= org.bxteam.divinemc.DivineConfig.chunkDataCacheLimit) {
-+            LOGGER.warn("Chunk data cache size exceeded hard limit ({} >= {}), forcing writes to disk (you can increase chunkDataCacheLimit in c2me.toml)", this.pendingWrites.size(), org.bxteam.divinemc.DivineConfig.chunkDataCacheLimit);
-+            while (this.pendingWrites.size() >= org.bxteam.divinemc.DivineConfig.chunkDataCacheSoftLimit * 0.75) {
++        if (this.pendingWrites.size() >= org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheLimit) {
++            LOGGER.warn("Chunk data cache size exceeded hard limit ({} >= {}), forcing writes to disk (you can increase chunkDataCacheLimit in c2me.toml)", this.pendingWrites.size(), org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheLimit);
++            while (this.pendingWrites.size() >= org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheSoftLimit * 0.75) {
 +                writeResult0();
 +            }
 +        }
@@ -1610,8 +1610,8 @@ index 27e1edbd8d8ffd80c1a3df17bc47f4a6936619f7..fae062a643692369175f58bb1687e766
 +        // DivineMC start - Chunk System optimization
 +        if (!this.pendingWrites.isEmpty()) {
 +            checkHardLimit();
-+            if (this.pendingWrites.size() >= org.bxteam.divinemc.DivineConfig.chunkDataCacheSoftLimit) {
-+                int writeFrequency = Math.min(1, (this.pendingWrites.size() - (int) org.bxteam.divinemc.DivineConfig.chunkDataCacheSoftLimit) / 16);
++            if (this.pendingWrites.size() >= org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheSoftLimit) {
++                int writeFrequency = Math.min(1, (this.pendingWrites.size() - (int) org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheSoftLimit) / 16);
 +                for (int i = 0; i < writeFrequency; i++) {
 +                    writeResult0();
 +                }
@@ -2305,14 +2305,14 @@ index 74d8202b5c9bb2a3ee832be70f95c0b5cbecb460..4c11b822fa65388c1d8d9aaa7fd70200
  
      private static double getBeardContribution(int x, int y, int z, int height) {
 diff --git a/net/minecraft/world/level/levelgen/BelowZeroRetrogen.java b/net/minecraft/world/level/levelgen/BelowZeroRetrogen.java
-index 3379c3893227d42bb54f3a94e697a9851d279605..161aed37d14cd283a3b4341ea15d57a4a0f088b3 100644
+index 3379c3893227d42bb54f3a94e697a9851d279605..06b1ea5fd3b9b1c6bace8be859aabff7590481ce 100644
 --- a/net/minecraft/world/level/levelgen/BelowZeroRetrogen.java
 +++ b/net/minecraft/world/level/levelgen/BelowZeroRetrogen.java
 @@ -74,6 +74,7 @@ public final class BelowZeroRetrogen {
      }
  
      public void applyBedrockMask(ProtoChunk chunk) {
-+        if (org.bxteam.divinemc.DivineConfig.smoothBedrockLayer) return; // DivineMC - Smooth bedrock layer
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.smoothBedrockLayer) return; // DivineMC - Smooth bedrock layer
          LevelHeightAccessor heightAccessorForGeneration = chunk.getHeightAccessorForGeneration();
          int minY = heightAccessorForGeneration.getMinY();
          int maxY = heightAccessorForGeneration.getMaxY();
@@ -2516,7 +2516,7 @@ index 4cf3a364595ba5f81f741295695cb9a449bdf672..44df2ac0bd972c4d97fc89cd0c2d2d83
      }
  }
 diff --git a/net/minecraft/world/level/levelgen/SurfaceRules.java b/net/minecraft/world/level/levelgen/SurfaceRules.java
-index bbf2995d352c22b3f6fb0de40f2932af1771c504..af852376b61d127a5e251a7a6fcb35c25d1d4e1f 100644
+index 32757c6847cf77862a2f1b38cc53e7166e6be492..92c7aa344d00067f52829f8d97a6ee219e6c2771 100644
 --- a/net/minecraft/world/level/levelgen/SurfaceRules.java
 +++ b/net/minecraft/world/level/levelgen/SurfaceRules.java
 @@ -185,7 +185,7 @@ public class SurfaceRules {

@@ -7,7 +7,7 @@
 -                ServerGamePacketListenerImpl.LOGGER.warn("Disconnected on accept teleport packet. Was not expecting position data from client at this time"); // Purpur - Add more logger output for invalid movement kicks
 -                this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
 +                // DivineMC start - Graceful teleport handling
-+                if (org.bxteam.divinemc.DivineConfig.gracefulTeleportHandling ) {
++                if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.gracefulTeleportHandling) {
 +                    LOGGER.info("Was not expecting position data from client at this time, gracefully returning instead of disconnect.");
 +                } else {
 +                    ServerGamePacketListenerImpl.LOGGER.warn("Disconnected on accept teleport packet. Was not expecting position data from client at this time"); // Purpur - Add more logger output for invalid movement kicks

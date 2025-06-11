@@ -21,7 +21,7 @@ index a814512fcfb85312474ae2c2c21443843bf57831..fdccc27c528b01b16a72e614ffd96523
      public MoonriseRegionFileIO.RegionDataController.WriteData moonrise$startWrite(
              final int chunkX, final int chunkZ, final CompoundTag compound
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/io/MoonriseRegionFileIO.java b/ca/spottedleaf/moonrise/patches/chunk_system/io/MoonriseRegionFileIO.java
-index 709df35246fb328cda21679b53d44d9f96206cb3..72c5463cbdd78bfa215b0c1f9baeb3be089dcde7 100644
+index f5ed467c0880e4bcdf1b9ae773a5aac21c4381c3..95fb49f7b9ee3d132cf2405d99b2d63ee295d76d 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/io/MoonriseRegionFileIO.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/io/MoonriseRegionFileIO.java
 @@ -1260,7 +1260,7 @@ public final class MoonriseRegionFileIO {
@@ -54,7 +54,7 @@ index 51c126735ace8fdde89ad97b5cab62f244212db0..8713d00d767c9225a0823d2fdbb0b479
 +    public void moonrise$write(final org.bxteam.divinemc.region.IRegionFile regionFile) throws IOException; // DivineMC - Linear region file format
  }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index b2e90749bcaf3b9132681713ab0afae95b3197ee..7de51e99507dfca76ec5848483fecc9e8df1b86f 100644
+index ce79e6db9ab1a49005d1163641dd32050a2f9a41..3deced447eb80fec362e1b8b3bea817b36074fbc 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -926,10 +926,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -142,7 +142,7 @@ index ae0a893498d0bfe90c14508f15b431d4885e06ff..6fba4d36377359dbcf8c804b194c4aef
          }
          // Paper end - rewrite chunk system
 diff --git a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-index c98cb390bda4b536f97445f228e06aaebcd84609..db2a7a2ddb6e3f8e5c0291426407f708585db4ee 100644
+index c98cb390bda4b536f97445f228e06aaebcd84609..4e90366c5cea27ca2a38983c5de7b8eb68d72603 100644
 --- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 @@ -18,7 +18,7 @@ public class RegionFileStorage implements AutoCloseable, ca.spottedleaf.moonrise
@@ -168,7 +168,7 @@ index c98cb390bda4b536f97445f228e06aaebcd84609..db2a7a2ddb6e3f8e5c0291426407f708
      private final it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet nonExistingRegionFiles = new it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet();
      private static String getRegionFileName(final int chunkX, final int chunkZ) {
 +        // DivineMC start - Linear region file format
-+        if (org.bxteam.divinemc.DivineConfig.regionFormatTypeName == org.bxteam.divinemc.region.RegionFileFormat.LINEAR) {
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.regionFormatTypeName == org.bxteam.divinemc.region.RegionFileFormat.LINEAR) {
 +            return "r." + (chunkX >> REGION_SHIFT) + "." + (chunkZ >> REGION_SHIFT) + ".linear";
 +        }
 +        // DivineMC end - Linear region file format

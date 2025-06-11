@@ -9,7 +9,7 @@ import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.permissions.PermissionDefault;
 import org.bxteam.divinemc.command.DivineCommand;
 import org.bxteam.divinemc.command.DivineSubCommandPermission;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.framework.qual.DefaultQualifier;
 

@@ -9,7 +9,7 @@ You can find the original code on https://github.com/Bloom-host/Petal
 Makes most pathfinding-related work happen asynchronously
 
 diff --git a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
-index 67cbf9f5760fae5db6f31e64095cd1b6be6ade8e..7ad36864d700f3012a3791bf3814465e5e9deffa 100644
+index 67cbf9f5760fae5db6f31e64095cd1b6be6ade8e..327a0414c8723420ffe34597464c1772768e8fa3 100644
 --- a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
 +++ b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
 @@ -94,21 +94,18 @@ public class AcquirePoi {
@@ -26,7 +26,7 @@ index 67cbf9f5760fae5db6f31e64095cd1b6be6ade8e..7ad36864d700f3012a3791bf3814465e
 -                                    map.clear();
 -                                    DebugPackets.sendPoiTicketCountPacket(level, target);
 +                            // DivineMC start - Async path processing
-+                            if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++                            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +                                Path possiblePath = findPathToPois(mob, set);
 +
 +                                org.bxteam.divinemc.entity.pathfinding.AsyncPathProcessor.awaitProcessing(possiblePath, path -> {
@@ -79,7 +79,7 @@ index 67cbf9f5760fae5db6f31e64095cd1b6be6ade8e..7ad36864d700f3012a3791bf3814465e
      public static Path findPathToPois(Mob mob, Set<Pair<Holder<PoiType>, BlockPos>> poiPositions) {
          if (poiPositions.isEmpty()) {
 diff --git a/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java b/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java
-index 621ba76784f2b92790eca62be4d0688834335ab6..3f676309af0d5529413fa047a7f3cac99260b9ad 100644
+index 621ba76784f2b92790eca62be4d0688834335ab6..92d8899ff7d42ecc987a7bf2035cc72484ea9e82 100644
 --- a/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java
 +++ b/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java
 @@ -21,6 +21,7 @@ public class MoveToTargetSink extends Behavior<Mob> {
@@ -95,10 +95,10 @@ index 621ba76784f2b92790eca62be4d0688834335ab6..3f676309af0d5529413fa047a7f3cac9
              WalkTarget walkTarget = brain.getMemory(MemoryModuleType.WALK_TARGET).get();
              boolean flag = this.reachedTarget(owner, walkTarget);
 -            if (!flag && this.tryComputePath(owner, walkTarget, level.getGameTime())) {
-+            if (!org.bxteam.divinemc.DivineConfig.asyncPathfinding && !flag && this.tryComputePath(owner, walkTarget, level.getGameTime())) { // DivineMC - async path processing
++            if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding && !flag && this.tryComputePath(owner, walkTarget, level.getGameTime())) { // DivineMC - async path processing
                  this.lastTargetPos = walkTarget.getTarget().currentBlockPosition();
                  return true;
-+            } else if (org.bxteam.divinemc.DivineConfig.asyncPathfinding && !flag) { // DivineMC - async pathfinding
++            } else if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding && !flag) { // DivineMC - async pathfinding
 +                return true;
              } else {
                  brain.eraseMemory(MemoryModuleType.WALK_TARGET);
@@ -107,7 +107,7 @@ index 621ba76784f2b92790eca62be4d0688834335ab6..3f676309af0d5529413fa047a7f3cac9
  
      @Override
      protected boolean canStillUse(ServerLevel level, Mob entity, long gameTime) {
-+        if (org.bxteam.divinemc.DivineConfig.asyncPathfinding && !this.finishedProcessing) return true; // DivineMC - wait for processing
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding && !this.finishedProcessing) return true; // DivineMC - wait for processing
          if (this.path != null && this.lastTargetPos != null) {
              Optional<WalkTarget> memory = entity.getBrain().getMemory(MemoryModuleType.WALK_TARGET);
              boolean flag = memory.map(MoveToTargetSink::isWalkTargetSpectator).orElse(false);
@@ -116,7 +116,7 @@ index 621ba76784f2b92790eca62be4d0688834335ab6..3f676309af0d5529413fa047a7f3cac9
      @Override
      protected void start(ServerLevel level, Mob entity, long gameTime) {
 +        // DivineMC start - start processing
-+        if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +            Brain<?> brain = entity.getBrain();
 +            WalkTarget walkTarget = brain.getMemory(MemoryModuleType.WALK_TARGET).get();
 +
@@ -139,7 +139,7 @@ index 621ba76784f2b92790eca62be4d0688834335ab6..3f676309af0d5529413fa047a7f3cac9
 -            brain.setMemory(MemoryModuleType.PATH, path);
 -        }
 +        // DivineMC start - Async path processing
-+        if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +            if (this.path != null && !this.path.isProcessed()) return; // wait for processing
  
 -        if (path != null && this.lastTargetPos != null) {
@@ -222,7 +222,7 @@ index 621ba76784f2b92790eca62be4d0688834335ab6..3f676309af0d5529413fa047a7f3cac9
      private boolean tryComputePath(Mob mob, WalkTarget target, long time) {
          BlockPos blockPos = target.getTarget().currentBlockPosition();
 diff --git a/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java b/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
-index 4f9f3367b1ca3903df03a80fa2b01a3d24e6e77d..1e9383442d0a0adf4bf621fc35108b35b1375bc7 100644
+index 4f9f3367b1ca3903df03a80fa2b01a3d24e6e77d..87f218cbeda68d2996a354afabb8be70f513920e 100644
 --- a/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
 +++ b/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
 @@ -60,17 +60,18 @@ public class SetClosestHomeAsWalkTarget {
@@ -240,7 +240,7 @@ index 4f9f3367b1ca3903df03a80fa2b01a3d24e6e77d..1e9383442d0a0adf4bf621fc35108b35
 -                                } else if (mutableInt.getValue() < 5) {
 -                                    map.long2LongEntrySet().removeIf(entry -> entry.getLongValue() < mutableLong.getValue());
 +                                // DivineMC start - async path processing
-+                                if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++                                if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +                                    Path possiblePath = AcquirePoi.findPathToPois(mob, set);
 +
 +                                    org.bxteam.divinemc.entity.pathfinding.AsyncPathProcessor.awaitProcessing(possiblePath, path -> {
@@ -295,7 +295,7 @@ index d8f532c5e68ff4dff933556c4f981e9474c044e6..37f3d3888ea2a862d006cf2b201f9715
                      Node node = path.getNode(i);
                      this.doorPos = new BlockPos(node.x, node.y + 1, node.z);
 diff --git a/net/minecraft/world/entity/ai/navigation/AmphibiousPathNavigation.java b/net/minecraft/world/entity/ai/navigation/AmphibiousPathNavigation.java
-index 66a02fe7594522ef391d67e09856bf3f70fe597d..0cd0d1059ac3612ba34f1a47a5023a8d07ee612f 100644
+index 66a02fe7594522ef391d67e09856bf3f70fe597d..dfb8f72a83dfe27b1f9a036f2cad3f4c9a7f15b4 100644
 --- a/net/minecraft/world/entity/ai/navigation/AmphibiousPathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/AmphibiousPathNavigation.java
 @@ -12,9 +12,25 @@ public class AmphibiousPathNavigation extends PathNavigation {
@@ -317,7 +317,7 @@ index 66a02fe7594522ef391d67e09856bf3f70fe597d..0cd0d1059ac3612ba34f1a47a5023a8d
      protected PathFinder createPathFinder(int maxVisitedNodes) {
          this.nodeEvaluator = new AmphibiousNodeEvaluator(false);
 +        // DivineMC start - async path processing
-+        if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +            return new PathFinder(this.nodeEvaluator, maxVisitedNodes, nodeEvaluatorGenerator);
 +        }
 +        // DivineMC end - async path processing
@@ -325,7 +325,7 @@ index 66a02fe7594522ef391d67e09856bf3f70fe597d..0cd0d1059ac3612ba34f1a47a5023a8d
      }
  
 diff --git a/net/minecraft/world/entity/ai/navigation/FlyingPathNavigation.java b/net/minecraft/world/entity/ai/navigation/FlyingPathNavigation.java
-index 71ea68b56b3069bdf8e47931156b6ef49ea8ce5d..0e680d3954d5847125484c2a93d9cd8e133ad8c3 100644
+index 71ea68b56b3069bdf8e47931156b6ef49ea8ce5d..c3ce8516338d458d20e6848fd63bedaf70bea222 100644
 --- a/net/minecraft/world/entity/ai/navigation/FlyingPathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/FlyingPathNavigation.java
 @@ -16,9 +16,25 @@ public class FlyingPathNavigation extends PathNavigation {
@@ -347,7 +347,7 @@ index 71ea68b56b3069bdf8e47931156b6ef49ea8ce5d..0e680d3954d5847125484c2a93d9cd8e
      protected PathFinder createPathFinder(int maxVisitedNodes) {
          this.nodeEvaluator = new FlyNodeEvaluator();
 +        // DivineMC start - async path processing
-+        if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +            return new PathFinder(this.nodeEvaluator, maxVisitedNodes, nodeEvaluatorGenerator);
 +        }
 +        // DivineMC end - async path processing
@@ -363,7 +363,7 @@ index 71ea68b56b3069bdf8e47931156b6ef49ea8ce5d..0e680d3954d5847125484c2a93d9cd8e
          if (!this.isDone()) {
              if (this.canUpdatePath()) {
 diff --git a/net/minecraft/world/entity/ai/navigation/GroundPathNavigation.java b/net/minecraft/world/entity/ai/navigation/GroundPathNavigation.java
-index 045cfafb3afe8271d60852ae3c7cdcb039b44d4f..f544bf28ac6531061da08c726684687416b9426c 100644
+index 045cfafb3afe8271d60852ae3c7cdcb039b44d4f..a8a3d48e9f2f31ec0a20a4b7c547a9590865d807 100644
 --- a/net/minecraft/world/entity/ai/navigation/GroundPathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/GroundPathNavigation.java
 @@ -24,9 +24,25 @@ public class GroundPathNavigation extends PathNavigation {
@@ -385,7 +385,7 @@ index 045cfafb3afe8271d60852ae3c7cdcb039b44d4f..f544bf28ac6531061da08c7266846874
      protected PathFinder createPathFinder(int maxVisitedNodes) {
          this.nodeEvaluator = new WalkNodeEvaluator();
 +        // DivineMC start - async path processing
-+        if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +            return new PathFinder(this.nodeEvaluator, maxVisitedNodes, nodeEvaluatorGenerator);
 +        }
 +        // DivineMC end - async path processing
@@ -393,7 +393,7 @@ index 045cfafb3afe8271d60852ae3c7cdcb039b44d4f..f544bf28ac6531061da08c7266846874
      }
  
 diff --git a/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
-index 6bbdfc748f1ce66689c63424fadcf261b1e967b3..55d0ed422f25b6469f9d8ee3ecf2ef8eaf77e9cb 100644
+index 6bbdfc748f1ce66689c63424fadcf261b1e967b3..c01c1633eedee3ecd5e1eb667808d364d7b6fe4c 100644
 --- a/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 @@ -167,6 +167,10 @@ public abstract class PathNavigation {
@@ -416,7 +416,7 @@ index 6bbdfc748f1ce66689c63424fadcf261b1e967b3..55d0ed422f25b6469f9d8ee3ecf2ef8e
 -                this.reachRange = accuracy;
 -                this.resetStuckTimeout();
 +            // DivineMC start - async path processing
-+            if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +                // assign early a target position. most calls will only have 1 position
 +                if (!targets.isEmpty()) this.targetPos = targets.iterator().next();
 +
@@ -478,7 +478,7 @@ index 6bbdfc748f1ce66689c63424fadcf261b1e967b3..55d0ed422f25b6469f9d8ee3ecf2ef8e
              Vec3 vec3 = new Vec3((endNode.x + this.mob.getX()) / 2.0, (endNode.y + this.mob.getY()) / 2.0, (endNode.z + this.mob.getZ()) / 2.0);
              return pos.closerToCenterThan(vec3, this.path.getNodeCount() - this.path.getNextNodeIndex());
 diff --git a/net/minecraft/world/entity/ai/navigation/WaterBoundPathNavigation.java b/net/minecraft/world/entity/ai/navigation/WaterBoundPathNavigation.java
-index 2979846853898d78a2df19df2287da16dbe4ae71..504911c14aad5c53aeea2c71bda3978f022601dd 100644
+index 2979846853898d78a2df19df2287da16dbe4ae71..0979e11a1c01927496184918f3a1923f175c7478 100644
 --- a/net/minecraft/world/entity/ai/navigation/WaterBoundPathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/WaterBoundPathNavigation.java
 @@ -15,11 +15,27 @@ public class WaterBoundPathNavigation extends PathNavigation {
@@ -502,7 +502,7 @@ index 2979846853898d78a2df19df2287da16dbe4ae71..504911c14aad5c53aeea2c71bda3978f
          this.nodeEvaluator = new SwimNodeEvaluator(this.allowBreaching);
          this.nodeEvaluator.setCanPassDoors(false);
 +        // DivineMC start - async path processing
-+        if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +            return new PathFinder(this.nodeEvaluator, maxVisitedNodes, nodeEvaluatorGenerator);
 +        }
 +        // DivineMC end - async path processing
@@ -510,7 +510,7 @@ index 2979846853898d78a2df19df2287da16dbe4ae71..504911c14aad5c53aeea2c71bda3978f
      }
  
 diff --git a/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java b/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
-index 1f96fd5085bacb4c584576c7cb9f51e7898e9b03..9494dd144ff1115c9f0862614ef618035ee2565f 100644
+index 1f96fd5085bacb4c584576c7cb9f51e7898e9b03..e56869b8c700bfd9fa25f7b7db8663c4b8bad006 100644
 --- a/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
 @@ -57,17 +57,32 @@ public class NearestBedSensor extends Sensor<Mob> {
@@ -528,7 +528,7 @@ index 1f96fd5085bacb4c584576c7cb9f51e7898e9b03..9494dd144ff1115c9f0862614ef61803
 -            } else if (this.triedCount < 5) {
 -                this.batchCache.long2LongEntrySet().removeIf(entry -> entry.getLongValue() < this.lastUpdate);
 +            // DivineMC start - async pathfinding
-+            if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +                Path possiblePath = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(poiposes));
 +                org.bxteam.divinemc.entity.pathfinding.AsyncPathProcessor.awaitProcessing(possiblePath, path -> {
 +                    processPath(entity, poiManager, path);
@@ -579,7 +579,7 @@ index e9dfff7e3726cd2229f89bb39fa1ca4815d99a6d..a0294937487bfd13f26a5e7eb2bd21f2
          }
      }
 diff --git a/net/minecraft/world/entity/animal/frog/Frog.java b/net/minecraft/world/entity/animal/frog/Frog.java
-index eb3aa96b2a5cb553b016744863818186d1d831c4..3ccc48afb7a9eb2290f16c6a3218515bee59c2bd 100644
+index eb3aa96b2a5cb553b016744863818186d1d831c4..433233f3fb346c15627cf0ad313ea55579826d86 100644
 --- a/net/minecraft/world/entity/animal/frog/Frog.java
 +++ b/net/minecraft/world/entity/animal/frog/Frog.java
 @@ -482,6 +482,17 @@ public class Frog extends Animal {
@@ -605,7 +605,7 @@ index eb3aa96b2a5cb553b016744863818186d1d831c4..3ccc48afb7a9eb2290f16c6a3218515b
          protected PathFinder createPathFinder(int maxVisitedNodes) {
              this.nodeEvaluator = new Frog.FrogNodeEvaluator(true);
 +            // DivineMC start - async path processing
-+            if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +                return new PathFinder(this.nodeEvaluator, maxVisitedNodes, nodeEvaluatorGenerator);
 +                }
 +            // DivineMC end - async path processing
@@ -626,7 +626,7 @@ index b85d1e196d2bf61ac4896205afb08eba89c4397e..ea90e3d7ad84e301f975ff91fade63c5
              if (target != null) {
                  double d = this.distanceToSqr(target.getX(), target.getY(), target.getZ());
 diff --git a/net/minecraft/world/entity/monster/Strider.java b/net/minecraft/world/entity/monster/Strider.java
-index fe31c4a45afd61be8b74efe9d0858ccd0aced075..5f965f50294d03e7b03c5d7e912b7aec99db635c 100644
+index fe31c4a45afd61be8b74efe9d0858ccd0aced075..859c41c3c81b3d3ac05eebdc83c959d196bd5b3e 100644
 --- a/net/minecraft/world/entity/monster/Strider.java
 +++ b/net/minecraft/world/entity/monster/Strider.java
 @@ -560,9 +560,25 @@ public class Strider extends Animal implements ItemSteerable {
@@ -648,7 +648,7 @@ index fe31c4a45afd61be8b74efe9d0858ccd0aced075..5f965f50294d03e7b03c5d7e912b7aec
          protected PathFinder createPathFinder(int maxVisitedNodes) {
              this.nodeEvaluator = new WalkNodeEvaluator();
 +            // DivineMC start - async path processing
-+            if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +                return new PathFinder(this.nodeEvaluator, maxVisitedNodes, nodeEvaluatorGenerator);
 +            }
 +            // DivineMC end
@@ -656,7 +656,7 @@ index fe31c4a45afd61be8b74efe9d0858ccd0aced075..5f965f50294d03e7b03c5d7e912b7aec
          }
  
 diff --git a/net/minecraft/world/entity/monster/warden/Warden.java b/net/minecraft/world/entity/monster/warden/Warden.java
-index 60a8d79306755e9483ba9e93a07939b73ad717fe..97ee07ebbba5ad29f766dff5eb4e51fc0e12cfcb 100644
+index 60a8d79306755e9483ba9e93a07939b73ad717fe..39b9dc1e78c1f9fc6a5ccad0de56cdb6d0781a05 100644
 --- a/net/minecraft/world/entity/monster/warden/Warden.java
 +++ b/net/minecraft/world/entity/monster/warden/Warden.java
 @@ -578,6 +578,16 @@ public class Warden extends Monster implements VibrationSystem {
@@ -664,7 +664,7 @@ index 60a8d79306755e9483ba9e93a07939b73ad717fe..97ee07ebbba5ad29f766dff5eb4e51fc
              protected PathFinder createPathFinder(int maxVisitedNodes) {
                  this.nodeEvaluator = new WalkNodeEvaluator();
 +                // DivineMC start - async path processing
-+                if (org.bxteam.divinemc.DivineConfig.asyncPathfinding) {
++                if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +                    return new PathFinder(this.nodeEvaluator, maxVisitedNodes, GroundPathNavigation.nodeEvaluatorGenerator) {
 +                        @Override
 +                        protected float distance(Node first, Node second) {
@@ -707,7 +707,7 @@ index d6d3c8f5e5dd4a8cab0d3fcc131c3a59f06130c6..839653a997f1e10970fa2956fadaf493
              return false;
          } else if (pathentity.nodes.size() != this.nodes.size()) {
 diff --git a/net/minecraft/world/level/pathfinder/PathFinder.java b/net/minecraft/world/level/pathfinder/PathFinder.java
-index c2baadcdceb1df6a881d6f73aa4eb4dd264bcdfe..965c1d2dd1acd542936fad8034c2de1746193355 100644
+index c2baadcdceb1df6a881d6f73aa4eb4dd264bcdfe..8997908508c1dbe839aab25e4f546b9aa664047e 100644
 --- a/net/minecraft/world/level/pathfinder/PathFinder.java
 +++ b/net/minecraft/world/level/pathfinder/PathFinder.java
 @@ -22,11 +22,19 @@ public class PathFinder {
@@ -739,7 +739,7 @@ index c2baadcdceb1df6a881d6f73aa4eb4dd264bcdfe..965c1d2dd1acd542936fad8034c2de17
 -        this.nodeEvaluator.prepare(region, mob);
 -        Node start = this.nodeEvaluator.getStart();
 +        // DivineMC start - use a generated evaluator if we have one otherwise run sync
-+        if (!org.bxteam.divinemc.DivineConfig.asyncPathfinding)
++        if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding)
 +            this.openSet.clear(); // it's always cleared in processPath
 +        NodeEvaluator nodeEvaluator = this.nodeEvaluatorGenerator == null
 +                ? this.nodeEvaluator

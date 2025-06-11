@@ -5,7 +5,7 @@ Subject: [PATCH] MSPT Tracking for each world
 
 
 diff --git a/src/main/java/org/purpurmc/purpur/task/TPSBarTask.java b/src/main/java/org/purpurmc/purpur/task/TPSBarTask.java
-index 8769993e7ca59da309087051a3cd38fc562c15d1..3d1b183da57e7e267973db27867c7d9a6a64c044 100644
+index 8769993e7ca59da309087051a3cd38fc562c15d1..28da3818844f649736af5f1a3226376dee1eb8b1 100644
 --- a/src/main/java/org/purpurmc/purpur/task/TPSBarTask.java
 +++ b/src/main/java/org/purpurmc/purpur/task/TPSBarTask.java
 @@ -4,6 +4,8 @@ import net.kyori.adventure.bossbar.BossBar;
@@ -25,7 +25,7 @@ index 8769993e7ca59da309087051a3cd38fc562c15d1..3d1b183da57e7e267973db27867c7d9a
 -        bossbar.color(getBossBarColor());
 -        bossbar.name(MiniMessage.miniMessage().deserialize(PurpurConfig.commandTPSBarTitle,
 +        // DivineMC start - MSPT Tracking for each world
-+        if (org.bxteam.divinemc.DivineConfig.enableParallelWorldTicking) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
 +            ServerLevel serverLevel = ((CraftWorld)player.getWorld()).getHandle();
 +
 +            double worldMspt = calculateWorldMSPT(serverLevel);
