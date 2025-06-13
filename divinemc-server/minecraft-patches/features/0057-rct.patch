@@ -5,7 +5,7 @@ Subject: [PATCH] rct
 
 
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 33b0a16ffe1037c4e2c942f09cc3e0398ef878c5..192a3411015ceccebd5e466d61e373da481cdcd7 100644
+index 33b0a16ffe1037c4e2c942f09cc3e0398ef878c5..5a1be1f5c4fd648a363cb2ec3e9142bff882b5b3 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -72,14 +72,14 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -165,7 +165,7 @@ index 33b0a16ffe1037c4e2c942f09cc3e0398ef878c5..192a3411015ceccebd5e466d61e373da
      }
  
      private void tickEntity(Entity entity) {
-@@ -244,58 +277,112 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -244,58 +277,111 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
  
      // Paper start - chunk tick iteration optimisations
      private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom shuffleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(0L);
@@ -259,7 +259,6 @@ index 33b0a16ffe1037c4e2c942f09cc3e0398ef878c5..192a3411015ceccebd5e466d61e373da
 +                                LOGGER.error("Error during region chunk ticking", ex.getCause());
 +                            }
 +
-+                            // Collect all ticked chunk keys from regionChunks returned by futures
 +                            it.unimi.dsi.fastutil.longs.LongOpenHashSet tickedChunkKeys = new it.unimi.dsi.fastutil.longs.LongOpenHashSet(raw.length);
 +
 +                            for (CompletableFuture<it.unimi.dsi.fastutil.longs.LongOpenHashSet> future : ticked) {
@@ -292,7 +291,19 @@ index 33b0a16ffe1037c4e2c942f09cc3e0398ef878c5..192a3411015ceccebd5e466d61e373da
                          latch.await();
                          return true;
                      }
-@@ -324,6 +411,34 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -310,6 +396,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+             }
+         } else {
+             java.util.Objects.checkFromToIndex(0, size, raw.length);
++            loopCount++;
++            if (loopCount >= anInt) {
++                LOGGER.info("total chunks ticked: {}", size);
++                loopCount = 0;
++            }
+             for (int i = 0; i < size; ++i) {
+                 world.tickChunk(raw[i], randomTickSpeed);
+ 
+@@ -324,6 +415,34 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      }
      // Paper end - chunk tick iteration optimisations
  
@@ -327,7 +338,7 @@ index 33b0a16ffe1037c4e2c942f09cc3e0398ef878c5..192a3411015ceccebd5e466d61e373da
      // DivineMC start - Async mob spawning
      public boolean firstRunSpawnCounts = true;
      public final java.util.concurrent.atomic.AtomicBoolean spawnCountsReady = new java.util.concurrent.atomic.AtomicBoolean(false);
-@@ -644,14 +759,19 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -644,14 +763,19 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          long gameTime = this.level.getGameTime();
          long l = gameTime - this.lastInhabitedUpdate;
          this.lastInhabitedUpdate = gameTime;
