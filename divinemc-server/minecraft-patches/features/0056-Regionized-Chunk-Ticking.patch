@@ -7,6 +7,19 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 
 Original idea by Dueris, modified by NONPLAYT and dan28000
 
+diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
+index b28829f9f4c084a8dba35219dae9f4a9f293c416..583f0d2a54508e0a6e99771d5d1fb787f7a913f3 100644
+--- a/net/minecraft/network/Connection.java
++++ b/net/minecraft/network/Connection.java
+@@ -325,7 +325,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+ 
+     private static void syncAfterConfigurationChange(ChannelFuture future) {
+         try {
+-            future.syncUninterruptibly();
++            future.awaitUninterruptibly(5000L); // DivineMC - In rare cases this can get stuck, so we time out instead in worst case 5s of lag
+         } catch (Exception var2) {
+             if (var2 instanceof ClosedChannelException) {
+                 LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
 index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..33b0a16ffe1037c4e2c942f09cc3e0398ef878c5 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
@@ -286,7 +299,7 @@ index caa1fd0e35b69c8bd55170af6140442bef5d6b4d..71421bb08875f5a7bd463421e43f307e
              try {
                  this.isUpdatingNavigations = true;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 698f9c3a66dbb4f9ef1fbea873a1769d314d2bb4..6826de840122a7d7bac00a1148ac02ff794c8826 100644
+index 698f9c3a66dbb4f9ef1fbea873a1769d314d2bb4..7ef3ea374f36554ff66ace50ffaef9ad8920d961 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -106,7 +106,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -307,6 +320,21 @@ index 698f9c3a66dbb4f9ef1fbea873a1769d314d2bb4..6826de840122a7d7bac00a1148ac02ff
      public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
      @Nullable
      public List<net.minecraft.world.entity.item.ItemEntity> captureDrops;
+@@ -1503,9 +1503,11 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+ 
+     protected void tickBlockEntities() {
+         this.tickingBlockEntities = true;
+-        if (!this.pendingBlockEntityTickers.isEmpty()) {
+-            this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
+-            this.pendingBlockEntityTickers.clear();
++        synchronized (pendingBlockEntityTickers) { // DivineMC - RCT synchronization fix
++            if (!this.pendingBlockEntityTickers.isEmpty()) {
++                this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
++                this.pendingBlockEntityTickers.clear();
++            }
+         }
+ 
+         // Spigot start
 diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 index 028eae2f9a459b60e92f3344091083aa93b54485..51e5a54aff069cac14deef6c04899d3a469842ce 100644
 --- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
