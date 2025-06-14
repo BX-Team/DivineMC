@@ -31,7 +31,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c
  
      public ServerChunkCache(
          ServerLevel level,
-@@ -505,6 +509,35 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -505,6 +509,32 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
  
              this.broadcastChangedChunks();
          }
@@ -42,10 +42,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c
 +                for (int ii = 0; ii < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; ii++) {
 +                    player.mobCounts[ii] = 0;
 +
-+                    int newBackoff = player.mobBackoffCounts[ii] - 1;
-+                    if (newBackoff < 0) {
-+                        newBackoff = 0;
-+                    }
++                    int newBackoff = Math.max(0, player.mobBackoffCounts[ii] - 1); // DivineMC - Async mob spawning
 +                    player.mobBackoffCounts[ii] = newBackoff;
 +                }
 +            }
@@ -67,7 +64,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c
      }
  
      private void broadcastChangedChunks() {
-@@ -522,27 +555,31 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -522,27 +552,31 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          int naturalSpawnChunkCount = this.distanceManager.getNaturalSpawnChunkCount();
          // Paper start - Optional per player mob spawns
          NaturalSpawner.SpawnState spawnState;
@@ -113,7 +110,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c
          boolean _boolean = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !this.level.players().isEmpty(); // CraftBukkit
          int _int = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
          List<MobCategory> filteredSpawningCategories;
-@@ -556,7 +593,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -556,7 +590,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              }
              // Paper end - PlayerNaturallySpawnCreaturesEvent
              boolean flag = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getLevelData().getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
@@ -122,7 +119,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c
          } else {
              filteredSpawningCategories = List.of();
          }
-@@ -571,7 +608,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -571,7 +605,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              // Paper end - chunk tick iteration optimisation
  
              for (LevelChunk levelChunk : list) {
@@ -131,7 +128,7 @@ index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c
              }
          } finally {
              list.clear();
-@@ -590,11 +627,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -590,11 +624,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              this.level.tickThunder(chunk);
          }
  
