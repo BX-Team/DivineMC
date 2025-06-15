@@ -402,16 +402,3 @@ index 33b0a16ffe1037c4e2c942f09cc3e0398ef878c5..127156b33fc4aeff7054e4d11803210c
          if (_boolean) {
              this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
          }
-diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 381b2608bb4989c2888ef8338e8fac1758be9f60..660bcb3db6492a437589c5ffa1a62ba919ecb741 100644
---- a/net/minecraft/server/level/ServerPlayer.java
-+++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -259,7 +259,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
-         private final LoadingCache<TypedDataComponent<?>, Integer> cache = CacheBuilder.newBuilder()
-             .maximumSize(256L)
-             .build(
--                new CacheLoader<TypedDataComponent<?>, Integer>() {
-+                new CacheLoader<>() {
-                     private final DynamicOps<HashCode> registryHashOps = ServerPlayer.this.registryAccess().createSerializationContext(HashOps.CRC32C_INSTANCE);
- 
-                     @Override
