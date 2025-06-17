@@ -316,7 +316,7 @@ index e05a0eed63098c535360b66276f154e4dc119d6a..0102d87411dcf0bba7f6873dc54385c9
          // Paper start - extra debug info
          if (entity.valid) {
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index bedc28c355b2c1e5a2ca4a1559c29101525c51e2..731b4b1e5605eee800486e345e99e9b555715ad7 100644
+index bedc28c355b2c1e5a2ca4a1559c29101525c51e2..3b87d3f889db67e4913691b2cd50dddd2a2faf7d 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -463,6 +463,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -339,7 +339,7 @@ index bedc28c355b2c1e5a2ca4a1559c29101525c51e2..731b4b1e5605eee800486e345e99e9b5
                  return this;
              } else {
                  // CraftBukkit start
-+                if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot change dimension of a player off-main, from world " + serverLevel().getWorld().getName() + " to world " + level.getWorld().getName()); // DivineMC - Parallel world ticking (additional concurrency issues logs)
++                if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot change dimension of a player off-main, from world " + level().getWorld().getName() + " to world " + level.getWorld().getName()); // DivineMC - Parallel world ticking (additional concurrency issues logs)
                  /*
                  this.isChangingDimension = true;
                  LevelData levelData = level.getLevelData();
@@ -369,7 +369,7 @@ index bedc28c355b2c1e5a2ca4a1559c29101525c51e2..731b4b1e5605eee800486e345e99e9b5
          // Paper end - Inventory close reason
          this.connection.send(new ClientboundContainerClosePacket(this.containerMenu.containerId));
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 8bf5f7a98e4e8542d56c49a7e2c4926ec86f712d..a534b3e6835b9e998ae25210812ddf55685473ea 100644
+index 8bf5f7a98e4e8542d56c49a7e2c4926ec86f712d..e1ca822d41311e3be44c52badb907619ca681cf9 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -149,6 +149,7 @@ public abstract class PlayerList {
@@ -387,9 +387,9 @@ index 8bf5f7a98e4e8542d56c49a7e2c4926ec86f712d..a534b3e6835b9e998ae25210812ddf55
 +        // DivineMC start - Parallel world ticking
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
 +            if (location != null)
-+                ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot respawn player off-main, from world " + player.serverLevel().getWorld().getName() + " to world " + location.getWorld().getName());
++                ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot respawn player off-main, from world " + player.level().getWorld().getName() + " to world " + location.getWorld().getName());
 +            else
-+                ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot respawn player off-main, respawning in world " + player.serverLevel().getWorld().getName());
++                ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot respawn player off-main, respawning in world " + player.level().getWorld().getName());
 +        }
 +        // DivineMC end - Parallel world ticking
          this.players.remove(player);
@@ -404,7 +404,7 @@ index 8bf5f7a98e4e8542d56c49a7e2c4926ec86f712d..a534b3e6835b9e998ae25210812ddf55
          serverPlayer.connection = player.connection;
          serverPlayer.restoreFrom(player, keepInventory);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index e96eeae793d127b76a2fe6853cba49ce192b91f9..65a19069b25978e43dc080b2d0755bac952f8736 100644
+index e96eeae793d127b76a2fe6853cba49ce192b91f9..3aa2069ff070d9edb596e3c08cd34c617edd955c 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -3432,14 +3432,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -452,7 +452,7 @@ index e96eeae793d127b76a2fe6853cba49ce192b91f9..65a19069b25978e43dc080b2d0755bac
      }
  
      private Entity teleportCrossDimension(ServerLevel oldLevel, ServerLevel newLevel, TeleportTransition teleportTransition) {
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(level, "Cannot teleport entity to another world off-main, from world " + this.level.getWorld().getName() + " to world " + level.getWorld().getName()); // DivineMC - Parallel world ticking
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(newLevel, "Cannot teleport entity to another world off-main, from world " + oldLevel.getWorld().getName() + " to world " + newLevel.getWorld().getName()); // DivineMC - Parallel world ticking
          List<Entity> passengers = this.getPassengers();
          List<Entity> list = new ArrayList<>(passengers.size());
          this.ejectPassengers();
@@ -912,7 +912,7 @@ index a22cb810622e0ae97bc2a0d6390d026d9482b783..5856178e41523700ca7ed9a46c1c802c
                      }
                      if (event == null || !event.isCancelled()) {
 diff --git a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-index 5a094257a31f0500278a706a418e1697f8810ffb..7303d6f71e8503e8d6bc4f4127cd42ad5ee2a802 100644
+index 5a094257a31f0500278a706a418e1697f8810ffb..3df0633fe4e632f7d42289facf4ad79978d50c40 100644
 --- a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 @@ -76,6 +76,12 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
@@ -920,7 +920,7 @@ index 5a094257a31f0500278a706a418e1697f8810ffb..7303d6f71e8503e8d6bc4f4127cd42ad
  
      public static boolean canUnlock(Player player, LockCode code, Component displayName, @Nullable BlockEntity blockEntity) {
 +        // DivineMC start - Parallel world ticking
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer && blockEntity != null && blockEntity.getLevel() != serverPlayer.serverLevel()) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer && blockEntity != null && blockEntity.getLevel() != serverPlayer.level()) {
 +            net.minecraft.server.MinecraftServer.LOGGER.warn("Player {} ({}) attempted to open a BlockEntity @ {} {}, {}, {} while they were in a different world {} than the block themselves!", serverPlayer.getScoreboardName(), serverPlayer.getStringUUID(), blockEntity.getLevel().getWorld().getName(), blockEntity.getBlockPos().getX(), blockEntity.getBlockPos().getY(), blockEntity.getBlockPos().getZ(), serverPlayer.level().getWorld().getName());
 +            return false;
 +        }
