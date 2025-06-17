@@ -5,7 +5,7 @@ Subject: [PATCH] Multithreaded Tracker
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index 02a9ef1694c796584c29430d27f0a09047368835..d1148be69ffc03973f097ab421ee59c6999b6e84 100644
+index f3bac0906d8a1c5dea7b0dee13c5cd6fdbbcae49..c2c52fa8cd05a1b3487976cced210352a9026980 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 @@ -340,7 +340,11 @@ public final class RegionizedPlayerChunkLoader {
@@ -22,7 +22,7 @@ index 02a9ef1694c796584c29430d27f0a09047368835..d1148be69ffc03973f097ab421ee59c6
          private static final byte CHUNK_TICKET_STAGE_NONE           = 0;
          private static final byte CHUNK_TICKET_STAGE_LOADING        = 1;
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index b28d19b2fcdff9250e95db05f6e428db54a771e6..5ab3c01d81522caace541bcf96fd6d2e9b49a8c9 100644
+index edda52a8430386238be4963e8ea2406f0c2d4df3..687af4f52dc3ae5564079b6782b63a4277c43439 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -1013,6 +1013,13 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -169,10 +169,10 @@ index f106373ef3ac4a8685c2939c9e8361688a285913..b844b6dd89bc53b74c0d1bdbf4657c11
      public boolean visible = true;
  
 diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
-index b118e91f1e0b5a8b8c0b2a4a32faabc5a34a5954..19214d03a149e62b02ead0c9a1de8e99087de357 100644
+index e96d4dee14c05f2fa329bfb1588ec795d4e3d730..fa0fd2a7f15a076ac981f85f4f249a15a4ab512e 100644
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
-@@ -423,12 +423,13 @@ public class ServerEntity {
+@@ -417,12 +417,13 @@ public class ServerEntity {
          if (this.entity instanceof LivingEntity) {
              Set<AttributeInstance> attributesToSync = ((LivingEntity)this.entity).getAttributes().getAttributesToSync();
              if (!attributesToSync.isEmpty()) {
@@ -189,10 +189,10 @@ index b118e91f1e0b5a8b8c0b2a4a32faabc5a34a5954..19214d03a149e62b02ead0c9a1de8e99
  
              attributesToSync.clear();
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index c1730d2a27d290e43ebe3c7d6919cdcd3203b920..2f69b1e05ef258d6b28ee912167b8a5bb83fc703 100644
+index 9dcb9e5ecc31fcc3fc7547a47ec98d2689698769..dda62ab1d718d22e24ed5c88674d7a3d9dd4323e 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2481,7 +2481,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2504,7 +2504,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -201,7 +201,7 @@ index c1730d2a27d290e43ebe3c7d6919cdcd3203b920..2f69b1e05ef258d6b28ee912167b8a5b
          return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
      }
  
-@@ -2717,7 +2717,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2771,7 +2771,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                          }
  
                          map.carriedByPlayers.remove(player);
@@ -211,10 +211,10 @@ index c1730d2a27d290e43ebe3c7d6919cdcd3203b920..2f69b1e05ef258d6b28ee912167b8a5b
                          }
                      }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 9aedd605330bd8e2049482fb5507898901e8350a..32053aaa7b2a9c582615e47b13dbe99e98e61337 100644
+index 5c8489b6cecf83c087d648ae2c10243ec0b4b614..e1e5e9d49439355d5f52a90e308cbad3ad74b41f 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -1884,7 +1884,7 @@ public class ServerGamePacketListenerImpl
+@@ -1917,7 +1917,7 @@ public class ServerGamePacketListenerImpl
      }
  
      public void internalTeleport(PositionMoveRotation posMoveRotation, Set<Relative> relatives) {
@@ -224,10 +224,10 @@ index 9aedd605330bd8e2049482fb5507898901e8350a..32053aaa7b2a9c582615e47b13dbe99e
          if (this.player.isRemoved()) {
              LOGGER.info("Attempt to teleport removed player {} restricted", player.getScoreboardName());
 diff --git a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
-index 3ac9f36eae87369354e992a1d9b5c5b2d87d17cb..f133dd8b4fe6f7428f096d5780019609ae179a3f 100644
+index 42ad600c6a5cb20e1d820f169f6a1a17ef3a5195..2ce6697a0bd2a094bbfdd0e2a9c7665e14837d40 100644
 --- a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
 +++ b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
-@@ -26,8 +26,11 @@ public class AttributeInstance {
+@@ -22,8 +22,11 @@ public class AttributeInstance {
      private final Map<AttributeModifier.Operation, Map<ResourceLocation, AttributeModifier>> modifiersByOperation = Maps.newEnumMap(
          AttributeModifier.Operation.class
      );
@@ -242,10 +242,10 @@ index 3ac9f36eae87369354e992a1d9b5c5b2d87d17cb..f133dd8b4fe6f7428f096d5780019609
      private boolean dirty = true;
      private double cachedValue;
 diff --git a/net/minecraft/world/entity/ai/attributes/AttributeMap.java b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
-index 23576e631ad4a12ec3ff3630be253738534588f3..66e0f892c9832f2ed65d5f147020d18ab32c8ce7 100644
+index 7dd8c1c8e27410854ce1ee90defc607c2710b5a2..de647aa4eee2d9af2d2c5d1cde3a8a836d4f7e48 100644
 --- a/net/minecraft/world/entity/ai/attributes/AttributeMap.java
 +++ b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
-@@ -14,9 +14,12 @@ import net.minecraft.nbt.ListTag;
+@@ -14,9 +14,12 @@ import net.minecraft.core.Holder;
  import net.minecraft.resources.ResourceLocation;
  
  public class AttributeMap {

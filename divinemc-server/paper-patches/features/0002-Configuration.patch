@@ -37,7 +37,7 @@ index 7c79e58f86d113e5e67947e235475beef76e20ab..b26d3a2856ed7bd0a2dcb72f74ee0e15
  
          Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 24013949b6646016267132396e61d6cd4af8e374..d38f8b71c11fa5d0c1842ba7d040e3680af05662 100644
+index cc4f4fbbe1cacce5f0f5500a8dda199aa0bcdf31..03fe7d98252b93f4625359f50552e3cf60e82b9c 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
 @@ -172,6 +172,14 @@ public class Main {
@@ -52,6 +52,6 @@ index 24013949b6646016267132396e61d6cd4af8e374..d38f8b71c11fa5d0c1842ba7d040e368
 +                    .describedAs("Yml file");
 +                // DivineMC end - Configuration
 +
-                 acceptsAll(asList("server-name"), "Name of the server")
+                 this.accepts("server-name", "Name of the server")
                          .withRequiredArg()
                          .ofType(String.class)

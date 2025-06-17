@@ -30,10 +30,10 @@ index 70413fddd23ca1165cb5090cce4fddcb1bbca93f..ae70b84e6473fa2ed94416bf4bef8849
          @SuppressWarnings("unchecked")
          java.util.List<Path> files = ((java.util.List<File>) optionSet.valuesOf("add-plugin")).stream().map(File::toPath).toList();
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index d7f9da2e624d3e27aff36d8818adaf735d78a2d9..3f3bbc71bc4870cf1271d6c28a77ff78a5e102f8 100644
+index 03fe7d98252b93f4625359f50552e3cf60e82b9c..ff350b5744b586cad7c2f5e0a04770e76f039d39 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -181,6 +181,14 @@ public class Main {
+@@ -180,6 +180,14 @@ public class Main {
                      .describedAs("Yml file");
                  // DivineMC end - Configuration
  
@@ -45,6 +45,6 @@ index d7f9da2e624d3e27aff36d8818adaf735d78a2d9..3f3bbc71bc4870cf1271d6c28a77ff78
 +                    .describedAs("Directory");
 +                // DivineMC end - Implement loading plugins from external folder
 +
-                 acceptsAll(asList("server-name"), "Name of the server")
+                 this.accepts("server-name", "Name of the server")
                          .withRequiredArg()
                          .ofType(String.class)

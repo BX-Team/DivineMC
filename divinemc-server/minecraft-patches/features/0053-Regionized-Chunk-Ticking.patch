@@ -8,7 +8,7 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
 
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index b28829f9f4c084a8dba35219dae9f4a9f293c416..583f0d2a54508e0a6e99771d5d1fb787f7a913f3 100644
+index 343ec870d6ea3e2792f369c4867a3afb4bcfa385..db909744c922f2e5b486a8f15dac79d66d7ed0a0 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
 @@ -325,7 +325,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
@@ -21,7 +21,7 @@ index b28829f9f4c084a8dba35219dae9f4a9f293c416..583f0d2a54508e0a6e99771d5d1fb787
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..ae6ea190a67bb8a90049ac3ee21fb7fe2c525d40 100644
+index adc2104447d738fd9f76d2e69690f0c76a41b844..02f9dbee98815d4a0ceaf8700c25807b3644609a 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -32,7 +32,7 @@ index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..ae6ea190a67bb8a90049ac3ee21fb7fe
      public final Thread mainThread;
      final ThreadedLevelLightEngine lightEngine;
      public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
-@@ -70,13 +71,15 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -70,8 +71,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      private final long[] lastChunkPos = new long[4];
      private final ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
      private final ChunkAccess[] lastChunk = new ChunkAccess[4];
@@ -45,12 +45,6 @@ index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..ae6ea190a67bb8a90049ac3ee21fb7fe
      @Nullable
      @VisibleForDebug
      private NaturalSpawner.SpawnState lastSpawnState;
-     // Paper start
--    private final ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<>();
-+    private final ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<>(); // DivineMC - Regionized Chunk Ticking
-     public int getFullChunksCount() {
-         return this.fullChunks.size();
-     }
 @@ -153,32 +156,241 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          return load ? this.syncLoad(chunkX, chunkZ, toStatus) : null;
      }
@@ -396,10 +390,10 @@ index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..ae6ea190a67bb8a90049ac3ee21fb7fe
              this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
          }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index caa1fd0e35b69c8bd55170af6140442bef5d6b4d..4b874acfdfd2aaa3477e65da20a73b1e693c67bd 100644
+index 690b6d9f89f70afd8f37d907863b87dd1f4591af..7ae5ba48632528dfe5bbdedf252b5995f5452f1c 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -189,7 +189,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -192,7 +192,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      private final LevelTicks<Block> blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
      private final LevelTicks<Fluid> fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
      private final PathTypeCache pathTypesByPosCache = new PathTypeCache();
@@ -408,7 +402,7 @@ index caa1fd0e35b69c8bd55170af6140442bef5d6b4d..4b874acfdfd2aaa3477e65da20a73b1e
      volatile boolean isUpdatingNavigations;
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
-@@ -806,6 +806,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -810,6 +810,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                  this.dragonFight.tick();
              }
  
@@ -422,7 +416,7 @@ index caa1fd0e35b69c8bd55170af6140442bef5d6b4d..4b874acfdfd2aaa3477e65da20a73b1e
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
              this.entityTickList
                  .forEach(
-@@ -1794,22 +1801,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1817,22 +1824,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (Shapes.joinIsNotEmpty(collisionShape, collisionShape1, BooleanOp.NOT_SAME)) {
              List<PathNavigation> list = new ObjectArrayList<>();
  
@@ -454,7 +448,7 @@ index caa1fd0e35b69c8bd55170af6140442bef5d6b4d..4b874acfdfd2aaa3477e65da20a73b1e
              try {
                  this.isUpdatingNavigations = true;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 698f9c3a66dbb4f9ef1fbea873a1769d314d2bb4..7ef3ea374f36554ff66ace50ffaef9ad8920d961 100644
+index dc82e12783989c307be2ac709a21321dac25f217..47a0b2d6713d2d73b2dc359c69ec06cb59d45adb 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -106,7 +106,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl

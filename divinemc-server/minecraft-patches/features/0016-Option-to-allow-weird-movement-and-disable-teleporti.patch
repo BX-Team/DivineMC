@@ -6,10 +6,10 @@ Subject: [PATCH] Option to allow weird movement and disable teleporting
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 32053aaa7b2a9c582615e47b13dbe99e98e61337..667cc2b415e6ef4e2685e2eacad9c2c37165e771 100644
+index e1e5e9d49439355d5f52a90e308cbad3ad74b41f..c5d0876d765d468123f841c18351a4513abb5866 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -566,7 +566,7 @@ public class ServerGamePacketListenerImpl
+@@ -593,7 +593,7 @@ public class ServerGamePacketListenerImpl
                      return;
                  }
                  // Paper end - Prevent moving into unloaded chunks
@@ -18,16 +18,16 @@ index 32053aaa7b2a9c582615e47b13dbe99e98e61337..667cc2b415e6ef4e2685e2eacad9c2c3
                      // CraftBukkit end
                      LOGGER.warn(
                          "{} (vehicle of {}) moved too quickly! {},{},{}", rootVehicle.getName().getString(), this.player.getName().getString(), d3, d4, d5
-@@ -596,7 +596,7 @@ public class ServerGamePacketListenerImpl
+@@ -623,7 +623,7 @@ public class ServerGamePacketListenerImpl
                  d5 = d2 - rootVehicle.getZ();
                  d7 = d3 * d3 + d4 * d4 + d5 * d5;
-                 boolean flag2 = false;
+                 boolean flag1 = false;
 -                if (d7 > org.spigotmc.SpigotConfig.movedWronglyThreshold) { // Spigot
 +                if (!org.bxteam.divinemc.config.DivineConfig.FixesCategory.alwaysAllowWeirdMovement && (d7 > org.spigotmc.SpigotConfig.movedWronglyThreshold)) { // Spigot // DivineMC - stop weird movement
-                     flag2 = true; // Paper - diff on change, this should be moved wrongly
+                     flag1 = true; // Paper - diff on change, this should be moved wrongly
                      LOGGER.warn("{} (vehicle of {}) moved wrongly! {}", rootVehicle.getName().getString(), this.player.getName().getString(), Math.sqrt(d7));
                  }
-@@ -1512,20 +1512,24 @@ public class ServerGamePacketListenerImpl
+@@ -1546,20 +1546,24 @@ public class ServerGamePacketListenerImpl
                                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                                          float f2 = isFallFlying ? 300.0F : 100.0F;
                                          if (d7 - d6 > Math.max(f2, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed))) {
@@ -35,7 +35,7 @@ index 32053aaa7b2a9c582615e47b13dbe99e98e61337..667cc2b415e6ef4e2685e2eacad9c2c3
 -                                            // Paper start - Add fail move event
 -                                            io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_TOO_QUICKLY,
 +                                            // DivineMC start - Stop teleporting players when they move too quickly
-+                                            if (!org.bxteam.divinemc.config.DivineConfig.FixesCategory.alwaysAllowWeirdMovement && !(org.bxteam.divinemc.config.DivineConfig.FixesCategory.ignoreMovedTooQuicklyWhenLagging && player.serverLevel().getServer().lagging)) {
++                                            if (!org.bxteam.divinemc.config.DivineConfig.FixesCategory.alwaysAllowWeirdMovement && !(org.bxteam.divinemc.config.DivineConfig.FixesCategory.ignoreMovedTooQuicklyWhenLagging && player.level().getServer().lagging)) {
 +                                                // CraftBukkit end
 +                                                // Paper start - Add fail move event
 +                                                io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_TOO_QUICKLY,
@@ -63,7 +63,7 @@ index 32053aaa7b2a9c582615e47b13dbe99e98e61337..667cc2b415e6ef4e2685e2eacad9c2c3
                                          }
                                      }
                                  }
-@@ -1586,6 +1590,7 @@ public class ServerGamePacketListenerImpl
+@@ -1620,6 +1624,7 @@ public class ServerGamePacketListenerImpl
                                  d7 = d3 * d3 + d4 * d4 + d5 * d5;
                                  boolean movedWrongly = false; // Paper - Add fail move event; rename
                                  if (!this.player.isChangingDimension()

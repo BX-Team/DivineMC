@@ -5,17 +5,17 @@ Subject: [PATCH] Lag compensation
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 9956405d7f9d14af7278837adeede76dea8d4bd9..86754cb52caeef962172bcb79cbc8f16bcdd3b63 100644
+index ba5cb47347da6a0bc69b8f6924baac52f60375b8..05541061f1ac4f13e3de55f4ab90df4e273aa4b0 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -287,6 +287,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -288,6 +288,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
      public boolean lagging = false; // Purpur - Lagging threshold
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
 +    public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
-         AtomicReference<S> atomicReference = new AtomicReference<>();
+         ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
 @@ -1533,6 +1534,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
  
@@ -25,10 +25,10 @@ index 9956405d7f9d14af7278837adeede76dea8d4bd9..86754cb52caeef962172bcb79cbc8f16
          this.tickCount++;
          this.tickRateManager.tick();
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index d003e36a37cbc39d6467a9c45ad716dc27fd62a7..84ed28dba0ed2a2edcfee495bdcc24ad21936486 100644
+index 14c8df2f3b9c133b38e871e81f7ee2333322437c..05b8834b5566ac12655b563a1a58f123275fdedb 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -213,6 +213,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -216,6 +216,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
      private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
      public boolean hasRidableMoveEvent = false; // Purpur - Ridables
@@ -36,7 +36,7 @@ index d003e36a37cbc39d6467a9c45ad716dc27fd62a7..84ed28dba0ed2a2edcfee495bdcc24ad
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -762,6 +763,8 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -766,6 +767,8 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              }
          }
  
@@ -45,7 +45,7 @@ index d003e36a37cbc39d6467a9c45ad716dc27fd62a7..84ed28dba0ed2a2edcfee495bdcc24ad
          this.updateSkyBrightness();
          if (runsNormally) {
              this.tickTime();
-@@ -841,11 +844,18 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -846,11 +849,18 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                      this.setDayTime(this.preciseTime);
                  } else
                  // Purpur end - Configurable daylight cycle
@@ -66,10 +66,10 @@ index d003e36a37cbc39d6467a9c45ad716dc27fd62a7..84ed28dba0ed2a2edcfee495bdcc24ad
          this.serverLevelData.setDayTime(time);
          // Purpur start - Configurable daylight cycle
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index f3706dfb6aeb5035cbf0a8bf6b4d9a5243aaaa17..808e4e2ae070b5232c2050fdcb183cc21b8fb996 100644
+index e3babfa292556c5f5a208536a3f869dc71b82498..16a3cd813997456ca67a382a8277eca02dc6662f 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -503,6 +503,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -517,6 +517,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              }
          }
  
@@ -77,7 +77,7 @@ index f3706dfb6aeb5035cbf0a8bf6b4d9a5243aaaa17..808e4e2ae070b5232c2050fdcb183cc2
          this.tickEffects();
          this.yHeadRotO = this.yHeadRot;
          this.yBodyRotO = this.yBodyRot;
-@@ -510,6 +511,17 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -524,6 +525,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          this.xRotO = this.getXRot();
      }
  
@@ -122,10 +122,10 @@ index 88b07fbb96b20124777889830afa480673629d43..91f6d43b3785ddad7db8eb529ba3293c
      public TeleportTransition getPortalDestination(ServerLevel level, Entity entity) {
          return this.portal.getPortalDestination(level, entity, this.entryPosition);
 diff --git a/net/minecraft/world/entity/item/ItemEntity.java b/net/minecraft/world/entity/item/ItemEntity.java
-index 4ddf1cdf7a47bf06f95c5bfce8f3c4d035e87cfc..cdcf0be8f8ca51bf548ec5ae2d74b3eef4a7d3d3 100644
+index 545c672a51fd2121dc2bf827c3b160ef9d2f790b..647241577f37655e2fc8814ef658d4031359ed89 100644
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
-@@ -160,8 +160,25 @@ public class ItemEntity extends Entity implements TraceableEntity {
+@@ -150,8 +150,25 @@ public class ItemEntity extends Entity implements TraceableEntity {
      }
      // Paper end - EAR 2
  
@@ -152,7 +152,7 @@ index 4ddf1cdf7a47bf06f95c5bfce8f3c4d035e87cfc..cdcf0be8f8ca51bf548ec5ae2d74b3ee
              this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
 diff --git a/net/minecraft/world/item/Item.java b/net/minecraft/world/item/Item.java
-index c52fb17d1e496a91223b7387cacb128c1865caee..142249b6412801cad1c7710ad6edb1955d0b5df5 100644
+index 40cb5e6bbcf9dbdb400f1503e86c0804b60e07be..d5352cbb4a64631a0a831de880efa21e1b3f6092 100644
 --- a/net/minecraft/world/item/Item.java
 +++ b/net/minecraft/world/item/Item.java
 @@ -286,10 +286,25 @@ public class Item implements FeatureElement, ItemLike {
@@ -183,10 +183,10 @@ index c52fb17d1e496a91223b7387cacb128c1865caee..142249b6412801cad1c7710ad6edb195
              BlocksAttacks blocksAttacks = stack.get(DataComponents.BLOCKS_ATTACKS);
              return blocksAttacks != null ? 72000 : 0;
 diff --git a/net/minecraft/world/level/GameRules.java b/net/minecraft/world/level/GameRules.java
-index c9a2c4f7051639478bd9788911d3c6bead8f5152..34b9baaff95189c8d9155968b00324f1b2e94209 100644
+index 2d9bf302b779602d733187c6f86e52467f0dc540..69196d7e43054955137569b22c4ca40adff3b1d8 100644
 --- a/net/minecraft/world/level/GameRules.java
 +++ b/net/minecraft/world/level/GameRules.java
-@@ -355,8 +355,31 @@ public class GameRules {
+@@ -366,8 +366,31 @@ public class GameRules {
      }
  
      public int getInt(GameRules.Key<GameRules.IntegerValue> key) {
@@ -248,10 +248,10 @@ index 8db95b74f88f8096de93115ae8d3fb2e6184ad3b..e044830439fe9821ab3f62695d318a63
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 04942e23dd2bc82e4c60110756beedb5e0f074d7..a40cd4f4904927598f1966c5746634fe1fa5e059 100644
+index 53c77efe2f86c5dfb5f02fa0b1886e8cda2e3862..f534f7983424ff3a72809a4f6c20bbed83a54b42 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -910,6 +910,19 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -917,6 +917,19 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
              this.ticker = ticker;
          }
  
@@ -271,7 +271,7 @@ index 04942e23dd2bc82e4c60110756beedb5e0f074d7..a40cd4f4904927598f1966c5746634fe
          @Override
          public void tick() {
              if (!this.blockEntity.isRemoved() && this.blockEntity.hasLevel()) {
-@@ -918,7 +931,11 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -925,7 +938,11 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
                      try {
                          BlockState blockState = LevelChunk.this.getBlockState(blockPos);
                          if (this.blockEntity.getType().isValid(blockState)) {

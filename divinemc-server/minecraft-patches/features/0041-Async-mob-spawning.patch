@@ -5,19 +5,19 @@ Subject: [PATCH] Async mob spawning
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 3deced447eb80fec362e1b8b3bea817b36074fbc..b5103e14f25f4cf92438214f2fc3ada552dce742 100644
+index 813a60771b8a6618090f1ea713b70a617ca28308..9e83d0ec1a0976f365fa6cb3f1b7db167641b336 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -289,6 +289,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -290,6 +290,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
      public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
      public final Set<net.minecraft.world.entity.Entity> entitiesWithScheduledTasks = java.util.concurrent.ConcurrentHashMap.newKeySet(); // DivineMC - Skip EntityScheduler's executeTick checks if there isn't any tasks to be run
 +    public org.bxteam.divinemc.util.AsyncProcessor mobSpawnExecutor = new org.bxteam.divinemc.util.AsyncProcessor("mob_spawning"); // DivineMC - Async mob spawning
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
-         AtomicReference<S> atomicReference = new AtomicReference<>();
+         ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c271f4348 100644
+index 2873642844c683ae4388ae27a045e01441d15426..adc2104447d738fd9f76d2e69690f0c76a41b844 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -182,6 +182,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon

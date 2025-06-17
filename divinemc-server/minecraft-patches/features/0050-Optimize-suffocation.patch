@@ -7,10 +7,10 @@ Original license: GPL v3
 Original project: https://github.com/pufferfish-gg/Pufferfish
 
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 808e4e2ae070b5232c2050fdcb183cc21b8fb996..aeea9dc46013632b2178818823564bb559746b13 100644
+index 16a3cd813997456ca67a382a8277eca02dc6662f..3cf377f87e8b7f672ea247728365eb61f47bc3ac 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -406,6 +406,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -420,6 +420,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          return this.getDeltaMovement().y() < 1.0E-5F && this.isInLiquid();
      }
  
@@ -23,7 +23,7 @@ index 808e4e2ae070b5232c2050fdcb183cc21b8fb996..aeea9dc46013632b2178818823564bb5
      @Override
      public void baseTick() {
          this.oAttackAnim = this.attackAnim;
-@@ -424,7 +430,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -438,7 +444,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
  
          if (this.isAlive() && this.level() instanceof ServerLevel serverLevel1) {
              boolean flag = this instanceof Player;

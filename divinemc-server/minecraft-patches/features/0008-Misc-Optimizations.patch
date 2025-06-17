@@ -25,7 +25,7 @@ index 5fb382be4d86328690c49f2a5a0c3ec698a38e21..f333d9028f315e7912dd335c8158abd5
  
      public static Transformation identity() {
 diff --git a/net/minecraft/core/MappedRegistry.java b/net/minecraft/core/MappedRegistry.java
-index 761e583a56b1c4a605b0cbb04b61c4df60b8b9bb..c07155589ef44cbbacafe03b36d2cd4cdcba3fd2 100644
+index 4715a60760c2c9079313db9016000bfb5c65e070..fce8f1caca81f47f704bc0237147e9999cc5732c 100644
 --- a/net/minecraft/core/MappedRegistry.java
 +++ b/net/minecraft/core/MappedRegistry.java
 @@ -33,10 +33,12 @@ public class MappedRegistry<T> implements WritableRegistry<T> {
@@ -465,7 +465,7 @@ index a18240418a19a95147341a634527d774f3d5bb92..66f74ad2a194a6676574da2932cf4677
      public DebugSampleSubscriptionTracker(PlayerList playerList) {
          this.playerList = playerList;
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 94ba53d0226bd0fe29e6ae2b4c25664eef1e2582..c7dc1a8ab1f4c13beb660239ade766b1223a3ec2 100644
+index d608ffc59dd6d9883db3f12b80cc11c7d8ded745..b4fc7ad2f353e8fbaf2179df2750c9a1c8ac9aba 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -155,7 +155,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -520,7 +520,7 @@ index 94ba53d0226bd0fe29e6ae2b4c25664eef1e2582..c7dc1a8ab1f4c13beb660239ade766b1
      }
  
      private void applyMovementEmissionAndPlaySound(Entity.MovementEmission movementEmission, Vec3 movement, BlockPos pos, BlockState state) {
-@@ -4913,9 +4887,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4922,9 +4896,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public void setDeltaMovement(Vec3 deltaMovement) {
@@ -530,7 +530,7 @@ index 94ba53d0226bd0fe29e6ae2b4c25664eef1e2582..c7dc1a8ab1f4c13beb660239ade766b1
      }
  
      public void addDeltaMovement(Vec3 addend) {
-@@ -5023,9 +4995,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5032,9 +5004,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          }
          // Paper end - Fix MC-4
          if (this.position.x != x || this.position.y != y || this.position.z != z) {

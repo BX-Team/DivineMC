@@ -7,21 +7,21 @@ Original license: GPLv3
 Original project: https://github.com/plasmoapp/matter
 
 diff --git a/net/minecraft/server/commands/SeedCommand.java b/net/minecraft/server/commands/SeedCommand.java
-index a65affc41a4fc299bc2281f0f53f2e075633899d..552b9e7973c7c22100fbdfe9821f162ea032c975 100644
+index 7c1e18d8362be5ae885c32b05e98b9ef45942d93..a414de3768972157d3031222fd160556d9b99bf4 100644
 --- a/net/minecraft/server/commands/SeedCommand.java
 +++ b/net/minecraft/server/commands/SeedCommand.java
 @@ -12,6 +12,17 @@ public class SeedCommand {
-             long seed = context.getSource().getLevel().getSeed();
+             long seed = commandContext.getSource().getLevel().getSeed();
              Component component = ComponentUtils.copyOnClickText(String.valueOf(seed));
-             context.getSource().sendSuccess(() -> Component.translatable("commands.seed.success", component), false);
+             commandContext.getSource().sendSuccess(() -> Component.translatable("commands.seed.success", component), false);
 +
 +            // DivineMC start - Implement Secure Seed
 +            if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
-+                su.plo.matter.Globals.setupGlobals(context.getSource().getLevel());
++                su.plo.matter.Globals.setupGlobals(commandContext.getSource().getLevel());
 +                String seedStr = su.plo.matter.Globals.seedToString(su.plo.matter.Globals.worldSeed);
 +                Component featureSeedComponent = ComponentUtils.copyOnClickText(seedStr);
 +
-+                context.getSource().sendSuccess(() -> Component.translatable(("Feature seed: %s"), featureSeedComponent), false);
++                commandContext.getSource().sendSuccess(() -> Component.translatable(("Feature seed: %s"), featureSeedComponent), false);
 +            }
 +            // DivineMC end - Implement Secure Seed
 +
@@ -29,10 +29,10 @@ index a65affc41a4fc299bc2281f0f53f2e075633899d..552b9e7973c7c22100fbdfe9821f162e
          }));
      }
 diff --git a/net/minecraft/server/dedicated/DedicatedServerProperties.java b/net/minecraft/server/dedicated/DedicatedServerProperties.java
-index 5748658abf0b90812005ae9d426df92daf5532f0..8849a04b10517ff2de12a9df212ac90ff4882401 100644
+index b286dc17cda16fca3af9374d2a4a8bd137c24450..b42ad5b411af2a52daac040347647fa37460022b 100644
 --- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
 +++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
-@@ -114,7 +114,17 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
+@@ -116,7 +116,17 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
          String string = this.get("level-seed", "");
          boolean flag = this.get("generate-structures", true);
          long l = WorldOptions.parseSeed(string).orElse(WorldOptions.randomSeed());
@@ -52,7 +52,7 @@ index 5748658abf0b90812005ae9d426df92daf5532f0..8849a04b10517ff2de12a9df212ac90f
              this.get("generator-settings", property -> GsonHelper.parse(!property.isEmpty() ? property : "{}"), new JsonObject()),
              this.get("level-type", property -> property.toLowerCase(Locale.ROOT), WorldPresets.NORMAL.location().toString())
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index f5d4f439c3346cc158043ada02094257ff05a06e..4d4139b5f42a4db6e22bf1d063a23dc7b9914f85 100644
+index 25150731bb3f3d04b248ebc47fc9b453e49a705e..75c8ce32e68f92e20201e9c243f46f2be716eac8 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -619,6 +619,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -64,10 +64,10 @@ index f5d4f439c3346cc158043ada02094257ff05a06e..4d4139b5f42a4db6e22bf1d063a23dc7
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index e139b875314686f252127db11536abd7a58ba0f5..c1730d2a27d290e43ebe3c7d6919cdcd3203b920 100644
+index 5f2c27800f047f128857044493a6d9325ffd759b..9dcb9e5ecc31fcc3fc7547a47ec98d2689698769 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -624,6 +624,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -627,6 +627,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              chunkGenerator = new org.bukkit.craftbukkit.generator.CustomChunkGenerator(this, chunkGenerator, gen);
          }
          // CraftBukkit end
@@ -76,10 +76,10 @@ index e139b875314686f252127db11536abd7a58ba0f5..c1730d2a27d290e43ebe3c7d6919cdcd
          DataFixer fixerUpper = server.getFixerUpper();
          // Paper - rewrite chunk system
 diff --git a/net/minecraft/world/entity/monster/Slime.java b/net/minecraft/world/entity/monster/Slime.java
-index 9a157a2bdbbeab89dbfcd23be8bdc62c8de4548c..5109762794adb8f62ae27b6c52dc9057cf0af077 100644
+index b299fc08fe900b4d48ce3e6986bcea000253053e..4dc68a03f607cacbf7f1bf9c08a4cbc1edf86ace 100644
 --- a/net/minecraft/world/entity/monster/Slime.java
 +++ b/net/minecraft/world/entity/monster/Slime.java
-@@ -412,7 +412,11 @@ public class Slime extends Mob implements Enemy {
+@@ -413,7 +413,11 @@ public class Slime extends Mob implements Enemy {
              }
  
              ChunkPos chunkPos = new ChunkPos(pos);
@@ -93,10 +93,10 @@ index 9a157a2bdbbeab89dbfcd23be8bdc62c8de4548c..5109762794adb8f62ae27b6c52dc9057
                  final double maxHeightSlimeChunk = level.getMinecraftWorld().paperConfig().entities.spawning.slimeSpawnHeight.slimeChunk.maximum;
                  if (random.nextInt(10) == 0 && flag && pos.getY() < maxHeightSlimeChunk) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 3b7f0d5fe40bdda65ab859a0c22bf0d369dc0f01..42458418e6217adba28f729f04904814542eaa17 100644
+index 182c14b660f8860bed627eed4e01fd4002153e9a..5e9f3856c384dbb2bd462121b903cd2b326e4376 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -82,6 +82,10 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -83,6 +83,10 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
      public final Map<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
      protected final LevelHeightAccessor levelHeightAccessor;
      protected final LevelChunkSection[] sections;
@@ -107,7 +107,7 @@ index 3b7f0d5fe40bdda65ab859a0c22bf0d369dc0f01..42458418e6217adba28f729f04904814
      // CraftBukkit start - SPIGOT-6814: move to IChunkAccess to account for 1.17 to 1.18 chunk upgrading.
      private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
      public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
-@@ -191,6 +195,17 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -192,6 +196,17 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
          return GameEventListenerRegistry.NOOP;
      }
  

@@ -5,7 +5,7 @@ Subject: [PATCH] Virtual Threads
 
 
 diff --git a/net/minecraft/Util.java b/net/minecraft/Util.java
-index d1fcc73f579d1c4ac79213ad039c8d803ff51b1a..a0c59cfb8a8717a308a5597cadd6df1a47bd7224 100644
+index 0a69469c79aaa2466cda04f6acefed18e421d555..66f7f2aa071c2811400b4fed12ccf51ca8bb6e23 100644
 --- a/net/minecraft/Util.java
 +++ b/net/minecraft/Util.java
 @@ -98,7 +98,12 @@ public class Util {
@@ -23,10 +23,10 @@ index d1fcc73f579d1c4ac79213ad039c8d803ff51b1a..a0c59cfb8a8717a308a5597cadd6df1a
          private final AtomicInteger count = new AtomicInteger();
  
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index 8cfd050e1b5ebd6725a6888c8ec7aa6ce7c06efe..1df51c0190ad9756300cd5c1f40a62a01e883e26 100644
+index 2b4345d16e8e5e903afb723dc41f549613998f7c..6e75bbc18762914c85866a0f46c6927aaf58afa1 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
-@@ -473,7 +473,7 @@ public class Commands {
+@@ -508,7 +508,7 @@ public class Commands {
      }
  
      // Fixed pool, but with discard policy
@@ -36,7 +36,7 @@ index 8cfd050e1b5ebd6725a6888c8ec7aa6ce7c06efe..1df51c0190ad9756300cd5c1f40a62a0
          new java.util.concurrent.LinkedBlockingQueue<>(),
          new com.google.common.util.concurrent.ThreadFactoryBuilder()
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 1a842ecfb717f7b5ed2fdb2779040ab0e857612d..ce79e6db9ab1a49005d1163641dd32050a2f9a41 100644
+index f16a50b9b07e0f754f573710875859605318ba69..f484d4b72e1919762dec1a219f0e51e1eacea37f 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -2641,8 +2641,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -54,10 +54,10 @@ index 1a842ecfb717f7b5ed2fdb2779040ab0e857612d..ce79e6db9ab1a49005d1163641dd3205
  
      public ChatDecorator getChatDecorator() {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 8677d5da2787b312f621b93e5323d908b366f65d..afc514702a853e98a334b48499f3696ae7f95ea2 100644
+index 9e7bcc4322d303ee0d8c72a0ec0917180e992a20..121daa3509879dfec7cce629e1d5260fcbccb087 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -801,8 +801,11 @@ public class ServerGamePacketListenerImpl
+@@ -828,8 +828,11 @@ public class ServerGamePacketListenerImpl
      }
  
      // Paper start - AsyncTabCompleteEvent
@@ -89,7 +89,7 @@ index 637b2eb7104cb0bc7f314ad6eea11a432e899861..c461440898c98f688064f552bb0e610f
      private final byte[] challenge;
      final MinecraftServer server;
 diff --git a/net/minecraft/server/network/ServerTextFilter.java b/net/minecraft/server/network/ServerTextFilter.java
-index 5d18f6c3173ed257bef15637a53adbff26ee9062..6f093875a5eac9e37792548c5edc77636966f391 100644
+index b3d46e7687c572d9847124eb58e4a6011a78066c..9d2e2b1cff68383cd19b42e24559e3009ef1df54 100644
 --- a/net/minecraft/server/network/ServerTextFilter.java
 +++ b/net/minecraft/server/network/ServerTextFilter.java
 @@ -48,7 +48,11 @@ public abstract class ServerTextFilter implements AutoCloseable {

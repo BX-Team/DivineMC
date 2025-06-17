@@ -1067,7 +1067,7 @@ index b10cb4a73df58a5fe64e88868733ba41616f59e4..9f9cbe6056f8a4eeca64c40872d7403b
 +    // DivineMC end - Completely remove Mojang profiler
  }
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 0b31a0203df119e03770859fe15edd2cbd08c939..7ca28c5efe8120309a604d5aa0845c1cc8778b6d 100644
+index ccf3fe18a349cd6295da16624056ee8a830876ac..19a3ba355694e7c26c233b216807cb23c82548be 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -818,12 +818,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -1128,7 +1128,7 @@ index 4221af18f5087badb5cd8c7cf66ab3312edf0394..e9d861182439eecacfab2ac431726e8a
          ChunkPyramid chunkPyramid = needsGeneration ? ChunkPyramid.GENERATION_PYRAMID : ChunkPyramid.LOADING_PYRAMID;
          return chunkPyramid.getStepTo(this.targetStatus).getAccumulatedRadiusOf(status);
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index b72000ce6bdcb97b787bfab79236f60bdb4aa2ee..1406053ef944f93ab815f0ea939c33344b208639 100644
+index eb352aa4296abc3ed4cf31c590bc0be66daf4de3..edda52a8430386238be4963e8ea2406f0c2d4df3 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -62,8 +62,6 @@ import net.minecraft.util.CsvOutput;
@@ -3950,7 +3950,7 @@ index f4aa10bbd98f514f27224346b3b9332f2218602d..ff319fa2ddea43d5b3c55897b1aaaf9f
          return this.status.compareAndSet(AbstractConsecutiveExecutor.Status.SLEEPING, AbstractConsecutiveExecutor.Status.RUNNING);
      }
 diff --git a/net/minecraft/util/thread/BlockableEventLoop.java b/net/minecraft/util/thread/BlockableEventLoop.java
-index ec2515aa6475db796b54fd0b23a38213aea9c901..cf824a3389a39c5e658545f65bcfb46a7f7ab9ff 100644
+index 186c1b2e3599770385150eb7acdcd890aa5835eb..e570740d3910573694c462b0a4894349940917a8 100644
 --- a/net/minecraft/util/thread/BlockableEventLoop.java
 +++ b/net/minecraft/util/thread/BlockableEventLoop.java
 @@ -15,13 +15,9 @@ import java.util.function.Supplier;
@@ -4006,7 +4006,7 @@ index 39a604c9a53930b53d959b1d2eb504aa964e9a58..0d0380e3955836ce125f777841477503
  
      @Override
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 0a1358a37fbd73fdaf26cf90d7911a80f259b5b4..94ba53d0226bd0fe29e6ae2b4c25664eef1e2582 100644
+index 125bef9e69b2d17d407d303b979076f0f2491507..d608ffc59dd6d9883db3f12b80cc11c7d8ded745 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -80,8 +80,6 @@ import net.minecraft.tags.TagKey;
@@ -4097,7 +4097,7 @@ index 0a1358a37fbd73fdaf26cf90d7911a80f259b5b4..94ba53d0226bd0fe29e6ae2b4c25664e
                  } else if (this.portalProcess.hasExpired()) {
                      this.portalProcess = null;
                  }
-@@ -4037,15 +4021,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4046,15 +4030,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              entity.teleport(this.calculatePassengerTransition(teleportTransition, entity));
          }
  
@@ -4113,7 +4113,7 @@ index 0a1358a37fbd73fdaf26cf90d7911a80f259b5b4..94ba53d0226bd0fe29e6ae2b4c25664e
          return this;
      }
  
-@@ -4061,11 +4042,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4070,11 +4051,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              }
          }
  
@@ -4125,7 +4125,7 @@ index 0a1358a37fbd73fdaf26cf90d7911a80f259b5b4..94ba53d0226bd0fe29e6ae2b4c25664e
              return null;
          } else {
              // Paper start - Fix item duplication and teleport issues
-@@ -4085,7 +4063,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4094,7 +4072,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              newLevel.resetEmptyTime();
              teleportTransition.postTeleportTransition().onTransition(entityx);
              this.teleportSpectators(teleportTransition, oldLevel);
@@ -4438,7 +4438,7 @@ index c569074403b1d8b443aaa98ba9cf9bbd0e98bd2d..b1aa7294f9479f45fcde77c5ea46db9f
                  this.seen.add(id);
              } else {
 diff --git a/net/minecraft/world/entity/animal/HappyGhast.java b/net/minecraft/world/entity/animal/HappyGhast.java
-index cc0f7490d51d6d57835b0779240565c373f94c21..bcfd59c400f3a9fe16edd7c21092c2d74360ae9d 100644
+index b187c9db564e8fabc34aa1bfe428a00fafb27fec..e04da94daced96a7eb9fdb01c551bea667b72d76 100644
 --- a/net/minecraft/world/entity/animal/HappyGhast.java
 +++ b/net/minecraft/world/entity/animal/HappyGhast.java
 @@ -13,8 +13,6 @@ import net.minecraft.sounds.SoundEvents;
@@ -4450,7 +4450,7 @@ index cc0f7490d51d6d57835b0779240565c373f94c21..bcfd59c400f3a9fe16edd7c21092c2d7
  import net.minecraft.world.InteractionHand;
  import net.minecraft.world.InteractionResult;
  import net.minecraft.world.damagesource.DamageSource;
-@@ -406,13 +404,8 @@ public class HappyGhast extends Animal {
+@@ -420,13 +418,8 @@ public class HappyGhast extends Animal {
      @Override
      protected void customServerAiStep(ServerLevel level) {
          if (this.isBaby()) {
@@ -4860,7 +4860,7 @@ index f8a6aba7d6f0f357c72602f4ac6c2537b604eb6c..021aa51da04bea01b0e827390ce1690a
          if ((this.tickCount + this.getId()) % 120 == 0) {
              applyDarknessAround(level, this.position(), this, 20);
 diff --git a/net/minecraft/world/entity/npc/Villager.java b/net/minecraft/world/entity/npc/Villager.java
-index baf72d0e5701cd234752988284e7fefba4c56380..000d1f7e2badcf070eea39df5ff44177960873ed 100644
+index 630ef56b5543b1d7a3d0526c132c19b93b217b16..497974779b281ced8e3dd757dbdf52abc0e0328b 100644
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
 @@ -35,8 +35,6 @@ import net.minecraft.stats.Stats;
@@ -4920,7 +4920,7 @@ index 07d7c4737635f671f33b8f73001d67928fc75782..f2c82217811712625df594667330a73f
          LOGGER.info("Loaded {} recipes", object.values().size());
      }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 69352e2403ad156db0e5ad965c9d3686364ae40a..bfe30b692e5769130f624138202ed0114c4a1bd0 100644
+index 1ad419b4a2ad4610a0a8d18b26665a7ec0ccc960..4c1ce7e85f9c3315635472047ffaf15a711aeffd 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -35,8 +35,6 @@ import net.minecraft.util.AbortableIterationConsumer;
