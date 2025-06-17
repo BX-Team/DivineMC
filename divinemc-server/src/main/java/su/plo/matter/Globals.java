@@ -2,7 +2,7 @@ package su.plo.matter;
 
 import com.google.common.collect.Iterables;
 import net.minecraft.server.level.ServerLevel;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -37,7 +37,7 @@ public class Globals {
     }
 
     public static void setupGlobals(ServerLevel world) {
-        if (!DivineConfig.enableSecureSeed) return;
+        if (!DivineConfig.MiscCategory.enableSecureSeed) return;
 
         long[] seed = world.getServer().getWorldData().worldGenOptions().featureSeed();
         System.arraycopy(seed, 0, worldSeed, 0, WORLD_SEED_LONGS);

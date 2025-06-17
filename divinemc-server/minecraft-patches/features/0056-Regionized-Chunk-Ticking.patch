@@ -1,0 +1,514 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Mon, 9 Jun 2025 13:51:43 +0300
+Subject: [PATCH] Regionized Chunk Ticking
+
+This patch adds regionized chunk ticking feature, by grouping adjacent chunks into regions and processing each region on its own thread.
+
+Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
+
+diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
+index b28829f9f4c084a8dba35219dae9f4a9f293c416..583f0d2a54508e0a6e99771d5d1fb787f7a913f3 100644
+--- a/net/minecraft/network/Connection.java
++++ b/net/minecraft/network/Connection.java
+@@ -325,7 +325,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+ 
+     private static void syncAfterConfigurationChange(ChannelFuture future) {
+         try {
+-            future.syncUninterruptibly();
++            future.awaitUninterruptibly(5000L); // DivineMC - In rare cases this can get stuck, so we time out instead in worst case 5s of lag
+         } catch (Exception var2) {
+             if (var2 instanceof ClosedChannelException) {
+                 LOGGER.info("Connection closed during protocol change");
+diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
+index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..ae6ea190a67bb8a90049ac3ee21fb7fe2c525d40 100644
+--- a/net/minecraft/server/level/ServerChunkCache.java
++++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final DistanceManager distanceManager;
+     private final ServerLevel level;
++    public static final Executor REGION_EXECUTOR = java.util.concurrent.Executors.newFixedThreadPool(org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount, new org.bxteam.divinemc.util.NamedAgnosticThreadFactory<>("Region Ticking", ca.spottedleaf.moonrise.common.util.TickThread::new, org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority)); // DivineMC - Regionized Chunk Ticking
+     public final Thread mainThread;
+     final ThreadedLevelLightEngine lightEngine;
+     public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
+@@ -70,13 +71,15 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+     private final long[] lastChunkPos = new long[4];
+     private final ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
+     private final ChunkAccess[] lastChunk = new ChunkAccess[4];
+-    private final List<LevelChunk> spawningChunks = new ObjectArrayList<>();
+-    private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
++    // DivineMC start - Regionized Chunk Ticking
++    private final ObjectArrayList<LevelChunk> spawningChunks = new ObjectArrayList<>();
++    private final Set<ChunkHolder> chunkHoldersToBroadcast = java.util.Collections.synchronizedSet(new ReferenceOpenHashSet<>());
++    // DivineMC end - Regionized Chunk Ticking
+     @Nullable
+     @VisibleForDebug
+     private NaturalSpawner.SpawnState lastSpawnState;
+     // Paper start
+-    private final ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<>();
++    private final ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<>(); // DivineMC - Regionized Chunk Ticking
+     public int getFullChunksCount() {
+         return this.fullChunks.size();
+     }
+@@ -153,32 +156,241 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+         return load ? this.syncLoad(chunkX, chunkZ, toStatus) : null;
+     }
+     // Paper end - rewrite chunk system
++
++    // DivineMC start - Regionized Chunk Ticking
++    private record RegionData(it.unimi.dsi.fastutil.longs.LongOpenHashSet chunks, Set<Entity> entities) {
++        public boolean isEmpty() {
++            return chunks.isEmpty();
++        }
++    }
++
++    private record Output(RegionData[] regions, Set<Entity> entities) {}
++
++    private Output computePlayerRegionsParallel() {
++        int tickViewDistance = level.moonrise$getViewDistanceHolder().getViewDistances().tickViewDistance();
++        List<ServerPlayer> players = new java.util.ArrayList<>(level.players);
++        int max = maxChunksForViewDistance();
++
++        List<it.unimi.dsi.fastutil.longs.LongOpenHashSet> playerChunkSets = players.parallelStream()
++            .map(player -> {
++                ChunkPos playerChunk = player.chunkPosition();
++                int px = playerChunk.x;
++                int pz = playerChunk.z;
++                it.unimi.dsi.fastutil.longs.LongOpenHashSet chunkKeys = new it.unimi.dsi.fastutil.longs.LongOpenHashSet(max);
++                for (int dx = -tickViewDistance; dx <= tickViewDistance; dx++) {
++                    for (int dz = -tickViewDistance; dz <= tickViewDistance; dz++) {
++                        long key = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(px + dx, pz + dz);
++                        chunkKeys.add(key);
++                    }
++                }
++                return chunkKeys;
++            }).toList();
++
++        List<it.unimi.dsi.fastutil.longs.LongOpenHashSet> mergedRegions = new java.util.ArrayList<>();
++        boolean[] merged = new boolean[playerChunkSets.size()];
++
++        for (int i = 0; i < playerChunkSets.size(); i++) {
++            if (merged[i]) continue;
++
++            it.unimi.dsi.fastutil.longs.LongOpenHashSet region = new it.unimi.dsi.fastutil.longs.LongOpenHashSet(playerChunkSets.get(i));
++            merged[i] = true;
++
++            boolean madeChanges;
++            do {
++                madeChanges = false;
++                for (int j = i + 1; j < playerChunkSets.size(); j++) {
++                    if (merged[j]) continue;
++
++                    it.unimi.dsi.fastutil.longs.LongOpenHashSet set = playerChunkSets.get(j);
++
++                    boolean hasIntersection = false;
++                    it.unimi.dsi.fastutil.longs.LongIterator iter = set.iterator();
++                    while (iter.hasNext()) {
++                        if (region.contains(iter.nextLong())) {
++                            hasIntersection = true;
++                            break;
++                        }
++                    }
++
++                    if (hasIntersection) {
++                        region.addAll(set);
++                        merged[j] = true;
++                        madeChanges = true;
++                    }
++                }
++            } while (madeChanges);
++
++            mergedRegions.add(region);
++        }
++
++        ObjectArrayList<RegionData> regions = new ObjectArrayList<>();
++        it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap chunkToRegion = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(max * mergedRegions.size());
++        chunkToRegion.defaultReturnValue(-1);
++        for (int i = 0; i < mergedRegions.size(); i++) {
++            regions.add(new RegionData(mergedRegions.get(i), java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>())));
++            for (long key : mergedRegions.get(i)) {
++                chunkToRegion.put(key, i);
++            }
++        }
++
++        final Set<Entity> firstTick = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
++
++        level.entityTickList.entities.parallelStream().forEach(entity -> {
++            long chunkKey = entity.chunkPosition().longKey;
++            int regionIndex = chunkToRegion.get(chunkKey);
++            if (regionIndex != -1) {
++                regions.get(regionIndex).entities().add(entity);
++            } else {
++                firstTick.add(entity);
++            }
++        });
++
++        return new Output(regions.toArray(new RegionData[0]), firstTick);
++    }
++
++    // Should be max safe estimate of ticking chunks in a region
++    private int maxChunksForViewDistance() {
++        ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistances distances = level.moonrise$getViewDistanceHolder().getViewDistances();
++        int diameter = 2 * distances.tickViewDistance() + 1;
++        return diameter * diameter;
++    }
++
++    private void tickEntity(Entity entity) {
++        if (!entity.isRemoved()) {
++            if (!level.tickRateManager().isEntityFrozen(entity)) {
++                entity.checkDespawn();
++                // Paper - rewrite chunk system
++                Entity vehicle = entity.getVehicle();
++                if (vehicle != null) {
++                    if (!vehicle.isRemoved() && vehicle.hasPassenger(entity)) {
++                        return;
++                    }
++
++                    entity.stopRiding();
++                }
++
++                level.guardEntityTick(level::tickNonPassenger, entity);
++            }
++        }
++    }
++    // DivineMC end - Regionized Chunk Ticking
++
+     // Paper start - chunk tick iteration optimisations
+     private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom shuffleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(0L);
+-    private void iterateTickingChunksFaster() {
++    private void iterateTickingChunksFaster(final java.util.concurrent.CompletableFuture<Void> spawns) { // DivineMC - Regionized Chunk Ticking
+         final ServerLevel world = this.level;
+         final int randomTickSpeed = world.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
+ 
+         // TODO check on update: impl of forEachBlockTickingChunk will only iterate ENTITY ticking chunks!
+         // TODO check on update: consumer just runs tickChunk
+-        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> entityTickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)world).moonrise$getEntityTickingChunks();
++        final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> entityTickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)world).moonrise$getEntityTickingChunks(); // DivineMC - Regionized Chunk Ticking
+ 
+         // note: we can use the backing array here because:
+         // 1. we do not care about new additions
+         // 2. _removes_ are impossible at this stage in the tick
+-        final LevelChunk[] raw = entityTickingChunks.getRawDataUnchecked();
++        final LevelChunk[] raw = entityTickingChunks.toArray(new LevelChunk[0]); // DivineMC - use toArray instead of getRawDataUnchecked this way is safe and doesn't have performance impact
+         final int size = entityTickingChunks.size();
+ 
+-        java.util.Objects.checkFromToIndex(0, size, raw.length);
+-        for (int i = 0; i < size; ++i) {
+-            world.tickChunk(raw[i], randomTickSpeed);
++        // DivineMC start - Regionized Chunk Ticking
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking) {
++            final Output output = computePlayerRegionsParallel();
++            final RegionData[] regions = output.regions();
++            int regionCount = regions.length;
++
++            java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(regionCount);
++            io.papermc.paper.entity.activation.ActivationRange.activateEntities(level); // Paper - EAR
++
++            try {
++                java.util.concurrent.ForkJoinPool.managedBlock(new java.util.concurrent.ForkJoinPool.ManagedBlocker() {
++                    @Override
++                    public boolean block() throws InterruptedException {
++                        ObjectArrayList<java.util.concurrent.CompletableFuture<it.unimi.dsi.fastutil.longs.LongOpenHashSet>> ticked = new ObjectArrayList<>(regionCount);
++                        for (final RegionData region : regions) {
++                            if (region == null || region.isEmpty()) {
++                                latch.countDown();
++                                continue;
++                            }
++
++                            ticked.add(java.util.concurrent.CompletableFuture.supplyAsync(() -> {
++                                ObjectArrayList<LevelChunk> regionChunks = new ObjectArrayList<>(region.chunks().size());
++                                it.unimi.dsi.fastutil.longs.LongOpenHashSet regionChunksIDs = new it.unimi.dsi.fastutil.longs.LongOpenHashSet(region.chunks().size());
++                                for (long key : region.chunks()) {
++                                    LevelChunk chunk = fullChunks.get(key);
++                                    if (chunk != null) {
++                                        regionChunks.add(chunk);
++                                        regionChunksIDs.add(key);
++                                    }
++                                }
++
++                                try {
++                                    for (LevelChunk chunk : regionChunks) {
++                                        world.tickChunk(chunk, randomTickSpeed);
++                                    }
++                                    for (net.minecraft.world.entity.Entity entity : region.entities()) {
++                                        tickEntity(entity);
++                                    }
++                                } finally {
++                                    latch.countDown();
++                                }
++                                return regionChunksIDs;
++                            }, REGION_EXECUTOR));
++                        }
+ 
+-            // call mid-tick tasks for chunk system
+-            if ((i & 7) == 0) {
+-                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
+-                continue;
++                        CompletableFuture.runAsync(() -> {
++                            try {
++                                CompletableFuture.allOf(ticked.toArray(new CompletableFuture[0])).join();
++                            } catch (java.util.concurrent.CompletionException ex) {
++                                LOGGER.error("Error during region chunk ticking", ex.getCause());
++                            }
++
++                            it.unimi.dsi.fastutil.longs.LongOpenHashSet tickedChunkKeys = new it.unimi.dsi.fastutil.longs.LongOpenHashSet(raw.length);
++
++                            for (CompletableFuture<it.unimi.dsi.fastutil.longs.LongOpenHashSet> future : ticked) {
++                                if (!future.isCompletedExceptionally()) {
++                                    try {
++                                        it.unimi.dsi.fastutil.longs.LongOpenHashSet regionChunks = future.join();
++                                        tickedChunkKeys.addAll(regionChunks);
++                                    } catch (Exception e) {
++                                        LOGGER.error("Exception in region ticking future", e);
++                                    }
++                                }
++                            }
++
++                            for (LevelChunk chunk : raw) {
++                                if (!tickedChunkKeys.contains(chunk.coordinateKey)) {
++                                    world.tickChunk(chunk, randomTickSpeed);
++                                }
++                            }
++
++                            output.entities.forEach(ServerChunkCache.this::tickEntity);
++                            spawns.join();
++                        }, REGION_EXECUTOR).join();
++
++                        latch.await();
++                        return true;
++                    }
++
++                    @Override
++                    public boolean isReleasable() {
++                        return latch.getCount() == 0;
++                    }
++                });
++            } catch (InterruptedException ex) {
++                throw new RuntimeException("Interrupted managed block during region ticking", ex);
++            }
++        } else {
++            java.util.Objects.checkFromToIndex(0, size, raw.length);
++            for (int i = 0; i < size; ++i) {
++                world.tickChunk(raw[i], randomTickSpeed);
++
++                // call mid-tick tasks for chunk system
++                if ((i & 7) == 0) {
++                    ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer) this.level.getServer()).moonrise$executeMidTickTasks();
++                    continue;
++                }
+             }
+         }
++        // DivineMC end - Regionized Chunk Ticking
+     }
+     // Paper end - chunk tick iteration optimisations
+ 
+@@ -502,14 +714,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+         long gameTime = this.level.getGameTime();
+         long l = gameTime - this.lastInhabitedUpdate;
+         this.lastInhabitedUpdate = gameTime;
+-        if (!this.level.isDebug()) {
+-            if (this.level.tickRateManager().runsNormally()) {
+-                this.tickChunks(l);
+-            }
+ 
++        // DivineMC start - Regionized Chunk Ticking
++        if (this.level.isDebug()) {
++            return;
++        }
++
++        if (!this.level.tickRateManager().runsNormally()) { // DivineMC - when frozen only broadcast changed chunks and don't run async mob spawning
+             this.broadcastChangedChunks();
++            return;
+         }
+ 
++        this.tickChunks(l);
++        this.broadcastChangedChunks();
++        // DivineMC end - Regionized Chunk Ticking
++
+         // DivineMC start - Async mob spawning
+         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
+             for (ServerPlayer player : this.level.players) {
+@@ -538,14 +757,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+     }
+ 
+     private void broadcastChangedChunks() {
+-        for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
+-            LevelChunk tickingChunk = chunkHolder.getChunkToSend(); // Paper - rewrite chunk system
+-            if (tickingChunk != null) {
+-                chunkHolder.broadcastChanges(tickingChunk);
++        // DivineMC start - Regionized Chunk Ticking
++        synchronized (chunkHoldersToBroadcast) {
++            for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
++                LevelChunk tickingChunk = chunkHolder.getChunkToSend(); // Paper - rewrite chunk system
++                if (tickingChunk != null) {
++                    chunkHolder.broadcastChanges(tickingChunk);
++                }
+             }
+-        }
+ 
+-        this.chunkHoldersToBroadcast.clear();
++            this.chunkHoldersToBroadcast.clear();
++        }
++        // DivineMC end - Regionized Chunk Ticking
+     }
+ 
+     private void tickChunks(long timeInhabited) {
+@@ -595,23 +818,25 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+             filteredSpawningCategories = List.of();
+         }
+ 
+-        List<LevelChunk> list = this.spawningChunks;
+-
+-        try {
+-            this.chunkMap.collectSpawningChunks(list);
+-            // Paper start - chunk tick iteration optimisation
+-            this.shuffleRandom.setSeed(this.level.random.nextLong());
+-            if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
+-            // Paper end - chunk tick iteration optimisation
+-
+-            for (LevelChunk levelChunk : list) {
+-                this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Async mob spawning
++        final java.util.concurrent.CompletableFuture<Void> spawns = java.util.concurrent.CompletableFuture.runAsync(() -> {
++            java.util.List<LevelChunk> list = this.spawningChunks;
++            try {
++                this.chunkMap.collectSpawningChunks(list);
++                // Paper start - chunk tick iteration optimisation
++                this.shuffleRandom.setSeed(this.level.random.nextLong());
++                if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns)
++                    net.minecraft.Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
++                // Paper end - chunk tick iteration optimisation
++
++                for (LevelChunk levelChunk : list) {
++                    this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Async mob spawning
++                }
++            } finally {
++                list.clear();
+             }
+-        } finally {
+-            list.clear();
+-        }
++        }, REGION_EXECUTOR);
+ 
+-        this.iterateTickingChunksFaster(); // Paper - chunk tick iteration optimisations
++        this.iterateTickingChunksFaster(spawns); // Paper - chunk tick iteration optimisations
+         if (_boolean) {
+             this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
+         }
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index caa1fd0e35b69c8bd55170af6140442bef5d6b4d..4b874acfdfd2aaa3477e65da20a73b1e693c67bd 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -189,7 +189,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     private final LevelTicks<Block> blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
+     private final LevelTicks<Fluid> fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
+     private final PathTypeCache pathTypesByPosCache = new PathTypeCache();
+-    final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>();
++    final Set<Mob> navigatingMobs = java.util.Collections.synchronizedSet(new ObjectOpenHashSet<>()); // DivineMC - Regionized Chunk Ticking
+     volatile boolean isUpdatingNavigations;
+     protected final Raids raids;
+     private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
+@@ -806,6 +806,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+                 this.dragonFight.tick();
+             }
+ 
++            // DivineMC start - Regionized Chunk Ticking
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking) {
++                this.tickBlockEntities();
++                return;
++            }
++            // DivineMC end - Regionized Chunk Ticking
++
+             io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
+             this.entityTickList
+                 .forEach(
+@@ -1794,22 +1801,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+         if (Shapes.joinIsNotEmpty(collisionShape, collisionShape1, BooleanOp.NOT_SAME)) {
+             List<PathNavigation> list = new ObjectArrayList<>();
+ 
+-            try { // Paper - catch CME see below why
+-            for (Mob mob : this.navigatingMobs) {
+-                PathNavigation navigation = mob.getNavigation();
+-                if (navigation.shouldRecomputePath(pos)) {
+-                    list.add(navigation);
++            // DivineMC start - Regionized Chunk Ticking
++            synchronized (this.navigatingMobs) {
++                for (Mob mob : this.navigatingMobs) {
++                    PathNavigation navigation = mob.getNavigation();
++                    if (navigation.shouldRecomputePath(pos)) {
++                        list.add(navigation);
++                    }
+                 }
+             }
+-            // Paper start - catch CME see below why
+-            } catch (final java.util.ConcurrentModificationException concurrentModificationException) {
+-                // This can happen because the pathfinder update below may trigger a chunk load, which in turn may cause more navigators to register
+-                // In this case we just run the update again across all the iterators as the chunk will then be loaded
+-                // As this is a relative edge case it is much faster than copying navigators (on either read or write)
+-                this.sendBlockUpdated(pos, oldState, newState, flags);
+-                return;
+-            }
+-            // Paper end - catch CME see below why
++            // DivineMC end - Regionized Chunk Ticking
+ 
+             try {
+                 this.isUpdatingNavigations = true;
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 698f9c3a66dbb4f9ef1fbea873a1769d314d2bb4..7ef3ea374f36554ff66ace50ffaef9ad8920d961 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -106,7 +106,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+     public static final int MIN_ENTITY_SPAWN_Y = -20000000;
+     public final org.bxteam.divinemc.util.BlockEntityTickersList blockEntityTickers = new org.bxteam.divinemc.util.BlockEntityTickersList(); // Paper - public // DivineMC - optimize block entity removals - Fix MC-117075
+     protected final NeighborUpdater neighborUpdater;
+-    private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
++    private final List<TickingBlockEntity> pendingBlockEntityTickers = java.util.Collections.synchronizedList(Lists.newArrayList()); // DivineMC - Regionized Chunk Ticking
+     private boolean tickingBlockEntities;
+     public final Thread thread;
+     private final boolean isDebug;
+@@ -138,7 +138,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+ 
+     public boolean captureBlockStates = false;
+     public boolean captureTreeGeneration = false;
+-    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
++    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = java.util.Collections.synchronizedMap(new java.util.LinkedHashMap<>()); // Paper // DivineMC - Regionized Chunk Ticking
+     public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
+     @Nullable
+     public List<net.minecraft.world.entity.item.ItemEntity> captureDrops;
+@@ -1503,9 +1503,11 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+ 
+     protected void tickBlockEntities() {
+         this.tickingBlockEntities = true;
+-        if (!this.pendingBlockEntityTickers.isEmpty()) {
+-            this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
+-            this.pendingBlockEntityTickers.clear();
++        synchronized (pendingBlockEntityTickers) { // DivineMC - RCT synchronization fix
++            if (!this.pendingBlockEntityTickers.isEmpty()) {
++                this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
++                this.pendingBlockEntityTickers.clear();
++            }
+         }
+ 
+         // Spigot start
+diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
+index 028eae2f9a459b60e92f3344091083aa93b54485..51e5a54aff069cac14deef6c04899d3a469842ce 100644
+--- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
++++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
+@@ -46,7 +46,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+         this.addAndRun(pos, new CollectingNeighborUpdater.MultiNeighborUpdate(pos.immutable(), block, orientation, facing));
+     }
+ 
+-    private void addAndRun(BlockPos pos, CollectingNeighborUpdater.NeighborUpdates updates) {
++    private synchronized void addAndRun(BlockPos pos, CollectingNeighborUpdater.NeighborUpdates updates) { // DivineMC - Regionized Chunk Ticking - synchronized
+         boolean flag = this.count > 0;
+         boolean flag1 = this.maxChainedNeighborUpdates >= 0 && this.count >= this.maxChainedNeighborUpdates;
+         this.count++;
+@@ -65,7 +65,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+         }
+     }
+ 
+-    private void runUpdates() {
++    private synchronized void runUpdates() { // DivineMC - Regionized Chunk Ticking - synchronized
+         try {
+             while (!this.stack.isEmpty() || !this.addedThisLayer.isEmpty()) {
+                 for (int i = this.addedThisLayer.size() - 1; i >= 0; i--) {

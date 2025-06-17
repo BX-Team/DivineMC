@@ -5,7 +5,7 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 7c79e58f86d113e5e67947e235475beef76e20ab..dc58d8707b854e53acff7c8e185db7904505aaa5 100644
+index 7c79e58f86d113e5e67947e235475beef76e20ab..b26d3a2856ed7bd0a2dcb72f74ee0e157be85ac7 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -1088,6 +1088,13 @@ public final class CraftServer implements Server {
@@ -14,7 +14,7 @@ index 7c79e58f86d113e5e67947e235475beef76e20ab..dc58d8707b854e53acff7c8e185db790
          org.purpurmc.purpur.PurpurConfig.init((File) console.options.valueOf("purpur-settings")); // Purpur - Purpur config files
 +        // DivineMC start - Configuration
 +        try {
-+            org.bxteam.divinemc.DivineConfig.init((File) console.options.valueOf("divinemc-settings"));
++            org.bxteam.divinemc.config.DivineConfig.init((File) console.options.valueOf("divinemc-settings"));
 +        } catch (IOException e) {
 +            this.logger.log(Level.WARNING, "Failed to load DivineMC configuration, " + e.getMessage());
 +        }

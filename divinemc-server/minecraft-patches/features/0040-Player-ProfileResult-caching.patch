@@ -5,7 +5,7 @@ Subject: [PATCH] Player ProfileResult caching
 
 
 diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index 738c8749593cf3c30a1c321664abf12ba8dac635..7dbd73d8b5f5d2888cede36f9ea0d0cf71b4a49d 100644
+index c461440898c98f688064f552bb0e610f657237cd..d5da09bbe10b5eea8545fbbfa055a51c1a1b2142 100644
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 @@ -74,6 +74,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
@@ -29,7 +29,7 @@ index 738c8749593cf3c30a1c321664abf12ba8dac635..7dbd73d8b5f5d2888cede36f9ea0d0cf
 -                        .hasJoinedServer(string1, string, this.getAddress());
 +                    // DivineMC start - Player ProfileResult caching
 +                    ProfileResult profileResult;
-+                    if (org.bxteam.divinemc.DivineConfig.playerProfileResultCachingEnabled) {
++                    if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.playerProfileResultCachingEnabled) {
 +                        profileResult = playerProfileResultCache.getIfPresent(string1);
 +
 +                        if (profileResult == null) {

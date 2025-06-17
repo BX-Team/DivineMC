@@ -4,7 +4,7 @@ import io.sentry.Sentry;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 
 public class SentryManager {
     private static final Logger LOGGER = LogManager.getLogger("SentryManager");
@@ -26,7 +26,7 @@ public class SentryManager {
             initialized = true;
 
             Sentry.init(options -> {
-                options.setDsn(DivineConfig.sentryDsn);
+                options.setDsn(DivineConfig.MiscCategory.sentryDsn);
                 options.setMaxBreadcrumbs(100);
             });
 

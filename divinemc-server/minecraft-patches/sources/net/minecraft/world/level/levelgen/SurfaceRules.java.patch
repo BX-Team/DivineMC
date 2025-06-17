@@ -5,7 +5,7 @@
              @Override
              protected boolean compute() {
 +                // DivineMC start - Fix MC-258859
-+                if (org.bxteam.divinemc.DivineConfig.slopesVisualFix) {
++                if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.slopesVisualFix) {
 +                    int x = this.context.blockX & 15;
 +                    int z = this.context.blockZ & 15;
 +                    ChunkAccess chunk = this.context.chunk;

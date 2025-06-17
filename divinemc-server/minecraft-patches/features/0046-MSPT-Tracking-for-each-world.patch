@@ -5,7 +5,7 @@ Subject: [PATCH] MSPT Tracking for each world
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index a10e268752d41b6b995770d9cacb8de089e8258a..e7e4403d0d53f623ae7691da4e31106924a7672d 100644
+index ef2cf6d9ca57266bb0466ca1aa5d2066349f9954..c4ae883af4337e04d0944c603f298ee1576cb3d2 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1674,7 +1674,15 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -25,10 +25,10 @@ index a10e268752d41b6b995770d9cacb8de089e8258a..e7e4403d0d53f623ae7691da4e311069
              CrashReport crashReport = CrashReport.forThrowable(levelTickingException, "Exception ticking world");
              serverLevel.fillReportDetails(crashReport);
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 258f1ef5edfd69c974d185b3ed988c38643adc62..8cfa5e0aafc3102e4397188b7dcce7185b19f648 100644
+index b609361d4ff1d42d3ac40411013de767ad8665d7..1d4e6ffc1c17f2e5ab363b71a2e8cbcc63bdfb7c 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -570,6 +570,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -568,6 +568,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      }
      // Paper end - chunk tick iteration
  

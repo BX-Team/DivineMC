@@ -5,7 +5,7 @@ Subject: [PATCH] Async Chunk Sending
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index 007132d8add313dfc8685a85e4b684fa3df65e6e..465ee4942d8d21169ef6193fc20fbe7870f97f38 100644
+index 529593d4c46b71849e50e2976411186134c51aab..25b0701db7ce654fca68bff70c2013fba7f3c3d0 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 @@ -53,6 +53,8 @@ public final class RegionizedPlayerChunkLoader {
@@ -46,7 +46,7 @@ index 007132d8add313dfc8685a85e4b684fa3df65e6e..465ee4942d8d21169ef6193fc20fbe78
              }
 -            throw new IllegalStateException();
 +
-+            if (org.bxteam.divinemc.DivineConfig.asyncChunkSendingEnabled) {
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncChunkSendingEnabled) {
 +                net.minecraft.Util.backgroundExecutor().execute(() -> {
 +                    try {
 +                        // Modified from PlayerChunkSender#sendChunk

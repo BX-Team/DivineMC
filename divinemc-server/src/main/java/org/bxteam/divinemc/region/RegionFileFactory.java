@@ -3,7 +3,7 @@ package org.bxteam.divinemc.region;
 import net.minecraft.world.level.chunk.storage.RegionFile;
 import net.minecraft.world.level.chunk.storage.RegionFileVersion;
 import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,7 +23,7 @@ public class RegionFileFactory {
         final String extensionName = fullNameSplit[fullNameSplit.length - 1];
         switch (RegionFileFormat.fromExtension(extensionName)) {
             case LINEAR -> {
-                return new LinearRegionFile(path, DivineConfig.linearImplementation, DivineConfig.linearCompressionLevel);
+                return new LinearRegionFile(path, DivineConfig.MiscCategory.linearImplementation, DivineConfig.MiscCategory.linearCompressionLevel);
             }
 
             default -> {

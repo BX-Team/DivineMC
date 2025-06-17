@@ -5,7 +5,7 @@
      @Override
      protected void doTick(ServerLevel level, Villager entity) {
 +        // DivineMC start - skip useless secondary poi sensor
-+        if (org.bxteam.divinemc.DivineConfig.skipUselessSecondaryPoiSensor && entity.getVillagerData().profession().value().secondaryPoi().isEmpty()) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.skipUselessSecondaryPoiSensor && entity.getVillagerData().profession().value().secondaryPoi().isEmpty()) {
 +            entity.getBrain().eraseMemory(MemoryModuleType.SECONDARY_JOB_SITE);
 +            return;
 +        }

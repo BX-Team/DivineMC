@@ -6,7 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.PermissionDefault;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 import org.bxteam.divinemc.command.DivineCommand;
 import org.bxteam.divinemc.command.DivineSubCommandPermission;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -35,7 +35,7 @@ public final class MSPTCommand extends DivineSubCommandPermission {
 
     @Override
     public boolean execute(CommandSender sender, String subCommand, String[] args) {
-        if (!DivineConfig.enableParallelWorldTicking) {
+        if (!DivineConfig.AsyncCategory.enableParallelWorldTicking) {
             sender.sendMessage(Component.text("Per-world MSPT tracking is only available when parallel world ticking is enabled.", RED));
             sender.sendMessage(Component.text("Please enable it in divinemc.yml to use this command.", GRAY));
             return true;
@@ -160,7 +160,7 @@ public final class MSPTCommand extends DivineSubCommandPermission {
 
     @Override
     public List<String> tabComplete(CommandSender sender, String subCommand, String[] args) {
-        if (!DivineConfig.enableParallelWorldTicking) {
+        if (!DivineConfig.AsyncCategory.enableParallelWorldTicking) {
             return Collections.emptyList();
         }
         if (args.length == 1) {

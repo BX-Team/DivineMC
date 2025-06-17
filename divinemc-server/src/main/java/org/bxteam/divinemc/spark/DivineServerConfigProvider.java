@@ -65,7 +65,7 @@ public class DivineServerConfigProvider extends ServerConfigProvider {
         public JsonElement load(@NotNull String group, ExcludedConfigFilter filter) throws IOException {
             String prefix = group.replace("/", "");
 
-            Path configDir = Paths.get("config");
+            Path configDir = Paths.get(getPath("paper-dir"));
             if (!Files.exists(configDir)) {
                 return null;
             }
@@ -99,16 +99,18 @@ public class DivineServerConfigProvider extends ServerConfigProvider {
         }
     }
 
+    private static String getPath(String optionsName) {
+        return ((java.io.File) net.minecraft.server.MinecraftServer.getServer().options.valueOf(optionsName)).getPath();
+    }
+
     static {
         ImmutableMap.Builder<String, ConfigParser> files = ImmutableMap.<String, ConfigParser>builder()
-            .put("server.properties", PropertiesConfigParser.INSTANCE)
-            .put("bukkit.yml", YamlConfigParser.INSTANCE)
-            .put("spigot.yml", YamlConfigParser.INSTANCE)
-            .put("paper.yml", YamlConfigParser.INSTANCE)
+            .put(getPath("config"), PropertiesConfigParser.INSTANCE)
+            .put(getPath("bukkit-settings"), YamlConfigParser.INSTANCE)
+            .put(getPath("spigot-settings"), YamlConfigParser.INSTANCE)
             .put("paper/", SplitYamlConfigParser.INSTANCE)
-            .put("pufferfish.yml", YamlConfigParser.INSTANCE)
-            .put("purpur.yml", YamlConfigParser.INSTANCE)
-            .put("divinemc.yml", YamlConfigParser.INSTANCE);
+            .put(getPath("purpur-settings"), YamlConfigParser.INSTANCE)
+            .put(getPath("divinemc-settings"), YamlConfigParser.INSTANCE);
 
         for (String config : getSystemPropertyList("spark.serverconfigs.extra")) {
             files.put(config, YamlConfigParser.INSTANCE);

@@ -115,18 +115,18 @@
      options.isDocFilesSubDirs = true
      options.links(
 -        "https://guava.dev/releases/33.3.1-jre/api/docs/",
--        // "https://javadoc.io/doc/org.yaml/snakeyaml/2.2/",
+-        "https://javadoc.io/doc/org.yaml/snakeyaml/2.2/",
 +        "https://guava.dev/releases/33.4.0-jre/api/docs/", // DivineMC - Bump dependencies
-+        // "https://javadoc.io/doc/org.yaml/snakeyaml/2.3/", // DivineMC - Bump dependencies
-         // "https://javadoc.io/doc/org.jetbrains/annotations/$annotationsVersion/",
-         // "https://javadoc.io/doc/org.joml/joml/1.10.8/",
-         // "https://www.javadoc.io/doc/com.google.code.gson/gson/2.11.0",
++        "https://javadoc.io/doc/org.yaml/snakeyaml/2.3/", // DivineMC - Bump dependencies
+         "https://javadoc.io/doc/org.jetbrains/annotations/$annotationsVersion/",
+         "https://javadoc.io/doc/org.joml/joml/1.10.8/",
+         "https://www.javadoc.io/doc/com.google.code.gson/gson/2.11.0",
 @@ -199,7 +_,7 @@
          "https://jd.advntr.dev/text-logger-slf4j/$adventureVersion/",
-         // "https://javadoc.io/doc/org.slf4j/slf4j-api/$slf4jVersion/",
-         "https://logging.apache.org/log4j/2.x/javadoc/log4j-api/",
--        // "https://javadoc.io/doc/org.apache.maven.resolver/maven-resolver-api/1.7.3",
-+        // "https://javadoc.io/doc/org.apache.maven.resolver/maven-resolver-api/1.9.22", // DivineMC - Bump dependencies
+         "https://javadoc.io/doc/org.slf4j/slf4j-api/$slf4jVersion/",
+         // "https://logging.apache.org/log4j/2.x/javadoc/log4j-api/", // TODO: Broken
+-        "https://javadoc.io/doc/org.apache.maven.resolver/maven-resolver-api/1.7.3",
++        "https://javadoc.io/doc/org.apache.maven.resolver/maven-resolver-api/1.9.22", // DivineMC - Bump dependencies
      )
      options.tags("apiNote:a:API Note:")
  

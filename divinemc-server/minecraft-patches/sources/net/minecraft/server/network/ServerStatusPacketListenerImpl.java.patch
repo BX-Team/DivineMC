@@ -7,7 +7,7 @@
 -            if (net.minecraft.server.MinecraftServer.getServer().getStatus().version().isEmpty()) return; // Purpur - Fix 'outdated server' showing in ping before server fully boots - do not respond to pings before we know the protocol version
 +            // DivineMC start - Don't respond ping before start fully - rewritten Purpur patch (configurable)
 +            var status = net.minecraft.server.MinecraftServer.getServer().getStatus();
-+            if (org.bxteam.divinemc.DivineConfig.dontRespondPingBeforeStart && (status == null || status.version().isEmpty())) return;
++            if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.dontRespondPingBeforeStart && (status == null || status.version().isEmpty())) return;
 +            // DivineMC end - Don't respond ping before start fully - rewritten Purpur patch (configurable)
              com.destroystokyo.paper.network.StandardPaperServerListPingEventImpl.processRequest(net.minecraft.server.MinecraftServer.getServer(), this.connection); // Paper - handle status request
          }

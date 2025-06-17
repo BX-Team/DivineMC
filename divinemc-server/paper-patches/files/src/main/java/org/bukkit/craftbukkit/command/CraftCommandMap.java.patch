@@ -9,7 +9,7 @@
 +    @Override
 +    public Command getCommand(String name) {
 +        Command target = super.getCommand(name);
-+        if (org.bxteam.divinemc.DivineConfig.forceMinecraftCommand && !(target instanceof org.bukkit.craftbukkit.command.VanillaCommandWrapper)) {
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.forceMinecraftCommand && !(target instanceof org.bukkit.craftbukkit.command.VanillaCommandWrapper)) {
 +            Command minecraftTarget = super.getCommand("minecraft:" + name);
 +            if (minecraftTarget != null) {
 +                return minecraftTarget;

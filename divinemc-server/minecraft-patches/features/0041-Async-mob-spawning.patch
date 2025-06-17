@@ -5,19 +5,19 @@ Subject: [PATCH] Async mob spawning
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 31ba25f158a25013852c30eb8362d89c40be99c6..3123b5c528def7e76630c93b1e7b78b40882ed67 100644
+index 3deced447eb80fec362e1b8b3bea817b36074fbc..b5103e14f25f4cf92438214f2fc3ada552dce742 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -290,6 +290,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -289,6 +289,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
      public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
      public final Set<net.minecraft.world.entity.Entity> entitiesWithScheduledTasks = java.util.concurrent.ConcurrentHashMap.newKeySet(); // DivineMC - Skip EntityScheduler's executeTick checks if there isn't any tasks to be run
 +    public org.bxteam.divinemc.util.AsyncProcessor mobSpawnExecutor = new org.bxteam.divinemc.util.AsyncProcessor("mob_spawning"); // DivineMC - Async mob spawning
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
-         ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
+         AtomicReference<S> atomicReference = new AtomicReference<>();
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index fb5607311fac9a57477b97acffb2644898dbbbbf..25b12c6f1e90ce0247caa92f7a141913a1138610 100644
+index 9a65321ce62f21b150d29be30dbae7dba0ff40be..4ff1f78eb963e2baf0c2871b4fea624c271f4348 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -182,6 +182,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -31,21 +31,18 @@ index fb5607311fac9a57477b97acffb2644898dbbbbf..25b12c6f1e90ce0247caa92f7a141913
  
      public ServerChunkCache(
          ServerLevel level,
-@@ -505,6 +509,35 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -505,6 +509,32 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
  
              this.broadcastChangedChunks();
          }
 +
 +        // DivineMC start - Async mob spawning
-+        if (org.bxteam.divinemc.DivineConfig.enableAsyncSpawning) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
 +            for (ServerPlayer player : this.level.players) {
 +                for (int ii = 0; ii < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; ii++) {
 +                    player.mobCounts[ii] = 0;
 +
-+                    int newBackoff = player.mobBackoffCounts[ii] - 1;
-+                    if (newBackoff < 0) {
-+                        newBackoff = 0;
-+                    }
++                    int newBackoff = Math.max(0, player.mobBackoffCounts[ii] - 1); // DivineMC - Async mob spawning
 +                    player.mobBackoffCounts[ii] = newBackoff;
 +                }
 +            }
@@ -67,7 +64,7 @@ index fb5607311fac9a57477b97acffb2644898dbbbbf..25b12c6f1e90ce0247caa92f7a141913
      }
  
      private void broadcastChangedChunks() {
-@@ -522,27 +555,31 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -522,27 +552,31 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          int naturalSpawnChunkCount = this.distanceManager.getNaturalSpawnChunkCount();
          // Paper start - Optional per player mob spawns
          NaturalSpawner.SpawnState spawnState;
@@ -82,7 +79,7 @@ index fb5607311fac9a57477b97acffb2644898dbbbbf..25b12c6f1e90ce0247caa92f7a141913
 -                    int newBackoff = player.mobBackoffCounts[ii] - 1; // TODO make configurable bleed // TODO use nonlinear algorithm?
 -                    if (newBackoff < 0) {
 -                        newBackoff = 0;
-+            if (!org.bxteam.divinemc.DivineConfig.enableAsyncSpawning) {
++            if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
 +                // re-set mob counts
 +                for (ServerPlayer player : this.level.players) {
 +                    // Paper start - per player mob spawning backoff
@@ -113,7 +110,7 @@ index fb5607311fac9a57477b97acffb2644898dbbbbf..25b12c6f1e90ce0247caa92f7a141913
          boolean _boolean = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !this.level.players().isEmpty(); // CraftBukkit
          int _int = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
          List<MobCategory> filteredSpawningCategories;
-@@ -556,7 +593,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -556,7 +590,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              }
              // Paper end - PlayerNaturallySpawnCreaturesEvent
              boolean flag = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getLevelData().getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
@@ -122,7 +119,7 @@ index fb5607311fac9a57477b97acffb2644898dbbbbf..25b12c6f1e90ce0247caa92f7a141913
          } else {
              filteredSpawningCategories = List.of();
          }
-@@ -571,7 +608,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -571,7 +605,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              // Paper end - chunk tick iteration optimisation
  
              for (LevelChunk levelChunk : list) {
@@ -131,7 +128,7 @@ index fb5607311fac9a57477b97acffb2644898dbbbbf..25b12c6f1e90ce0247caa92f7a141913
              }
          } finally {
              list.clear();
-@@ -590,11 +627,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -590,11 +624,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              this.level.tickThunder(chunk);
          }
  
@@ -140,7 +137,7 @@ index fb5607311fac9a57477b97acffb2644898dbbbbf..25b12c6f1e90ce0247caa92f7a141913
 -                NaturalSpawner.spawnForChunk(this.level, chunk, spawnState, spawnCategories);
 -            }
 +        // DivineMC start - Async mob spawning
-+        if (!spawnCategories.isEmpty() && this.level.getWorldBorder().isWithinBounds(pos) && (!org.bxteam.divinemc.DivineConfig.enableAsyncSpawning || spawnCountsReady.get())) { // Paper - rewrite chunk system
++        if (!spawnCategories.isEmpty() && this.level.getWorldBorder().isWithinBounds(pos) && (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning || spawnCountsReady.get())) { // Paper - rewrite chunk system
 +            NaturalSpawner.spawnForChunk(this.level, chunk, spawnState, spawnCategories);
          }
 +        // DivineMC end - Async mob spawning

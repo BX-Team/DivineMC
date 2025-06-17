@@ -15,7 +15,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.filter.AbstractFilter;
-import org.bxteam.divinemc.DivineConfig;
+import org.bxteam.divinemc.config.DivineConfig;
 
 import java.util.Map;
 
@@ -32,7 +32,7 @@ public class PufferfishSentryAppender extends AbstractAppender {
 
     @Override
     public void append(LogEvent logEvent) {
-        if (logEvent.getLevel().isMoreSpecificThan(logLevel) && (logEvent.getThrown() != null || !DivineConfig.onlyLogThrown)) {
+        if (logEvent.getLevel().isMoreSpecificThan(logLevel) && (logEvent.getThrown() != null || !DivineConfig.MiscCategory.onlyLogThrown)) {
             try {
                 logException(logEvent);
             } catch (Exception e) {
