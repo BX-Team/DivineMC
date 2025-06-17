@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: dan28000 <pirkldan28@gmail.com>
 Date: Thu, 12 Jun 2025 10:08:25 +0200
-Subject: [PATCH] Implement-loading-plugins-from-external-folder
+Subject: [PATCH] Implement loading plugins from external folder
 
 
 diff --git a/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java b/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
@@ -30,19 +30,21 @@ index 70413fddd23ca1165cb5090cce4fddcb1bbca93f..ae70b84e6473fa2ed94416bf4bef8849
          @SuppressWarnings("unchecked")
          java.util.List<Path> files = ((java.util.List<File>) optionSet.valuesOf("add-plugin")).stream().map(File::toPath).toList();
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index d7f9da2e624d3e27aff36d8818adaf735d78a2d9..485f321c1be37e0ef4b9d8df02ef9dd173810232 100644
+index d7f9da2e624d3e27aff36d8818adaf735d78a2d9..3f3bbc71bc4870cf1271d6c28a77ff78a5e102f8 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -179,6 +179,12 @@ public class Main {
-                     .ofType(File.class)
-                     .defaultsTo(new File("divinemc.yml"))
+@@ -181,6 +181,14 @@ public class Main {
                      .describedAs("Yml file");
-+
+                 // DivineMC end - Configuration
+ 
++                // DivineMC start - Implement loading plugins from external folder
 +                acceptsAll(asList("add-plugin-dir", "add-extra-plugin-dir"), "Specify paths to directories containing extra plugin jars to be loaded in addition to those in the plugins folder. This argument can be specified multiple times, once for each extra plugin directory path.")
 +                    .withRequiredArg()
 +                    .ofType(File.class)
 +                    .defaultsTo(new File("extra"))
 +                    .describedAs("Directory");
-                 // DivineMC end - Configuration
- 
++                // DivineMC end - Implement loading plugins from external folder
++
                  acceptsAll(asList("server-name"), "Name of the server")
+                         .withRequiredArg()
+                         .ofType(String.class)
