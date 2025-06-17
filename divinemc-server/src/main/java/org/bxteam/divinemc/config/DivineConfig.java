@@ -260,6 +260,8 @@ public class DivineConfig {
                 LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (5)", regionizedChunkTickingExecutorThreadCount);
                 regionizedChunkTickingExecutorThreadCount = 5;
             }
+
+            LOGGER.warn("You have enabled Regionized Chunk Ticking. This feature is an experimental, and may not work as expected. Please report any issues you encounter to the BX Team Discord server");
         }
 
         private static void asyncPathfinding() {
