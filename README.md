@@ -16,6 +16,7 @@ DivineMC is a high-performance [Purpur](https://github.com/PurpurMC/Purpur) fork
 
 ## ⚙️ Features
 - **Based on [Purpur](https://github.com/PurpurMC/Purpur)** that adds a high customization level to the server.
+- **Regionized Chunk Ticking** feature that allows to tick chunks in parallel, similar to how Folia does it.
 - Implemented **Parallel world ticking** feature, that allows to server take advantage of multiple CPU cores to tick worlds.
 - Implemented **Secure Seed** mod that changes default 64-bit seed to a 1024-bit seed, making it almost impossible to crack the seed.
 - **Optimized chunk generation** that can generate chunks up to 70% faster than vanilla.
@@ -90,10 +91,10 @@ DivineMC includes patches from other forks, and without these forks, DivineMC wo
       • <a href="https://github.com/fxmorin/carpet-fixes">Carpet Fixes</a><br>
       • <a href="https://github.com/ProjectEdenGG/Parchment">Parchment</a><br>
       • <a href="https://github.com/LeavesMC/Leaves">Leaves</a><br>
-      • <a href="https://github.com/KaiijuMC/Kaiiju">Kaiiju</a><br>
       • <a href="https://github.com/SparklyPower/SparklyPaper">SparklyPaper</a><br>
       • <a href="https://github.com/plasmoapp/matter">Matter</a><br>
       • <a href="https://github.com/CraftCanvasMC/Canvas">Canvas</a><br>
+      • <a href="https://github.com/Winds-Studio/Leaf">Leaf</a><br>
     </p>
 </details>
 
