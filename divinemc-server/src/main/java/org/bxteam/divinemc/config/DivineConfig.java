@@ -197,6 +197,7 @@ public class DivineConfig {
         public static boolean logContainerCreationStacktraces = false;
         public static boolean disableHardThrow = false;
         public static boolean pwtCompatabilityMode = false;
+        public static boolean usePerWorldTpsBar = true;
 
         // Regionized chunk ticking
         public static boolean enableRegionizedChunkTicking = false;
@@ -243,6 +244,8 @@ public class DivineConfig {
                 "Disables annoying 'not on main thread' throws. But, THIS IS NOT RECOMMENDED because you SHOULD FIX THE ISSUES THEMSELVES instead of RISKING DATA CORRUPTION! If you lose something, take the blame on yourself.");
             pwtCompatabilityMode = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.compatability-mode"), pwtCompatabilityMode,
                 "Enables compatibility mode for plugins that are not compatible with Parallel World Ticking. This makes all async tasks run synchronously.");
+            usePerWorldTpsBar = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.use-per-world-tps-bar"), usePerWorldTpsBar,
+                "Enables per-world TPS bar, which shows the TPS of the world the player is currently in. TPS bar can be turned on/off with /tpsbar command.");
         }
 
         private static void regionizedChunkTicking() {
@@ -261,7 +264,7 @@ public class DivineConfig {
                 regionizedChunkTickingExecutorThreadCount = 5;
             }
 
-            LOGGER.warn("You have enabled Regionized Chunk Ticking. This feature is an experimental, and may not work as expected. Please report any issues you encounter to the BX Team Discord server");
+            if (enableRegionizedChunkTicking) LOGGER.warn("You have enabled Regionized Chunk Ticking. This feature is an experimental, and may not work as expected. Please report any issues you encounter to the BX Team Discord server");
         }
 
         private static void asyncPathfinding() {

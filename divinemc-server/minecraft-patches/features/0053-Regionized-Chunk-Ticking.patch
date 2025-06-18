@@ -21,7 +21,7 @@ index 343ec870d6ea3e2792f369c4867a3afb4bcfa385..db909744c922f2e5b486a8f15dac79d6
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index adc2104447d738fd9f76d2e69690f0c76a41b844..02f9dbee98815d4a0ceaf8700c25807b3644609a 100644
+index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..41c4e2fcfd3264180e9df938a9ddf0de60f23760 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
