@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sat, 8 Mar 2025 13:27:07 +0300
+Subject: [PATCH] ModernFix: compact_bit_storage
+
+This patch is based on following mixins:
+* "org/embeddedt/modernfix/common/mixin/perf/compact_bit_storage/PalettedContainerMixin.java"
+By: embeddedt <42941056+embeddedt@users.noreply.github.com>
+As part of: ModernFix (https://github.com/embeddedt/ModernFix)
+Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
+
+diff --git a/net/minecraft/world/level/chunk/PalettedContainer.java b/net/minecraft/world/level/chunk/PalettedContainer.java
+index ce41cd702a61d96552567b310cf59b22d9363eeb..4c02444001ce772cad0f9eb28ce147cd3cc08b8d 100644
+--- a/net/minecraft/world/level/chunk/PalettedContainer.java
++++ b/net/minecraft/world/level/chunk/PalettedContainer.java
+@@ -274,6 +274,28 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
+             data.palette.read(buffer);
+             buffer.readFixedSizeLongArray(data.storage.getRaw());
+             this.data = data;
++            // DivineMC start - ModernFix: compact_bit_storage
++            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.useCompactBitStorage && _byte > 1) {
++                long[] storageArray = this.data.storage.getRaw();
++                boolean empty = true;
++                for (long l : storageArray) {
++                    if (l != 0) {
++                        empty = false;
++                        break;
++                    }
++                }
++                if (empty && storageArray.length > 0) {
++                    T value;
++                    try {
++                        value = this.data.palette.valueFor(0);
++                    } catch (RuntimeException e) {
++                        return;
++                    }
++                    this.data = this.createOrReuseData(null, 0);
++                    this.data.palette.idFor(value);
++                }
++            }
++            // DivineMC end - ModernFix: compact_bit_storage
+             this.addPresetValues(); // Paper - Anti-Xray - Add preset values (inefficient, but this isn't used by the server)
+             this.updateData(this.data); // Paper - optimise palette reads
+         } finally {

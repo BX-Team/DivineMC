@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize entity stupid brain
 
 
 diff --git a/net/minecraft/world/entity/AgeableMob.java b/net/minecraft/world/entity/AgeableMob.java
-index 201c6d6e2f5799a7678b16f01c85508bc72e8af5..caa829739e002f28e5c9072fa573efa34da80d4c 100644
+index 04875840085541ebfc7014868beec49bb7ab9976..bd7e8fa315ca67fcf03d34added45b649d7aaebb 100644
 --- a/net/minecraft/world/entity/AgeableMob.java
 +++ b/net/minecraft/world/entity/AgeableMob.java
-@@ -124,6 +124,16 @@ public abstract class AgeableMob extends PathfinderMob {
+@@ -125,6 +125,16 @@ public abstract class AgeableMob extends PathfinderMob {
      public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
          if (DATA_BABY_ID.equals(key)) {
              this.refreshDimensions();
@@ -403,10 +403,10 @@ index 24d1928445b5571e040a2b12d5c82e77a880d9bd..dac0a23aebf2dea1972c07d5c82079da
      private boolean isVillagerBaby(LivingEntity livingEntity) {
          return livingEntity.getType() == EntityType.VILLAGER && livingEntity.isBaby();
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
-index 6029051a7bade2eb412d7ec4957a4361e7e575b1..01e1712854aaebc59db844045141b25561df8fc3 100644
+index 70b32e0d06f9b8b7999df5fdfd773c09394e23fb..36fcc913385afec8bb66c1664b902e4d6868f11d 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
-@@ -99,6 +99,13 @@ public class Goat extends Animal {
+@@ -100,6 +100,13 @@ public class Goat extends Animal {
          this.getNavigation().setCanFloat(true);
          this.setPathfindingMalus(PathType.POWDER_SNOW, -1.0F);
          this.setPathfindingMalus(PathType.DANGER_POWDER_SNOW, -1.0F);

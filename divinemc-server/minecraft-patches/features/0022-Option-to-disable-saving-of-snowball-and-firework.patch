@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 23 Feb 2025 01:04:29 +0300
+Subject: [PATCH] Option to disable saving of snowball and firework
+
+
+diff --git a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+index d8dc196ef92e97f831cf97cd1536a46f81f9d5d1..ed8c50f67f5a6deda74845e4bce9fd9aa42558c0 100644
+--- a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
++++ b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+@@ -350,4 +350,14 @@ public class FireworkRocketEntity extends Projectile implements ItemSupplier {
+         double d1 = entity.position().z - this.position().z;
+         return DoubleDoubleImmutablePair.of(d, d1);
+     }
++
++    // DivineMC start - Option to disable saving firework
++    @Override
++    public boolean shouldBeSaved() {
++        if (this.level().divineConfig.disableFireworkSaving) {
++            return false;
++        }
++        return super.shouldBeSaved();
++    }
++    // DivineMC end - Option to disable saving firework
+ }
+diff --git a/net/minecraft/world/entity/projectile/Snowball.java b/net/minecraft/world/entity/projectile/Snowball.java
+index 86e75722b37eaa02858fa4313d8bcc2a72c0f7f6..0f611169a4ed2a059b9231bedf94a903600b73f0 100644
+--- a/net/minecraft/world/entity/projectile/Snowball.java
++++ b/net/minecraft/world/entity/projectile/Snowball.java
+@@ -100,4 +100,14 @@ public class Snowball extends ThrowableItemProjectile {
+             this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+         }
+     }
++
++    // DivineMC start - Option to disable snowball saving
++    @Override
++    public boolean shouldBeSaved() {
++        if (this.level().divineConfig.disableSnowballSaving) {
++            return false;
++        }
++        return super.shouldBeSaved();
++    }
++    // DivineMC end - Option to disable snowball saving
+ }

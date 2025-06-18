@@ -175,10 +175,10 @@ index 345d4b80bd4383e0fb66d744d87bc8ef4100fd32..68a074a1eb11b158af773a2c44aa49d5
  
      private static boolean isRightDistanceToPlayerAndSpawnPoint(ServerLevel level, ChunkAccess chunk, BlockPos.MutableBlockPos pos, double distance) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 42458418e6217adba28f729f04904814542eaa17..d4f95214ffbdedfee9e22f4a76d207ba538c6557 100644
+index 5e9f3856c384dbb2bd462121b903cd2b326e4376..19f74518923783d8d5560b526a1f267dabd23156 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -91,6 +91,7 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -92,6 +92,7 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
      public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
      // CraftBukkit end
      public final Registry<Biome> biomeRegistry; // CraftBukkit
@@ -187,10 +187,10 @@ index 42458418e6217adba28f729f04904814542eaa17..d4f95214ffbdedfee9e22f4a76d207ba
      // Paper start - rewrite chunk system
      private volatile ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] blockNibbles;
 diff --git a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
-index 749096358fccbd5d1d13801092255c51096eb001..23b54c108c99b40f8ac8a695b18525a4f349c4a7 100644
+index e04d3479383cd480cf35ed7ac3c82e7f6fb69e28..87abba1241552fe967229f1b442cd0a767cbf739 100644
 --- a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
 +++ b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
-@@ -92,6 +92,7 @@ public record SerializableChunkData(
+@@ -94,6 +94,7 @@ public record SerializableChunkData(
      List<CompoundTag> blockEntities,
      CompoundTag structureData
      , @Nullable net.minecraft.nbt.Tag persistentDataContainer // CraftBukkit - persistentDataContainer
@@ -198,7 +198,7 @@ index 749096358fccbd5d1d13801092255c51096eb001..23b54c108c99b40f8ac8a695b18525a4
  ) {
      public static final Codec<PalettedContainer<BlockState>> BLOCK_STATE_CODEC = PalettedContainer.codecRW(
          Block.BLOCK_STATE_REGISTRY, BlockState.CODEC, PalettedContainer.Strategy.SECTION_STATES, Blocks.AIR.defaultBlockState(), null // Paper - Anti-Xray
-@@ -188,6 +189,19 @@ public record SerializableChunkData(
+@@ -190,6 +191,19 @@ public record SerializableChunkData(
                  lists[i] = list2;
              }
  
@@ -218,7 +218,7 @@ index 749096358fccbd5d1d13801092255c51096eb001..23b54c108c99b40f8ac8a695b18525a4
              List<CompoundTag> list3 = tag.getList("entities").stream().flatMap(ListTag::compoundStream).toList();
              List<CompoundTag> list4 = tag.getList("block_entities").stream().flatMap(ListTag::compoundStream).toList();
              CompoundTag compoundOrEmpty = tag.getCompoundOrEmpty("structures");
-@@ -268,6 +282,7 @@ public record SerializableChunkData(
+@@ -270,6 +284,7 @@ public record SerializableChunkData(
                  list4,
                  compoundOrEmpty
                  , tag.get("ChunkBukkitValues") // CraftBukkit - ChunkBukkitValues
@@ -226,7 +226,7 @@ index 749096358fccbd5d1d13801092255c51096eb001..23b54c108c99b40f8ac8a695b18525a4
              );
          }
      }
-@@ -424,6 +439,15 @@ public record SerializableChunkData(
+@@ -426,6 +441,15 @@ public record SerializableChunkData(
              chunkAccess.addPackedPostProcess(this.postProcessingSections[i], i);
          }
  
@@ -242,7 +242,7 @@ index 749096358fccbd5d1d13801092255c51096eb001..23b54c108c99b40f8ac8a695b18525a4
          if (chunkType == ChunkType.LEVELCHUNK) {
              return this.loadStarlightLightData(level, new ImposterProtoChunk((LevelChunk)chunkAccess, false)); // Paper - starlight
          } else {
-@@ -554,6 +578,7 @@ public record SerializableChunkData(
+@@ -556,6 +580,7 @@ public record SerializableChunkData(
                  persistentDataContainer = chunk.persistentDataContainer.toTagCompound();
              }
              // CraftBukkit end
@@ -250,7 +250,7 @@ index 749096358fccbd5d1d13801092255c51096eb001..23b54c108c99b40f8ac8a695b18525a4
              return new SerializableChunkData(
                  level.registryAccess().lookupOrThrow(Registries.BIOME),
                  pos,
-@@ -574,6 +599,7 @@ public record SerializableChunkData(
+@@ -576,6 +601,7 @@ public record SerializableChunkData(
                  list1,
                  compoundTag
                  , persistentDataContainer // CraftBukkit - persistentDataContainer
@@ -258,7 +258,7 @@ index 749096358fccbd5d1d13801092255c51096eb001..23b54c108c99b40f8ac8a695b18525a4
              );
          }
      }
-@@ -658,6 +684,21 @@ public record SerializableChunkData(
+@@ -660,6 +686,21 @@ public record SerializableChunkData(
              compoundTag.put("ChunkBukkitValues", this.persistentDataContainer);
          }
          // CraftBukkit end
@@ -280,7 +280,7 @@ index 749096358fccbd5d1d13801092255c51096eb001..23b54c108c99b40f8ac8a695b18525a4
          // Paper start - starlight
          if (this.lightCorrect && !this.chunkStatus.isBefore(net.minecraft.world.level.chunk.status.ChunkStatus.LIGHT)) {
              // clobber vanilla value to force vanilla to relight
-@@ -865,4 +906,49 @@ public record SerializableChunkData(
+@@ -875,4 +916,49 @@ public record SerializableChunkData(
          }
          // Paper end - starlight - convert from record
      }

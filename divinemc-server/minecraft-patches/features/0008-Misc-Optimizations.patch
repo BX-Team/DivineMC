@@ -25,7 +25,7 @@ index 5fb382be4d86328690c49f2a5a0c3ec698a38e21..f333d9028f315e7912dd335c8158abd5
  
      public static Transformation identity() {
 diff --git a/net/minecraft/core/MappedRegistry.java b/net/minecraft/core/MappedRegistry.java
-index 761e583a56b1c4a605b0cbb04b61c4df60b8b9bb..c07155589ef44cbbacafe03b36d2cd4cdcba3fd2 100644
+index 4715a60760c2c9079313db9016000bfb5c65e070..fce8f1caca81f47f704bc0237147e9999cc5732c 100644
 --- a/net/minecraft/core/MappedRegistry.java
 +++ b/net/minecraft/core/MappedRegistry.java
 @@ -33,10 +33,12 @@ public class MappedRegistry<T> implements WritableRegistry<T> {
@@ -46,10 +46,10 @@ index 761e583a56b1c4a605b0cbb04b61c4df60b8b9bb..c07155589ef44cbbacafe03b36d2cd4c
      private final Map<TagKey<T>, HolderSet.Named<T>> frozenTags = new IdentityHashMap<>();
      MappedRegistry.TagSet<T> allTags = MappedRegistry.TagSet.unbound();
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 00a82873d226f113278632a53c0faca420dd67d4..b28829f9f4c084a8dba35219dae9f4a9f293c416 100644
+index 1014ab2aeb5e496124c99c938538e88d75561cd5..343ec870d6ea3e2792f369c4867a3afb4bcfa385 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -610,13 +610,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -600,13 +600,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
              if (!(this.packetListener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl loginPacketListener)
                  || loginPacketListener.state != net.minecraft.server.network.ServerLoginPacketListenerImpl.State.VERIFYING
                  || Connection.joinAttemptsThisTick++ < MAX_PER_TICK) {
@@ -193,10 +193,10 @@ index bee90335677f7d8b01589ce5cfd81a40fd422886..a5e488d14fd2016ee188b114d0e68156
  
      public record Positioned(ChunkPos center, int viewDistance) implements ChunkTrackingView {
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 2f69b1e05ef258d6b28ee912167b8a5bb83fc703..6ed2d1aeab17941b67019d45734da46efc53ffdf 100644
+index dda62ab1d718d22e24ed5c88674d7a3d9dd4323e..d0d97e063acf8f11c32adf1fd2ec6bca59913c33 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1312,13 +1312,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1321,13 +1321,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      // Paper end - log detailed entity tick information
  
      public void tickNonPassenger(Entity entity) {
@@ -210,7 +210,7 @@ index 2f69b1e05ef258d6b28ee912167b8a5bb83fc703..6ed2d1aeab17941b67019d45734da46e
          entity.setOldPosAndRot();
          entity.tickCount++;
          entity.totalEntityAge++; // Paper - age-like counter for all entities
-@@ -1331,13 +1325,6 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1340,13 +1334,6 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          for (Entity entity1 : entity.getPassengers()) {
              this.tickPassenger(entity, entity1, isActive); // Paper - EAR 2
          }
@@ -328,7 +328,7 @@ index f28fbf81a417a678726d3f77b3999054676d522e..7ff32b1f93b31fafd13f4e0857d14d85
          Arrays.fill(this.byId, null);
          this.nextId = 0;
 diff --git a/net/minecraft/util/Mth.java b/net/minecraft/util/Mth.java
-index ab3a221c115992d0f4ea921aa92cf0976b815ff4..076a931341da486162f289a5f19d3d6736df7768 100644
+index e2602c6d817794616eb05a471077447804b835a1..d5a9fd918621708c5bcbf56e33513a6765122d1c 100644
 --- a/net/minecraft/util/Mth.java
 +++ b/net/minecraft/util/Mth.java
 @@ -46,11 +46,11 @@ public class Mth {
@@ -465,10 +465,10 @@ index a18240418a19a95147341a634527d774f3d5bb92..66f74ad2a194a6676574da2932cf4677
      public DebugSampleSubscriptionTracker(PlayerList playerList) {
          this.playerList = playerList;
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 63d619270b98d49c36fba918571d889ac48e8380..f825964c5e7a06d54af68c68d3bf2da0535b51d6 100644
+index d608ffc59dd6d9883db3f12b80cc11c7d8ded745..b4fc7ad2f353e8fbaf2179df2750c9a1c8ac9aba 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -149,7 +149,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -155,7 +155,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      // Paper start - Share random for entities to make them more random
@@ -477,7 +477,7 @@ index 63d619270b98d49c36fba918571d889ac48e8380..f825964c5e7a06d54af68c68d3bf2da0
      // Paper start - replace random
      private static final class RandomRandomSource extends ca.spottedleaf.moonrise.common.util.ThreadUnsafeRandom {
          public RandomRandomSource() {
-@@ -1086,28 +1086,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1108,28 +1108,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.onGround;
      }
  
@@ -506,7 +506,7 @@ index 63d619270b98d49c36fba918571d889ac48e8380..f825964c5e7a06d54af68c68d3bf2da0
          if (this.noPhysics) {
              this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
          } else {
-@@ -1232,13 +1213,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1244,13 +1225,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  this.setDeltaMovement(this.getDeltaMovement().multiply(blockSpeedFactor, 1.0, blockSpeedFactor));
              }
          }
@@ -520,31 +520,7 @@ index 63d619270b98d49c36fba918571d889ac48e8380..f825964c5e7a06d54af68c68d3bf2da0
      }
  
      private void applyMovementEmissionAndPlaySound(Entity.MovementEmission movementEmission, Vec3 movement, BlockPos pos, BlockState state) {
-@@ -4523,10 +4497,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
- 
-     // Paper start - optimise collisions
-     public boolean updateFluidHeightAndDoFluidPushing(final TagKey<Fluid> fluid, final double flowScale) {
--        if (this.touchingUnloadedChunk()) {
--            return false;
--        }
--
-         final AABB boundingBox = this.getBoundingBox().deflate(1.0E-3);
- 
-         final Level world = this.level;
-@@ -4562,7 +4532,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
- 
-         for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-             for (int currChunkX = minChunkX; currChunkX <= maxChunkX; ++currChunkX) {
--                final net.minecraft.world.level.chunk.LevelChunkSection[] sections = chunkSource.getChunk(currChunkX, currChunkZ, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false).getSections();
-+                // DivineMC start - Misc optimizations
-+                final net.minecraft.world.level.chunk.ChunkAccess chunk = chunkSource.getChunk(currChunkX, currChunkZ, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false);
-+                if (chunk == null) continue;
-+                final net.minecraft.world.level.chunk.LevelChunkSection[] sections = chunk.getSections();
-+                // DivineMC end - Misc optimizations
- 
-                 // bound y
-                 for (int currChunkY = minChunkY; currChunkY <= maxChunkY; ++currChunkY) {
-@@ -4719,9 +4693,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4922,9 +4896,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public void setDeltaMovement(Vec3 deltaMovement) {
@@ -554,7 +530,7 @@ index 63d619270b98d49c36fba918571d889ac48e8380..f825964c5e7a06d54af68c68d3bf2da0
      }
  
      public void addDeltaMovement(Vec3 addend) {
-@@ -4829,9 +4801,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5032,9 +5004,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          }
          // Paper end - Fix MC-4
          if (this.position.x != x || this.position.y != y || this.position.z != z) {
@@ -565,10 +541,10 @@ index 63d619270b98d49c36fba918571d889ac48e8380..f825964c5e7a06d54af68c68d3bf2da0
              int floor1 = Mth.floor(y);
              int floor2 = Mth.floor(z);
 diff --git a/net/minecraft/world/entity/ExperienceOrb.java b/net/minecraft/world/entity/ExperienceOrb.java
-index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..ff4648b3be103446ab401d36c14cc80b48840cab 100644
+index c8354d46ed909090f7c15f396863bf7d73afcefa..382ef2dad5e995bc01f6492218b8c8f7a930d6ac 100644
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
-@@ -166,6 +166,7 @@ public class ExperienceOrb extends Entity {
+@@ -195,6 +195,7 @@ public class ExperienceOrb extends Entity {
              if (this.age >= 6000) {
                  this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
              }
@@ -577,10 +553,10 @@ index 81aa1a91a2ecda3053b22c2eb9e59f0ea2faf7b5..ff4648b3be103446ab401d36c14cc80b
      }
  
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index a58133b53a19e90d4386f57891ee41a5c03228c2..a65c86b411c15bbdfd431dac00e510d2262e65e1 100644
+index e1f5a4814d051a43090bf6df2acbcd20fbbc1934..fd586acb15362a461c77256c6db9cc3a8002750d 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -698,7 +698,7 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
+@@ -715,7 +715,7 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
          if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {
              this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
@@ -589,7 +565,7 @@ index a58133b53a19e90d4386f57891ee41a5c03228c2..a65c86b411c15bbdfd431dac00e510d2
              if (nearestPlayer != null) {
                  // Paper start - Configurable despawn distances
                  final io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DespawnRangePair despawnRangePair = this.level().paperConfig().entities.spawning.despawnRanges.get(this.getType().getCategory());
-@@ -727,6 +727,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
+@@ -744,6 +744,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
          }
      }
  
@@ -610,10 +586,10 @@ index a58133b53a19e90d4386f57891ee41a5c03228c2..a65c86b411c15bbdfd431dac00e510d2
      protected final void serverAiStep() {
          this.noActionTime++;
 diff --git a/net/minecraft/world/level/GameRules.java b/net/minecraft/world/level/GameRules.java
-index 92fe6acbd530e985da23f50e615817309915122c..c9a2c4f7051639478bd9788911d3c6bead8f5152 100644
+index d510503a8ad272255aeba20a916642828023fd19..2d9bf302b779602d733187c6f86e52467f0dc540 100644
 --- a/net/minecraft/world/level/GameRules.java
 +++ b/net/minecraft/world/level/GameRules.java
-@@ -277,7 +277,7 @@ public class GameRules {
+@@ -288,7 +288,7 @@ public class GameRules {
      }
  
      private GameRules(Map<GameRules.Key<?>, GameRules.Value<?>> rules, FeatureFlagSet enabledFeatures) {
@@ -699,7 +675,7 @@ index c7b46efd4f08067e2c9c5c8b0e8b71a94a79823d..c7252c636fcea34a866dcc4862b60cef
          int i1 = config.size;
          double[] doubles = new double[i1 * 4];
 diff --git a/net/minecraft/world/level/storage/DimensionDataStorage.java b/net/minecraft/world/level/storage/DimensionDataStorage.java
-index 05361803a929cbcf651a37cf43009e57acb25f3e..5d21d2520dd33889988d8300060e6a41a8334562 100644
+index 1ff0b19a077333ad9da9cab7f5a891eeaa2109a9..b82be2c9576b7d41d104b0c44237a01e678811d5 100644
 --- a/net/minecraft/world/level/storage/DimensionDataStorage.java
 +++ b/net/minecraft/world/level/storage/DimensionDataStorage.java
 @@ -39,7 +39,7 @@ import org.slf4j.Logger;
@@ -712,7 +688,7 @@ index 05361803a929cbcf651a37cf43009e57acb25f3e..5d21d2520dd33889988d8300060e6a41
      private final HolderLookup.Provider registries;
      private final Path dataFolder;
 diff --git a/net/minecraft/world/phys/AABB.java b/net/minecraft/world/phys/AABB.java
-index 5767fbfd7f33c5276fb4335ce473b2e1baca411c..1866d857cabde481f23e861e0db7994bfa84ac40 100644
+index e53398996bbb278c6e06024d8ca945b364a44c10..f60c1ab58a2e9adfb01e9bd430b92cd1902e5dbe 100644
 --- a/net/minecraft/world/phys/AABB.java
 +++ b/net/minecraft/world/phys/AABB.java
 @@ -190,13 +190,15 @@ public class AABB {
