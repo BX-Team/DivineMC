@@ -5,19 +5,19 @@ Subject: [PATCH] Implement NoChatReports
 
 
 diff --git a/net/minecraft/network/FriendlyByteBuf.java b/net/minecraft/network/FriendlyByteBuf.java
-index 7da7d645f83f351e8c964da01734f3074a877ca1..8be2df6080bb1d677bbfd3e38706dfbc8d30a647 100644
+index bef92cfa7eb86fbc6bc1b7d862eaca575eeeadec..b8701c45a6fa635f3ea18616f7c841de9df32877 100644
 --- a/net/minecraft/network/FriendlyByteBuf.java
 +++ b/net/minecraft/network/FriendlyByteBuf.java
-@@ -105,7 +105,28 @@ public class FriendlyByteBuf extends ByteBuf {
+@@ -106,7 +106,28 @@ public class FriendlyByteBuf extends ByteBuf {
          return this;
      }
  
 +    @SuppressWarnings({"unchecked", "rawtypes"}) // DivineMC - Implement NoChatReports
-     public <T> T readJsonWithCodec(Codec<T> codec) {
+     public <T> T readLenientJsonWithCodec(Codec<T> codec) {
 +        // DivineMC start - Implement NoChatReports
 +        if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.noChatReportsEnabled) {
 +            if (codec == net.minecraft.network.protocol.status.ServerStatus.CODEC) {
-+                JsonElement jsonElement = GsonHelper.fromJson(GSON, this.readUtf(), JsonElement.class);
++                JsonElement jsonElement = LenientJsonParser.parse(this.readUtf());
 +                DataResult dataResult = codec.parse(JsonOps.INSTANCE, jsonElement);
 +                Object result;
 +                try {
@@ -34,10 +34,10 @@ index 7da7d645f83f351e8c964da01734f3074a877ca1..8be2df6080bb1d677bbfd3e38706dfbc
 +            }
 +        }
 +        // DivineMC end - Implement NoChatReports
-         JsonElement jsonElement = GsonHelper.fromJson(GSON, this.readUtf(), JsonElement.class);
+         JsonElement jsonElement = LenientJsonParser.parse(this.readUtf());
          DataResult<T> dataResult = codec.parse(JsonOps.INSTANCE, jsonElement);
-         return dataResult.getOrThrow(exception -> new DecoderException("Failed to decode json: " + exception));
-@@ -117,6 +138,19 @@ public class FriendlyByteBuf extends ByteBuf {
+         return dataResult.getOrThrow(string -> new DecoderException("Failed to decode JSON: " + string));
+@@ -118,6 +139,19 @@ public class FriendlyByteBuf extends ByteBuf {
      }
      public <T> void writeJsonWithCodec(Codec<T> codec, T value, int maxLength) {
          // Paper end - Adventure; add max length parameter
@@ -123,7 +123,7 @@ index 1df628ac0b414511aaed6e09d78f884c4170f730..1543f730843c1736c4db9a6ebe30be9c
      }
  }
 diff --git a/net/minecraft/network/protocol/status/ServerStatus.java b/net/minecraft/network/protocol/status/ServerStatus.java
-index 094d1821d298fc228270b2d6cf0445949434f3e2..8f7e3e5f1d3a87ba3528c9dd61e063ecfda4e1ec 100644
+index a491be4250de3199c3e1aa9e5482b568692bd2f5..c88826db76c28c536e6c36c5592d69c12de395d0 100644
 --- a/net/minecraft/network/protocol/status/ServerStatus.java
 +++ b/net/minecraft/network/protocol/status/ServerStatus.java
 @@ -15,13 +15,7 @@ import net.minecraft.network.chat.CommonComponents;
@@ -206,10 +206,10 @@ index 094d1821d298fc228270b2d6cf0445949434f3e2..8f7e3e5f1d3a87ba3528c9dd61e063ec
          private static final String PREFIX = "data:image/png;base64,";
          public static final Codec<ServerStatus.Favicon> CODEC = Codec.STRING.comapFlatMap(string -> {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index bfd69555f3f228c7450388a1d21c1c131f3bf990..b65c8e393249b0fc731e02262d58873cb38942b8 100644
+index 245ffc68aac80d99849290bfefe5cb613eef5d81..7f8348518cf34ec9323d504f8c0a7d0de02daab2 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -631,6 +631,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -638,6 +638,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
  
      @Override
      public boolean enforceSecureProfile() {
@@ -218,10 +218,10 @@ index bfd69555f3f228c7450388a1d21c1c131f3bf990..b65c8e393249b0fc731e02262d58873c
          // Paper start - Add setting for proxy online mode status
          return properties.enforceSecureProfile
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index b865c2fd503c3f0368d77d28c2f7a7c7fa7008bb..ebd10817691d29de51d8db8ecd97bd21c4a5d8b4 100644
+index 9b027ee44fc0bc2fff9468e5332bba56abdbbef3..6126b252ca6a7ddaff7d033868a0658fa33ee8fa 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -311,10 +311,64 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -319,10 +319,64 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
      }
  
      public void send(Packet<?> packet) {
@@ -257,7 +257,7 @@ index b865c2fd503c3f0368d77d28c2f7a7c7fa7008bb..ebd10817691d29de51d8db8ecd97bd21
          this.send(packet, null);
      }
  
-     public void send(Packet<?> packet, @Nullable PacketSendListener listener) {
+     public void send(Packet<?> packet, @Nullable ChannelFutureListener channelFutureListener) {
 +        // DivineMC start - Implement NoChatReports
 +        if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.noChatReportsEnabled) {
 +            Object self = this;
@@ -270,7 +270,7 @@ index b865c2fd503c3f0368d77d28c2f7a7c7fa7008bb..ebd10817691d29de51d8db8ecd97bd21
 +                }
 +
 +                if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.noChatReportsConvertToGameMessage) {
-+                    if (packet instanceof net.minecraft.network.protocol.game.ClientboundPlayerChatPacket chat && listener != null) {
++                    if (packet instanceof net.minecraft.network.protocol.game.ClientboundPlayerChatPacket chat && channelFutureListener != null) {
 +                        cancel = true;
 +                        listenerImpl.send(chat);
 +                    }
@@ -287,19 +287,19 @@ index b865c2fd503c3f0368d77d28c2f7a7c7fa7008bb..ebd10817691d29de51d8db8ecd97bd21
          if (packet == null || this.processedDisconnect) { // Spigot
              return;
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 7f74e0fe280543775710f7650c22314dc5439d7f..21ea5de6bf2d034d63dab1d7c563b63b3e713521 100644
+index bd6cff4916fdf379ee887259d18ee274ff2f8bc6..0fc818dc4eb54cdc2be3636bf9fec5923f6be934 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -275,7 +275,7 @@ public abstract class PlayerList {
-                 !_boolean,
-                 _boolean2,
-                 player.createCommonSpawnInfo(serverLevel),
--                this.server.enforceSecureProfile()
-+                org.bxteam.divinemc.config.DivineConfig.NetworkCategory.noChatReportsEnabled || this.server.enforceSecureProfile() // DivineMC - Implement NoChatReports
-             )
-         );
-         player.getBukkitEntity().sendSupportedChannels(); // CraftBukkit
-@@ -1338,6 +1338,7 @@ public abstract class PlayerList {
+@@ -277,7 +277,7 @@ public abstract class PlayerList {
+                     !_boolean,
+                     _boolean2,
+                     player.createCommonSpawnInfo(serverLevel),
+-                    this.server.enforceSecureProfile()
++                    org.bxteam.divinemc.config.DivineConfig.NetworkCategory.noChatReportsEnabled || this.server.enforceSecureProfile() // DivineMC - Implement NoChatReports
+                 )
+             );
+             player.getBukkitEntity().sendSupportedChannels(); // CraftBukkit
+@@ -1351,6 +1351,7 @@ public abstract class PlayerList {
      }
  
      public boolean verifyChatTrusted(PlayerChatMessage message) {
