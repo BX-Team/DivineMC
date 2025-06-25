@@ -5,7 +5,7 @@ Subject: [PATCH] Lag compensation
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index ba5cb47347da6a0bc69b8f6924baac52f60375b8..05541061f1ac4f13e3de55f4ab90df4e273aa4b0 100644
+index 0912b009598876d6c16f7adcd80762074ea66f5a..70b33e54d8384709b166ca57cd114632e357f24f 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -288,6 +288,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -16,7 +16,7 @@ index ba5cb47347da6a0bc69b8f6924baac52f60375b8..05541061f1ac4f13e3de55f4ab90df4e
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
          ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
-@@ -1533,6 +1534,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1534,6 +1535,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
  
          this.server.spark.tickStart(); // Paper - spark
@@ -220,7 +220,7 @@ index 2d9bf302b779602d733187c6f86e52467f0dc540..69196d7e43054955137569b22c4ca40a
      public static class BooleanValue extends GameRules.Value<GameRules.BooleanValue> {
          private boolean value;
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 8db95b74f88f8096de93115ae8d3fb2e6184ad3b..e044830439fe9821ab3f62695d318a6321b8a266 100644
+index 36e754dedc9e7b97dc5565864f5664d062ff612a..346d1825a9ed03c61f6915edc2b8d96dd0ead3e4 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -347,13 +347,21 @@ public abstract class BlockBehaviour implements FeatureElement {

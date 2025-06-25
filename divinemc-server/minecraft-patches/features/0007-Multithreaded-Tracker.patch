@@ -5,10 +5,10 @@ Subject: [PATCH] Multithreaded Tracker
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index f3bac0906d8a1c5dea7b0dee13c5cd6fdbbcae49..c2c52fa8cd05a1b3487976cced210352a9026980 100644
+index bdc1200ef5317fdaf58973bf580b0a672aee800f..dc2b3ccf7810731c0e2c90e5a476c1c8203a1fb7 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-@@ -340,7 +340,11 @@ public final class RegionizedPlayerChunkLoader {
+@@ -344,7 +344,11 @@ public final class RegionizedPlayerChunkLoader {
          private boolean canGenerateChunks = true;
  
          private final ArrayDeque<ChunkHolderManager.TicketOperation<?, ?>> delayedTicketOps = new ArrayDeque<>();

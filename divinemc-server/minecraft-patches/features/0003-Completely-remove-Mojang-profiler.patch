@@ -5,7 +5,7 @@ Subject: [PATCH] Completely remove Mojang profiler
 
 
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index 75d167649749d0aa48eca87bcf478a4476bb4a6b..2b4345d16e8e5e903afb723dc41f549613998f7c 100644
+index aa978032ab4c56d3b90bbe2ad2fff13c72f3ee4d..7226d6066050523c021c89a79af1edbcc184af9c 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
 @@ -58,7 +58,6 @@ import net.minecraft.server.commands.CloneCommands;
@@ -24,7 +24,7 @@ index 75d167649749d0aa48eca87bcf478a4476bb4a6b..2b4345d16e8e5e903afb723dc41f5496
  import net.minecraft.util.profiling.jfr.JvmProfiler;
  import net.minecraft.world.flag.FeatureFlagSet;
  import net.minecraft.world.flag.FeatureFlags;
-@@ -190,7 +188,6 @@ public class Commands {
+@@ -191,7 +189,6 @@ public class Commands {
          DamageCommand.register(this.dispatcher, context);
          DataCommands.register(this.dispatcher);
          DataPackCommand.register(this.dispatcher, context);
@@ -32,15 +32,15 @@ index 75d167649749d0aa48eca87bcf478a4476bb4a6b..2b4345d16e8e5e903afb723dc41f5496
          DefaultGameModeCommands.register(this.dispatcher);
          DialogCommand.register(this.dispatcher, context);
          DifficultyCommand.register(this.dispatcher);
-@@ -392,7 +389,6 @@ public class Commands {
-     public void performCommand(ParseResults<CommandSourceStack> parseResults, String command, String label, boolean throwCommandError) {
+@@ -357,7 +354,6 @@ public class Commands {
+         org.spigotmc.AsyncCatcher.catchOp("Cannot perform command async");
          // Paper end
          CommandSourceStack commandSourceStack = parseResults.getContext().getSource();
 -        Profiler.get().push(() -> "/" + command);
-         ContextChain contextChain = this.finishParsing(parseResults, command, commandSourceStack, label); // CraftBukkit // Paper - Add UnknownCommandEvent
+         ContextChain<CommandSourceStack> contextChain = finishParsing(parseResults, command, commandSourceStack);
  
          try {
-@@ -428,8 +424,6 @@ public class Commands {
+@@ -393,8 +389,6 @@ public class Commands {
                  commandSourceStack.sendFailure(Component.literal(Util.describeError(var12)));
                  LOGGER.error("'/{}' threw an exception", command, var12);
              }
@@ -49,7 +49,7 @@ index 75d167649749d0aa48eca87bcf478a4476bb4a6b..2b4345d16e8e5e903afb723dc41f5496
          }
      }
  
-@@ -486,7 +480,7 @@ public class Commands {
+@@ -451,7 +445,7 @@ public class Commands {
              int max = Math.max(1, server.getGameRules().getInt(GameRules.RULE_MAX_COMMAND_CHAIN_LENGTH));
              int _int = server.getGameRules().getInt(GameRules.RULE_MAX_COMMAND_FORK_COUNT);
  
@@ -213,7 +213,7 @@ index 18071dcc69cc28471dddb7de94e803ec1e5fc2e4..aa25f5ebaf7d1b22825b962b02dcae02
      }
  }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52f60375b8 100644
+index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd80762074ea66f5a 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -114,19 +114,8 @@ import net.minecraft.util.TimeUtil;
@@ -250,7 +250,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
      private ServerConnectionListener connection;
      public final ChunkProgressListenerFactory progressListenerFactory;
      @Nullable
-@@ -999,9 +981,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1000,9 +982,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          shutdownThread = Thread.currentThread(); // Paper - Improved watchdog support
          org.spigotmc.WatchdogThread.doStop(); // Paper - Improved watchdog support
          // CraftBukkit end
@@ -260,7 +260,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
  
          LOGGER.info("Stopping server");
          Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
-@@ -1273,50 +1252,38 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1274,50 +1253,38 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  // Spigot end
  
                  boolean flag = l == 0L;
@@ -336,7 +336,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
              }
-@@ -1488,7 +1455,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1489,7 +1456,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      @Override
      public void doRunTask(TickTask task) {
@@ -344,7 +344,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
          super.doRunTask(task);
      }
  
-@@ -1578,12 +1544,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1579,12 +1545,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          this.ticksUntilAutosave--;
          // Paper start - Incremental chunk and player saving
@@ -357,7 +357,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
          final boolean fullSave = autosavePeriod > 0 && this.tickCount % autosavePeriod == 0;
          try {
              this.isSaving = true;
-@@ -1598,10 +1562,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1599,10 +1563,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          } finally {
              this.isSaving = false;
          }
@@ -368,7 +368,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
          this.runAllTasks(); // Paper - move runAllTasks() into full server tick (previously for timings)
          this.server.spark.executeMainThreadTasks(); // Paper - spark
          // Paper start - Server Tick Events
-@@ -1610,7 +1572,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1611,7 +1573,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          new com.destroystokyo.paper.event.server.ServerTickEndEvent(this.tickCount, ((double)(endTime - lastTick) / 1000000D), remaining).callEvent();
          // Paper end - Server Tick Events
          this.server.spark.tickEnd(((double)(endTime - lastTick) / 1000000D)); // Paper - spark
@@ -376,7 +376,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
          long l = Util.getNanos() - nanos;
          int i1 = this.tickCount % 100;
          this.aggregatedTickTimesNanos = this.aggregatedTickTimesNanos - this.tickTimesNanos[i1];
-@@ -1623,16 +1584,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1624,16 +1585,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          this.tickTimes60s.add(this.tickCount, l);
          // Paper end - Add tick times API and /mspt command
          this.logTickMethodTime(nanos);
@@ -393,7 +393,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
          LOGGER.debug("Autosave finished");
      }
  
-@@ -1698,7 +1655,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1699,7 +1656,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      }
  
      protected void tickChildren(BooleanSupplier hasTimeLeft) {
@@ -401,7 +401,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
          this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
          this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
          // Paper start - Folia scheduler API
-@@ -1716,9 +1672,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1717,9 +1673,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          });
          // Paper end - Folia scheduler API
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
@@ -411,7 +411,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
  
          // CraftBukkit start
          // Run tasks that are waiting on processing
-@@ -1754,17 +1708,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1755,17 +1709,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              serverLevel.updateLagCompensationTick(); // Paper - lag compensation
              net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents = serverLevel.paperConfig().hopper.disableMoveEvent || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper - Perf: Optimize Hoppers
              serverLevel.hasRidableMoveEvent = org.purpurmc.purpur.event.entity.RidableMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Purpur - Ridables
@@ -429,7 +429,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
              try {
                  serverLevel.tick(hasTimeLeft);
              } catch (Throwable var7) {
-@@ -1773,34 +1722,24 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1774,34 +1723,24 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  throw new ReportedException(crashReport);
              }
  
@@ -464,7 +464,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
      }
  
      public void tickConnection() {
-@@ -1816,14 +1755,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1817,14 +1756,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      }
  
      public void forceTimeSynchronization() {
@@ -479,7 +479,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
      }
  
      public boolean isLevelEnabled(Level level) {
-@@ -2639,55 +2573,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2640,55 +2574,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      }
      // CraftBukkit end
  
@@ -535,7 +535,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
      public Path getWorldPath(LevelResource levelResource) {
          return this.storageSource.getLevelPath(levelResource);
      }
-@@ -2737,24 +2622,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2738,24 +2623,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          return this.isSaving;
      }
  
@@ -560,7 +560,7 @@ index e26a053c598c33fd32b305235284ef6600a59752..ba5cb47347da6a0bc69b8f6924baac52
      public int getMaxChainedNeighborUpdates() {
          return 1000000;
      }
-@@ -2864,55 +2731,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2865,55 +2732,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      public record ServerResourcePackInfo(UUID id, String url, String hash, boolean isRequired, @Nullable Component prompt) {
      }
  
@@ -1067,10 +1067,10 @@ index b10cb4a73df58a5fe64e88868733ba41616f59e4..9f9cbe6056f8a4eeca64c40872d7403b
 +    // DivineMC end - Completely remove Mojang profiler
  }
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index ccf3fe18a349cd6295da16624056ee8a830876ac..19a3ba355694e7c26c233b216807cb23c82548be 100644
+index de4d7908542128fe4e3b256482a624f0e6bea683..7ac82a49e3c64d1a41a2870c5cf9900812329a57 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -818,12 +818,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -815,12 +815,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          return this.settings.getProperties().serverResourcePackInfo;
      }
  
@@ -4006,7 +4006,7 @@ index 39a604c9a53930b53d959b1d2eb504aa964e9a58..0d0380e3955836ce125f777841477503
  
      @Override
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 125bef9e69b2d17d407d303b979076f0f2491507..d608ffc59dd6d9883db3f12b80cc11c7d8ded745 100644
+index 541781045c6b47bcd8826635c5fd78e90cf87275..5a7b0038b2ddfe84cdf4582152cff8a1a3449f09 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -80,8 +80,6 @@ import net.minecraft.tags.TagKey;
@@ -5015,7 +5015,7 @@ index fa06ecacc27f619853c8db76d909ab4ba75dc529..345d4b80bd4383e0fb66d744d87bc8ef
  
      // Paper start - Add mobcaps commands
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 289152af8095e25ae6ad56421c9216feb3091761..609b1d3ed313f342aec69cf8c6316cdbdf3a16bd 100644
+index 1d3b16d3f60a394fe69e10ef1bb6052bb937070a..d0c4d63320fb5f58c43b38ebc333e9a7be487a5d 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -13,8 +13,6 @@ import net.minecraft.Util;
@@ -5027,7 +5027,7 @@ index 289152af8095e25ae6ad56421c9216feb3091761..609b1d3ed313f342aec69cf8c6316cdb
  import net.minecraft.world.damagesource.DamageSource;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EntityType;
-@@ -671,10 +669,7 @@ public class ServerExplosion implements Explosion {
+@@ -669,10 +667,7 @@ public class ServerExplosion implements Explosion {
          List<BlockPos> list = this.calculateExplodedPositions();
          this.hurtEntities();
          if (this.interactsWithBlocks()) {

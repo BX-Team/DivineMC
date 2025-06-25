@@ -6,7 +6,7 @@ Subject: [PATCH] Skip EntityScheduler's executeTick checks if there isn't any
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 05541061f1ac4f13e3de55f4ab90df4e273aa4b0..f16a50b9b07e0f754f573710875859605318ba69 100644
+index 70b33e54d8384709b166ca57cd114632e357f24f..89f9c2c3661f1ef951d865bd8c81564ea558c1e2 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -289,6 +289,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -17,7 +17,7 @@ index 05541061f1ac4f13e3de55f4ab90df4e273aa4b0..f16a50b9b07e0f754f57371087585960
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
          ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
-@@ -1661,17 +1662,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1662,17 +1663,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
          // Paper start - Folia scheduler API
          ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) org.bukkit.Bukkit.getGlobalRegionScheduler()).tick();

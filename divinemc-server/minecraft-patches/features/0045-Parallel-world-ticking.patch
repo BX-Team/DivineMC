@@ -5,19 +5,19 @@ Subject: [PATCH] Parallel world ticking
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 60705955e231d47c60f5a0a5e869988aed8774fc..c0322d4f9eadb26b8d5c6a3b426218ebb6302608 100644
+index dce2b0ae83e70ccaf2ac97441f80b25876ee9058..d10c42cb10f419b59b0b9176eda97d54075d6041 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -1129,7 +1129,7 @@ public final class ChunkHolderManager {
+@@ -1155,7 +1155,7 @@ public final class ChunkHolderManager {
          if (changedFullStatus.isEmpty()) {
              return;
          }
 -        if (!TickThread.isTickThread()) {
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && !TickThread.isTickThreadFor(world)) { // DivineMC - Parallel world ticking
-             this.taskScheduler.scheduleChunkTask(() -> {
-                 final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = ChunkHolderManager.this.getData().pendingFullLoadUpdate; // DivineMC - Chunk System optimization
-                 for (int i = 0, len = changedFullStatus.size(); i < len; ++i) {
-@@ -1155,7 +1155,13 @@ public final class ChunkHolderManager {
+             // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
+             // which will invoke processTicketUpdates
+             this.getData().offThreadPendingFullLoadUpdate.addAll(changedFullStatus); // DivineMC - Chunk System optimization
+@@ -1187,7 +1187,13 @@ public final class ChunkHolderManager {
  
      // note: never call while inside the chunk system, this will absolutely break everything
      public void processUnloads() {
@@ -32,15 +32,15 @@ index 60705955e231d47c60f5a0a5e869988aed8774fc..c0322d4f9eadb26b8d5c6a3b426218eb
  
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot unload chunks recursively");
-@@ -1458,7 +1464,7 @@ public final class ChunkHolderManager {
- 
-         List<NewChunkHolder> changedFullStatus = null;
- 
+@@ -1474,7 +1480,7 @@ public final class ChunkHolderManager {
+         if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
+             throw new IllegalStateException("Cannot update ticket level while unloading chunks or updating entity manager");
+         }
 -        final boolean isTickThread = TickThread.isTickThread();
 +        final boolean isTickThread = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && TickThread.isTickThreadFor(world) || TickThread.isTickThread(); // DivineMC - Parallel world ticking
  
-         boolean ret = false;
-         final boolean canProcessFullUpdates = processFullUpdates & isTickThread;
+         if (!PlatformHooks.get().allowAsyncTicketUpdates() && isTickThread) {
+             TickThread.ensureTickThread("Cannot asynchronously process ticket updates");
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
 index ac27ff24f018d8798921c5152e679ceed1e88d8d..ec7d1353b19e55b00c558df8981323efb9b88bdf 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
@@ -59,7 +59,7 @@ index ac27ff24f018d8798921c5152e679ceed1e88d8d..ec7d1353b19e55b00c558df8981323ef
                      List<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(level.capturedBlockStates.values());
                      level.capturedBlockStates.clear();
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 9e83d0ec1a0976f365fa6cb3f1b7db167641b336..6f08d761ee52d65a57fd01cf7bffa461dc1b898b 100644
+index 1079eebf665d4752c4796edf8b851f13e6972dc8..3e013d116f78f8f3d0338fae7bd5b4b1b57be9dc 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -291,6 +291,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -120,7 +120,7 @@ index 9e83d0ec1a0976f365fa6cb3f1b7db167641b336..6f08d761ee52d65a57fd01cf7bffa461
      }
  
      @Override
-@@ -1658,6 +1671,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1659,6 +1672,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
  
@@ -139,7 +139,7 @@ index 9e83d0ec1a0976f365fa6cb3f1b7db167641b336..6f08d761ee52d65a57fd01cf7bffa461
      protected void tickChildren(BooleanSupplier hasTimeLeft) {
          this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
          this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
-@@ -1707,28 +1732,43 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1708,28 +1733,43 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
@@ -201,7 +201,7 @@ index 9e83d0ec1a0976f365fa6cb3f1b7db167641b336..6f08d761ee52d65a57fd01cf7bffa461
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
          this.tickConnection();
-@@ -1806,6 +1846,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1807,6 +1847,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
          Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
          newLevels.remove(level.dimension());
@@ -210,7 +210,7 @@ index 9e83d0ec1a0976f365fa6cb3f1b7db167641b336..6f08d761ee52d65a57fd01cf7bffa461
      }
      // CraftBukkit end
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 19a3ba355694e7c26c233b216807cb23c82548be..245ffc68aac80d99849290bfefe5cb613eef5d81 100644
+index 7ac82a49e3c64d1a41a2870c5cf9900812329a57..5f1712d3a42ca9e061b7cf96eeba006111e64bd9 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -224,6 +224,13 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -404,7 +404,7 @@ index 8bf5f7a98e4e8542d56c49a7e2c4926ec86f712d..e1ca822d41311e3be44c52badb907619
          serverPlayer.connection = player.connection;
          serverPlayer.restoreFrom(player, keepInventory);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index e96eeae793d127b76a2fe6853cba49ce192b91f9..3aa2069ff070d9edb596e3c08cd34c617edd955c 100644
+index ef7c2443fbdaedd08c2489609768374a3ecd8661..0484d3ace8e80f0a82fa2f0397026fd867768818 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -3432,14 +3432,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -669,7 +669,7 @@ index 2258736e6f9f52efe5bd353b8949a7a0b9a4fdb8..440fbe301782e81cec679a27a876dd3c
                  } else {
                      Entity entity = owner.teleport(
 diff --git a/net/minecraft/world/inventory/AbstractContainerMenu.java b/net/minecraft/world/inventory/AbstractContainerMenu.java
-index bfee8f3f47bc457543022fabbbee2130a6abe81a..55d0b8a88d202fb86c4da84e0d40b63df2461c2a 100644
+index 1f601781643945920c7522b9c6100d0a37ad535d..bd31350c5b9b727cfd9150a399d207839a51e4dd 100644
 --- a/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
 @@ -96,8 +96,14 @@ public abstract class AbstractContainerMenu {

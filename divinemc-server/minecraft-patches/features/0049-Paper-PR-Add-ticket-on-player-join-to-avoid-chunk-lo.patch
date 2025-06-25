@@ -15,19 +15,19 @@ The delay is currently set to 2 seconds, however, we may want to adjust this bef
 This patch fixes PaperMC/Paper#9581
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index 70cf5f90b278814b7b594dd79f592696c28a69d7..75a3b7ea3c212bce63041ebfc4c7be9f55127cc4 100644
+index e93a006cde4dd85a9976e0d6a64643755ba99fb7..62e89385fcdc3fa0202863f3199c98a2df4be2a6 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 @@ -48,6 +48,7 @@ public final class RegionizedPlayerChunkLoader {
  
      public static final TicketType PLAYER_TICKET         = ChunkSystemTicketType.create("chunk_system:player_ticket", Long::compareTo);
-     public static final TicketType PLAYER_TICKET_DELAYED = ChunkSystemTicketType.create("chunk_system:player_ticket_delayed", Long::compareTo, 5L * 20L);
+     public static final TicketType PLAYER_TICKET_DELAYED = ChunkSystemTicketType.create("chunk_system:player_ticket_delayed", Long::compareTo, 1L);
 +    public static final TicketType PLAYER_JOIN           = ChunkSystemTicketType.create("chunk_system:player_join", (a, b) -> 0, 5 * 20); // Paper - Add ticket on player join to avoid chunk load-unload-load cycle
  
      public static final int GENERATED_TICKET_LEVEL = ChunkHolderManager.FULL_LOADED_TICKET_LEVEL;
      public static final int LOADED_TICKET_LEVEL = ChunkTaskScheduler.getTicketLevel(ChunkStatus.EMPTY);
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index a534b3e6835b9e998ae25210812ddf55685473ea..ce68dd77963e2bcb6119c682a700f540109d4877 100644
+index e1ca822d41311e3be44c52badb907619ca681cf9..bd6cff4916fdf379ee887259d18ee274ff2f8bc6 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -316,6 +316,13 @@ public abstract class PlayerList {

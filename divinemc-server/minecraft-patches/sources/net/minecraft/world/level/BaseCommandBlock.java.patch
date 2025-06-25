@@ -9,7 +9,7 @@
      private static final Component DEFAULT_NAME = Component.literal("@");
      private static final int NO_LAST_EXECUTION = -1;
      private long lastExecution = -1L;
-@@ -150,7 +_,7 @@
+@@ -156,7 +_,7 @@
      public void sendSystemMessage(Component component) {
          if (this.trackOutput) {
              org.spigotmc.AsyncCatcher.catchOp("sendSystemMessage to a command block"); // Paper - Don't broadcast messages to command blocks

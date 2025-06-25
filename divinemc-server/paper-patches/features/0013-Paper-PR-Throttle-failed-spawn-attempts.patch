@@ -22,10 +22,10 @@ Example config in paper-world-defaults.yml:
 ```
 
 diff --git a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
-index 65f6839fe75340a4b58894ad50c6eda7b59128c0..f7610c709bd6f9e30ec7b1295d58dfbe98fc8661 100644
+index 8e65586182bd586c95b8c4873fab6d6ff5975243..ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7 100644
 --- a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
 +++ b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
-@@ -182,6 +182,17 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -183,6 +183,17 @@ public class WorldConfiguration extends ConfigurationPart {
              @MergeMap
              public Reference2IntMap<MobCategory> ticksPerSpawn = Util.make(new Reference2IntOpenHashMap<>(NaturalSpawner.SPAWNING_CATEGORIES.length), map -> Arrays.stream(NaturalSpawner.SPAWNING_CATEGORIES).forEach(mobCategory -> map.put(mobCategory, -1)));
  

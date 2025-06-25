@@ -5,7 +5,7 @@ Subject: [PATCH] Command block parse results caching
 
 
 diff --git a/net/minecraft/world/level/BaseCommandBlock.java b/net/minecraft/world/level/BaseCommandBlock.java
-index d823f95a823f599db2c80f888e4b1a411fa4d3aa..6438b98628bb8eaa1e57276de2bc6b8741731eab 100644
+index 625fffa596e1067d3f0e3402ea8c739f84298730..17a5cee6b06e6b3efff4c690a116f9001eabde00 100644
 --- a/net/minecraft/world/level/BaseCommandBlock.java
 +++ b/net/minecraft/world/level/BaseCommandBlock.java
 @@ -34,6 +34,10 @@ public abstract class BaseCommandBlock implements CommandSource {
@@ -19,11 +19,14 @@ index d823f95a823f599db2c80f888e4b1a411fa4d3aa..6438b98628bb8eaa1e57276de2bc6b87
      // CraftBukkit start
      @Override
      public abstract org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper);
-@@ -113,7 +117,35 @@ public abstract class BaseCommandBlock implements CommandSource {
+@@ -113,13 +117,41 @@ public abstract class BaseCommandBlock implements CommandSource {
                              this.successCount++;
                          }
                      });
--                    server.getCommands().dispatchServerCommand(commandSourceStack, this.command); // CraftBukkit
+-                    // Paper start - ServerCommandEvent
+-                    org.bukkit.event.server.ServerCommandEvent event = new org.bukkit.event.server.ServerCommandEvent(commandSourceStack.getBukkitSender(), net.minecraft.commands.Commands.trimOptionalPrefix(this.command));
+-                    if (!event.callEvent()) {
+-                        return true;
 +                    // DivineMC start - Command block parse results caching
 +                    if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.commandBlockParseResultsCaching) {
 +                        String commandCache = this.command;
@@ -50,13 +53,21 @@ index d823f95a823f599db2c80f888e4b1a411fa4d3aa..6438b98628bb8eaa1e57276de2bc6b87
 +                            }
 +                        }
 +                    } else {
-+                        server.getCommands().dispatchServerCommand(commandSourceStack, this.command); // CraftBukkit
-+                    }
++                        // Paper start - ServerCommandEvent
++                        org.bukkit.event.server.ServerCommandEvent event = new org.bukkit.event.server.ServerCommandEvent(commandSourceStack.getBukkitSender(), net.minecraft.commands.Commands.trimOptionalPrefix(this.command));
++                        if (!event.callEvent()) {
++                            return true;
++                        }
++                        server.getCommands().performPrefixedCommand(commandSourceStack, event.getCommand());
++                        // Paper end - ServerCommandEvent
+                     }
+-                    server.getCommands().performPrefixedCommand(commandSourceStack, event.getCommand());
+-                    // Paper end - ServerCommandEvent
 +                    // DivineMC end - Command block parse results caching
                  } catch (Throwable var6) {
                      CrashReport crashReport = CrashReport.forThrowable(var6, "Executing command block");
                      CrashReportCategory crashReportCategory = crashReport.addCategory("Command to be executed");
-@@ -133,6 +165,13 @@ public abstract class BaseCommandBlock implements CommandSource {
+@@ -139,6 +171,13 @@ public abstract class BaseCommandBlock implements CommandSource {
          }
      }
  

@@ -18,10 +18,10 @@ index 394443d00e661715439be1e56dddc129947699a4..480ad57a6b7b74e6b83e9c6ceb69ea1f
      public CrashReport(String title, Throwable exception) {
          io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(exception); // Paper
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index fb4301ccd4fb3643e19c477293946f536b0f7741..e26a053c598c33fd32b305235284ef6600a59752 100644
+index ac0ed2e7261a0d698fafd5b314108ff38a169073..8f32168ff0371a9168bbf9b08b2154200f8131a0 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1182,6 +1182,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1183,6 +1183,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      protected void runServer() {
          try {

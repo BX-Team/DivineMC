@@ -104,10 +104,10 @@ index b2bcfb3557a0326fd7ec1059f95d6da4568dfd80..6bb36686ae7ca9f4bf763baa89408614
      }
  
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a51108f2c 100644
+index dc2b3ccf7810731c0e2c90e5a476c1c8203a1fb7..5cb896334f9916b030ee523119946d3b40585fc3 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-@@ -187,13 +187,13 @@ public final class RegionizedPlayerChunkLoader {
+@@ -191,13 +191,13 @@ public final class RegionizedPlayerChunkLoader {
          }
  
          if (((ChunkSystemServerPlayer)player).moonrise$getChunkLoader() != null) {
@@ -123,7 +123,7 @@ index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a
      }
  
      public void updatePlayer(final ServerPlayer player) {
-@@ -304,7 +304,7 @@ public final class RegionizedPlayerChunkLoader {
+@@ -308,7 +308,7 @@ public final class RegionizedPlayerChunkLoader {
          long currTime = System.nanoTime();
          for (final ServerPlayer player : new java.util.ArrayList<>(this.world.players())) {
              final PlayerChunkLoaderData loader = ((ChunkSystemServerPlayer)player).moonrise$getChunkLoader();
@@ -132,7 +132,7 @@ index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a
                  // not our problem anymore
                  continue;
              }
-@@ -323,6 +323,7 @@ public final class RegionizedPlayerChunkLoader {
+@@ -327,6 +327,7 @@ public final class RegionizedPlayerChunkLoader {
  
          private final ServerPlayer player;
          private final ServerLevel world;
@@ -140,7 +140,7 @@ index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a
  
          private int lastChunkX = Integer.MIN_VALUE;
          private int lastChunkZ = Integer.MIN_VALUE;
-@@ -382,10 +383,19 @@ public final class RegionizedPlayerChunkLoader {
+@@ -386,10 +387,19 @@ public final class RegionizedPlayerChunkLoader {
              final int centerX = PlayerChunkLoaderData.this.lastChunkX;
              final int centerZ = PlayerChunkLoaderData.this.lastChunkZ;
  
@@ -164,7 +164,7 @@ index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a
          };
          private final LongHeapPriorityQueue sendQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
          private final LongHeapPriorityQueue tickingQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
-@@ -853,6 +863,7 @@ public final class RegionizedPlayerChunkLoader {
+@@ -857,6 +867,7 @@ public final class RegionizedPlayerChunkLoader {
          }
  
          void add() {
@@ -172,7 +172,7 @@ index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a
              TickThread.ensureTickThread(this.player, "Cannot add player asynchronously");
              if (this.removed) {
                  throw new IllegalStateException("Adding removed player chunk loader");
-@@ -892,6 +903,7 @@ public final class RegionizedPlayerChunkLoader {
+@@ -896,6 +907,7 @@ public final class RegionizedPlayerChunkLoader {
  
              // now we can update
              this.update();
@@ -180,7 +180,7 @@ index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a
          }
  
          private boolean isLoadedChunkGeneratable(final int chunkX, final int chunkZ) {
-@@ -1060,6 +1072,7 @@ public final class RegionizedPlayerChunkLoader {
+@@ -1064,6 +1076,7 @@ public final class RegionizedPlayerChunkLoader {
          }
  
          void remove() {
@@ -188,7 +188,7 @@ index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a
              TickThread.ensureTickThread(this.player, "Cannot add player asynchronously");
              if (this.removed) {
                  throw new IllegalStateException("Removing removed player chunk loader");
-@@ -1087,7 +1100,7 @@ public final class RegionizedPlayerChunkLoader {
+@@ -1091,7 +1104,7 @@ public final class RegionizedPlayerChunkLoader {
          }
  
          public LongOpenHashSet getSentChunksRaw() {
@@ -198,10 +198,10 @@ index c2c52fa8cd05a1b3487976cced210352a9026980..25f1ab0d7a2701a9fe9d6af7169b056a
      }
  }
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988aed8774fc 100644
+index 6ce4a98e4d3b633e3c87944c23b6b3f0ff58f159..dce2b0ae83e70ccaf2ac97441f80b25876ee9058 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -72,36 +72,49 @@ public final class ChunkHolderManager {
+@@ -73,37 +73,50 @@ public final class ChunkHolderManager {
      private static final long NO_TIMEOUT_MARKER = Long.MIN_VALUE;
      public final ReentrantAreaLock ticketLockArea;
  
@@ -220,6 +220,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
      private long currentTick;
  
 -    private final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = new ArrayDeque<>();
+-    private final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = new MultiThreadedQueue<>();
 -    private final ObjectRBTreeSet<NewChunkHolder> autoSaveQueue = new ObjectRBTreeSet<>((final NewChunkHolder c1, final NewChunkHolder c2) -> {
 -        if (c1 == c2) {
 -            return 0;
@@ -227,6 +228,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
 +    // DivineMC start - Chunk System optimization
 +    public static class LevelHolderData {
 +        private final java.util.concurrent.ConcurrentLinkedDeque<NewChunkHolder> pendingFullLoadUpdate = new java.util.concurrent.ConcurrentLinkedDeque<>();
++        private final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = new MultiThreadedQueue<>();
 +        private final ObjectRBTreeSet<NewChunkHolder> autoSaveQueue = new ObjectRBTreeSet<>((final NewChunkHolder c1, final NewChunkHolder c2) -> {
 +            if (c1 == c2) {
 +                return 0;
@@ -270,7 +272,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
  
      private final ConcurrentLong2ReferenceChainedHashTable<Long2IntOpenHashMap> ticketCounters = new ConcurrentLong2ReferenceChainedHashTable<>();
  
-@@ -224,26 +237,29 @@ public final class ChunkHolderManager {
+@@ -226,26 +239,29 @@ public final class ChunkHolderManager {
          this.taskScheduler.setShutdown(true);
      }
  
@@ -307,7 +309,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
  
              holder.lastAutoSave = currentTick;
              if (holder.save(false) != null) {
-@@ -257,10 +273,11 @@ public final class ChunkHolderManager {
+@@ -259,10 +275,11 @@ public final class ChunkHolderManager {
  
          for (final NewChunkHolder holder : reschedule) {
              if (holder.getChunkStatus().isOrAfter(FullChunkStatus.FULL)) {
@@ -320,7 +322,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
  
      public void saveAllChunks(final boolean flush, final boolean shutdown, final boolean logProgress) {
          final List<NewChunkHolder> holders = this.getChunkHolders();
-@@ -319,13 +336,9 @@ public final class ChunkHolderManager {
+@@ -321,13 +338,9 @@ public final class ChunkHolderManager {
              }
              if (logProgress) {
                  final long currTime = System.nanoTime();
@@ -336,7 +338,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
                  }
              }
          }
-@@ -459,8 +472,8 @@ public final class ChunkHolderManager {
+@@ -461,8 +474,8 @@ public final class ChunkHolderManager {
          final Long2ObjectOpenHashMap<SortedArraySet<Ticket>> ret = new Long2ObjectOpenHashMap<>();
          final Long2ObjectOpenHashMap<LongArrayList> sections = new Long2ObjectOpenHashMap<>();
          final int sectionShift = this.taskScheduler.getChunkSystemLockShift();
@@ -347,7 +349,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
              sections.computeIfAbsent(
                  CoordinateUtils.getChunkKey(
                      CoordinateUtils.getChunkX(coord) >> sectionShift,
-@@ -557,7 +570,7 @@ public final class ChunkHolderManager {
+@@ -559,7 +572,7 @@ public final class ChunkHolderManager {
              chunkZ >> sectionShift
          );
  
@@ -356,7 +358,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
              return new Long2IntOpenHashMap();
          }).addTo(chunkKey, 1);
      }
-@@ -601,8 +614,8 @@ public final class ChunkHolderManager {
+@@ -603,8 +616,8 @@ public final class ChunkHolderManager {
  
          final ReentrantAreaLock.Node ticketLock = lock ? this.ticketLockArea.lock(chunkX, chunkZ) : null;
          try {
@@ -367,7 +369,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
              });
  
              final int levelBefore = getTicketLevelAt(ticketsAtChunk);
-@@ -782,8 +795,8 @@ public final class ChunkHolderManager {
+@@ -784,8 +797,8 @@ public final class ChunkHolderManager {
  
          final Long2ObjectOpenHashMap<LongArrayList> sections = new Long2ObjectOpenHashMap<>();
          final int sectionShift = this.taskScheduler.getChunkSystemLockShift();
@@ -378,9 +380,9 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
              sections.computeIfAbsent(
                      CoordinateUtils.getChunkKey(
                              CoordinateUtils.getChunkX(coord) >> sectionShift,
-@@ -831,8 +844,8 @@ public final class ChunkHolderManager {
-             return removeDelay <= 0L;
-         };
+@@ -836,8 +849,8 @@ public final class ChunkHolderManager {
+         final List<ChunkProgressionTask> scheduledTasks = new ArrayList<>();
+         final List<NewChunkHolder> changedFullStatus = new ArrayList<>();
  
 -        for (final PrimitiveIterator.OfLong iterator = this.sectionToChunkToExpireCount.keyIterator(); iterator.hasNext();) {
 -            final long sectionKey = iterator.nextLong();
@@ -389,18 +391,23 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
  
              if (!this.sectionToChunkToExpireCount.containsKey(sectionKey)) {
                  // removed concurrently
-@@ -1118,7 +1131,7 @@ public final class ChunkHolderManager {
-         }
+@@ -1145,18 +1158,29 @@ public final class ChunkHolderManager {
          if (!TickThread.isTickThread()) {
-             this.taskScheduler.scheduleChunkTask(() -> {
--                final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = ChunkHolderManager.this.pendingFullLoadUpdate;
-+                final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = ChunkHolderManager.this.getData().pendingFullLoadUpdate; // DivineMC - Chunk System optimization
-                 for (int i = 0, len = changedFullStatus.size(); i < len; ++i) {
-                     pendingFullLoadUpdate.add(changedFullStatus.get(i));
-                 }
-@@ -1126,16 +1139,16 @@ public final class ChunkHolderManager {
-                 ChunkHolderManager.this.processPendingFullUpdate();
-             }, Priority.HIGHEST);
+             // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
+             // which will invoke processTicketUpdates
+-            this.offThreadPendingFullLoadUpdate.addAll(changedFullStatus);
++            this.getData().offThreadPendingFullLoadUpdate.addAll(changedFullStatus); // DivineMC - Chunk System optimization
++
++            // DivineMC start - Chunk System optimization
++            this.taskScheduler.scheduleChunkTask(() -> {
++                final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = ChunkHolderManager.this.getData().pendingFullLoadUpdate;
++                for (int i = 0, len = changedFullStatus.size(); i < len; ++i) {
++                    pendingFullLoadUpdate.add(changedFullStatus.get(i));
++                }
++
++                ChunkHolderManager.this.processPendingFullUpdate();
++            }, Priority.HIGHEST);
++            // DivineMC end - Chunk System optimization
          } else {
 -            final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate;
 +            final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = this.getData().pendingFullLoadUpdate; // DivineMC - Chunk System optimization
@@ -418,7 +425,7 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
          PlatformHooks.get().onChunkHolderDelete(this.world, holder.vanillaChunkHolder);
          this.chunkHolders.remove(CoordinateUtils.getChunkKey(holder.chunkX, holder.chunkZ));
      }
-@@ -1293,6 +1306,27 @@ public final class ChunkHolderManager {
+@@ -1314,6 +1338,27 @@ public final class ChunkHolderManager {
          }
      }
  
@@ -446,16 +453,27 @@ index f473999938840562b1007a789600342e5796a123..60705955e231d47c60f5a0a5e869988a
      public enum TicketOperationType {
          ADD, REMOVE, ADD_IF_REMOVED, ADD_AND_REMOVE
      }
-@@ -1466,7 +1500,7 @@ public final class ChunkHolderManager {
+@@ -1473,8 +1518,8 @@ public final class ChunkHolderManager {
  
      // only call on tick thread
+     private void processOffThreadFullUpdates() {
+-        final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate;
+-        final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = this.offThreadPendingFullLoadUpdate;
++        final java.util.concurrent.ConcurrentLinkedDeque<NewChunkHolder> pendingFullLoadUpdate = this.getData().pendingFullLoadUpdate; // DivineMC - Chunk System optimization
++        final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = this.getData().offThreadPendingFullLoadUpdate; // DivineMC - Chunk System optimization
+ 
+         NewChunkHolder toUpdate;
+         while ((toUpdate = offThreadPendingFullLoadUpdate.poll()) != null) {
+@@ -1486,7 +1531,7 @@ public final class ChunkHolderManager {
      private boolean processPendingFullUpdate() {
+         this.processOffThreadFullUpdates();
+ 
 -        final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate;
 +        final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = this.getData().pendingFullLoadUpdate; // DivineMC - Chunk System optimization
  
          boolean ret = false;
  
-@@ -1502,8 +1536,7 @@ public final class ChunkHolderManager {
+@@ -1522,8 +1567,7 @@ public final class ChunkHolderManager {
          final JsonArray allTicketsJson = new JsonArray();
          ret.add("tickets", allTicketsJson);
  
@@ -888,14 +906,13 @@ index 51f4dd4f583dfbd16cb00f1cb4418d1044cecb1c..2f83deafbb5b50e5ce191b5351ec5ed9
              }
  
 diff --git a/io/papermc/paper/FeatureHooks.java b/io/papermc/paper/FeatureHooks.java
-index a42a773503ca0e0dc36dd44440b3eda670a6811b..f51db348545db7073558efda7f95a9738313198b 100644
+index b2b67a3b1b4620dc97a32df953d4ad47bbe5e481..aa68cb8d489f976a5a2ea9b32de690a89589fc81 100644
 --- a/io/papermc/paper/FeatureHooks.java
 +++ b/io/papermc/paper/FeatureHooks.java
-@@ -32,11 +32,6 @@ import org.bukkit.Chunk;
- import org.bukkit.World;
+@@ -37,10 +37,6 @@ public final class FeatureHooks {
+         ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.setUnloadDelay(ticks); // Paper - rewrite chunk system
+     }
  
- public final class FeatureHooks {
--
 -    public static void initChunkTaskScheduler(final boolean useParallelGen) {
 -        ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.init(useParallelGen); // Paper - Chunk system
 -    }

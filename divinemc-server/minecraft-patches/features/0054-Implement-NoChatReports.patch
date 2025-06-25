@@ -206,10 +206,10 @@ index a491be4250de3199c3e1aa9e5482b568692bd2f5..c88826db76c28c536e6c36c5592d69c1
          private static final String PREFIX = "data:image/png;base64,";
          public static final Codec<ServerStatus.Favicon> CODEC = Codec.STRING.comapFlatMap(string -> {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 245ffc68aac80d99849290bfefe5cb613eef5d81..7f8348518cf34ec9323d504f8c0a7d0de02daab2 100644
+index 5f1712d3a42ca9e061b7cf96eeba006111e64bd9..13d85eb366a070bfd6723088412f51af07892362 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -638,6 +638,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -636,6 +636,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
  
      @Override
      public boolean enforceSecureProfile() {

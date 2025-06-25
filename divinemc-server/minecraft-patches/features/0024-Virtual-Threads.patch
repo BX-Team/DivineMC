@@ -23,10 +23,10 @@ index 0a69469c79aaa2466cda04f6acefed18e421d555..66f7f2aa071c2811400b4fed12ccf51c
          private final AtomicInteger count = new AtomicInteger();
  
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index 2b4345d16e8e5e903afb723dc41f549613998f7c..6e75bbc18762914c85866a0f46c6927aaf58afa1 100644
+index 7226d6066050523c021c89a79af1edbcc184af9c..7fa9214b865ee22f539467efb4130cc330ee9d7b 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
-@@ -508,7 +508,7 @@ public class Commands {
+@@ -473,7 +473,7 @@ public class Commands {
      }
  
      // Fixed pool, but with discard policy
@@ -36,10 +36,10 @@ index 2b4345d16e8e5e903afb723dc41f549613998f7c..6e75bbc18762914c85866a0f46c6927a
          new java.util.concurrent.LinkedBlockingQueue<>(),
          new com.google.common.util.concurrent.ThreadFactoryBuilder()
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index f16a50b9b07e0f754f573710875859605318ba69..f484d4b72e1919762dec1a219f0e51e1eacea37f 100644
+index 89f9c2c3661f1ef951d865bd8c81564ea558c1e2..45af325d0f457068f79e1b53414db1bf4c8d094b 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -2641,8 +2641,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2642,8 +2642,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
  

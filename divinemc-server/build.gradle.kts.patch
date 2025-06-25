@@ -1,6 +1,6 @@
 --- a/purpur-server/build.gradle.kts
 +++ b/purpur-server/build.gradle.kts
-@@ -14,6 +_,7 @@
+@@ -16,6 +_,7 @@
  }
  
  val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
@@ -8,7 +8,7 @@
  
  dependencies {
      mache("io.papermc:mache:1.21.6+build.1")
-@@ -27,6 +_,7 @@
+@@ -29,6 +_,7 @@
  
      // Purpur start - Rebrand
      val purpur = forks.register("purpur") {
@@ -16,7 +16,7 @@
          upstream.patchDir("paperServer") {
              upstreamPath = "paper-server"
              excludes = setOf("src/minecraft", "patches", "build.gradle.kts")
-@@ -34,9 +_,27 @@
+@@ -36,9 +_,27 @@
              outputDir = rootDirectory.dir("paper-server")
          }
      }
@@ -43,9 +43,9 @@
 +    // DivineMC end - Rebrand
 +
      spigot {
-         enabled = false
-         buildDataRef = "702e1a0a5072b2c4082371d5228cb30525687efc"
-@@ -60,6 +_,7 @@
+         enabled = true
+         buildDataRef = "281ac0de7a76d808753ede97d11b034bc801b63d"
+@@ -62,6 +_,7 @@
      libraryRepositories.addAll(
          "https://repo.maven.apache.org/maven2/",
          paperMavenPublicUrl,
@@ -53,7 +53,7 @@
      )
  }
  
-@@ -123,10 +_,18 @@
+@@ -125,10 +_,18 @@
      main {
          java { srcDir("../paper-server/src/main/java") }
          resources { srcDir("../paper-server/src/main/resources") }
@@ -72,7 +72,7 @@
      }
  }
  val log4jPlugins = sourceSets.create("log4jPlugins") {
-@@ -154,10 +_,23 @@
+@@ -156,10 +_,23 @@
  }
  
  dependencies {
@@ -99,7 +99,7 @@
      implementation("net.minecrell:terminalconsoleappender:1.3.0")
      implementation("net.kyori:adventure-text-serializer-ansi:4.21.0") // Keep in sync with adventureVersion from Paper-API build file
      runtimeConfiguration(sourceSets.main.map { it.runtimeClasspath })
-@@ -168,16 +_,16 @@
+@@ -170,16 +_,16 @@
        all its classes to check if they are plugins.
        Scanning takes about 1-2 seconds so adding this speeds up the server start.
       */
@@ -120,7 +120,7 @@
      implementation("org.ow2.asm:asm-commons:9.8")
      implementation("org.spongepowered:configurate-yaml:4.2.0-20250225.064233-199")
      implementation("org.spongepowered:configurate-core:4.2.0-20250225.064233-204") // Pinned dependency of above pinned yaml snapshot.
-@@ -189,24 +_,31 @@
+@@ -191,24 +_,31 @@
      // Deps that were previously in the API but have now been moved here for backwards compat, eventually to be removed
      runtimeOnly("commons-lang:commons-lang:2.6")
      runtimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
@@ -160,7 +160,7 @@
  
      implementation("net.neoforged:srgutils:1.0.9") // Mappings handling
      implementation("net.neoforged:AutoRenamingTool:2.0.3") // Remap plugins
-@@ -222,30 +_,42 @@
+@@ -224,30 +_,42 @@
      implementation("me.lucko:spark-paper:1.10.133-20250413.112336-1")
  }
  
