@@ -4,7 +4,7 @@
 # DivineMC
 
 [![Github Releases](https://img.shields.io/badge/Download-Releases-blue?&style=for-the-badge)](https://github.com/BX-Team/DivineMC/releases)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/BX-Team/DivineMC/build-1215.yml?logo=GoogleAnalytics&logoColor=ffffff&style=for-the-badge)](https://github.com/BX-Team/DivineMC/actions)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/BX-Team/DivineMC/build-1216.yml?logo=GoogleAnalytics&logoColor=ffffff&style=for-the-badge)](https://github.com/BX-Team/DivineMC/actions)
 [![Discord](https://img.shields.io/discord/931595732752953375?color=5865F2&label=discord&style=for-the-badge)](https://discord.gg/qNyybSSPm5)
 
 DivineMC is a high-performance [Purpur](https://github.com/PurpurMC/Purpur) fork focused on maximizing server performance while maintaining plugin compatibility.
