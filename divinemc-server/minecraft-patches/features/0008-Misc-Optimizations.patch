@@ -192,6 +192,23 @@ index bee90335677f7d8b01589ce5cfd81a40fd422886..a5e488d14fd2016ee188b114d0e68156
      }
  
      public record Positioned(ChunkPos center, int viewDistance) implements ChunkTrackingView {
+diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
+index 75c8ce32e68f92e20201e9c243f46f2be716eac8..879d6eb8e72b63bc95d8028cbc2f6e93e516ab1d 100644
+--- a/net/minecraft/server/level/ServerChunkCache.java
++++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -567,8 +567,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+         try {
+             this.chunkMap.collectSpawningChunks(list);
+             // Paper start - chunk tick iteration optimisation
+-            this.shuffleRandom.setSeed(this.level.random.nextLong());
+-            if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
++            if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
++                this.shuffleRandom.setSeed(this.level.random.nextLong()); // DivineMC - Misc Optimizations
++                Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
++            }
+             // Paper end - chunk tick iteration optimisation
+ 
+             for (LevelChunk levelChunk : list) {
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
 index dda62ab1d718d22e24ed5c88674d7a3d9dd4323e..d0d97e063acf8f11c32adf1fd2ec6bca59913c33 100644
 --- a/net/minecraft/server/level/ServerLevel.java

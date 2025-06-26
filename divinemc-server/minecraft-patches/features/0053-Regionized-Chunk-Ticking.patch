@@ -21,7 +21,7 @@ index 343ec870d6ea3e2792f369c4867a3afb4bcfa385..db909744c922f2e5b486a8f15dac79d6
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..41c4e2fcfd3264180e9df938a9ddf0de60f23760 100644
+index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7197b73b9 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -234,11 +234,7 @@ index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..41c4e2fcfd3264180e9df938a9ddf0de
 +                                return regionChunksIDs;
 +                            }, REGION_EXECUTOR));
 +                        }
- 
--            // call mid-tick tasks for chunk system
--            if ((i & 7) == 0) {
--                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
--                continue;
++
 +                        CompletableFuture.runAsync(() -> {
 +                            try {
 +                                CompletableFuture.allOf(ticked.toArray(new CompletableFuture[0])).join();
@@ -272,7 +268,11 @@ index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..41c4e2fcfd3264180e9df938a9ddf0de
 +                        latch.await();
 +                        return true;
 +                    }
-+
+ 
+-            // call mid-tick tasks for chunk system
+-            if ((i & 7) == 0) {
+-                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
+-                continue;
 +                    @Override
 +                    public boolean isReleasable() {
 +                        return latch.getCount() == 0;
@@ -348,7 +348,7 @@ index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..41c4e2fcfd3264180e9df938a9ddf0de
      }
  
      private void tickChunks(long timeInhabited) {
-@@ -595,23 +818,25 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -595,25 +818,28 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              filteredSpawningCategories = List.of();
          }
  
@@ -357,22 +357,25 @@ index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..41c4e2fcfd3264180e9df938a9ddf0de
 -        try {
 -            this.chunkMap.collectSpawningChunks(list);
 -            // Paper start - chunk tick iteration optimisation
--            this.shuffleRandom.setSeed(this.level.random.nextLong());
--            if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
+-            if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
+-                this.shuffleRandom.setSeed(this.level.random.nextLong()); // DivineMC - Misc Optimizations
+-                Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
+-            }
 -            // Paper end - chunk tick iteration optimisation
--
--            for (LevelChunk levelChunk : list) {
--                this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Async mob spawning
++        // DivineMC start - Regionized Chunk Ticking
 +        final java.util.concurrent.CompletableFuture<Void> spawns = java.util.concurrent.CompletableFuture.runAsync(() -> {
-+            java.util.List<LevelChunk> list = this.spawningChunks;
++            List<LevelChunk> list = this.spawningChunks;
 +            try {
 +                this.chunkMap.collectSpawningChunks(list);
 +                // Paper start - chunk tick iteration optimisation
-+                this.shuffleRandom.setSeed(this.level.random.nextLong());
-+                if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns)
-+                    net.minecraft.Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
++                if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
++                    this.shuffleRandom.setSeed(this.level.random.nextLong()); // DivineMC - Misc Optimizations
++                    Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
++                }
 +                // Paper end - chunk tick iteration optimisation
-+
+ 
+-            for (LevelChunk levelChunk : list) {
+-                this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Async mob spawning
 +                for (LevelChunk levelChunk : list) {
 +                    this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Async mob spawning
 +                }
@@ -383,9 +386,10 @@ index a2dbb52fab3f82dd3ddcac9b7d1e0ed44ebf1574..41c4e2fcfd3264180e9df938a9ddf0de
 -            list.clear();
 -        }
 +        }, REGION_EXECUTOR);
++        // DivineMC end - Regionized Chunk Ticking
  
 -        this.iterateTickingChunksFaster(); // Paper - chunk tick iteration optimisations
-+        this.iterateTickingChunksFaster(spawns); // Paper - chunk tick iteration optimisations
++        this.iterateTickingChunksFaster(spawns); // Paper - chunk tick iteration optimisations // DivineMC - Regionized Chunk Ticking
          if (_boolean) {
              this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
          }
@@ -448,7 +452,7 @@ index 690b6d9f89f70afd8f37d907863b87dd1f4591af..7ae5ba48632528dfe5bbdedf252b5995
              try {
                  this.isUpdatingNavigations = true;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index dc82e12783989c307be2ac709a21321dac25f217..47a0b2d6713d2d73b2dc359c69ec06cb59d45adb 100644
+index dc82e12783989c307be2ac709a21321dac25f217..f6b548dbb8b1bd82b5ddc73e2613cdcde059ce74 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -106,7 +106,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -469,21 +473,24 @@ index dc82e12783989c307be2ac709a21321dac25f217..47a0b2d6713d2d73b2dc359c69ec06cb
      public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
      @Nullable
      public List<net.minecraft.world.entity.item.ItemEntity> captureDrops;
-@@ -1503,9 +1503,11 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1503,10 +1503,14 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
  
      protected void tickBlockEntities() {
          this.tickingBlockEntities = true;
 -        if (!this.pendingBlockEntityTickers.isEmpty()) {
 -            this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
 -            this.pendingBlockEntityTickers.clear();
-+        synchronized (pendingBlockEntityTickers) { // DivineMC - RCT synchronization fix
++        // DivineMC start - Regionized Chunk Ticking - synchronization fix
++        synchronized (pendingBlockEntityTickers) {
 +            if (!this.pendingBlockEntityTickers.isEmpty()) {
 +                this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
 +                this.pendingBlockEntityTickers.clear();
 +            }
          }
++        // DivineMC end - Regionized Chunk Ticking - synchronization fix
  
          // Spigot start
+         boolean runsNormally = this.tickRateManager().runsNormally();
 diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 index 028eae2f9a459b60e92f3344091083aa93b54485..51e5a54aff069cac14deef6c04899d3a469842ce 100644
 --- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
