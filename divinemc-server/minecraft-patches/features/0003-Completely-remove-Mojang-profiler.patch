@@ -5,7 +5,7 @@ Subject: [PATCH] Completely remove Mojang profiler
 
 
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index aa978032ab4c56d3b90bbe2ad2fff13c72f3ee4d..7226d6066050523c021c89a79af1edbcc184af9c 100644
+index c638d30ba12bde2ae9d55b1c579129d40bcc8b1e..25aeb8628a79b62b70dbbb1299d4b4e52986b96d 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
 @@ -58,7 +58,6 @@ import net.minecraft.server.commands.CloneCommands;
@@ -40,7 +40,7 @@ index aa978032ab4c56d3b90bbe2ad2fff13c72f3ee4d..7226d6066050523c021c89a79af1edbc
          ContextChain<CommandSourceStack> contextChain = finishParsing(parseResults, command, commandSourceStack);
  
          try {
-@@ -393,8 +389,6 @@ public class Commands {
+@@ -395,8 +391,6 @@ public class Commands {
                  commandSourceStack.sendFailure(Component.literal(Util.describeError(var12)));
                  LOGGER.error("'/{}' threw an exception", command, var12);
              }
@@ -49,7 +49,7 @@ index aa978032ab4c56d3b90bbe2ad2fff13c72f3ee4d..7226d6066050523c021c89a79af1edbc
          }
      }
  
-@@ -451,7 +445,7 @@ public class Commands {
+@@ -453,7 +447,7 @@ public class Commands {
              int max = Math.max(1, server.getGameRules().getInt(GameRules.RULE_MAX_COMMAND_CHAIN_LENGTH));
              int _int = server.getGameRules().getInt(GameRules.RULE_MAX_COMMAND_FORK_COUNT);
  
@@ -213,7 +213,7 @@ index 18071dcc69cc28471dddb7de94e803ec1e5fc2e4..aa25f5ebaf7d1b22825b962b02dcae02
      }
  }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd80762074ea66f5a 100644
+index 768e82c5cfd05fae2dd84fc6a37f5984c6ec4865..abfecaf4467092f7baa02e0f5bbfd23d087f2aa3 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -114,19 +114,8 @@ import net.minecraft.util.TimeUtil;
@@ -393,17 +393,17 @@ index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd8076207
          LOGGER.debug("Autosave finished");
      }
  
-@@ -1699,7 +1656,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-     }
+@@ -1701,7 +1658,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList(); // Paper - optimise Folia entity scheduler
  
      protected void tickChildren(BooleanSupplier hasTimeLeft) {
 -        ProfilerFiller profilerFiller = Profiler.get();
          this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
          this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
-         // Paper start - Folia scheduler API
-@@ -1717,9 +1673,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-         });
-         // Paper end - Folia scheduler API
+         // Paper start - optimise Folia entity scheduler
+@@ -1715,9 +1671,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         }
+         // Paper end - optimise Folia entity scheduler
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
 -        profilerFiller.push("commandFunctions");
          this.getFunctions().tick();
@@ -411,7 +411,7 @@ index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd8076207
  
          // CraftBukkit start
          // Run tasks that are waiting on processing
-@@ -1755,17 +1709,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1753,17 +1707,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              serverLevel.updateLagCompensationTick(); // Paper - lag compensation
              net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents = serverLevel.paperConfig().hopper.disableMoveEvent || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper - Perf: Optimize Hoppers
              serverLevel.hasRidableMoveEvent = org.purpurmc.purpur.event.entity.RidableMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Purpur - Ridables
@@ -429,7 +429,7 @@ index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd8076207
              try {
                  serverLevel.tick(hasTimeLeft);
              } catch (Throwable var7) {
-@@ -1774,34 +1723,24 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1772,34 +1721,24 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  throw new ReportedException(crashReport);
              }
  
@@ -464,7 +464,7 @@ index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd8076207
      }
  
      public void tickConnection() {
-@@ -1817,14 +1756,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1815,14 +1754,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      }
  
      public void forceTimeSynchronization() {
@@ -479,7 +479,7 @@ index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd8076207
      }
  
      public boolean isLevelEnabled(Level level) {
-@@ -2640,55 +2574,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2638,55 +2572,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      }
      // CraftBukkit end
  
@@ -535,7 +535,7 @@ index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd8076207
      public Path getWorldPath(LevelResource levelResource) {
          return this.storageSource.getLevelPath(levelResource);
      }
-@@ -2738,24 +2623,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2736,24 +2621,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          return this.isSaving;
      }
  
@@ -560,7 +560,7 @@ index 8f32168ff0371a9168bbf9b08b2154200f8131a0..0912b009598876d6c16f7adcd8076207
      public int getMaxChainedNeighborUpdates() {
          return 1000000;
      }
-@@ -2865,55 +2732,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2863,55 +2730,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      public record ServerResourcePackInfo(UUID id, String url, String hash, boolean isRequired, @Nullable Component prompt) {
      }
  
@@ -1479,7 +1479,7 @@ index 3c7159d0981c948e71a5612ba4083accb5849ed4..5f2c27800f047f128857044493a6d932
              for (Entity entity : passengerEntity.getPassengers()) {
                  this.tickPassenger(passengerEntity, entity, isActive); // Paper - EAR 2
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 10f69c26fdaa9806c788364ecfc7897a6105e45b..bedc28c355b2c1e5a2ca4a1559c29101525c51e2 100644
+index 9415194e5d6aa190c9f42c3bf7599aaa5971c1eb..c7d081aff58170251d075a58d5e1345fc1bda9f8 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -106,8 +106,6 @@ import net.minecraft.util.HashOps;
@@ -1491,7 +1491,7 @@ index 10f69c26fdaa9806c788364ecfc7897a6105e45b..bedc28c355b2c1e5a2ca4a1559c29101
  import net.minecraft.world.Container;
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.InteractionHand;
-@@ -1440,14 +1438,10 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1504,14 +1502,10 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
                  this.unsetRemoved();
                  */
                  // CraftBukkit end
@@ -1506,7 +1506,7 @@ index 10f69c26fdaa9806c788364ecfc7897a6105e45b..bedc28c355b2c1e5a2ca4a1559c29101
                  // CraftBukkit start
                  this.isChangingDimension = true; // CraftBukkit - Set teleport invulnerability only if player changing worlds
                  LevelData worlddata = level.getLevelData();
-@@ -1465,7 +1459,6 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1529,7 +1523,6 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
                  this.connection.internalTeleport(PositionMoveRotation.of(teleportTransition), teleportTransition.relatives()); // CraftBukkit - use internal teleport without event
                  this.connection.resetPosition();
                  level.addDuringTeleport(this);
@@ -1515,7 +1515,7 @@ index 10f69c26fdaa9806c788364ecfc7897a6105e45b..bedc28c355b2c1e5a2ca4a1559c29101
                  this.stopUsingItem();
                  this.connection.send(new ClientboundPlayerAbilitiesPacket(this.getAbilities()));
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 5c0ea10b3559cef4c4994681f9fc9aba8b7533ed..9b027ee44fc0bc2fff9468e5332bba56abdbbef3 100644
+index f6a04a4b0a06c2fbb3b6aac4ec3e162f6c39b2a2..329b31898ea6abbd7cfefed0f582d9bfaa98e866 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -26,7 +26,6 @@ import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
@@ -1526,16 +1526,16 @@ index 5c0ea10b3559cef4c4994681f9fc9aba8b7533ed..9b027ee44fc0bc2fff9468e5332bba56
  import org.slf4j.Logger;
  
  public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener, org.bukkit.craftbukkit.entity.CraftPlayer.TransferCookieConnection { // CraftBukkit
-@@ -263,7 +262,6 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -293,7 +292,6 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
      }
  
      protected void keepConnectionAlive() {
 -        Profiler.get().push("keepAlive");
          long millis = Util.getMillis();
-         // Paper start - give clients a longer time to respond to pings as per pre 1.12.2 timings
-         // This should effectively place the keepalive handling back to "as it was" before 1.12.2
-@@ -297,8 +295,6 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
-                 this.send(new ClientboundKeepAlivePacket(this.keepAliveChallenge));
+         // Paper start - improve keepalives
+         // Purpur start - Alternative Keepalive Handling
+@@ -331,8 +329,6 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+                 // Paper end - improve keepalives
              }
          }
 -
@@ -4006,7 +4006,7 @@ index 39a604c9a53930b53d959b1d2eb504aa964e9a58..0d0380e3955836ce125f777841477503
  
      @Override
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 541781045c6b47bcd8826635c5fd78e90cf87275..5a7b0038b2ddfe84cdf4582152cff8a1a3449f09 100644
+index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540431c655d 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -80,8 +80,6 @@ import net.minecraft.tags.TagKey;

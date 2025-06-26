@@ -465,7 +465,7 @@ index a18240418a19a95147341a634527d774f3d5bb92..66f74ad2a194a6676574da2932cf4677
      public DebugSampleSubscriptionTracker(PlayerList playerList) {
          this.playerList = playerList;
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index d608ffc59dd6d9883db3f12b80cc11c7d8ded745..b4fc7ad2f353e8fbaf2179df2750c9a1c8ac9aba 100644
+index f8b37b4ce54afd61a72e9d18ac323540431c655d..0f28bc38d8dcb1b68ee7ae05c0c95ca86865c8ba 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -155,7 +155,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -530,9 +530,9 @@ index d608ffc59dd6d9883db3f12b80cc11c7d8ded745..b4fc7ad2f353e8fbaf2179df2750c9a1
      }
  
      public void addDeltaMovement(Vec3 addend) {
-@@ -5032,9 +5004,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5022,9 +4994,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          }
-         // Paper end - Fix MC-4
+         // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {
 -            synchronized (this.posLock) { // Paper - detailed watchdog information
              this.position = new Vec3(x, y, z);

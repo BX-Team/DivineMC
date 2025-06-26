@@ -5,7 +5,7 @@ Subject: [PATCH] Lag compensation
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 0912b009598876d6c16f7adcd80762074ea66f5a..70b33e54d8384709b166ca57cd114632e357f24f 100644
+index abfecaf4467092f7baa02e0f5bbfd23d087f2aa3..77a693f42d90b5d17bf56d86b1676247c1ad505d 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -288,6 +288,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -122,10 +122,10 @@ index 88b07fbb96b20124777889830afa480673629d43..91f6d43b3785ddad7db8eb529ba3293c
      public TeleportTransition getPortalDestination(ServerLevel level, Entity entity) {
          return this.portal.getPortalDestination(level, entity, this.entryPosition);
 diff --git a/net/minecraft/world/entity/item/ItemEntity.java b/net/minecraft/world/entity/item/ItemEntity.java
-index 545c672a51fd2121dc2bf827c3b160ef9d2f790b..647241577f37655e2fc8814ef658d4031359ed89 100644
+index d650d4f34fde0682ab76360408f7ff6a7d4b4c3a..f738db4aa54a5961e1484737b99de133f7e92b68 100644
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
-@@ -150,8 +150,25 @@ public class ItemEntity extends Entity implements TraceableEntity {
+@@ -158,8 +158,25 @@ public class ItemEntity extends Entity implements TraceableEntity {
      }
      // Paper end - EAR 2
  
