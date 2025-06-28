@@ -3,9 +3,10 @@ From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Wed, 29 Jan 2025 00:59:03 +0300
 Subject: [PATCH] Parallel world ticking
 
+Original project: https://github.com/SparklyPower/SparklyPaper
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index dce2b0ae83e70ccaf2ac97441f80b25876ee9058..d10c42cb10f419b59b0b9176eda97d54075d6041 100644
+index dce2b0ae83e70ccaf2ac97441f80b25876ee9058..a25db7dd56e31f6a34e4b185b75c727e290e9af1 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -1155,7 +1155,7 @@ public final class ChunkHolderManager {
@@ -13,7 +14,7 @@ index dce2b0ae83e70ccaf2ac97441f80b25876ee9058..d10c42cb10f419b59b0b9176eda97d54
              return;
          }
 -        if (!TickThread.isTickThread()) {
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && !TickThread.isTickThreadFor(world)) { // DivineMC - Parallel world ticking
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && !TickThread.isTickThreadFor(world) || !TickThread.isTickThread()) { // DivineMC - Parallel world ticking
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
              this.getData().offThreadPendingFullLoadUpdate.addAll(changedFullStatus); // DivineMC - Chunk System optimization
@@ -41,6 +42,28 @@ index dce2b0ae83e70ccaf2ac97441f80b25876ee9058..d10c42cb10f419b59b0b9176eda97d54
  
          if (!PlatformHooks.get().allowAsyncTicketUpdates() && isTickThread) {
              TickThread.ensureTickThread("Cannot asynchronously process ticket updates");
+diff --git a/io/papermc/paper/redstone/RedstoneWireTurbo.java b/io/papermc/paper/redstone/RedstoneWireTurbo.java
+index ff747a1ecdf3c888bca0d69de4f85dcd810b6139..544c05c94b535174d97675ea3c21706dfe305438 100644
+--- a/io/papermc/paper/redstone/RedstoneWireTurbo.java
++++ b/io/papermc/paper/redstone/RedstoneWireTurbo.java
+@@ -829,14 +829,9 @@ public final class RedstoneWireTurbo {
+         j = getMaxCurrentStrength(upd, j);
+         int l = 0;
+ 
+-        wire.shouldSignal = false;
+-        // Unfortunately, World.isBlockIndirectlyGettingPowered is complicated,
+-        // and I'm not ready to try to replicate even more functionality from
+-        // elsewhere in Minecraft into this accelerator.  So sadly, we must
+-        // suffer the performance hit of this very expensive call.  If there
+-        // is consistency to what this call returns, we may be able to cache it.
+-        final int k = worldIn.getBestNeighborSignal(upd.self);
+-        wire.shouldSignal = true;
++        // DivineMC start - Parallel world ticking
++        final int k = wire.getBlockSignal(worldIn, upd.self);
++        // DivineMC end - Parallel world ticking
+ 
+         // The variable 'k' holds the maximum redstone power value of any adjacent blocks.
+         // If 'k' has the highest level of all neighbors, then the power level of this
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
 index ac27ff24f018d8798921c5152e679ceed1e88d8d..ec7d1353b19e55b00c558df8981323efb9b88bdf 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
@@ -209,6 +232,106 @@ index c067f46935753794b49f29358262273fcd15d707..cbeb56539f00a3139f7c19d29cce92fa
          this.levels = Collections.unmodifiableMap(newLevels);
      }
      // CraftBukkit end
+diff --git a/net/minecraft/server/PlayerAdvancements.java b/net/minecraft/server/PlayerAdvancements.java
+index 10e5469df1800bcdfb3f8cb4045ee25a4bafc58c..8efed0ffdc906b6c1ba054831e481f53c11f102d 100644
+--- a/net/minecraft/server/PlayerAdvancements.java
++++ b/net/minecraft/server/PlayerAdvancements.java
+@@ -54,6 +54,7 @@ public class PlayerAdvancements {
+     private final Map<AdvancementHolder, AdvancementProgress> progress = new LinkedHashMap<>();
+     private final Set<AdvancementHolder> visible = new HashSet<>();
+     private final Set<AdvancementHolder> progressChanged = new HashSet<>();
++    private final Set<AdvancementHolder> progressChangedConcurrent = java.util.concurrent.ConcurrentHashMap.newKeySet(); // DivineMC - Parallel world ticking
+     private final Set<AdvancementNode> rootsToUpdate = new HashSet<>();
+     private ServerPlayer player;
+     @Nullable
+@@ -88,6 +89,7 @@ public class PlayerAdvancements {
+         this.visible.clear();
+         this.rootsToUpdate.clear();
+         this.progressChanged.clear();
++        this.progressChangedConcurrent.clear(); // DivineMC - Parallel world ticking
+         this.isFirstPacket = true;
+         this.lastSelectedTab = null;
+         this.tree = manager.tree();
+@@ -178,10 +180,12 @@ public class PlayerAdvancements {
+                 return false;
+             }
+             // Paper end - Add PlayerAdvancementCriterionGrantEvent
+-            this.unregisterListeners(advancement);
+-            this.progressChanged.add(advancement);
+-            flag = true;
+-            if (!isDone && orStartProgress.isDone()) {
++            // DivineMC start - Parallel world ticking
++            this.unregisterListeners(advancement); // Must unregister criteria listeners
++            (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking ? this.progressChangedConcurrent : this.progressChanged).add(advancement);
++            flag = true; // Mark progress changed
++            if (!isDone && orStartProgress.isDone()) { // If the advancement was just completed
++            // DivineMC end - Parallel world ticking
+                 // Paper start - Add Adventure message to PlayerAdvancementDoneEvent
+                 final net.kyori.adventure.text.Component message = advancement.value().display().flatMap(info -> {
+                     return java.util.Optional.ofNullable(
+@@ -215,8 +219,10 @@ public class PlayerAdvancements {
+         AdvancementProgress orStartProgress = this.getOrStartProgress(advancement);
+         boolean isDone = orStartProgress.isDone();
+         if (orStartProgress.revokeProgress(criterionKey)) {
++            // DivineMC start - Parallel world ticking
+             this.registerListeners(advancement);
+-            this.progressChanged.add(advancement);
++            (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking ? this.progressChangedConcurrent : this.progressChanged).add(advancement);
++            // DivineMC end - Parallel world ticking
+             flag = true;
+         }
+ 
+@@ -266,7 +272,11 @@ public class PlayerAdvancements {
+     }
+ 
+     public void flushDirty(ServerPlayer player, boolean showAdvancements) {
+-        if (this.isFirstPacket || !this.rootsToUpdate.isEmpty() || !this.progressChanged.isEmpty()) {
++        // DivineMC start - Parallel world ticking
++        final boolean useConcurrent = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking;
++        final Set<AdvancementHolder> relevantProgressSet = useConcurrent ? this.progressChangedConcurrent : this.progressChanged;
++        if (this.isFirstPacket || !this.rootsToUpdate.isEmpty() || !relevantProgressSet.isEmpty()) {
++        // DivineMC end - Parallel world ticking
+             Map<ResourceLocation, AdvancementProgress> map = new HashMap<>();
+             Set<AdvancementHolder> set = new java.util.TreeSet<>(java.util.Comparator.comparing(adv -> adv.id().toString())); // Paper - Changed from HashSet to TreeSet ordered alphabetically.
+             Set<ResourceLocation> set1 = new HashSet<>();
+@@ -277,13 +287,23 @@ public class PlayerAdvancements {
+ 
+             this.rootsToUpdate.clear();
+ 
+-            for (AdvancementHolder advancementHolder : this.progressChanged) {
+-                if (this.visible.contains(advancementHolder)) {
+-                    map.put(advancementHolder.id(), this.progress.get(advancementHolder));
++            // DivineMC start - Parallel world ticking
++            if (!relevantProgressSet.isEmpty()) {
++                Set<AdvancementHolder> toProcess = useConcurrent ? new HashSet<>(relevantProgressSet) : relevantProgressSet;
++
++                for (AdvancementHolder advancementHolder : toProcess) {
++                    if (this.visible.contains(advancementHolder)) {
++                        map.put(advancementHolder.id(), this.progress.get(advancementHolder));
++                    }
++                }
++
++                if (useConcurrent) {
++                    this.progressChangedConcurrent.removeAll(toProcess);
++                } else {
++                    this.progressChanged.clear();
+                 }
+             }
+-
+-            this.progressChanged.clear();
++            // DivineMC end - Parallel world ticking
+             if (!map.isEmpty() || !set.isEmpty() || !set1.isEmpty()) {
+                 player.connection.send(new ClientboundUpdateAdvancementsPacket(this.isFirstPacket, set, set1, map, showAdvancements));
+             }
+@@ -328,7 +348,7 @@ public class PlayerAdvancements {
+                     if (this.visible.add(advancementHolder)) {
+                         advancementOutput.add(advancementHolder);
+                         if (this.progress.containsKey(advancementHolder)) {
+-                            this.progressChanged.add(advancementHolder);
++                            (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking ? this.progressChangedConcurrent : this.progressChanged).add(advancementHolder); // DivineMC - Parallel world ticking
+                         }
+                     }
+                 } else if (this.visible.remove(advancementHolder)) {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
 index 978934f81ba023d7565d2e66c51f6ca249510702..13d85eb366a070bfd6723088412f51af07892362 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
@@ -227,8 +350,20 @@ index 978934f81ba023d7565d2e66c51f6ca249510702..13d85eb366a070bfd6723088412f51af
          this.setPvpAllowed(properties.pvp);
          this.setFlightAllowed(properties.allowFlight);
          this.setMotd(properties.motd);
+diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
+index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..3cf54630d36f821a232fa03f9094c4c1f70902a1 100644
+--- a/net/minecraft/server/level/ServerChunkCache.java
++++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -175,7 +175,6 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+ 
+             // call mid-tick tasks for chunk system
+             if ((i & 7) == 0) {
+-                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
+                 continue;
+             }
+         }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index e05a0eed63098c535360b66276f154e4dc119d6a..0102d87411dcf0bba7f6873dc54385c957a7e2d7 100644
+index 00d9e6421185b1ba4f0fdff347a53cae5b830a0a..c3ed824b2c31902b50de74df37d9d8fd504454fc 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -181,7 +181,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -248,6 +383,15 @@ index e05a0eed63098c535360b66276f154e4dc119d6a..0102d87411dcf0bba7f6873dc54385c9
  
      // CraftBukkit start
      public final LevelStorageSource.LevelStorageAccess levelStorageAccess;
+@@ -681,7 +682,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+         this.sleepStatus = new SleepStatus();
+         this.gameEventDispatcher = new GameEventDispatcher(this);
+         this.randomSequences = Objects.requireNonNullElseGet(randomSequences, () -> this.getDataStorage().computeIfAbsent(RandomSequences.TYPE));
+-        this.waypointManager = new ServerWaypointManager();
++        this.waypointManager = new ServerWaypointManager(this); // DivineMC - Parallel world ticking
+         // Paper start - rewrite chunk system
+         this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup((ServerLevel)(Object)this, ((ServerLevel)(Object)this).new EntityCallbacks()));
+         this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler((ServerLevel)(Object)this);
 @@ -698,6 +699,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
          // Paper end - rewrite chunk system
@@ -316,7 +460,7 @@ index e05a0eed63098c535360b66276f154e4dc119d6a..0102d87411dcf0bba7f6873dc54385c9
          // Paper start - extra debug info
          if (entity.valid) {
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index c7d081aff58170251d075a58d5e1345fc1bda9f8..7f5ec82ad273226b34d0212e17dfd1fe905d68a0 100644
+index 95aabca0b1f2f3762df52e9a09afe19ed1939209..87fe8f80e76a63f7ab4f55668524f97be01e6929 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -433,6 +433,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -403,6 +547,91 @@ index 015e0d1400f1dfbe086c817f121d01f0726e82f2..199e0abdd3a00786a259e28db9d826df
          // CraftBukkit end
          serverPlayer.connection = player.connection;
          serverPlayer.restoreFrom(player, keepInventory);
+diff --git a/net/minecraft/server/waypoints/ServerWaypointManager.java b/net/minecraft/server/waypoints/ServerWaypointManager.java
+index f9e7532f86122a379692561a639a209a126e8bba..839f6b7696ef85314da185bedba7cfc5870c314a 100644
+--- a/net/minecraft/server/waypoints/ServerWaypointManager.java
++++ b/net/minecraft/server/waypoints/ServerWaypointManager.java
+@@ -19,9 +19,17 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+     private final Set<WaypointTransmitter> waypoints = new HashSet<>();
+     private final Set<ServerPlayer> players = new HashSet<>();
+     private final Table<ServerPlayer, WaypointTransmitter, WaypointTransmitter.Connection> connections = HashBasedTable.create();
++    // DivineMC start - Parallel world ticking
++    private final net.minecraft.server.level.ServerLevel level;
++
++    public ServerWaypointManager(net.minecraft.server.level.ServerLevel level) {
++        this.level = level;
++    }
++    // DivineMC end - Parallel world ticking
+ 
+     @Override
+     public void trackWaypoint(WaypointTransmitter waypoint) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot track waypoints off-main"); // DivineMC - Parallel world ticking
+         this.waypoints.add(waypoint);
+ 
+         for (ServerPlayer serverPlayer : this.players) {
+@@ -31,6 +39,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+ 
+     @Override
+     public void updateWaypoint(WaypointTransmitter waypoint) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update waypoints off-main"); // DivineMC - Parallel world ticking
+         if (this.waypoints.contains(waypoint)) {
+             Map<ServerPlayer, WaypointTransmitter.Connection> map = Tables.transpose(this.connections).row(waypoint);
+             SetView<ServerPlayer> set = Sets.difference(this.players, map.keySet());
+@@ -47,12 +56,14 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+ 
+     @Override
+     public void untrackWaypoint(WaypointTransmitter waypoint) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot untrack waypoints off-main"); // DivineMC - Parallel world ticking
+         this.connections.column(waypoint).forEach((serverPlayer, connection) -> connection.disconnect());
+         Tables.transpose(this.connections).row(waypoint).clear();
+         this.waypoints.remove(waypoint);
+     }
+ 
+     public void addPlayer(ServerPlayer player) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot add player to waypoints off-main"); // DivineMC - Parallel world ticking
+         this.players.add(player);
+ 
+         for (WaypointTransmitter waypointTransmitter : this.waypoints) {
+@@ -65,6 +76,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+     }
+ 
+     public void updatePlayer(ServerPlayer player) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update player for waypoints off-main"); // DivineMC - Parallel world ticking
+         Map<WaypointTransmitter, WaypointTransmitter.Connection> map = this.connections.row(player);
+         SetView<WaypointTransmitter> set = Sets.difference(this.waypoints, map.keySet());
+ 
+@@ -78,6 +90,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+     }
+ 
+     public void removePlayer(ServerPlayer player) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot remove player from waypoints off-main"); // DivineMC - Parallel world ticking
+         this.connections.row(player).values().removeIf(connection -> {
+             connection.disconnect();
+             return true;
+@@ -87,6 +100,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+     }
+ 
+     public void breakAllConnections() {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking)  ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot break all waypoint connections off-main"); // DivineMC - Parallel world ticking
+         this.connections.values().forEach(WaypointTransmitter.Connection::disconnect);
+         this.connections.clear();
+     }
+@@ -106,6 +120,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+     }
+ 
+     private void createConnection(ServerPlayer player, WaypointTransmitter waypoint) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot create waypoint connections off-main"); // DivineMC - Parallel world ticking
+         if (player != waypoint) {
+             if (isLocatorBarEnabledFor(player)) {
+                 waypoint.makeWaypointConnectionWith(player).ifPresentOrElse(connection -> {
+@@ -122,6 +137,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+     }
+ 
+     private void updateConnection(ServerPlayer player, WaypointTransmitter waypoint, WaypointTransmitter.Connection connection) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update waypoint connection off-main"); // DivineMC - Parallel world ticking
+         if (player != waypoint) {
+             if (isLocatorBarEnabledFor(player)) {
+                 if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
 index 1e201ff091bdf33c96e2cfa333030ae105ab7bc9..5a58fb937419369d887c4fc35d9383d1b5e35a99 100644
 --- a/net/minecraft/world/entity/Entity.java
@@ -517,37 +746,48 @@ index 91f6d43b3785ddad7db8eb529ba3293c45f3588d..fc3ab0881bf9b275beb9b32ca5a7475d
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java b/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java
-index 3614551856c594f3c0cfee984fcf03fad672b007..ad52152d090c32b81044b8fd9496eae0b4e755b0 100644
+index 3614551856c594f3c0cfee984fcf03fad672b007..d972bcdba9c26cb66fedae58ca9658bb465e3af2 100644
 --- a/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java
 +++ b/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java
-@@ -46,12 +46,22 @@ public class GoToPotentialJobSite extends Behavior<Villager> {
+@@ -44,15 +44,31 @@ public class GoToPotentialJobSite extends Behavior<Villager> {
+         Optional<GlobalPos> memory = entity.getBrain().getMemory(MemoryModuleType.POTENTIAL_JOB_SITE);
+         memory.ifPresent(globalPos -> {
              BlockPos blockPos = globalPos.pos();
-             ServerLevel level1 = level.getServer().getLevel(globalPos.dimension());
-             if (level1 != null) {
+-            ServerLevel level1 = level.getServer().getLevel(globalPos.dimension());
+-            if (level1 != null) {
 -                PoiManager poiManager = level1.getPoiManager();
 -                if (poiManager.exists(blockPos, holder -> true)) {
 -                    poiManager.release(blockPos);
 -                }
-+                // DivineMC start - Parallel world ticking
-+                Runnable releasePoiTask = () -> {
-+                    PoiManager poiManager = level1.getPoiManager();
++            // DivineMC start - Parallel world ticking
++            ServerLevel entityLevel = level;
++            ServerLevel poiLevel = entityLevel.getServer().getLevel(globalPos.dimension());
++
++            if (poiLevel != null) {
++                Runnable poiOperationsTask = () -> {
++                    PoiManager poiManager = poiLevel.getPoiManager();
 +                    if (poiManager.exists(blockPos, holder -> true)) {
 +                        poiManager.release(blockPos);
 +                    }
-+
-+                    DebugPackets.sendPoiTicketCountPacket(level, blockPos);
 +                };
  
 -                DebugPackets.sendPoiTicketCountPacket(level, blockPos);
++                Runnable debugPacketTask = () -> {
++                    DebugPackets.sendPoiTicketCountPacket(entityLevel, blockPos);
++                };
++
 +                if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
-+                    level.moonrise$getChunkTaskScheduler().scheduleChunkTask(0, 0, releasePoiTask, ca.spottedleaf.concurrentutil.util.Priority.BLOCKING);
++                    poiLevel.moonrise$getChunkTaskScheduler().scheduleChunkTask(blockPos.getX() >> 4, blockPos.getZ() >> 4, poiOperationsTask, ca.spottedleaf.concurrentutil.util.Priority.BLOCKING);
++                    entityLevel.moonrise$getChunkTaskScheduler().scheduleChunkTask(entity.chunkPosition().x, entity.chunkPosition().z, debugPacketTask, ca.spottedleaf.concurrentutil.util.Priority.BLOCKING);
 +                } else {
-+                    releasePoiTask.run();
++                    poiOperationsTask.run();
++                    debugPacketTask.run();
 +                }
-+                // DivineMC end - Parallel world ticking
              }
++            // DivineMC end - Parallel world ticking
          });
          entity.getBrain().eraseMemory(MemoryModuleType.POTENTIAL_JOB_SITE);
+     }
 diff --git a/net/minecraft/world/entity/npc/Villager.java b/net/minecraft/world/entity/npc/Villager.java
 index 3e23bc54e0315b6324843851e072005ca4da3f8e..50130de436bb12334f5b7f63bf6bf30578b569b2 100644
 --- a/net/minecraft/world/entity/npc/Villager.java
@@ -826,10 +1066,18 @@ index d306f5f524dc64618df94c9783c2168dc561a5e3..6a0c4dc2ff5e3d82e811db63dc9da7b9
                  return true;
              } else {
 diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
-index 1943a6aad888647953e2d9dbbeedb0bd81c6f9df..9585d3164eaa7522be950fe10d8487dcc88e0f0b 100644
+index 1943a6aad888647953e2d9dbbeedb0bd81c6f9df..48c5c13f993f5c30912833a99c82071942c83401 100644
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -283,7 +283,13 @@ public class RedStoneWireBlock extends Block {
+@@ -66,6 +66,7 @@ public class RedStoneWireBlock extends Block {
+     private final BlockState crossState;
+     private final RedstoneWireEvaluator evaluator = new DefaultRedstoneWireEvaluator(this);
+     public boolean shouldSignal = true;
++    private final ThreadLocal<Boolean> shouldSignalTL = ThreadLocal.withInitial(() -> true); // DivineMC - Parallel world ticking
+ 
+     @Override
+     public MapCodec<RedStoneWireBlock> codec() {
+@@ -283,7 +284,13 @@ public class RedStoneWireBlock extends Block {
              if (orientation != null) {
                  source = pos.relative(orientation.getFront().getOpposite());
              }
@@ -844,7 +1092,7 @@ index 1943a6aad888647953e2d9dbbeedb0bd81c6f9df..9585d3164eaa7522be950fe10d8487dc
              return;
          }
          updatePowerStrength(worldIn, pos, state, orientation, blockAdded);
-@@ -311,7 +317,13 @@ public class RedStoneWireBlock extends Block {
+@@ -311,7 +318,13 @@ public class RedStoneWireBlock extends Block {
                  // [Space Walker] suppress shape updates and emit those manually to
                  // bypass the new neighbor update stack.
                  if (level.setBlock(pos, state, Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS)) {
@@ -859,6 +1107,71 @@ index 1943a6aad888647953e2d9dbbeedb0bd81c6f9df..9585d3164eaa7522be950fe10d8487dc
                  }
              }
          }
+@@ -328,10 +341,19 @@ public class RedStoneWireBlock extends Block {
+     }
+ 
+     public int getBlockSignal(Level level, BlockPos pos) {
+-        this.shouldSignal = false;
+-        int bestNeighborSignal = level.getBestNeighborSignal(pos);
+-        this.shouldSignal = true;
+-        return bestNeighborSignal;
++        // DivineMC start - Parallel world ticking
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++            this.shouldSignalTL.set(false);
++            int bestNeighborSignal = level.getBestNeighborSignal(pos);
++            this.shouldSignalTL.set(true);
++            return bestNeighborSignal;
++        } else {
++            this.shouldSignal = false;
++            int bestNeighborSignal = level.getBestNeighborSignal(pos);
++            this.shouldSignal = true;
++            return bestNeighborSignal;
++        }
++        // DivineMC end - Parallel world ticking
+     }
+ 
+     private void checkCornerChangeAt(Level level, BlockPos pos) {
+@@ -422,12 +444,23 @@ public class RedStoneWireBlock extends Block {
+ 
+     @Override
+     protected int getDirectSignal(BlockState blockState, BlockGetter blockAccess, BlockPos pos, Direction side) {
+-        return !this.shouldSignal ? 0 : blockState.getSignal(blockAccess, pos, side);
++        // DivineMC start - Parallel world ticking
++        boolean signal = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking ? this.shouldSignalTL.get() : this.shouldSignal;
++        return !signal ? 0 : blockState.getSignal(blockAccess, pos, side);
++        // DivineMC end - Parallel world ticking
+     }
+ 
+     @Override
+     protected int getSignal(BlockState blockState, BlockGetter blockAccess, BlockPos pos, Direction side) {
+-        if (this.shouldSignal && side != Direction.DOWN) {
++        // DivineMC start - Parallel world ticking
++        boolean signal;
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++            signal = this.shouldSignalTL.get();
++        } else {
++            signal = this.shouldSignal;
++        }
++        // DivineMC end - Parallel world ticking
++        if (signal && side != Direction.DOWN) { // DivineMC - Parallel world ticking
+             int powerValue = blockState.getValue(POWER);
+             if (powerValue == 0) {
+                 return 0;
+@@ -459,7 +492,13 @@ public class RedStoneWireBlock extends Block {
+ 
+     @Override
+     protected boolean isSignalSource(BlockState state) {
+-        return this.shouldSignal;
++        // DivineMC start - Parallel world ticking
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++            return this.shouldSignalTL.get();
++        } else {
++            return this.shouldSignal;
++        }
++        // DivineMC end - Parallel world ticking
+     }
+ 
+     public static int getColorForPower(int power) {
 diff --git a/net/minecraft/world/level/block/SaplingBlock.java b/net/minecraft/world/level/block/SaplingBlock.java
 index a22cb810622e0ae97bc2a0d6390d026d9482b783..5856178e41523700ca7ed9a46c1c802c33903b53 100644
 --- a/net/minecraft/world/level/block/SaplingBlock.java
@@ -1042,17 +1355,22 @@ index 010c7204bfa772ff9a2187a5db76d7c65ea34f66..6de61b3e75edee87562e3aab01c7020c
          LevelChunkSection section = this.getSection(this.getSectionIndex(y));
          boolean hasOnlyAir = section.hasOnlyAir();
 diff --git a/net/minecraft/world/level/entity/EntityTickList.java b/net/minecraft/world/level/entity/EntityTickList.java
-index 9e75320e51886e0f93c23683d8614128f44a613e..df8ede5c6d1f1af275f813d4b939136134214dff 100644
+index 9e75320e51886e0f93c23683d8614128f44a613e..d8b3e0901922016a22ca2801c2c4e0afd28e1c0a 100644
 --- a/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/net/minecraft/world/level/entity/EntityTickList.java
-@@ -10,17 +10,26 @@ import net.minecraft.world.entity.Entity;
+@@ -10,17 +10,31 @@ import net.minecraft.world.entity.Entity;
  
  public class EntityTickList {
      public final java.util.concurrent.ConcurrentLinkedQueue<Entity> entities = new java.util.concurrent.ConcurrentLinkedQueue<>(); // Paper - rewrite chunk system // DivineMC - Async mob spawning
 +    // DivineMC start - Parallel world ticking
++    @Nullable
 +    private final net.minecraft.server.level.ServerLevel serverLevel;
 +
-+    public EntityTickList(net.minecraft.server.level.ServerLevel serverLevel) {
++    public EntityTickList() {
++        this(null);
++    }
++
++    public EntityTickList(@Nullable net.minecraft.server.level.ServerLevel serverLevel) {
 +        this.serverLevel = serverLevel;
 +    }
 +    // DivineMC end - Parallel world ticking
@@ -1072,7 +1390,7 @@ index 9e75320e51886e0f93c23683d8614128f44a613e..df8ede5c6d1f1af275f813d4b9391361
          this.ensureActiveIsNotIterated();
          this.entities.remove(entity); // Paper - rewrite chunk system
      }
-@@ -30,6 +39,7 @@ public class EntityTickList {
+@@ -30,6 +44,7 @@ public class EntityTickList {
      }
  
      public void forEach(Consumer<Entity> entity) {
@@ -1080,3 +1398,23 @@ index 9e75320e51886e0f93c23683d8614128f44a613e..df8ede5c6d1f1af275f813d4b9391361
          // Paper start - rewrite chunk system
          // To ensure nothing weird happens with dimension travelling, do not iterate over new entries...
          // (by dfl iterator() is configured to not iterate over new entries)
+diff --git a/net/minecraft/world/level/saveddata/maps/MapIndex.java b/net/minecraft/world/level/saveddata/maps/MapIndex.java
+index 06025d79cc2297119b22224d777aca79f9d3d9c1..53e6a478eafec512be42422898e7fb334015946b 100644
+--- a/net/minecraft/world/level/saveddata/maps/MapIndex.java
++++ b/net/minecraft/world/level/saveddata/maps/MapIndex.java
+@@ -23,8 +23,12 @@ public class MapIndex extends SavedData {
+     }
+ 
+     public MapId getNextMapId() {
+-        MapId mapId = new MapId(++this.lastMapId);
+-        this.setDirty();
+-        return mapId;
++        // DivineMC start - Parallel world ticking
++        synchronized (TYPE) {
++            MapId mapId = new MapId(++this.lastMapId);
++            this.setDirty();
++            return mapId;
++        }
++        // DivineMC end - Parallel world ticking
+     }
+ }

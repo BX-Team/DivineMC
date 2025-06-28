@@ -5,22 +5,24 @@ Subject: [PATCH] Chunk System Optimizations
 
 
 diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-index 1b8193587814225c2ef2c5d9e667436eb50ff6c5..78e3c49a233dc6bed558458d555fe740a8cc839e 100644
+index 93272808d94e81d31af728ebe85df9a2bc7aedab..17c0f25206b12665518142f27c17d17f315aad5f 100644
 --- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 +++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-@@ -59,12 +59,15 @@ public final class NearbyPlayers {
+@@ -59,7 +59,7 @@ public final class NearbyPlayers {
      public static final int GENERAL_REALLY_SMALL_AREA_VIEW_DISTANCE_BLOCKS = (GENERAL_REALLY_SMALL_VIEW_DISTANCE << 4);
  
      private final ServerLevel world;
 -    private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
--    private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
++    private final it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<ServerPlayer, TrackedPlayer[]> players = it.unimi.dsi.fastutil.objects.Reference2ReferenceMaps.synchronize(new Reference2ReferenceOpenHashMap<>()); // DivineMC - Chunk System optimization
+     // DivineMC start - Multithreaded Tracker
+     private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<TrackedChunk> byChunk;
+     {
+@@ -70,10 +70,10 @@ public final class NearbyPlayers {
+         }
+     }
+     // DivineMC end - Multithreaded Tracker
 -    private final Long2ReferenceOpenHashMap<ReferenceList<ServerPlayer>>[] directByChunk = new Long2ReferenceOpenHashMap[TOTAL_MAP_TYPES];
-+    // DivineMC start - Chunk System optimization
-+    private final Object callbackLock = new Object();
-+    private final it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<ServerPlayer, TrackedPlayer[]> players = it.unimi.dsi.fastutil.objects.Reference2ReferenceMaps.synchronize(new Reference2ReferenceOpenHashMap<>());
-+    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<TrackedChunk> byChunk = it.unimi.dsi.fastutil.longs.Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>());
-+    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<ReferenceList<ServerPlayer>>[] directByChunk = new it.unimi.dsi.fastutil.longs.Long2ReferenceMap[TOTAL_MAP_TYPES];
-+    // DivineMC end - Chunk System optimization
++    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<ReferenceList<ServerPlayer>>[] directByChunk = new it.unimi.dsi.fastutil.longs.Long2ReferenceMap[TOTAL_MAP_TYPES]; // DivineMC - Chunk System optimization
      {
          for (int i = 0; i < this.directByChunk.length; ++i) {
 -            this.directByChunk[i] = new Long2ReferenceOpenHashMap<>();
@@ -103,6 +105,43 @@ index b2bcfb3557a0326fd7ec1059f95d6da4568dfd80..6bb36686ae7ca9f4bf763baa89408614
          }
      }
  
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
+index 2d24d03bbdb5ee0d862cbfff2219f58afffafe12..950b284cb3b4488a794e6c6f936f55ea427ef7cc 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
+@@ -93,8 +93,14 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
+         if (entity == null) {
+             return null;
+         }
+-        final Visibility visibility = EntityLookup.getEntityStatus(entity);
+-        return visibility.isAccessible() ? entity : null;
++        // DivineMC start - Chunk System Optimizations
++        final FullChunkStatus entityStatus = ((ChunkSystemEntity) entity).moonrise$getChunkStatus();
++        return switch (entityStatus) {
++            case INACCESSIBLE -> null;
++            case FULL, BLOCK_TICKING, ENTITY_TICKING -> entity;
++            case null -> null;
++        };
++        // DivineMC end - Chunk System Optimizations
+     }
+ 
+     @Override
+@@ -398,7 +404,14 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
+             return Visibility.TICKING;
+         }
+         final FullChunkStatus entityStatus = ((ChunkSystemEntity)entity).moonrise$getChunkStatus();
+-        return Visibility.fromFullChunkStatus(entityStatus == null ? FullChunkStatus.INACCESSIBLE : entityStatus);
++        // DivineMC start - Chunk System Optimizations
++        return switch (entityStatus) {
++            case INACCESSIBLE -> Visibility.HIDDEN;
++            case FULL, BLOCK_TICKING -> Visibility.TRACKED;
++            case ENTITY_TICKING -> Visibility.TICKING;
++            case null -> Visibility.HIDDEN;
++        };
++        // DivineMC end - Chunk System Optimizations
+     }
+ 
+     protected boolean addEntity(final Entity entity, final boolean fromDisk, final boolean event) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 index dc2b3ccf7810731c0e2c90e5a476c1c8203a1fb7..5cb896334f9916b030ee523119946d3b40585fc3 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
@@ -921,7 +960,7 @@ index df6fbb35e5023b42de0b97434712e04a6b3e66a3..8c6b853c77e5b3af90913e4a878f344b
          commands.put(Set.of("fixlight"), new FixLightCommand()); // Paper - rewrite chunk system
          commands.put(Set.of("debug", "chunkinfo", "holderinfo"), new ChunkDebugCommand());  // Paper - rewrite chunk system
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 687af4f52dc3ae5564079b6782b63a4277c43439..ab3b1c7442b9f3dd72a9ce8c70dc708d2371471a 100644
+index 2c5104b9ae1d2ea902eeac5a1c9d49bc1af67c43..7ebaf03342e8802948b4f412c3f7120927f7b3b3 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -132,8 +132,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -935,20 +974,7 @@ index 687af4f52dc3ae5564079b6782b63a4277c43439..ab3b1c7442b9f3dd72a9ce8c70dc708d
      // Paper - rewrite chunk system
      public int serverViewDistance;
      public final WorldGenContext worldGenContext; // Paper - public
-@@ -256,7 +256,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
- 
-         final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
-         for (int i = 0, len = inRange.size(); i < len; i++) {
--            ++(backingSet[i].mobCounts[index]);
-+            // DivineMC start - Chunk System Optimizations
-+            ServerPlayer player = backingSet[i];
-+            if (player == null) continue;
-+            ++(player.mobCounts[index]);
-+            // DivineMC end - Chunk System Optimizations
-         }
-     }
- 
-@@ -273,7 +277,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -283,7 +283,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
          final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
          for (int i = 0, len = inRange.size(); i < len; i++) {
@@ -961,7 +987,7 @@ index 687af4f52dc3ae5564079b6782b63a4277c43439..ab3b1c7442b9f3dd72a9ce8c70dc708d
          }
      }
      // Paper end - per player mob count backoff
-@@ -774,27 +782,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -784,27 +788,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              return false;
          }
  
@@ -990,7 +1016,7 @@ index 687af4f52dc3ae5564079b6782b63a4277c43439..ab3b1c7442b9f3dd72a9ce8c70dc708d
          // Paper end - chunk tick iteration optimisation
      }
  
-@@ -812,10 +800,10 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -822,10 +806,10 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          final ServerPlayer[] raw = players.getRawDataUnchecked();
          final int len = players.size();
  
@@ -1004,9 +1030,9 @@ index 687af4f52dc3ae5564079b6782b63a4277c43439..ab3b1c7442b9f3dd72a9ce8c70dc708d
                  if (ret == null) {
                      ret = new ArrayList<>(len - i);
                      ret.add(player);
-@@ -1208,6 +1196,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-             } else {
-                 for (int i = 0, len = players.size(); i < len; ++i) {
+@@ -1272,6 +1256,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             Runnable updatePlayerTasks = () -> {
+                 for (int i = 0; i < playersLen; ++i) {
                      final ServerPlayer player = playersRaw[i];
 +                    if (player == null) continue; // DivineMC - Chunk System Optimizations
                      this.updatePlayer(player);
@@ -1035,7 +1061,7 @@ index fd3d0f6cb53bc8b6186f0d86575f21007b2c20ed..7f3c41b59e288364d67534511fc038e6
      }
  
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 75c8ce32e68f92e20201e9c243f46f2be716eac8..2873642844c683ae4388ae27a045e01441d15426 100644
+index 879d6eb8e72b63bc95d8028cbc2f6e93e516ab1d..6de832e7aec630914e70fb0f11223907ab28298c 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -444,8 +444,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -1049,7 +1075,7 @@ index 75c8ce32e68f92e20201e9c243f46f2be716eac8..2873642844c683ae4388ae27a045e014
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index d0d97e063acf8f11c32adf1fd2ec6bca59913c33..14c8df2f3b9c133b38e871e81f7ee2333322437c 100644
+index 740f6324eeb4021bc45d27d6145ff71282c761c2..0dbcf9460b27959f99f7a95824b711ee6a4e4c4d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -179,6 +179,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -1156,7 +1182,7 @@ index d0d97e063acf8f11c32adf1fd2ec6bca59913c33..14c8df2f3b9c133b38e871e81f7ee233
      }
      // Paper end - optimise random ticking
  
-@@ -2559,16 +2561,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2558,16 +2560,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
  
      public boolean isPositionTickingWithEntitiesLoaded(long chunkPos) {
          // Paper start - rewrite chunk system

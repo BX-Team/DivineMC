@@ -31,7 +31,7 @@ index ca21597263cb430e2a5ae07e8cecfb0d53a270d2..226088405c019922085285ba5d04d7c1
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 05b8834b5566ac12655b563a1a58f123275fdedb..e05a0eed63098c535360b66276f154e4dc119d6a 100644
+index b4876d35ee6a4e0dab144b471520234157d7173b..00d9e6421185b1ba4f0fdff347a53cae5b830a0a 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -804,6 +804,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -43,7 +43,7 @@ index 05b8834b5566ac12655b563a1a58f123275fdedb..e05a0eed63098c535360b66276f154e4
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  entity.checkDespawn();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 55e82d490ed3489ff671ae8a49745571c4bfb993..e96eeae793d127b76a2fe6853cba49ce192b91f9 100644
+index 9971c034391c13237dc403cdc9f8806b3bfc69f4..1e201ff091bdf33c96e2cfa333030ae105ab7bc9 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -365,6 +365,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -56,7 +56,7 @@ index 55e82d490ed3489ff671ae8a49745571c4bfb993..e96eeae793d127b76a2fe6853cba49ce
      // Paper start - EAR 2
      public final boolean defaultActivationState;
 diff --git a/net/minecraft/world/entity/EntityType.java b/net/minecraft/world/entity/EntityType.java
-index c960166814cdb3043a38de40c59cb067ae936ba3..79d93bb4c7dd0f7c8c4cc8bafb893a0d93f70f2b 100644
+index 9950fccc0a708e701b81fcabc9e8f370e6d3a19d..0159627e2c9a540d062073faf9018f5215e10866 100644
 --- a/net/minecraft/world/entity/EntityType.java
 +++ b/net/minecraft/world/entity/EntityType.java
 @@ -1085,6 +1085,7 @@ public class EntityType<T extends Entity> implements FeatureElement, EntityTypeT
@@ -68,7 +68,7 @@ index c960166814cdb3043a38de40c59cb067ae936ba3..79d93bb4c7dd0f7c8c4cc8bafb893a0d
      @Nullable
      private Component description;
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index fd586acb15362a461c77256c6db9cc3a8002750d..7f1b36ca38a15aa987afb8069fd4e34bed4c569a 100644
+index e1f5a4814d051a43090bf6df2acbcd20fbbc1934..c4292b95a0a90569aa8708cc3e54433d9757f1a5 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
 @@ -209,10 +209,10 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
@@ -84,7 +84,7 @@ index fd586acb15362a461c77256c6db9cc3a8002750d..7f1b36ca38a15aa987afb8069fd4e34b
              this.targetSelector.tick();
          }
      }
-@@ -771,13 +771,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
+@@ -758,13 +758,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
          // Paper end - Allow nerfed mobs to jump and float
          this.sensing.tick();
          int i = this.tickCount + this.getId();

@@ -3,7 +3,6 @@ package org.bxteam.divinemc.entity.tracking;
 import ca.spottedleaf.moonrise.common.list.ReferenceList;
 import ca.spottedleaf.moonrise.common.misc.NearbyPlayers;
 import ca.spottedleaf.moonrise.common.util.TickThread;
-import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup;
 import ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity;
 import net.minecraft.server.level.ChunkMap;
@@ -19,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
@@ -31,7 +29,7 @@ public class MultithreadedTracker {
     private static final Logger LOGGER = LogManager.getLogger(THREAD_PREFIX);
 
     private static long lastWarnMillis = System.currentTimeMillis();
-    private static final ThreadPoolExecutor trackerExecutor = new ThreadPoolExecutor(
+    private static final ThreadPoolExecutor TRACKER_EXECUTOR = new ThreadPoolExecutor(
         getCorePoolSize(),
         getMaxPoolSize(),
         getKeepAliveTime(), TimeUnit.SECONDS,
@@ -40,11 +38,7 @@ public class MultithreadedTracker {
         getRejectedPolicy()
     );
 
-    public static Executor getTrackerExecutor() {
-        return trackerExecutor;
-    }
-
-    public static void tick(ChunkSystemServerLevel level) {
+    public static void tick(ServerLevel level) {
         try {
             if (!DivineConfig.AsyncCategory.multithreadedCompatModeEnabled) {
                 tickAsync(level);
@@ -56,15 +50,14 @@ public class MultithreadedTracker {
         }
     }
 
-    private static void tickAsync(ChunkSystemServerLevel level) {
+    private static void tickAsync(ServerLevel level) {
         final NearbyPlayers nearbyPlayers = level.moonrise$getNearbyPlayers();
         final ServerEntityLookup entityLookup = (ServerEntityLookup) level.moonrise$getEntityLookup();
 
         final ReferenceList<Entity> trackerEntities = entityLookup.trackerEntities;
         final Entity[] trackerEntitiesRaw = trackerEntities.getRawDataUnchecked();
 
-        // Move tracking to off-main
-        trackerExecutor.execute(() -> {
+        TRACKER_EXECUTOR.execute(() -> {
             for (final Entity entity : trackerEntitiesRaw) {
                 if (entity == null) continue;
 
@@ -72,19 +65,23 @@ public class MultithreadedTracker {
 
                 if (tracker == null) continue;
 
-                tracker.moonrise$tick(nearbyPlayers.getChunk(entity.chunkPosition()));
-                tracker.serverEntity.sendChanges();
+                synchronized (tracker) {
+                    var trackedChunk = nearbyPlayers.getChunk(entity.chunkPosition());
+                    tracker.moonrise$tick(trackedChunk);
+                    tracker.serverEntity.sendChanges();
+                }
             }
         });
     }
 
-    private static void tickAsyncWithCompatMode(ChunkSystemServerLevel level) {
+    private static void tickAsyncWithCompatMode(ServerLevel level) {
         final NearbyPlayers nearbyPlayers = level.moonrise$getNearbyPlayers();
         final ServerEntityLookup entityLookup = (ServerEntityLookup) level.moonrise$getEntityLookup();
 
         final ReferenceList<Entity> trackerEntities = entityLookup.trackerEntities;
         final Entity[] trackerEntitiesRaw = trackerEntities.getRawDataUnchecked();
         final Runnable[] sendChangesTasks = new Runnable[trackerEntitiesRaw.length];
+        final Runnable[] tickTask = new Runnable[trackerEntitiesRaw.length];
         int index = 0;
 
         for (final Entity entity : trackerEntitiesRaw) {
@@ -94,12 +91,19 @@ public class MultithreadedTracker {
 
             if (tracker == null) continue;
 
-            tracker.moonrise$tick(nearbyPlayers.getChunk(entity.chunkPosition()));
-            sendChangesTasks[index++] = () -> tracker.serverEntity.sendChanges(); // Collect send changes to task array
+            synchronized (tracker) {
+                tickTask[index] = tracker.tickCompact(nearbyPlayers.getChunk(entity.chunkPosition()));
+                sendChangesTasks[index] = () -> tracker.serverEntity.sendChanges();
+            }
+            index++;
         }
 
-        // batch submit tasks
-        trackerExecutor.execute(() -> {
+        TRACKER_EXECUTOR.execute(() -> {
+            for (final Runnable tick : tickTask) {
+                if (tick == null) continue;
+
+                tick.run();
+            }
             for (final Runnable sendChanges : sendChangesTasks) {
                 if (sendChanges == null) continue;
 

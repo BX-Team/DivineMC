@@ -569,39 +569,6 @@ index c8354d46ed909090f7c15f396863bf7d73afcefa..382ef2dad5e995bc01f6492218b8c8f7
          }
      }
  
-diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index e1f5a4814d051a43090bf6df2acbcd20fbbc1934..fd586acb15362a461c77256c6db9cc3a8002750d 100644
---- a/net/minecraft/world/entity/Mob.java
-+++ b/net/minecraft/world/entity/Mob.java
-@@ -715,7 +715,7 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
-         if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {
-             this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
-         } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
--            Entity nearestPlayer = this.level().findNearbyPlayer(this, -1.0, EntitySelector.PLAYER_AFFECTS_SPAWNING); // Paper - Affects Spawning API
-+            Entity nearestPlayer = this.divinemc$findNearbyPlayer(this.level(), this, -1.0); // Paper - Affects Spawning API // DivineMC - faster player lookup
-             if (nearestPlayer != null) {
-                 // Paper start - Configurable despawn distances
-                 final io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DespawnRangePair despawnRangePair = this.level().paperConfig().entities.spawning.despawnRanges.get(this.getType().getCategory());
-@@ -744,6 +744,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
-         }
-     }
- 
-+    // DivineMC start - faster player lookup
-+    private Player divinemc$findNearbyPlayer(Level instance, Entity entity, double maxDistance) {
-+        final Player closestPlayer = instance.getNearestPlayer(entity, this.getType().getCategory().getDespawnDistance());
-+        if (closestPlayer != null) {
-+            return closestPlayer;
-+        } else {
-+            final List<? extends Player> players = this.level().players();
-+            if (players.isEmpty()) return null;
-+            return players.get(0);
-+        }
-+    }
-+    // DivineMC end - faster player lookup
-+
-     @Override
-     protected final void serverAiStep() {
-         this.noActionTime++;
 diff --git a/net/minecraft/world/level/GameRules.java b/net/minecraft/world/level/GameRules.java
 index d510503a8ad272255aeba20a916642828023fd19..2d9bf302b779602d733187c6f86e52467f0dc540 100644
 --- a/net/minecraft/world/level/GameRules.java

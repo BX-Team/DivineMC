@@ -21,7 +21,7 @@ index 343ec870d6ea3e2792f369c4867a3afb4bcfa385..db909744c922f2e5b486a8f15dac79d6
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7197b73b9 100644
+index 3cf54630d36f821a232fa03f9094c4c1f70902a1..5f62eee8a60d7fcadb1f9efb7473bc5c20c47263 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -45,7 +45,7 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7
      @Nullable
      @VisibleForDebug
      private NaturalSpawner.SpawnState lastSpawnState;
-@@ -153,32 +156,241 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -153,31 +156,240 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          return load ? this.syncLoad(chunkX, chunkZ, toStatus) : null;
      }
      // Paper end - rewrite chunk system
@@ -268,11 +268,7 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7
 +                        latch.await();
 +                        return true;
 +                    }
- 
--            // call mid-tick tasks for chunk system
--            if ((i & 7) == 0) {
--                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
--                continue;
++
 +                    @Override
 +                    public boolean isReleasable() {
 +                        return latch.getCount() == 0;
@@ -285,10 +281,12 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7
 +            java.util.Objects.checkFromToIndex(0, size, raw.length);
 +            for (int i = 0; i < size; ++i) {
 +                world.tickChunk(raw[i], randomTickSpeed);
-+
+ 
+-            // call mid-tick tasks for chunk system
+-            if ((i & 7) == 0) {
+-                continue;
 +                // call mid-tick tasks for chunk system
 +                if ((i & 7) == 0) {
-+                    ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer) this.level.getServer()).moonrise$executeMidTickTasks();
 +                    continue;
 +                }
              }
@@ -297,7 +295,7 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7
      }
      // Paper end - chunk tick iteration optimisations
  
-@@ -502,14 +714,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -501,14 +713,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          long gameTime = this.level.getGameTime();
          long l = gameTime - this.lastInhabitedUpdate;
          this.lastInhabitedUpdate = gameTime;
@@ -323,7 +321,7 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7
          // DivineMC start - Async mob spawning
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
              for (ServerPlayer player : this.level.players) {
-@@ -538,14 +757,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -537,14 +756,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      }
  
      private void broadcastChangedChunks() {
@@ -348,7 +346,7 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7
      }
  
      private void tickChunks(long timeInhabited) {
-@@ -595,25 +818,28 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -594,25 +817,28 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              filteredSpawningCategories = List.of();
          }
  
@@ -394,7 +392,7 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..9f6f8aace06702152117efc8252aefb7
              this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
          }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 690b6d9f89f70afd8f37d907863b87dd1f4591af..7ae5ba48632528dfe5bbdedf252b5995f5452f1c 100644
+index 6edf0d8a4b8b82f85eac4d89cafd24e6730a61c6..83b46b31d1c0b565deeefe3dafa3b0287f14fb00 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -192,7 +192,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
