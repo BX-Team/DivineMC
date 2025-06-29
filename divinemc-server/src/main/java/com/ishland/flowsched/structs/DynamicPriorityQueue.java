@@ -1,20 +1,21 @@
 package com.ishland.flowsched.structs;
 
-import org.bxteam.divinemc.server.chunk.PriorityHandler;
+import ca.spottedleaf.moonrise.common.util.MoonriseConstants;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
 @SuppressWarnings("unchecked")
 public class DynamicPriorityQueue<E> {
+    public static final int MAX_PRIORITY = MoonriseConstants.MAX_VIEW_DISTANCE + 3;
     private final AtomicIntegerArray taskCount;
     public final ConcurrentLinkedQueue<E>[] priorities;
     private final ConcurrentHashMap<E, Integer> priorityMap = new ConcurrentHashMap<>();
 
     public DynamicPriorityQueue() {
-        this.taskCount = new AtomicIntegerArray(PriorityHandler.MAX_PRIORITY + 1);
-        this.priorities = new ConcurrentLinkedQueue[PriorityHandler.MAX_PRIORITY + 1];
-        for (int i = 0; i < (PriorityHandler.MAX_PRIORITY + 1); i++) {
+        this.taskCount = new AtomicIntegerArray(MAX_PRIORITY);
+        this.priorities = new ConcurrentLinkedQueue[MAX_PRIORITY];
+        for (int i = 0; i < (MAX_PRIORITY); i++) {
             this.priorities[i] = new ConcurrentLinkedQueue<>();
         }
     }

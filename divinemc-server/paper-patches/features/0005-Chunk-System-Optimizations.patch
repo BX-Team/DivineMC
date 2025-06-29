@@ -507,15 +507,14 @@ index ab2fa1563d5e32a5313dfcc1da411cab45fb5ca0..1bababc2515d8c805e4ee0c943065f45
      }
  
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
-index 632920e04686d8a0fd0a60e87348be1fe7862a3c..06a0624663a080d8be9f7816fda569fda9fdd1e1 100644
+index 632920e04686d8a0fd0a60e87348be1fe7862a3c..03e7344661b6aea258918bd388dc0e4e6fb5bc96 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
-@@ -3,6 +3,12 @@ package ca.spottedleaf.moonrise.common.util;
+@@ -3,6 +3,11 @@ package ca.spottedleaf.moonrise.common.util;
  import ca.spottedleaf.concurrentutil.executor.thread.PrioritisedThreadPool;
  import ca.spottedleaf.moonrise.common.PlatformHooks;
  import com.mojang.logging.LogUtils;
 +import org.bxteam.divinemc.config.DivineConfig;
-+import org.bxteam.divinemc.server.chunk.ChunkSystemAlgorithms;
 +import org.bxteam.divinemc.server.chunk.TheChunkSystem;
 +import org.bxteam.divinemc.spark.ThreadDumperRegistry;
 +import org.bxteam.divinemc.util.ThreadBuilder;
@@ -523,18 +522,14 @@ index 632920e04686d8a0fd0a60e87348be1fe7862a3c..06a0624663a080d8be9f7816fda569fd
  import org.slf4j.Logger;
  import java.util.concurrent.TimeUnit;
  import java.util.concurrent.atomic.AtomicInteger;
-@@ -12,83 +18,63 @@ public final class MoonriseCommon {
+@@ -12,83 +17,73 @@ public final class MoonriseCommon {
  
      private static final Logger LOGGER = LogUtils.getClassLogger();
  
 -    public static final PrioritisedThreadPool WORKER_POOL = new PrioritisedThreadPool(
 -            new Consumer<>() {
 -                private final AtomicInteger idGenerator = new AtomicInteger();
-+    public static TheChunkSystem WORKER_POOL;
-+    public static TheChunkSystem.ExecutorGroup PARALLEL_GEN_GROUP;
-+    public static TheChunkSystem.ExecutorGroup RADIUS_AWARE_GROUP;
-+    public static TheChunkSystem.ExecutorGroup LOAD_GROUP;
- 
+-
 -                @Override
 -                public void accept(Thread thread) {
 -                    thread.setDaemon(true);
@@ -564,29 +559,41 @@ index 632920e04686d8a0fd0a60e87348be1fe7862a3c..06a0624663a080d8be9f7816fda569fd
 -            defaultWorkerThreads = defaultWorkerThreads / 2;
 -        }
 -        defaultWorkerThreads = Integer.getInteger(PlatformHooks.get().getBrand() + ".WorkerThreadCount", Integer.valueOf(defaultWorkerThreads));
--
--        int workerThreads = configWorkerThreads;
++    public static TheChunkSystem WORKER_POOL;
++    public static TheChunkSystem.ExecutorGroup PARALLEL_GEN_GROUP;
++    public static TheChunkSystem.ExecutorGroup RADIUS_AWARE_GROUP;
++    public static TheChunkSystem.ExecutorGroup LOAD_GROUP;
+ 
 +    public static void init(final int configWorkerThreads, final int configIoThreads) {
-+        ChunkSystemAlgorithms algorithm = DivineConfig.PerformanceCategory.chunkWorkerAlgorithm;
-+        int workerThreads = algorithm.evalWorkers(configWorkerThreads, configIoThreads);
-+        int ioThreads = algorithm.evalIO(configWorkerThreads, configIoThreads);
+         int workerThreads = configWorkerThreads;
  
 -        if (workerThreads <= 0) {
 -            workerThreads = defaultWorkerThreads;
--        }
-+        WORKER_POOL = buildChunkSystem(workerThreads);
++        if (configWorkerThreads <= 0) {
++            boolean isWindows = io.netty.util.internal.PlatformDependent.isWindows();
++            int cpus = Runtime.getRuntime().availableProcessors();
++            double memGb = Runtime.getRuntime().maxMemory() / 1024.0 / 1024.0 / 1024.0;
++
++            double cpuBased = isWindows ? (cpus / 1.6) : (cpus / 1.3);
++            double memBased = (memGb - 0.5) / 0.6;
++
++            workerThreads = (int) Math.max(1, Math.min(cpuBased, memBased));
+         }
  
 -        final int ioThreads = Math.max(1, configIoThreads);
++        int ioThreads = Math.max(1, configIoThreads);
+ 
+-        WORKER_POOL.adjustThreadCount(workerThreads);
++        WORKER_POOL = buildChunkSystem(workerThreads);
 +        PARALLEL_GEN_GROUP = MoonriseCommon.WORKER_POOL.createExecutorGroup();
 +        RADIUS_AWARE_GROUP = MoonriseCommon.WORKER_POOL.createExecutorGroup();
 +        LOAD_GROUP = MoonriseCommon.WORKER_POOL.createExecutorGroup();
- 
--        WORKER_POOL.adjustThreadCount(workerThreads);
          IO_POOL.adjustThreadCount(ioThreads);
-+        LOGGER.info("Running ChunkSystem with {} worker threads and {} I/O threads", workerThreads, ioThreads);
-+    }
  
 -        LOGGER.info(PlatformHooks.get().getBrand() + " is using " + workerThreads + " worker threads, " + ioThreads + " I/O threads");
++        LOGGER.info("Running ChunkSystem with {} worker threads and {} I/O threads", workerThreads, ioThreads);
++    }
++
 +    private static @NotNull TheChunkSystem buildChunkSystem(int workerThreads) {
 +        return new TheChunkSystem(workerThreads, new ThreadBuilder() {
 +            @Override
@@ -664,7 +671,7 @@ index 559c959aff3c9deef867b9e425fba3e2e669cac6..7d0281cc946d6b0dc6f21fa6798e5320
      private MoonriseConstants() {}
  
 diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
-index c2b53adb5f0fd8207cf13cb6f7249385b1c30f34..83419bbcbf79d8eed1302d66356a62fa61a33473 100644
+index 17247f177460e89f0413df63d7f3dac2fb1cd197..696d3324a04084600b5d8c8c173b85dbc020d7c0 100644
 --- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
 +++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
 @@ -227,7 +227,7 @@ public class GlobalConfiguration extends ConfigurationPart {

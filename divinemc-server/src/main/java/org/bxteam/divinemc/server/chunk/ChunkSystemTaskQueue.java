@@ -3,9 +3,7 @@ package org.bxteam.divinemc.server.chunk;
 import ca.spottedleaf.concurrentutil.executor.PrioritisedExecutor;
 import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
 import ca.spottedleaf.concurrentutil.util.Priority;
-import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.executor.RadiusAwarePrioritisedExecutor;
-import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.ChunkUpgradeGenericStatusTask;
-import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.GenericDataLoadTask;
+
 import java.lang.invoke.VarHandle;
 import java.util.Comparator;
 import java.util.Map;
@@ -152,29 +150,7 @@ public final class ChunkSystemTaskQueue implements PrioritisedExecutor {
                 this.holder = new Holder(this, this.priority.priority, this.subOrder, this.id);
 
                 ChunkSystemTaskQueue.this.scheduledTasks.getAndIncrement();
-                int priority = this.holder.task.priority.priority;
-                if (this.holder.task.priority.isHigherOrEqualPriority(Priority.BLOCKING)) {
-                    priority = PriorityHandler.BLOCKING;
-                } else if (this.holder.task.execute instanceof ChunkUpgradeGenericStatusTask upgradeTask) {
-                    int x = upgradeTask.chunkX;
-                    int z = upgradeTask.chunkZ;
-                    priority = upgradeTask.world.chunkSystemPriorities.priority(x, z);
-                } else if (this.holder.task.execute instanceof RadiusAwarePrioritisedExecutor.Task task) {
-                    int x = task.chunkX;
-                    int z = task.chunkZ;
-                    if (!(x == 0 && z == 0)) {
-                        priority = task.world.chunkSystemPriorities.priority(x, z);
-                    } // else | infinite radius task, ignore.
-                } else if (this.holder.task.execute instanceof GenericDataLoadTask<?, ?>.ProcessOffMainTask offMainTask) {
-                    int x = offMainTask.loadTask().chunkX;
-                    int z = offMainTask.loadTask().chunkZ;
-                    priority = offMainTask.loadTask().world.chunkSystemPriorities.priority(x, z);
-                } else if (this.holder.task.execute instanceof ChunkRunnable chunkRunnable) {
-                    int x = chunkRunnable.chunkX;
-                    int z = chunkRunnable.chunkZ;
-                    priority = chunkRunnable.world.chunkSystemPriorities.priority(x, z);
-                }
-                ChunkSystemTaskQueue.this.chunkSystem.schedule(this.holder.task.execute, priority);
+                ChunkSystemTaskQueue.this.chunkSystem.schedule(this.holder.task.execute, this.holder.task.priority.priority);
             }
 
             if (ChunkSystemTaskQueue.this.isShutdown()) {

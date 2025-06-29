@@ -5,10 +5,10 @@ Subject: [PATCH] Configurable thread pool priority
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
-index 06a0624663a080d8be9f7816fda569fda9fdd1e1..c2a52a071dbb82b8498499b9e9386bdcdfe39c9c 100644
+index 03e7344661b6aea258918bd388dc0e4e6fb5bc96..098b50751d805f03cad5e94e8ed04a20697a51cc 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
-@@ -66,6 +66,7 @@ public final class MoonriseCommon {
+@@ -75,6 +75,7 @@ public final class MoonriseCommon {
                          LOGGER.error("Uncaught exception in thread {}", thread.getName(), throwable);
                      }
                  });

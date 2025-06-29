@@ -392,7 +392,7 @@ index 3cf54630d36f821a232fa03f9094c4c1f70902a1..5f62eee8a60d7fcadb1f9efb7473bc5c
              this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
          }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 6edf0d8a4b8b82f85eac4d89cafd24e6730a61c6..83b46b31d1c0b565deeefe3dafa3b0287f14fb00 100644
+index d39d15dcb6964aed0bf9c2f64952d229d64cff62..69b2ce6647edacabdff5079114e067a69d485e96 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -192,7 +192,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -404,7 +404,7 @@ index 6edf0d8a4b8b82f85eac4d89cafd24e6730a61c6..83b46b31d1c0b565deeefe3dafa3b028
      volatile boolean isUpdatingNavigations;
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
-@@ -810,6 +810,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -808,6 +808,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                  this.dragonFight.tick();
              }
  
@@ -418,7 +418,7 @@ index 6edf0d8a4b8b82f85eac4d89cafd24e6730a61c6..83b46b31d1c0b565deeefe3dafa3b028
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
              this.entityTickList
                  .forEach(
-@@ -1817,22 +1824,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1815,22 +1822,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (Shapes.joinIsNotEmpty(collisionShape, collisionShape1, BooleanOp.NOT_SAME)) {
              List<PathNavigation> list = new ObjectArrayList<>();
  

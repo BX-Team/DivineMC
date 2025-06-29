@@ -25,7 +25,7 @@ index abfecaf4467092f7baa02e0f5bbfd23d087f2aa3..77a693f42d90b5d17bf56d86b1676247
          this.tickCount++;
          this.tickRateManager.tick();
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 14c8df2f3b9c133b38e871e81f7ee2333322437c..05b8834b5566ac12655b563a1a58f123275fdedb 100644
+index efda5818ac05cbf06b93a1c983d6e3b18412ca86..ebd4b7c36e1cece8730782764c476756feebc211 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -216,6 +216,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -36,7 +36,7 @@ index 14c8df2f3b9c133b38e871e81f7ee2333322437c..05b8834b5566ac12655b563a1a58f123
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -766,6 +767,8 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -764,6 +765,8 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              }
          }
  
@@ -45,7 +45,7 @@ index 14c8df2f3b9c133b38e871e81f7ee2333322437c..05b8834b5566ac12655b563a1a58f123
          this.updateSkyBrightness();
          if (runsNormally) {
              this.tickTime();
-@@ -846,11 +849,18 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -844,11 +847,18 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                      this.setDayTime(this.preciseTime);
                  } else
                  // Purpur end - Configurable daylight cycle
@@ -66,7 +66,7 @@ index 14c8df2f3b9c133b38e871e81f7ee2333322437c..05b8834b5566ac12655b563a1a58f123
          this.serverLevelData.setDayTime(time);
          // Purpur start - Configurable daylight cycle
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index e3babfa292556c5f5a208536a3f869dc71b82498..16a3cd813997456ca67a382a8277eca02dc6662f 100644
+index b8bd792293cb5985db5e5dfa5644930971a34632..a24829b705945fbda1058d9848b829500e727304 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -517,6 +517,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
@@ -220,7 +220,7 @@ index 2d9bf302b779602d733187c6f86e52467f0dc540..69196d7e43054955137569b22c4ca40a
      public static class BooleanValue extends GameRules.Value<GameRules.BooleanValue> {
          private boolean value;
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 36e754dedc9e7b97dc5565864f5664d062ff612a..346d1825a9ed03c61f6915edc2b8d96dd0ead3e4 100644
+index 8db95b74f88f8096de93115ae8d3fb2e6184ad3b..e044830439fe9821ab3f62695d318a6321b8a266 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -347,13 +347,21 @@ public abstract class BlockBehaviour implements FeatureElement {

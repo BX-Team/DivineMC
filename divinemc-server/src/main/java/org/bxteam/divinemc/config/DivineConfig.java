@@ -11,8 +11,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bxteam.divinemc.entity.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.region.LinearImplementation;
-import org.bxteam.divinemc.server.chunk.ChunkSystemAlgorithms;
-import org.bxteam.divinemc.server.chunk.ChunkTaskPriority;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlFile;
@@ -339,8 +337,6 @@ public class DivineConfig {
         public static long chunkDataCacheLimit = 32678L;
         public static int maxViewDistance = 32;
         public static int playerNearChunkDetectionRange = 128;
-        public static ChunkSystemAlgorithms chunkWorkerAlgorithm = ChunkSystemAlgorithms.C2ME;
-        public static ChunkTaskPriority chunkTaskPriority = ChunkTaskPriority.EUCLIDEAN_CIRCLE_PATTERN;
         public static int threadPoolPriority = Thread.NORM_PRIORITY + 1;
         public static boolean smoothBedrockLayer = false;
         public static boolean enableDensityFunctionCompiler = false;
@@ -410,17 +406,6 @@ public class DivineConfig {
                 playerNearChunkDetectionRange = 128;
             }
 
-            chunkWorkerAlgorithm = ChunkSystemAlgorithms.valueOf(getString(ConfigCategory.PERFORMANCE.key("chunks.chunk-worker-algorithm"), chunkWorkerAlgorithm.name(),
-                "Modifies what algorithm the chunk system will use to define thread counts.",
-                "Valid values:",
-                " - MOONRISE: Default algorithm, used by default in Paper",
-                " - C2ME: Algorithm used by C2ME (old)",
-                " - C2ME_NEW: Modern algorithm used by C2ME"));
-            chunkTaskPriority = ChunkTaskPriority.valueOf(getString(ConfigCategory.PERFORMANCE.key("chunks.chunk-task-priority"), chunkTaskPriority.name(),
-                "Sets the algorithm for determining chunk task priorities (generation, loading and etc.).",
-                "Valid values:",
-                " - EUCLIDEAN_CIRCLE_PATTERN: Euclidean distance squared algorithm, chunk priorities will be ordered in a circle pattern",
-                " - DEFAULT_DIAMOND_PATTERN: Default one, chunk priorities will be ordered in a diamond pattern"));
             threadPoolPriority = getInt(ConfigCategory.PERFORMANCE.key("chunks.thread-pool-priority"), threadPoolPriority,
                 "Sets the priority of the thread pool used for chunk generation");
 

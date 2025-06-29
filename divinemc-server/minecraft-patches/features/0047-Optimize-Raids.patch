@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize Raids
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index c87d1ff6f55e2316686add55abebbc7d8ecab914..690b6d9f89f70afd8f37d907863b87dd1f4591af 100644
+index adac2dd1530c21c610f6dced12a80ab726fe3a98..d39d15dcb6964aed0bf9c2f64952d229d64cff62 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -218,6 +218,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -16,10 +16,10 @@ index c87d1ff6f55e2316686add55abebbc7d8ecab914..690b6d9f89f70afd8f37d907863b87dd
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -708,6 +709,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -706,6 +707,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+         this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.tickExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new org.bxteam.divinemc.server.ServerLevelTickExecutorThreadFactory(getWorld().getName())); // DivineMC - Parallel world ticking
          this.preciseTime = this.serverLevelData.getDayTime(); // Purpur - Configurable daylight cycle
-         this.chunkSystemPriorities = new org.bxteam.divinemc.server.chunk.PriorityHandler(this); // DivineMC - Chunk System optimizations
 +        this.ominousBanner = Objects.requireNonNullElse(this.registryAccess(), net.minecraft.core.RegistryAccess.EMPTY).lookup(Registries.BANNER_PATTERN).map(Raid::getOminousBannerInstance).orElse(null); // DivineMC - Optimize Raids
      }
  

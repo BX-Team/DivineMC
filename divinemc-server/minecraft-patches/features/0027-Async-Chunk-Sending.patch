@@ -5,7 +5,7 @@ Subject: [PATCH] Async Chunk Sending
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index 5cb896334f9916b030ee523119946d3b40585fc3..e93a006cde4dd85a9976e0d6a64643755ba99fb7 100644
+index 636ba1c5fef58aabd5b8d6c6a8d183584b9c8be1..998f8f0bd173ff370e947c16c28b9b01f89da1eb 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 @@ -53,6 +53,8 @@ public final class RegionizedPlayerChunkLoader {
@@ -17,7 +17,7 @@ index 5cb896334f9916b030ee523119946d3b40585fc3..e93a006cde4dd85a9976e0d6a6464375
      public static void setUnloadDelay(final long ticks) {
          ((ChunkSystemTicketType)(Object)PLAYER_TICKET_DELAYED).moonrise$setTimeout(Math.max(1, ticks));
      }
-@@ -428,17 +430,61 @@ public final class RegionizedPlayerChunkLoader {
+@@ -421,17 +423,61 @@ public final class RegionizedPlayerChunkLoader {
          }
  
          private void sendChunk(final int chunkX, final int chunkZ) {

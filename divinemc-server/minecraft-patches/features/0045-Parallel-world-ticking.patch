@@ -4,9 +4,10 @@ Date: Wed, 29 Jan 2025 00:59:03 +0300
 Subject: [PATCH] Parallel world ticking
 
 Original project: https://github.com/SparklyPower/SparklyPaper
+TODO: find the crash problem and fix it (Attempting to remove entity ... from entity slices (.., ..) that is receiving status updates)
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index dce2b0ae83e70ccaf2ac97441f80b25876ee9058..a25db7dd56e31f6a34e4b185b75c727e290e9af1 100644
+index c10e31017e7dfab348e9cc45c28d3858863ac0b1..97bdfe92f32368427bff4960b8f5e39f298c00ab 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -1155,7 +1155,7 @@ public final class ChunkHolderManager {
@@ -18,7 +19,7 @@ index dce2b0ae83e70ccaf2ac97441f80b25876ee9058..a25db7dd56e31f6a34e4b185b75c727e
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
              this.getData().offThreadPendingFullLoadUpdate.addAll(changedFullStatus); // DivineMC - Chunk System optimization
-@@ -1187,7 +1187,13 @@ public final class ChunkHolderManager {
+@@ -1176,7 +1176,13 @@ public final class ChunkHolderManager {
  
      // note: never call while inside the chunk system, this will absolutely break everything
      public void processUnloads() {
@@ -33,7 +34,7 @@ index dce2b0ae83e70ccaf2ac97441f80b25876ee9058..a25db7dd56e31f6a34e4b185b75c727e
  
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot unload chunks recursively");
-@@ -1474,7 +1480,7 @@ public final class ChunkHolderManager {
+@@ -1463,7 +1469,7 @@ public final class ChunkHolderManager {
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot update ticket level while unloading chunks or updating entity manager");
          }
@@ -363,7 +364,7 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..3cf54630d36f821a232fa03f9094c4c1
              }
          }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 00d9e6421185b1ba4f0fdff347a53cae5b830a0a..c3ed824b2c31902b50de74df37d9d8fd504454fc 100644
+index 324c573899965b204cec17458b6cb9733d83a868..2348a3ec6afb2618033b8f40257f7c9c58448397 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -181,7 +181,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -383,7 +384,7 @@ index 00d9e6421185b1ba4f0fdff347a53cae5b830a0a..c3ed824b2c31902b50de74df37d9d8fd
  
      // CraftBukkit start
      public final LevelStorageSource.LevelStorageAccess levelStorageAccess;
-@@ -681,7 +682,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -680,7 +681,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.sleepStatus = new SleepStatus();
          this.gameEventDispatcher = new GameEventDispatcher(this);
          this.randomSequences = Objects.requireNonNullElseGet(randomSequences, () -> this.getDataStorage().computeIfAbsent(RandomSequences.TYPE));
@@ -392,15 +393,15 @@ index 00d9e6421185b1ba4f0fdff347a53cae5b830a0a..c3ed824b2c31902b50de74df37d9d8fd
          // Paper start - rewrite chunk system
          this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup((ServerLevel)(Object)this, ((ServerLevel)(Object)this).new EntityCallbacks()));
          this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler((ServerLevel)(Object)this);
-@@ -698,6 +699,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -697,6 +698,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
 +        this.tickExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new org.bxteam.divinemc.server.ServerLevelTickExecutorThreadFactory(getWorld().getName())); // DivineMC - Parallel world ticking
          this.preciseTime = this.serverLevelData.getDayTime(); // Purpur - Configurable daylight cycle
-         this.chunkSystemPriorities = new org.bxteam.divinemc.server.chunk.PriorityHandler(this); // DivineMC - Chunk System optimizations
      }
-@@ -1300,12 +1302,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+ 
+@@ -1298,12 +1300,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (fluidState.is(fluid)) {
              fluidState.tick(this, pos, blockState);
          }
@@ -418,7 +419,7 @@ index 00d9e6421185b1ba4f0fdff347a53cae5b830a0a..c3ed824b2c31902b50de74df37d9d8fd
      }
  
      private void tickBlock(BlockPos pos, Block block) {
-@@ -1313,12 +1315,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1311,12 +1313,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (blockState.is(block)) {
              blockState.tick(this, pos, this.random);
          }
@@ -436,7 +437,7 @@ index 00d9e6421185b1ba4f0fdff347a53cae5b830a0a..c3ed824b2c31902b50de74df37d9d8fd
      }
  
      // Paper start - log detailed entity tick information
-@@ -1568,6 +1570,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1566,6 +1568,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      }
  
      private void addPlayer(ServerPlayer player) {
@@ -444,7 +445,7 @@ index 00d9e6421185b1ba4f0fdff347a53cae5b830a0a..c3ed824b2c31902b50de74df37d9d8fd
          Entity entity = this.getEntity(player.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -1580,7 +1583,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1578,7 +1581,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
  
      // CraftBukkit start
      private boolean addEntity(Entity entity, @Nullable org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
