@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 29 Jun 2025 15:12:40 +0300
+Subject: [PATCH] Smooth teleport API
+
+
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index 87fe8f80e76a63f7ab4f55668524f97be01e6929..8ed9d9ac278f2a38ab230fc38423d5f30fd57c22 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -434,6 +434,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+     private boolean compassBar = false; // Purpur - Add compass command
+     private boolean ramBar = false; // Purpur - Implement rambar commands
+     public boolean hasTickedAtLeastOnceInNewWorld = false; // DivineMC - Parallel world ticking
++    public boolean smoothWorldTeleport; // DivineMC - Smooth teleport API
+ 
+     // Paper start - rewrite chunk system
+     private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index 0fc818dc4eb54cdc2be3636bf9fec5923f6be934..9190ee3eb063c3c5589f73204c6f7d6371f8ba46 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -791,11 +791,11 @@ public abstract class PlayerList {
+         byte b = (byte)(keepInventory ? 1 : 0);
+         ServerLevel serverLevel = serverPlayer.level();
+         LevelData levelData = serverLevel.getLevelData();
+-        serverPlayer.connection.send(new ClientboundRespawnPacket(serverPlayer.createCommonSpawnInfo(serverLevel), b));
++        if (!serverPlayer.smoothWorldTeleport || !isSameLogicalHeight((ServerLevel) fromWorld, level)) serverPlayer.connection.send(new ClientboundRespawnPacket(serverPlayer.createCommonSpawnInfo(serverLevel), b)); // DivineMC - Smooth teleport API
+         // serverPlayer.connection.teleport(serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(), serverPlayer.getYRot(), serverPlayer.getXRot());
+         serverPlayer.connection.send(new ClientboundSetChunkCacheRadiusPacket(serverLevel.spigotConfig.viewDistance)); // Spigot
+         serverPlayer.connection.send(new ClientboundSetSimulationDistancePacket(serverLevel.spigotConfig.simulationDistance)); // Spigot
+-        serverPlayer.connection.teleport(org.bukkit.craftbukkit.util.CraftLocation.toBukkit(serverPlayer.position(), serverLevel.getWorld(), serverPlayer.getYRot(), serverPlayer.getXRot())); // CraftBukkit
++        if (!serverPlayer.smoothWorldTeleport || !isSameLogicalHeight((ServerLevel) fromWorld, level)) serverPlayer.connection.teleport(org.bukkit.craftbukkit.util.CraftLocation.toBukkit(serverPlayer.position(), serverLevel.getWorld(), serverPlayer.getYRot(), serverPlayer.getXRot())); // DivineMC - Smooth teleport API
+         serverPlayer.connection.send(new ClientboundSetDefaultSpawnPositionPacket(level.getSharedSpawnPos(), level.getSharedSpawnAngle()));
+         serverPlayer.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
+         serverPlayer.connection
+@@ -882,6 +882,12 @@ public abstract class PlayerList {
+         return serverPlayer;
+     }
+ 
++    // DivineMC start - Smooth teleport API
++    public static boolean isSameLogicalHeight(ServerLevel fromLevel, ServerLevel toLevel) {
++        return fromLevel.getLogicalHeight() == toLevel.getLogicalHeight();
++    }
++    // DivineMC end - Smooth teleport API
++
+     public void sendActivePlayerEffects(ServerPlayer player) {
+         this.sendActiveEffects(player, player.connection);
+     }

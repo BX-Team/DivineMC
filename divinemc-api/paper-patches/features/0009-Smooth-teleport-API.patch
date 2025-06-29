@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 29 Jun 2025 15:08:59 +0300
+Subject: [PATCH] Smooth teleport API
+
+
+diff --git a/src/main/java/org/bukkit/entity/Player.java b/src/main/java/org/bukkit/entity/Player.java
+index 531e0b77110b956b772d8698fd838ec2cc83f59c..92c081bdf7aa0cbf545e4aa543f98a3cc000dc8b 100644
+--- a/src/main/java/org/bukkit/entity/Player.java
++++ b/src/main/java/org/bukkit/entity/Player.java
+@@ -4044,4 +4044,18 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
+         sendDeathScreen(message);
+     }
+     // Purpur end
++
++    // DivineMC start - Smooth teleport API
++    /**
++     * This abuses some of how Minecraft works and attempts to teleport a player to another world without
++     * triggering typical respawn packets. All of natural state of chunk resends, entity adds/removes, etc still
++     * happen but the visual "refresh" of a world change is hidden. Depending on the destination location/world,
++     * this can act as a "smooth teleport" to a world if the new world is very similar looking to the old one.
++     *
++     * @param location New location to teleport this Player to
++     * @return Whether the teleport was successful
++     */
++    @org.jetbrains.annotations.ApiStatus.Experimental
++    boolean teleportWithoutRespawn(Location location);
++    // DivineMC end - Smooth teleport API
+ }
