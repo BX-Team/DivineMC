@@ -17,7 +17,7 @@
          int currentSwingDuration = this.getCurrentSwingDuration();
          if (this.swinging) {
              this.swingTime++;
-@@ -3264,7 +_,13 @@
+@@ -3279,7 +_,13 @@
      }
  
      protected float getFlyingSpeed() {
@@ -32,7 +32,7 @@
      }
  
      public float getSpeed() {
-@@ -3713,6 +_,7 @@
+@@ -3728,6 +_,7 @@
      protected void updateFallFlying() {
          this.checkFallDistanceAccumulation();
          if (!this.level().isClientSide) {

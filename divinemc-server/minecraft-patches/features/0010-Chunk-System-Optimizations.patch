@@ -239,7 +239,7 @@ index 2d24d03bbdb5ee0d862cbfff2219f58afffafe12..950b284cb3b4488a794e6c6f936f55ea
  
      protected boolean addEntity(final Entity entity, final boolean fromDisk, final boolean event) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index dc2b3ccf7810731c0e2c90e5a476c1c8203a1fb7..636ba1c5fef58aabd5b8d6c6a8d183584b9c8be1 100644
+index dc2b3ccf7810731c0e2c90e5a476c1c8203a1fb7..7c223e99dfc8b67b3c953d9c741ced4a2c485343 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 @@ -191,13 +191,13 @@ public final class RegionizedPlayerChunkLoader {
@@ -314,15 +314,6 @@ index dc2b3ccf7810731c0e2c90e5a476c1c8203a1fb7..636ba1c5fef58aabd5b8d6c6a8d18358
              TickThread.ensureTickThread(this.player, "Cannot add player asynchronously");
              if (this.removed) {
                  throw new IllegalStateException("Removing removed player chunk loader");
-@@ -1091,7 +1097,7 @@ public final class RegionizedPlayerChunkLoader {
-         }
- 
-         public LongOpenHashSet getSentChunksRaw() {
--            return this.sentChunks;
-+            return new LongOpenHashSet(this.sentChunks); // DivineMC - Chunk System optimization
-         }
-     }
- }
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 index 6ce4a98e4d3b633e3c87944c23b6b3f0ff58f159..c10e31017e7dfab348e9cc45c28d3858863ac0b1 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java

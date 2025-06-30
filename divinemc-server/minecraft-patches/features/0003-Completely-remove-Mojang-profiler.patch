@@ -1479,7 +1479,7 @@ index 3c7159d0981c948e71a5612ba4083accb5849ed4..5f2c27800f047f128857044493a6d932
              for (Entity entity : passengerEntity.getPassengers()) {
                  this.tickPassenger(passengerEntity, entity, isActive); // Paper - EAR 2
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 9415194e5d6aa190c9f42c3bf7599aaa5971c1eb..c7d081aff58170251d075a58d5e1345fc1bda9f8 100644
+index 86c3bb813c58a5aaefad077605bf8296dd7d9c05..95aabca0b1f2f3762df52e9a09afe19ed1939209 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -106,8 +106,6 @@ import net.minecraft.util.HashOps;
@@ -4134,7 +4134,7 @@ index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540
          }
      }
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index e12cbd76889acdca25f5a91f6eead1205e7b10dd..e3babfa292556c5f5a208536a3f869dc71b82498 100644
+index 70fc96a273b74ebb8b665c6808d8f2f3a0ee6039..71cf5561df3f0d9b77cc52720b21a7a418d90a21 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -69,8 +69,6 @@ import net.minecraft.tags.FluidTags;
@@ -4163,7 +4163,7 @@ index e12cbd76889acdca25f5a91f6eead1205e7b10dd..e3babfa292556c5f5a208536a3f869dc
      }
  
      @Override
-@@ -3357,11 +3352,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3372,11 +3367,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              f1 = this.getYRot();
          }
  
@@ -4175,7 +4175,7 @@ index e12cbd76889acdca25f5a91f6eead1205e7b10dd..e3babfa292556c5f5a208536a3f869dc
  
          // Paper start - stop large pitch and yaw changes from crashing the server
          this.yRotO += Math.round((this.getYRot() - this.yRotO) / 360.0F) * 360.0F;
-@@ -3373,7 +3364,6 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3388,7 +3379,6 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          this.yHeadRotO += Math.round((this.yHeadRot - this.yHeadRotO) / 360.0F) * 360.0F;
          // Paper end - stop large pitch and yaw changes from crashing the server
  
@@ -4183,7 +4183,7 @@ index e12cbd76889acdca25f5a91f6eead1205e7b10dd..e3babfa292556c5f5a208536a3f869dc
          if (this.isFallFlying()) {
              this.fallFlyTicks++;
          } else {
-@@ -3549,21 +3539,15 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3564,21 +3554,15 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          }
  
          this.setDeltaMovement(d, d1, d2);
@@ -4205,7 +4205,7 @@ index e12cbd76889acdca25f5a91f6eead1205e7b10dd..e3babfa292556c5f5a208536a3f869dc
          if (this.jumping && this.isAffectedByFluids()) {
              double fluidHeight;
              if (this.isInLava()) {
-@@ -3592,8 +3576,6 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3607,8 +3591,6 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              this.noJumpDelay = 0;
          }
  
@@ -4214,7 +4214,7 @@ index e12cbd76889acdca25f5a91f6eead1205e7b10dd..e3babfa292556c5f5a208536a3f869dc
          if (this.isFallFlying()) {
              this.updateFallFlying();
          }
-@@ -3618,9 +3600,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3633,9 +3615,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              this.calculateEntityAnimation(this instanceof FlyingAnimal);
          }
  
@@ -4224,7 +4224,7 @@ index e12cbd76889acdca25f5a91f6eead1205e7b10dd..e3babfa292556c5f5a208536a3f869dc
              if ((!this.isInPowderSnow || !this.canFreeze()) && !this.freezeLocked) { // Paper - Freeze Tick Lock API
                  this.setTicksFrozen(Math.max(0, this.getTicksFrozen() - 2));
              }
-@@ -3630,18 +3610,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3645,18 +3625,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              if (this.tickCount % 40 == 0 && this.isFullyFrozen() && this.canFreeze()) {
                  this.hurtServer(serverLevel, this.damageSources().freeze(), 1.0F);
              }
