@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize default values for configs
 
 
 diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
-index 696d3324a04084600b5d8c8c173b85dbc020d7c0..0b1aa06c5ac84cc4ef1320b56a1baec3d535de20 100644
+index d13c749cfb49ce3c70b4c24ece780a4fc9482d78..a25a2bb0008901a249cf2cc320944bd69cf8ae72 100644
 --- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
 +++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
 @@ -347,8 +347,8 @@ public class GlobalConfiguration extends ConfigurationPart {

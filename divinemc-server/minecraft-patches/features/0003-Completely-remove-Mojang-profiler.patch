@@ -1479,7 +1479,7 @@ index 3c7159d0981c948e71a5612ba4083accb5849ed4..5f2c27800f047f128857044493a6d932
              for (Entity entity : passengerEntity.getPassengers()) {
                  this.tickPassenger(passengerEntity, entity, isActive); // Paper - EAR 2
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 86c3bb813c58a5aaefad077605bf8296dd7d9c05..95aabca0b1f2f3762df52e9a09afe19ed1939209 100644
+index 1a9b227b8b3bfda8da8d6dbf125b249cec50d230..a1b4720ef128ba5cbe1466a7a584d4fe501a71f8 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -106,8 +106,6 @@ import net.minecraft.util.HashOps;
@@ -1491,7 +1491,7 @@ index 86c3bb813c58a5aaefad077605bf8296dd7d9c05..95aabca0b1f2f3762df52e9a09afe19e
  import net.minecraft.world.Container;
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.InteractionHand;
-@@ -1504,14 +1502,10 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1437,14 +1435,10 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
                  this.unsetRemoved();
                  */
                  // CraftBukkit end
@@ -1506,7 +1506,7 @@ index 86c3bb813c58a5aaefad077605bf8296dd7d9c05..95aabca0b1f2f3762df52e9a09afe19e
                  // CraftBukkit start
                  this.isChangingDimension = true; // CraftBukkit - Set teleport invulnerability only if player changing worlds
                  LevelData worlddata = level.getLevelData();
-@@ -1529,7 +1523,6 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1462,7 +1456,6 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
                  this.connection.internalTeleport(PositionMoveRotation.of(teleportTransition), teleportTransition.relatives()); // CraftBukkit - use internal teleport without event
                  this.connection.resetPosition();
                  level.addDuringTeleport(this);
@@ -1515,7 +1515,7 @@ index 86c3bb813c58a5aaefad077605bf8296dd7d9c05..95aabca0b1f2f3762df52e9a09afe19e
                  this.stopUsingItem();
                  this.connection.send(new ClientboundPlayerAbilitiesPacket(this.getAbilities()));
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index f6a04a4b0a06c2fbb3b6aac4ec3e162f6c39b2a2..329b31898ea6abbd7cfefed0f582d9bfaa98e866 100644
+index 1d1747dac52d937b7a099cc413e21ce21b1e4ea5..215715ea2406300ac834444d9b1f0a6d0537cc26 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -26,7 +26,6 @@ import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
@@ -1525,8 +1525,8 @@ index f6a04a4b0a06c2fbb3b6aac4ec3e162f6c39b2a2..329b31898ea6abbd7cfefed0f582d9bf
 -import net.minecraft.util.profiling.Profiler;
  import org.slf4j.Logger;
  
- public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener, org.bukkit.craftbukkit.entity.CraftPlayer.TransferCookieConnection { // CraftBukkit
-@@ -293,7 +292,6 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener {
+@@ -271,7 +270,6 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
      }
  
      protected void keepConnectionAlive() {
@@ -1534,7 +1534,7 @@ index f6a04a4b0a06c2fbb3b6aac4ec3e162f6c39b2a2..329b31898ea6abbd7cfefed0f582d9bf
          long millis = Util.getMillis();
          // Paper start - improve keepalives
          // Purpur start - Alternative Keepalive Handling
-@@ -331,8 +329,6 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -309,8 +307,6 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
                  // Paper end - improve keepalives
              }
          }
@@ -4134,7 +4134,7 @@ index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540
          }
      }
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 70fc96a273b74ebb8b665c6808d8f2f3a0ee6039..71cf5561df3f0d9b77cc52720b21a7a418d90a21 100644
+index 4f70b066cc4858a248d255db6d58c66afd441d84..9a000a4df5df6e36ae25e6d54bfe7cd725df51dd 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -69,8 +69,6 @@ import net.minecraft.tags.FluidTags;
@@ -4163,7 +4163,7 @@ index 70fc96a273b74ebb8b665c6808d8f2f3a0ee6039..71cf5561df3f0d9b77cc52720b21a7a4
      }
  
      @Override
-@@ -3372,11 +3367,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3371,11 +3366,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              f1 = this.getYRot();
          }
  
@@ -4175,7 +4175,7 @@ index 70fc96a273b74ebb8b665c6808d8f2f3a0ee6039..71cf5561df3f0d9b77cc52720b21a7a4
  
          // Paper start - stop large pitch and yaw changes from crashing the server
          this.yRotO += Math.round((this.getYRot() - this.yRotO) / 360.0F) * 360.0F;
-@@ -3388,7 +3379,6 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3387,7 +3378,6 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          this.yHeadRotO += Math.round((this.yHeadRot - this.yHeadRotO) / 360.0F) * 360.0F;
          // Paper end - stop large pitch and yaw changes from crashing the server
  
@@ -4183,7 +4183,7 @@ index 70fc96a273b74ebb8b665c6808d8f2f3a0ee6039..71cf5561df3f0d9b77cc52720b21a7a4
          if (this.isFallFlying()) {
              this.fallFlyTicks++;
          } else {
-@@ -3564,21 +3554,15 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3563,21 +3553,15 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          }
  
          this.setDeltaMovement(d, d1, d2);
@@ -4205,7 +4205,7 @@ index 70fc96a273b74ebb8b665c6808d8f2f3a0ee6039..71cf5561df3f0d9b77cc52720b21a7a4
          if (this.jumping && this.isAffectedByFluids()) {
              double fluidHeight;
              if (this.isInLava()) {
-@@ -3607,8 +3591,6 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3606,8 +3590,6 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              this.noJumpDelay = 0;
          }
  
@@ -4214,7 +4214,7 @@ index 70fc96a273b74ebb8b665c6808d8f2f3a0ee6039..71cf5561df3f0d9b77cc52720b21a7a4
          if (this.isFallFlying()) {
              this.updateFallFlying();
          }
-@@ -3633,9 +3615,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3632,9 +3614,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              this.calculateEntityAnimation(this instanceof FlyingAnimal);
          }
  
@@ -4224,7 +4224,7 @@ index 70fc96a273b74ebb8b665c6808d8f2f3a0ee6039..71cf5561df3f0d9b77cc52720b21a7a4
              if ((!this.isInPowderSnow || !this.canFreeze()) && !this.freezeLocked) { // Paper - Freeze Tick Lock API
                  this.setTicksFrozen(Math.max(0, this.getTicksFrozen() - 2));
              }
-@@ -3645,18 +3625,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3644,18 +3624,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              if (this.tickCount % 40 == 0 && this.isFullyFrozen() && this.canFreeze()) {
                  this.hurtServer(serverLevel, this.damageSources().freeze(), 1.0F);
              }
@@ -4438,10 +4438,10 @@ index c569074403b1d8b443aaa98ba9cf9bbd0e98bd2d..b1aa7294f9479f45fcde77c5ea46db9f
                  this.seen.add(id);
              } else {
 diff --git a/net/minecraft/world/entity/animal/HappyGhast.java b/net/minecraft/world/entity/animal/HappyGhast.java
-index b187c9db564e8fabc34aa1bfe428a00fafb27fec..e04da94daced96a7eb9fdb01c551bea667b72d76 100644
+index fb37669b4d66bb853eabf2d15a369d7ad5a2dbb9..9763a5e24e0fed9b49b6ac59911f6c9f8e893db5 100644
 --- a/net/minecraft/world/entity/animal/HappyGhast.java
 +++ b/net/minecraft/world/entity/animal/HappyGhast.java
-@@ -13,8 +13,6 @@ import net.minecraft.sounds.SoundEvents;
+@@ -14,8 +14,6 @@ import net.minecraft.sounds.SoundEvents;
  import net.minecraft.sounds.SoundSource;
  import net.minecraft.tags.ItemTags;
  import net.minecraft.util.Mth;
@@ -4450,7 +4450,7 @@ index b187c9db564e8fabc34aa1bfe428a00fafb27fec..e04da94daced96a7eb9fdb01c551bea6
  import net.minecraft.world.InteractionHand;
  import net.minecraft.world.InteractionResult;
  import net.minecraft.world.damagesource.DamageSource;
-@@ -420,13 +418,8 @@ public class HappyGhast extends Animal {
+@@ -426,13 +424,8 @@ public class HappyGhast extends Animal {
      @Override
      protected void customServerAiStep(ServerLevel level) {
          if (this.isBaby()) {
@@ -4860,7 +4860,7 @@ index f8a6aba7d6f0f357c72602f4ac6c2537b604eb6c..021aa51da04bea01b0e827390ce1690a
          if ((this.tickCount + this.getId()) % 120 == 0) {
              applyDarknessAround(level, this.position(), this, 20);
 diff --git a/net/minecraft/world/entity/npc/Villager.java b/net/minecraft/world/entity/npc/Villager.java
-index 630ef56b5543b1d7a3d0526c132c19b93b217b16..497974779b281ced8e3dd757dbdf52abc0e0328b 100644
+index edef9b959200008dda8c5036319e29c5e2d92dae..65f65f712db967ce9b11deb278b9d0aa70368703 100644
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
 @@ -35,8 +35,6 @@ import net.minecraft.stats.Stats;
@@ -4872,7 +4872,7 @@ index 630ef56b5543b1d7a3d0526c132c19b93b217b16..497974779b281ced8e3dd757dbdf52ab
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.DifficultyInstance;
  import net.minecraft.world.InteractionHand;
-@@ -394,8 +392,6 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
+@@ -393,8 +391,6 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
      }
      protected void customServerAiStep(ServerLevel level, boolean inactive) { // Purpur - Lobotomize stuck villagers - not final
          // Paper end - EAR 2
@@ -4881,7 +4881,7 @@ index 630ef56b5543b1d7a3d0526c132c19b93b217b16..497974779b281ced8e3dd757dbdf52ab
          // Purpur start - Lobotomize stuck villagers
          if (this.level().purpurConfig.villagerLobotomizeEnabled) {
              // treat as inactive if lobotomized
-@@ -410,7 +406,6 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
+@@ -409,7 +405,6 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
          }
          else if (this.isLobotomized && shouldRestock()) restock(); // Purpur - Lobotomize stuck villagers
          // Pufferfish end

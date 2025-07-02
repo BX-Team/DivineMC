@@ -5,10 +5,10 @@ Subject: [PATCH] Smooth teleport API
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index efa472345ec74e21ca1cf05645b3ab39eda3caa4..4179317ac19a44d6f7ee6fdec4a5b2876e1daa08 100644
+index f2a7c688597d9a07e7ef07476cedbd423c8b3b0d..60669bf18850811546b46d85c6650b02cda963ab 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -1392,6 +1392,17 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -1329,6 +1329,17 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
          // Paper end - Teleportation API
      }
  

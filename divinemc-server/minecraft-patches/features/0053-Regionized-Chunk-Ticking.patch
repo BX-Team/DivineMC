@@ -8,10 +8,10 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
 
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 343ec870d6ea3e2792f369c4867a3afb4bcfa385..db909744c922f2e5b486a8f15dac79d66d7ed0a0 100644
+index cdacbfa64bda461d4f24c2a85db9feae7766b597..07370cb7bc0bb5a8abfd0062df999ed24c936113 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -325,7 +325,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -326,7 +326,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
  
      private static void syncAfterConfigurationChange(ChannelFuture future) {
          try {

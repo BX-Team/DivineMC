@@ -5,7 +5,7 @@ Subject: [PATCH] Virtual Threads
 
 
 diff --git a/net/minecraft/Util.java b/net/minecraft/Util.java
-index 0a69469c79aaa2466cda04f6acefed18e421d555..66f7f2aa071c2811400b4fed12ccf51ca8bb6e23 100644
+index 138a58c5e5698b926b01e0170733dc3dbc5589ec..bfe52d5a93a35cafcb8965482b1c1d6c398255e4 100644
 --- a/net/minecraft/Util.java
 +++ b/net/minecraft/Util.java
 @@ -98,7 +98,12 @@ public class Util {
@@ -54,10 +54,10 @@ index 77a693f42d90b5d17bf56d86b1676247c1ad505d..5c05a41e6f64f37fc365cde6333ed5a6
  
      public ChatDecorator getChatDecorator() {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 749e7dbafa44c6dcbfcebcdcba4911b872cc12c2..506c8d2d80eee5f5351c9330a7efb3f9e4cc4cf6 100644
+index e0a155e057b0683024448c2918c281b049595374..454615d55e50113f871e819b36d62fde0c445e73 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -828,8 +828,11 @@ public class ServerGamePacketListenerImpl
+@@ -830,8 +830,11 @@ public class ServerGamePacketListenerImpl
      }
  
      // Paper start - AsyncTabCompleteEvent
@@ -72,11 +72,11 @@ index 749e7dbafa44c6dcbfcebcdcba4911b872cc12c2..506c8d2d80eee5f5351c9330a7efb3f9
  
      @Override
 diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index 637b2eb7104cb0bc7f314ad6eea11a432e899861..c461440898c98f688064f552bb0e610f657237cd 100644
+index 20ba45054c243fbb85e50cf0bdf75648730cb0bc..10aecbb88a9a3dae3ecdf28aa449f1a1475a1905 100644
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -54,7 +54,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
-     // CraftBukkit end
+@@ -53,7 +53,11 @@ import org.bukkit.event.player.PlayerPreLoginEvent;
+ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener, TickablePacketListener {
      private static final AtomicInteger UNIQUE_THREAD_ID = new AtomicInteger(0);
      static final Logger LOGGER = LogUtils.getLogger();
 -    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("User Authenticator #%d").setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build()); // Paper - Cache authenticator threads

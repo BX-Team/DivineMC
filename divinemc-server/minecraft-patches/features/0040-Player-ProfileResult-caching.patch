@@ -5,13 +5,13 @@ Subject: [PATCH] Player ProfileResult caching
 
 
 diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index c461440898c98f688064f552bb0e610f657237cd..d5da09bbe10b5eea8545fbbfa055a51c1a1b2142 100644
+index 10aecbb88a9a3dae3ecdf28aa449f1a1475a1905..13b468d4d3b92bf71fdfa112dfe56464c4f9dbed 100644
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -74,6 +74,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
-     private net.minecraft.server.level.ServerPlayer player; // CraftBukkit
-     public boolean iKnowThisMayNotBeTheBestIdeaButPleaseDisableUsernameValidation = false; // Paper - username validation overriding
-     private int velocityLoginMessageId = -1; // Paper - Add Velocity IP Forwarding Support
+@@ -75,6 +75,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+     public @Nullable java.util.UUID requestedUuid; // Paper
+     private final io.papermc.paper.connection.PaperPlayerLoginConnection paperLoginConnection; // Paper - Config API
+     private volatile boolean disconnecting = false; // Paper - Fix disconnect still ticking login
 +    // DivineMC start - Player ProfileResult caching
 +    private static final com.google.common.cache.Cache<String, ProfileResult> playerProfileResultCache = com.google.common.cache.CacheBuilder.newBuilder()
 +        .expireAfterWrite(1, java.util.concurrent.TimeUnit.MINUTES)
@@ -20,7 +20,7 @@ index c461440898c98f688064f552bb0e610f657237cd..d5da09bbe10b5eea8545fbbfa055a51c
  
      public ServerLoginPacketListenerImpl(MinecraftServer server, Connection connection, boolean transferred) {
          this.server = server;
-@@ -293,9 +298,23 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+@@ -260,9 +265,23 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
                  String string1 = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
  
                  try {

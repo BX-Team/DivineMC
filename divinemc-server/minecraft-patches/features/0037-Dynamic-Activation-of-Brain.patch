@@ -414,10 +414,10 @@ index 0440cbbc0d6657f32dc37a1dbbe9ee78f8e229cf..4944b6d389c65511eed75d580779f912
  
      @Override
 diff --git a/net/minecraft/world/entity/npc/Villager.java b/net/minecraft/world/entity/npc/Villager.java
-index 497974779b281ced8e3dd757dbdf52abc0e0328b..3e23bc54e0315b6324843851e072005ca4da3f8e 100644
+index 65f65f712db967ce9b11deb278b9d0aa70368703..8eb4a35b08f0d0325608f782ac617bc6b01787a0 100644
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
-@@ -179,6 +179,8 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
+@@ -178,6 +178,8 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
      );
      private boolean isLobotomized = false; public boolean isLobotomized() { return this.isLobotomized; } // Purpur - Lobotomize stuck villagers
      private int notLobotomizedCount = 0; // Purpur - Lobotomize stuck villagers
@@ -426,7 +426,7 @@ index 497974779b281ced8e3dd757dbdf52abc0e0328b..3e23bc54e0315b6324843851e072005c
  
      public Villager(EntityType<? extends Villager> entityType, Level level) {
          this(entityType, level, VillagerType.PLAINS);
-@@ -401,7 +403,7 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
+@@ -400,7 +402,7 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
          }
          // Purpur end - Lobotomize stuck villagers
          // Pufferfish start

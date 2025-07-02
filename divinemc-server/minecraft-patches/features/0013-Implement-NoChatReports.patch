@@ -218,10 +218,10 @@ index 7ac82a49e3c64d1a41a2870c5cf9900812329a57..978934f81ba023d7565d2e66c51f6ca2
          // Paper start - Add setting for proxy online mode status
          return properties.enforceSecureProfile
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 329b31898ea6abbd7cfefed0f582d9bfaa98e866..10da51def5e51bd3eb5122df9a436284aa274f9a 100644
+index 215715ea2406300ac834444d9b1f0a6d0537cc26..79458152fcc3dabcb78a0e54313eda7b9ccb7f07 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -353,10 +353,64 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -331,10 +331,64 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
      }
  
      public void send(Packet<?> packet) {
@@ -287,7 +287,7 @@ index 329b31898ea6abbd7cfefed0f582d9bfaa98e866..10da51def5e51bd3eb5122df9a436284
          if (packet == null || this.processedDisconnect) { // Spigot
              return;
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 8bf5f7a98e4e8542d56c49a7e2c4926ec86f712d..015e0d1400f1dfbe086c817f121d01f0726e82f2 100644
+index 8a67672f1175769ac213099331453fbae59442fa..5ebbb4e37469beef11bdfd1531b0d10f3d01c826 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -276,7 +276,7 @@ public abstract class PlayerList {
@@ -299,7 +299,7 @@ index 8bf5f7a98e4e8542d56c49a7e2c4926ec86f712d..015e0d1400f1dfbe086c817f121d01f0
                  )
              );
              player.getBukkitEntity().sendSupportedChannels(); // CraftBukkit
-@@ -1334,6 +1334,7 @@ public abstract class PlayerList {
+@@ -1318,6 +1318,7 @@ public abstract class PlayerList {
      }
  
      public boolean verifyChatTrusted(PlayerChatMessage message) {

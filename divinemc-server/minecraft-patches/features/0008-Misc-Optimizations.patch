@@ -46,10 +46,10 @@ index 4715a60760c2c9079313db9016000bfb5c65e070..fce8f1caca81f47f704bc0237147e999
      private final Map<TagKey<T>, HolderSet.Named<T>> frozenTags = new IdentityHashMap<>();
      MappedRegistry.TagSet<T> allTags = MappedRegistry.TagSet.unbound();
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 1014ab2aeb5e496124c99c938538e88d75561cd5..343ec870d6ea3e2792f369c4867a3afb4bcfa385 100644
+index e72eda830644851656fae3118c513d7bd701be45..cdacbfa64bda461d4f24c2a85db9feae7766b597 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -600,13 +600,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -601,13 +601,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
              if (!(this.packetListener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl loginPacketListener)
                  || loginPacketListener.state != net.minecraft.server.network.ServerLoginPacketListenerImpl.State.VERIFYING
                  || Connection.joinAttemptsThisTick++ < MAX_PER_TICK) {
@@ -210,7 +210,7 @@ index 75c8ce32e68f92e20201e9c243f46f2be716eac8..879d6eb8e72b63bc95d8028cbc2f6e93
  
              for (LevelChunk levelChunk : list) {
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index dda62ab1d718d22e24ed5c88674d7a3d9dd4323e..d0d97e063acf8f11c32adf1fd2ec6bca59913c33 100644
+index 2560799fe6ec006916a2bc9915355a358ab6c8bb..740f6324eeb4021bc45d27d6145ff71282c761c2 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1321,13 +1321,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
