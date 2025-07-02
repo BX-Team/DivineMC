@@ -5,10 +5,10 @@ Subject: [PATCH] Clump experience orbs
 
 
 diff --git a/net/minecraft/world/entity/ExperienceOrb.java b/net/minecraft/world/entity/ExperienceOrb.java
-index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a83517eceec1 100644
+index 382ef2dad5e995bc01f6492218b8c8f7a930d6ac..598d46010877cf31c8b6f23deecb91ce61c832b2 100644
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
-@@ -47,6 +47,10 @@ public class ExperienceOrb extends Entity {
+@@ -50,6 +50,10 @@ public class ExperienceOrb extends Entity {
      @Nullable
      public java.util.UUID triggerEntityId;
      public org.bukkit.entity.ExperienceOrb.SpawnReason spawnReason = org.bukkit.entity.ExperienceOrb.SpawnReason.UNKNOWN;
@@ -17,9 +17,9 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a835
 +    public Optional<EnchantedItemInUse> clumps$currentEntry;
 +    // DivineMC end - Clump experience orbs
  
-     private void loadPaperNBT(CompoundTag tag) {
-         CompoundTag expData = tag.getCompoundOrEmpty("Paper.ExpData");
-@@ -245,6 +249,28 @@ public class ExperienceOrb extends Entity {
+     private void loadPaperNBT(ValueInput input) {
+         input.read("Paper.ExpData", net.minecraft.nbt.CompoundTag.CODEC).ifPresent(expData -> {
+@@ -273,6 +277,28 @@ public class ExperienceOrb extends Entity {
      }
  
      private static boolean tryMergeToExisting(ServerLevel level, Vec3 pos, int amount) {
@@ -48,7 +48,7 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a835
          // Paper - TODO some other event for this kind of merge
          AABB aabb = AABB.ofSize(pos, 1.0, 1.0, 1.0);
          int randomInt = level.getRandom().nextInt(io.papermc.paper.configuration.GlobalConfiguration.get().misc.xpOrbGroupsPerArea.or(ORB_GROUPS_PER_AREA)); // Paper - Configure how many orb groups per area
-@@ -260,11 +286,11 @@ public class ExperienceOrb extends Entity {
+@@ -290,11 +316,11 @@ public class ExperienceOrb extends Entity {
      }
  
      private boolean canMerge(ExperienceOrb orb) {
@@ -62,7 +62,7 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a835
      }
  
      private void merge(ExperienceOrb orb) {
-@@ -273,6 +299,18 @@ public class ExperienceOrb extends Entity {
+@@ -303,6 +329,18 @@ public class ExperienceOrb extends Entity {
              return;
          }
          // Paper end - call orb merge event
@@ -81,34 +81,33 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a835
          this.count = this.count + orb.count;
          this.age = Math.min(this.age, orb.age);
          orb.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause
-@@ -314,6 +352,13 @@ public class ExperienceOrb extends Entity {
-         compound.putInt("Value", this.getValue()); // Paper - save as Integer
-         compound.putInt("Count", this.count);
-         this.savePaperNBT(compound); // Paper
+@@ -344,6 +382,13 @@ public class ExperienceOrb extends Entity {
+         output.putInt("Value", this.getValue()); // Paper - save as Integer
+         output.putInt("Count", this.count);
+         this.savePaperNBT(output); // Paper
 +        // DivineMC start - Clump experience orbs
 +        if (clumps$clumpedMap != null) {
-+            CompoundTag map = new CompoundTag();
++            net.minecraft.nbt.CompoundTag map = new net.minecraft.nbt.CompoundTag();
 +            clumps$getClumpedMap().forEach((value, count) -> map.putInt(String.valueOf(value), count));
-+            compound.put("clumpedMap", map);
++            output.store("clumpedMap", net.minecraft.nbt.CompoundTag.CODEC, map);
 +        }
 +        // DivineMC end - Clump experience orbs
      }
  
      @Override
-@@ -323,10 +368,53 @@ public class ExperienceOrb extends Entity {
-         this.setValue(compound.getIntOr("Value", 0)); // Paper - load as Integer
-         this.count = compound.read("Count", ExtraCodecs.POSITIVE_INT).orElse(1);
-         this.loadPaperNBT(compound); // Paper
+@@ -353,10 +398,52 @@ public class ExperienceOrb extends Entity {
+         this.setValue(input.getIntOr("Value", 0)); // Paper - load as Integer
+         this.count = input.read("Count", ExtraCodecs.POSITIVE_INT).orElse(1);
+         this.loadPaperNBT(input); // Paper
 +        // DivineMC start - Clump experience orbs
 +        java.util.Map<Integer, Integer> map = new java.util.HashMap<>();
-+        if (compound.contains("clumpedMap")) {
-+            CompoundTag clumpedMap = compound.getCompound("clumpedMap").orElseThrow();
++        input.read("clumpedMap", net.minecraft.nbt.CompoundTag.CODEC).ifPresentOrElse(clumpedMap -> {
 +            for (String s : clumpedMap.keySet()) {
-+                map.put(Integer.parseInt(s), clumpedMap.getInt(s).orElseThrow());
++                clumpedMap.getInt(s).ifPresent(value -> {
++                    map.put(Integer.parseInt(s), value);
++                });
 +            }
-+        } else {
-+            map.put(this.getValue(), count);
-+        }
++        }, () -> map.put(getValue(), count));
 +
 +        clumps$setClumpedMap(map);
 +        // DivineMC end - Clump experience orbs
@@ -149,7 +148,7 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a835
          if (entity instanceof ServerPlayer serverPlayer) {
              if (entity.takeXpDelay == 0 && new com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent(serverPlayer.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) { // Paper - PlayerPickupExperienceEvent
                  entity.takeXpDelay = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerXpCooldownEvent(entity, this.level().purpurConfig.playerExpPickupDelay, org.bukkit.event.player.PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - entityhuman.takeXpDelay = 2; // Purpur - Configurable player pickup exp delay
-@@ -344,10 +432,60 @@ public class ExperienceOrb extends Entity {
+@@ -374,10 +461,60 @@ public class ExperienceOrb extends Entity {
          }
      }
  
@@ -195,7 +194,7 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a835
 +            return clumps$currentEntry
 +                .map(foundItem -> {
 +                    ItemStack itemstack = foundItem.itemStack();
-+                    int xpToRepair = EnchantmentHelper.modifyDurabilityToRepairFromXp(player.serverLevel(), itemstack, (int) (value * 1));
++                    int xpToRepair = EnchantmentHelper.modifyDurabilityToRepairFromXp(player.level(), itemstack, (int) (value * 1));
 +                    int toRepair = Math.min(xpToRepair, itemstack.getDamageValue());
 +                    itemstack.setDamageValue(itemstack.getDamageValue() - toRepair);
 +                    if (toRepair > 0) {
@@ -212,4 +211,4 @@ index ff4648b3be103446ab401d36c14cc80b48840cab..22c42908551baf8bb91ebc8767e0a835
 +
          if (randomItemWith.isPresent()) {
              ItemStack itemStack = randomItemWith.get().itemStack();
-             int i = EnchantmentHelper.modifyDurabilityToRepairFromXp(player.serverLevel(), itemStack, value);
+             int i = EnchantmentHelper.modifyDurabilityToRepairFromXp(player.level(), itemStack, value);
