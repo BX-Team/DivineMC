@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 6 Jul 2025 01:23:49 +0300
+Subject: [PATCH] Vectorized map color conversion
+
+Original patch by: Kevin Raneri <kevin.raneri@gmail.com>
+As part of: Pufferfish (https://github.com/pufferfish-gg/Pufferfish)
+Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
+
+Pufferfish description:
+
+This patch does not add any API that should be used by plugins. Any
+classes and methods added by this patch should NOT be used in plugins.
+
+diff --git a/src/main/java/org/bukkit/map/MapPalette.java b/src/main/java/org/bukkit/map/MapPalette.java
+index 2b9e4aa8cf35e7106e510e547954ee7e1bcf3d81..482a08c38748d82313e02f6f699006aa83a071bc 100644
+--- a/src/main/java/org/bukkit/map/MapPalette.java
++++ b/src/main/java/org/bukkit/map/MapPalette.java
+@@ -35,7 +35,7 @@ public final class MapPalette {
+     }
+ 
+     @NotNull
+-    static final Color[] colors = {
++    public static final Color[] colors = { // DivineMC - Vectorized map color conversion - package -> public
+         // Start generate - MapPalette#colors
+         // @GeneratedFrom 1.21.7
+         new Color(0x00000000, true),
+@@ -395,9 +395,15 @@ public final class MapPalette {
+         temp.getRGB(0, 0, temp.getWidth(), temp.getHeight(), pixels, 0, temp.getWidth());
+ 
+         byte[] result = new byte[temp.getWidth() * temp.getHeight()];
+-        for (int i = 0; i < pixels.length; i++) {
+-            result[i] = matchColor(new Color(pixels[i], true));
++        // DivineMC start - Vectorized map color conversion
++        if ((mapColorCache != null && mapColorCache.isCached()) || !gg.pufferfish.pufferfish.simd.SIMDDetection.isEnabled) {
++            for (int i = 0; i < pixels.length; i++) {
++                result[i] = matchColor(new Color(pixels[i], true));
++            }
++        } else {
++            gg.pufferfish.pufferfish.simd.VectorMapPalette.matchColorVectorized(pixels, result);
+         }
++        // DivineMC end - Vectorized map color conversion
+         return result;
+     }
+ 
