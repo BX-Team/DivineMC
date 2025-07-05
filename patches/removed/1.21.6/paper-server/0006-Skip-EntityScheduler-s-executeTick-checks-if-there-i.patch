@@ -5,6 +5,7 @@ Subject: [PATCH] Skip EntityScheduler's executeTick checks if there isn't any
  tasks to be run
 
 Original project: https://github.com/SparklyPower/SparklyPaper
+Removed due to moonrise already implemented feature like this
 
 diff --git a/src/main/java/io/papermc/paper/threadedregions/EntityScheduler.java b/src/main/java/io/papermc/paper/threadedregions/EntityScheduler.java
 index c03608fec96b51e1867f43d8f42e5aefb1520e46..eda35b81c36ca8ebe4f9487cb41e2b0c4cbfc686 100644

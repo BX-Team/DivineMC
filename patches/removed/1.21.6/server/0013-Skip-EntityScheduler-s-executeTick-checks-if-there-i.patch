@@ -4,6 +4,8 @@ Date: Sat, 1 Feb 2025 19:14:09 +0300
 Subject: [PATCH] Skip EntityScheduler's executeTick checks if there isn't any
  tasks to be run
 
+Original project: https://github.com/SparklyPower/SparklyPaper
+Removed due to moonrise already implemented feature like this
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
 index 70b33e54d8384709b166ca57cd114632e357f24f..89f9c2c3661f1ef951d865bd8c81564ea558c1e2 100644

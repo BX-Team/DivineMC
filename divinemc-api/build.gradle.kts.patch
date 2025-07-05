@@ -106,7 +106,7 @@
 @@ -177,15 +_,13 @@
  val services = objects.newInstance<Services>()
  
- tasks.withType<Javadoc> {
+ tasks.withType<Javadoc>().configureEach {
 -    //(options as StandardJavadocDocletOptions).addStringOption("-add-modules", "jdk.incubator.vector") // Purpur - our javadocs need this for pufferfish's SIMD patch
 -    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet") // Purpur - silence Paper's bajillion javadoc warnings
      val options = options as StandardJavadocDocletOptions
