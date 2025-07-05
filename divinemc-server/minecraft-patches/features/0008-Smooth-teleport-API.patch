@@ -5,22 +5,22 @@ Subject: [PATCH] Smooth teleport API
 
 
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index cf4ab76f463836a8ed9aeedd09ae95e75b9e8dbc..f5a0c5a2f56376bf89b16a809d465bc45a80eb38 100644
+index a1b4720ef128ba5cbe1466a7a584d4fe501a71f8..b75d2d2746c3e7b12f65b0bcb559cd7e0ce7ebf8 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -431,6 +431,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -430,6 +430,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+     private boolean tpsBar = false; // Purpur - Implement TPSBar
      private boolean compassBar = false; // Purpur - Add compass command
      private boolean ramBar = false; // Purpur - Implement rambar commands
-     public boolean hasTickedAtLeastOnceInNewWorld = false; // DivineMC - Parallel world ticking
 +    public boolean smoothWorldTeleport; // DivineMC - Smooth teleport API
  
      // Paper start - rewrite chunk system
      private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 04f82f77e1ad2b7105cbace2a4ef99590965ae4f..147535646319018ec5dfe42d12fdb19d9e1f7543 100644
+index c70b5ce2dc8cbcdea8715339a63e038f94849bfb..9362bfdf8f5495d237b1e74be4dd925db2452dc0 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -758,11 +758,11 @@ public abstract class PlayerList {
+@@ -748,11 +748,11 @@ public abstract class PlayerList {
          byte b = (byte)(keepInventory ? 1 : 0);
          ServerLevel serverLevel = serverPlayer.level();
          LevelData levelData = serverLevel.getLevelData();
@@ -34,7 +34,7 @@ index 04f82f77e1ad2b7105cbace2a4ef99590965ae4f..147535646319018ec5dfe42d12fdb19d
          serverPlayer.connection.send(new ClientboundSetDefaultSpawnPositionPacket(level.getSharedSpawnPos(), level.getSharedSpawnAngle()));
          serverPlayer.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
          serverPlayer.connection
-@@ -849,6 +849,12 @@ public abstract class PlayerList {
+@@ -839,6 +839,12 @@ public abstract class PlayerList {
          return serverPlayer;
      }
  

@@ -175,10 +175,10 @@ index 345d4b80bd4383e0fb66d744d87bc8ef4100fd32..68a074a1eb11b158af773a2c44aa49d5
  
      private static boolean isRightDistanceToPlayerAndSpawnPoint(ServerLevel level, ChunkAccess chunk, BlockPos.MutableBlockPos pos, double distance) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 5e9f3856c384dbb2bd462121b903cd2b326e4376..19f74518923783d8d5560b526a1f267dabd23156 100644
+index 182c14b660f8860bed627eed4e01fd4002153e9a..81511de113c292549fe5fe720a15bf3e0497ca84 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -92,6 +92,7 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -88,6 +88,7 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
      public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
      // CraftBukkit end
      public final Registry<Biome> biomeRegistry; // CraftBukkit
