@@ -5,7 +5,7 @@ Subject: [PATCH] Smooth teleport API
 
 
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index a1b4720ef128ba5cbe1466a7a584d4fe501a71f8..b75d2d2746c3e7b12f65b0bcb559cd7e0ce7ebf8 100644
+index 890c295d2318767081580e9aabddedd2535388cc..8a8d72fa46f4eff31e06e8b1756d286f7f1b07a6 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -430,6 +430,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -17,10 +17,10 @@ index a1b4720ef128ba5cbe1466a7a584d4fe501a71f8..b75d2d2746c3e7b12f65b0bcb559cd7e
      // Paper start - rewrite chunk system
      private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index c70b5ce2dc8cbcdea8715339a63e038f94849bfb..9362bfdf8f5495d237b1e74be4dd925db2452dc0 100644
+index 0a2d1a89722094f7e51c33a364b6999143add0a1..fb1b9f75cffeb15875e6690a0e030f8a4fd8b276 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -748,11 +748,11 @@ public abstract class PlayerList {
+@@ -749,11 +749,11 @@ public abstract class PlayerList {
          byte b = (byte)(keepInventory ? 1 : 0);
          ServerLevel serverLevel = serverPlayer.level();
          LevelData levelData = serverLevel.getLevelData();
@@ -34,7 +34,7 @@ index c70b5ce2dc8cbcdea8715339a63e038f94849bfb..9362bfdf8f5495d237b1e74be4dd925d
          serverPlayer.connection.send(new ClientboundSetDefaultSpawnPositionPacket(level.getSharedSpawnPos(), level.getSharedSpawnAngle()));
          serverPlayer.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
          serverPlayer.connection
-@@ -839,6 +839,12 @@ public abstract class PlayerList {
+@@ -840,6 +840,12 @@ public abstract class PlayerList {
          return serverPlayer;
      }
  

@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 6 Jul 2025 02:04:33 +0300
+Subject: [PATCH] Fix MC-172801
+
+Issue on Mojira: https://bugs.mojang.com/browse/MC/issues/MC-172801
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index ab2bfe5589547a5e1b7f26ff100609c4464b61c7..4149e7eb6f583d80ed179b190dcc02acf1144bef 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -3274,7 +3274,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     }
+ 
+     protected float getFlyingSpeed() {
+-        return this.getControllingPassenger() instanceof net.minecraft.world.entity.player.Player ? this.getSpeed() * 0.1F : 0.02F;
++        // DivineMC start - Fix MC-172801
++        float flyingSpeed = 0.02F;
++        if (this.getAttributes().hasAttribute(Attributes.FLYING_SPEED)) {
++            flyingSpeed = (float) (this.getAttribute(Attributes.FLYING_SPEED).getValue() * 0.049999999254942D);
++        }
++        return this.getControllingPassenger() instanceof net.minecraft.world.entity.player.Player ? this.getSpeed() * 0.1F : flyingSpeed;
++        // DivineMC end - Fix MC-172801
+     }
+ 
+     public float getSpeed() {

@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 6 Jul 2025 02:42:57 +0300
+Subject: [PATCH] Skip cloning advancement criteria
+
+
+diff --git a/net/minecraft/advancements/Advancement.java b/net/minecraft/advancements/Advancement.java
+index ac6a85ddf6eb326b3fd53341a4a5db7bd00b7ce2..52a285db9557b2e44d2dcae9fabdb0d78d3e7ec6 100644
+--- a/net/minecraft/advancements/Advancement.java
++++ b/net/minecraft/advancements/Advancement.java
+@@ -61,7 +61,7 @@ public record Advancement(
+         AdvancementRequirements requirements,
+         boolean sendsTelemetryEvent
+     ) {
+-        this(parent, display, rewards, Map.copyOf(criteria), requirements, sendsTelemetryEvent, display.map(Advancement::decorateName));
++        this(parent, display, rewards, criteria, requirements, sendsTelemetryEvent, display.map(Advancement::decorateName)); // DivineMC - Mirai - skip cloning advancement criteria
+     }
+ 
+     private static DataResult<Advancement> validate(Advancement advancement) {

@@ -5,7 +5,7 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index debea77d5777b90c6b17b225e27e6b3c72370175..f5761420749110ca8811533c3fb5d80c8b025c67 100644
+index 670553243d26e2faab8a21f099a846d4d1df7927..9a36ad8112cc4a4d5c4fefcd3b4bf3c48d9d40ee 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -193,6 +193,15 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -23,9 +23,9 @@ index debea77d5777b90c6b17b225e27e6b3c72370175..f5761420749110ca8811533c3fb5d80c
 +        // DivineMC end - Configuration
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
  
-         // DivineMC start - Pufferfish SIMD
+         this.setPvpAllowed(properties.pvp);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 801c4e8e01590beeb3633275f58d436d87ad746e..5ffaae02967dbc079619d35c2b8e3f7763b75d38 100644
+index dccfd0f30111316c9c82004358c2a7051cbd5cdb..1ad419b4a2ad4610a0a8d18b26665a7ec0ccc960 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -161,6 +161,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl

@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 6 Jul 2025 02:59:37 +0300
+Subject: [PATCH] Use Java's Math functions
+
+
+diff --git a/net/minecraft/util/Mth.java b/net/minecraft/util/Mth.java
+index e2602c6d817794616eb05a471077447804b835a1..c4d55514a44939c3e6006d9e23b6097b6360853e 100644
+--- a/net/minecraft/util/Mth.java
++++ b/net/minecraft/util/Mth.java
+@@ -58,18 +58,15 @@ public class Mth {
+     }
+ 
+     public static int floor(float value) {
+-        int i = (int)value;
+-        return value < i ? i - 1 : i;
++        return (int) Math.floor(value); // DivineMC - Use Java's Math functions
+     }
+ 
+     public static int floor(double value) {
+-        int i = (int)value;
+-        return value < i ? i - 1 : i;
++        return (int) Math.floor(value); // DivineMC - Use Java's Math functions
+     }
+ 
+     public static long lfloor(double value) {
+-        long l = (long)value;
+-        return value < l ? l - 1L : l;
++        return (long) Math.floor(value); // DivineMC - Use Java's Math functions
+     }
+ 
+     public static float abs(float value) {
+@@ -81,13 +78,11 @@ public class Mth {
+     }
+ 
+     public static int ceil(float value) {
+-        int i = (int)value;
+-        return value > i ? i + 1 : i;
++        return (int) Math.ceil(value); // DivineMC - Use Java's Math functions
+     }
+ 
+     public static int ceil(double value) {
+-        int i = (int)value;
+-        return value > i ? i + 1 : i;
++        return (int) Math.ceil(value); // DivineMC - Use Java's Math functions
+     }
+ 
+     public static int clamp(int value, int min, int max) {
+@@ -123,15 +118,7 @@ public class Mth {
+     }
+ 
+     public static double absMax(double x, double y) {
+-        if (x < 0.0) {
+-            x = -x;
+-        }
+-
+-        if (y < 0.0) {
+-            y = -y;
+-        }
+-
+-        return Math.max(x, y);
++        return Math.max(Math.abs(x), Math.abs(y)); // DivineMC - Use Java's Math functions
+     }
+ 
+     public static int floorDiv(int dividend, int divisor) {

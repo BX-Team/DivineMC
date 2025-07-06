@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 6 Jul 2025 02:01:33 +0300
+Subject: [PATCH] Fix MC-110386
+
+Issue on Mojira: https://bugs.mojang.com/browse/MC/issues/MC-110386
+
+diff --git a/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java b/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java
+index a8ec1d5f4b0fb0ff26a234235b7d8d9c4b4a2a98..6251cfface8d4bedd58271ace3947a1631e61b66 100644
+--- a/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java
++++ b/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java
+@@ -114,6 +114,7 @@ public class HurtByTargetGoal extends TargetGoal {
+     }
+ 
+     protected void alertOther(Mob mob, LivingEntity target) {
++        if (mob == target) return; // DivineMC - Fix MC-110386
+         mob.setTarget(target, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_NEARBY_ENTITY); // CraftBukkit - reason
+     }
+ }

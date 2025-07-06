@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 6 Jul 2025 01:51:12 +0300
+Subject: [PATCH] lithium: entity.fast_hand_swing + entity.fast_elytra_check
+
+This patch is based on the following mixins:
+* "net/caffeinemc/mods/lithium/mixin/entity/fast_elytra_check/LivingEntityMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/entity/fast_hand_swing/LivingEntityMixin.java"
+By: 2No2Name <2No2Name@web.de>
+As part of: Lithium (https://github.com/CaffeineMC/lithium-fabric)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index a086c44afc5b3cb04641b4b9cfe28690f6ca2d7e..ab2bfe5589547a5e1b7f26ff100609c4464b61c7 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -2757,6 +2757,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     }
+ 
+     protected void updateSwingTime() {
++        if (!this.swinging && this.swingTime == 0) return; // DivineMC - lithium: entity.fast_hand_swing
+         int currentSwingDuration = this.getCurrentSwingDuration();
+         if (this.swinging) {
+             this.swingTime++;
+@@ -3703,6 +3704,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     protected void updateFallFlying() {
+         this.checkFallDistanceAccumulation();
+         if (!this.level().isClientSide) {
++            if (!this.isFallFlying() && this.fallFlyTicks == 0) return; // DivineMC - lithium: entity.fast_elytra_check
+             if (!this.canGlide()) {
+                 if (this.getSharedFlag(7) != false && !CraftEventFactory.callToggleGlideEvent(this, false).isCancelled()) // CraftBukkit
+                 this.setSharedFlag(7, false);
