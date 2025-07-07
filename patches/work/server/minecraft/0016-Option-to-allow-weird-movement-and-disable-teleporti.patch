@@ -6,10 +6,10 @@ Subject: [PATCH] Option to allow weird movement and disable teleporting
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 48712fb859e1be9f11a88a15a9f04e147d09af5f..a6de1c5da406540dec59818c5369afde0c3597a8 100644
+index 649b01c00ec01eea1514676e424d88acbfa26184..b0bd45b8f53d4b9617680d7fb92d324c3713d960 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -595,7 +595,7 @@ public class ServerGamePacketListenerImpl
+@@ -607,7 +607,7 @@ public class ServerGamePacketListenerImpl
                      return;
                  }
                  // Paper end - Prevent moving into unloaded chunks
@@ -18,7 +18,7 @@ index 48712fb859e1be9f11a88a15a9f04e147d09af5f..a6de1c5da406540dec59818c5369afde
                      // CraftBukkit end
                      LOGGER.warn(
                          "{} (vehicle of {}) moved too quickly! {},{},{}", rootVehicle.getName().getString(), this.player.getName().getString(), d3, d4, d5
-@@ -625,7 +625,7 @@ public class ServerGamePacketListenerImpl
+@@ -637,7 +637,7 @@ public class ServerGamePacketListenerImpl
                  d5 = d2 - rootVehicle.getZ();
                  d7 = d3 * d3 + d4 * d4 + d5 * d5;
                  boolean flag1 = false;
@@ -27,7 +27,7 @@ index 48712fb859e1be9f11a88a15a9f04e147d09af5f..a6de1c5da406540dec59818c5369afde
                      flag1 = true; // Paper - diff on change, this should be moved wrongly
                      LOGGER.warn("{} (vehicle of {}) moved wrongly! {}", rootVehicle.getName().getString(), this.player.getName().getString(), Math.sqrt(d7));
                  }
-@@ -1548,20 +1548,24 @@ public class ServerGamePacketListenerImpl
+@@ -1560,20 +1560,24 @@ public class ServerGamePacketListenerImpl
                                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                                          float f2 = isFallFlying ? 300.0F : 100.0F;
                                          if (d7 - d6 > Math.max(f2, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed))) {
@@ -63,7 +63,7 @@ index 48712fb859e1be9f11a88a15a9f04e147d09af5f..a6de1c5da406540dec59818c5369afde
                                          }
                                      }
                                  }
-@@ -1622,6 +1626,7 @@ public class ServerGamePacketListenerImpl
+@@ -1634,6 +1638,7 @@ public class ServerGamePacketListenerImpl
                                  d7 = d3 * d3 + d4 * d4 + d5 * d5;
                                  boolean movedWrongly = false; // Paper - Add fail move event; rename
                                  if (!this.player.isChangingDimension()
