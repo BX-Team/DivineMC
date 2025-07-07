@@ -5,20 +5,20 @@ Subject: [PATCH] Optimize Raids
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index adac2dd1530c21c610f6dced12a80ab726fe3a98..d39d15dcb6964aed0bf9c2f64952d229d64cff62 100644
+index 5f2c27800f047f128857044493a6d9325ffd759b..4a2cace22512fe06c1713bc8735e775e3012f3bc 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -218,6 +218,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -215,6 +215,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
      private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
      public boolean hasRidableMoveEvent = false; // Purpur - Ridables
-     public org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag Compensation
 +    public net.minecraft.world.item.ItemStack ominousBanner; // DivineMC - Optimize Raids
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -706,6 +707,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -694,6 +695,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+         // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
-         this.tickExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new org.bxteam.divinemc.server.ServerLevelTickExecutorThreadFactory(getWorld().getName())); // DivineMC - Parallel world ticking
          this.preciseTime = this.serverLevelData.getDayTime(); // Purpur - Configurable daylight cycle
 +        this.ominousBanner = Objects.requireNonNullElse(this.registryAccess(), net.minecraft.core.RegistryAccess.EMPTY).lookup(Registries.BANNER_PATTERN).map(Raid::getOminousBannerInstance).orElse(null); // DivineMC - Optimize Raids
      }

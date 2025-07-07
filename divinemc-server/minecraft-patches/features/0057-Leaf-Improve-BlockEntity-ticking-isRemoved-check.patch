@@ -3,12 +3,15 @@ From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Wed, 26 Mar 2025 01:46:49 +0300
 Subject: [PATCH] Leaf: Improve BlockEntity ticking isRemoved check
 
+Original project: https://github.com/Winds-Studio/Leaf
+
+This should help for massive hopper chains or hopper matrix.
 
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index df086a2580ee41f88a00fb78b50b87f22539b833..868881e2b8567d1a03eee4f4a9f611bbc36c66d0 100644
+index 6d9274f0da9507d0152611d6b7785e0524dedb2d..a2b21970841a0f7f2b4b469c7b8737440041ebaa 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -999,13 +999,26 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -982,13 +982,26 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
  
      public static class RebindableTickingBlockEntityWrapper implements TickingBlockEntity {
          public TickingBlockEntity ticker;
@@ -35,7 +38,7 @@ index df086a2580ee41f88a00fb78b50b87f22539b833..868881e2b8567d1a03eee4f4a9f611bb
          }
  
          @Override
-@@ -1015,6 +1028,12 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -998,6 +1011,12 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
  
          @Override
          public boolean isRemoved() {
