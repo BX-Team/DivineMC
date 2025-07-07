@@ -5,7 +5,7 @@ Subject: [PATCH] Option to disable disconnect.spam
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 3a27b544da8227511b546c55963e7112df0a9f63..d5ed595bce6846590230634f8887e1f8e9b0a062 100644
+index a8b2c19cc9803058b421b07c739166afdf291e47..8f4bca6a99b35e869e34f0fa216c13189cd7b384 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -844,7 +844,7 @@ public class ServerGamePacketListenerImpl
@@ -34,7 +34,7 @@ index 3a27b544da8227511b546c55963e7112df0a9f63..d5ed595bce6846590230634f8887e1f8
              && parseResults.getExceptions().values().stream().anyMatch(e -> e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException)) {
              this.disconnect(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
              return;
-@@ -2639,6 +2640,7 @@ public class ServerGamePacketListenerImpl
+@@ -2629,6 +2630,7 @@ public class ServerGamePacketListenerImpl
          // this.chatSpamThrottler.increment();
          if (!this.chatSpamThrottler.isIncrementAndUnderThreshold()
              // CraftBukkit end
@@ -42,7 +42,7 @@ index 3a27b544da8227511b546c55963e7112df0a9f63..d5ed595bce6846590230634f8887e1f8
              && !this.server.getPlayerList().isOp(this.player.getGameProfile())
              && !this.server.isSingleplayerOwner(this.player.getGameProfile())) {
              this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - kick event cause & add proper async disconnect
-@@ -3396,7 +3398,7 @@ public class ServerGamePacketListenerImpl
+@@ -3386,7 +3388,7 @@ public class ServerGamePacketListenerImpl
      public void handlePlaceRecipe(ServerboundPlaceRecipePacket packet) {
          // Paper start - auto recipe limit
          if (!org.bukkit.Bukkit.isPrimaryThread()) {
