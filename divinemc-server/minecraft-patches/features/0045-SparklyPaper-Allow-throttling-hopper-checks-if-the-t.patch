@@ -7,7 +7,7 @@ Subject: [PATCH] SparklyPaper: Allow throttling hopper checks if the target
 Original project: https://github.com/SparklyPower/SparklyPaper
 
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 15d4f60942c0cc612c1468b4c0fda886867a67cb..f0d53f83f7d3b4d8aa7d21bd7e3627a7052535aa 100644
+index 800b7e78ae989868ed0b9e060c80dcd002759412..3c9843979baff7ed419d4ae2124d7ccf47b95b5b 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -423,6 +423,11 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen

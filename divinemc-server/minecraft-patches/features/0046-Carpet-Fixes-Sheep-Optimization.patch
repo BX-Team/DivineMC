@@ -19,7 +19,7 @@ we used a prebaked list of all the possible colors and combinations, however thi
 datapack to change it.
 
 diff --git a/net/minecraft/world/item/DyeColor.java b/net/minecraft/world/item/DyeColor.java
-index 6bac07817d2916c64f703586599a2cab226872e6..d8ad2d56d4f0d6e5a58ec0359cecdde384db93e8 100644
+index c9cde255117b46690b2b6670d009a00b051af016..2c9f513e6ccd75959484f29a375671e21aab9590 100644
 --- a/net/minecraft/world/item/DyeColor.java
 +++ b/net/minecraft/world/item/DyeColor.java
 @@ -112,6 +112,15 @@ public enum DyeColor implements StringRepresentable {

@@ -5,7 +5,7 @@ Subject: [PATCH] Configurable movement speed for entities
 
 
 diff --git a/net/minecraft/world/entity/monster/Drowned.java b/net/minecraft/world/entity/monster/Drowned.java
-index edcb20935f58e78fa4ef2c11a7dcc6a7857341c2..d4e7fc0a5bda4f44bcfed3d1adae7cdaf815784b 100644
+index 2e6d0f035a01277aa28bbe912d5df8dc4cf04547..2a13332ebabf2e63a8f51a5d794fab3d66c7a1db 100644
 --- a/net/minecraft/world/entity/monster/Drowned.java
 +++ b/net/minecraft/world/entity/monster/Drowned.java
 @@ -98,6 +98,7 @@ public class Drowned extends Zombie implements RangedAttackMob {
