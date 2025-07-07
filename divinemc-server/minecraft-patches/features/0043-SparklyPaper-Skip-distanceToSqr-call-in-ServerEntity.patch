@@ -1,12 +1,18 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Sat, 1 Feb 2025 19:50:02 +0300
-Subject: [PATCH] Skip distanceToSqr call in ServerEntity#sendChanges if the
- delta movement hasn't changed
+Subject: [PATCH] SparklyPaper: Skip distanceToSqr call in
+ ServerEntity#sendChanges if the delta movement hasn't changed
 
+Original project: https://github.com/SparklyPower/SparklyPaper
+
+Patch description:
+
+The "distanceToSqr" call is a bit expensive, so avoiding it is pretty nice, around ~15% calls are skipped with this check
+We could also check if the x,y,z coordinates are equal, but for now, let's just keep the identity check, which also helps us since Minecraft's code does reuse the original delta movement Vec3 object
 
 diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
-index fa0fd2a7f15a076ac981f85f4f249a15a4ab512e..ff2f1e31633749da89cfc0779004ac1ef104470d 100644
+index e96d4dee14c05f2fa329bfb1588ec795d4e3d730..0868189fee30d40dfb82ae39592a65b510e96b54 100644
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
 @@ -209,23 +209,27 @@ public class ServerEntity {
