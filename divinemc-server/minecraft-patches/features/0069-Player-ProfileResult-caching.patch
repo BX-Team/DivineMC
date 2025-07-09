@@ -5,7 +5,7 @@ Subject: [PATCH] Player ProfileResult caching
 
 
 diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index 10aecbb88a9a3dae3ecdf28aa449f1a1475a1905..13b468d4d3b92bf71fdfa112dfe56464c4f9dbed 100644
+index 10aecbb88a9a3dae3ecdf28aa449f1a1475a1905..9285697a1da3f216e03b8ea824f07f7f7c716c53 100644
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 @@ -75,6 +75,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
@@ -14,7 +14,7 @@ index 10aecbb88a9a3dae3ecdf28aa449f1a1475a1905..13b468d4d3b92bf71fdfa112dfe56464
      private volatile boolean disconnecting = false; // Paper - Fix disconnect still ticking login
 +    // DivineMC start - Player ProfileResult caching
 +    private static final com.google.common.cache.Cache<String, ProfileResult> playerProfileResultCache = com.google.common.cache.CacheBuilder.newBuilder()
-+        .expireAfterWrite(1, java.util.concurrent.TimeUnit.MINUTES)
++        .expireAfterWrite(org.bxteam.divinemc.config.DivineConfig.NetworkCategory.playerProfileResultCachingTimeout, java.util.concurrent.TimeUnit.MINUTES)
 +        .build();
 +    // DivineMC end - Player ProfileResult caching
  
