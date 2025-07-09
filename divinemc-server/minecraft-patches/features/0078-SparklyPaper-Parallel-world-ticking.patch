@@ -1,16 +1,15 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Wed, 29 Jan 2025 00:59:03 +0300
-Subject: [PATCH] Parallel world ticking
+Subject: [PATCH] SparklyPaper: Parallel world ticking
 
 Original project: https://github.com/SparklyPower/SparklyPaper
-TODO: find the crash problem and fix it (Attempting to remove entity ... from entity slices (.., ..) that is receiving status updates)
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index c10e31017e7dfab348e9cc45c28d3858863ac0b1..97bdfe92f32368427bff4960b8f5e39f298c00ab 100644
+index 6ce4a98e4d3b633e3c87944c23b6b3f0ff58f159..57fec1f9a210d2ecb74ff7b05cec790ae77f9178 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -1155,7 +1155,7 @@ public final class ChunkHolderManager {
+@@ -1142,7 +1142,7 @@ public final class ChunkHolderManager {
          if (changedFullStatus.isEmpty()) {
              return;
          }
@@ -18,8 +17,8 @@ index c10e31017e7dfab348e9cc45c28d3858863ac0b1..97bdfe92f32368427bff4960b8f5e39f
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && !TickThread.isTickThreadFor(world) || !TickThread.isTickThread()) { // DivineMC - Parallel world ticking
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
-             this.getData().offThreadPendingFullLoadUpdate.addAll(changedFullStatus); // DivineMC - Chunk System optimization
-@@ -1176,7 +1176,13 @@ public final class ChunkHolderManager {
+             this.offThreadPendingFullLoadUpdate.addAll(changedFullStatus);
+@@ -1163,7 +1163,13 @@ public final class ChunkHolderManager {
  
      // note: never call while inside the chunk system, this will absolutely break everything
      public void processUnloads() {
@@ -34,7 +33,7 @@ index c10e31017e7dfab348e9cc45c28d3858863ac0b1..97bdfe92f32368427bff4960b8f5e39f
  
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot unload chunks recursively");
-@@ -1463,7 +1469,7 @@ public final class ChunkHolderManager {
+@@ -1429,7 +1435,7 @@ public final class ChunkHolderManager {
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot update ticket level while unloading chunks or updating entity manager");
          }
@@ -83,7 +82,7 @@ index ac27ff24f018d8798921c5152e679ceed1e88d8d..ec7d1353b19e55b00c558df8981323ef
                      List<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(level.capturedBlockStates.values());
                      level.capturedBlockStates.clear();
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index aa8c2a3fc3a9a6318a3e757c6e51249ff11bd633..7bf2449141270c8ed924e38fdd8f9c1830ac2d99 100644
+index 2f4be37e1ef4ea550bd6acd2c4647e5a7ed77648..101dce7741f74dd79b333fd6cf38a97cb0c832f8 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -290,6 +290,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -352,7 +351,7 @@ index 978934f81ba023d7565d2e66c51f6ca249510702..13d85eb366a070bfd6723088412f51af
          this.setFlightAllowed(properties.allowFlight);
          this.setMotd(properties.motd);
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..3cf54630d36f821a232fa03f9094c4c1f70902a1 100644
+index a76f7ce474cc1d6ff918737e845666a7529bd4a3..4fe0f6ba751666e436053536f7607fb50c8471f6 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -175,7 +175,6 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -364,26 +363,26 @@ index 7205fc8d3b17863c262d4c4c3cb956c852468c6f..3cf54630d36f821a232fa03f9094c4c1
              }
          }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 324c573899965b204cec17458b6cb9733d83a868..2348a3ec6afb2618033b8f40257f7c9c58448397 100644
+index 3c1795eb56900cd80cfec38bd1d922d566463ecb..07b9a2529be69bf8158528e996e7ddb95ede9614 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -181,7 +181,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -180,7 +180,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     private final MinecraftServer server;
      public final net.minecraft.world.level.storage.PrimaryLevelData serverLevelData; // CraftBukkit - type
-     public final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager.LevelHolderData chunkHolderData; // DivineMC - Chunk System optimization
      private int lastSpawnChunkRadius;
 -    final EntityTickList entityTickList = new EntityTickList();
 +    final EntityTickList entityTickList = new EntityTickList(this); // DivineMC - Parallel world ticking
      private final ServerWaypointManager waypointManager;
      // Paper - rewrite chunk system
      private final GameEventDispatcher gameEventDispatcher;
-@@ -208,6 +208,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-     private double preciseTime; // Purpur - Configurable daylight cycle
-     private boolean forceTime; // Purpur - Configurable daylight cycle
-     private final RandomSequences randomSequences;
+@@ -217,6 +217,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     public boolean hasRidableMoveEvent = false; // Purpur - Ridables
+     public net.minecraft.world.item.ItemStack ominousBanner; // DivineMC - Optimize Raids
+     public org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag Compensation
 +    public java.util.concurrent.ExecutorService tickExecutor; // DivineMC - Parallel world ticking
  
-     // CraftBukkit start
-     public final LevelStorageSource.LevelStorageAccess levelStorageAccess;
+     @Override
+     public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
 @@ -680,7 +681,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.sleepStatus = new SleepStatus();
          this.gameEventDispatcher = new GameEventDispatcher(this);
@@ -393,15 +392,15 @@ index 324c573899965b204cec17458b6cb9733d83a868..2348a3ec6afb2618033b8f40257f7c9c
          // Paper start - rewrite chunk system
          this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup((ServerLevel)(Object)this, ((ServerLevel)(Object)this).new EntityCallbacks()));
          this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler((ServerLevel)(Object)this);
-@@ -697,6 +698,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-         this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
-         // Paper end - rewrite chunk system
+@@ -698,6 +699,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
-+        this.tickExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new org.bxteam.divinemc.server.ServerLevelTickExecutorThreadFactory(getWorld().getName())); // DivineMC - Parallel world ticking
          this.preciseTime = this.serverLevelData.getDayTime(); // Purpur - Configurable daylight cycle
+         this.ominousBanner = Objects.requireNonNullElse(this.registryAccess(), net.minecraft.core.RegistryAccess.EMPTY).lookup(Registries.BANNER_PATTERN).map(Raid::getOminousBannerInstance).orElse(null); // DivineMC - Optimize Raids
++        this.tickExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new org.bxteam.divinemc.server.ServerLevelTickExecutorThreadFactory(getWorld().getName())); // DivineMC - Parallel world ticking
      }
  
-@@ -1298,12 +1300,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     // Paper start
+@@ -1300,12 +1302,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (fluidState.is(fluid)) {
              fluidState.tick(this, pos, blockState);
          }
@@ -419,7 +418,7 @@ index 324c573899965b204cec17458b6cb9733d83a868..2348a3ec6afb2618033b8f40257f7c9c
      }
  
      private void tickBlock(BlockPos pos, Block block) {
-@@ -1311,12 +1313,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1313,12 +1315,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (blockState.is(block)) {
              blockState.tick(this, pos, this.random);
          }
@@ -437,7 +436,7 @@ index 324c573899965b204cec17458b6cb9733d83a868..2348a3ec6afb2618033b8f40257f7c9c
      }
  
      // Paper start - log detailed entity tick information
-@@ -1566,6 +1568,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1581,6 +1583,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      }
  
      private void addPlayer(ServerPlayer player) {
@@ -445,7 +444,7 @@ index 324c573899965b204cec17458b6cb9733d83a868..2348a3ec6afb2618033b8f40257f7c9c
          Entity entity = this.getEntity(player.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -1578,7 +1581,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1593,7 +1596,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
  
      // CraftBukkit start
      private boolean addEntity(Entity entity, @Nullable org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
@@ -461,18 +460,18 @@ index 324c573899965b204cec17458b6cb9733d83a868..2348a3ec6afb2618033b8f40257f7c9c
          // Paper start - extra debug info
          if (entity.valid) {
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index a1b4720ef128ba5cbe1466a7a584d4fe501a71f8..cf4ab76f463836a8ed9aeedd09ae95e75b9e8dbc 100644
+index b75d2d2746c3e7b12f65b0bcb559cd7e0ce7ebf8..52f3c374c91f877b51b243b46cd05c5e2fc0face 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -430,6 +430,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
-     private boolean tpsBar = false; // Purpur - Implement TPSBar
+@@ -431,6 +431,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
      private boolean compassBar = false; // Purpur - Add compass command
      private boolean ramBar = false; // Purpur - Implement rambar commands
+     public boolean smoothWorldTeleport; // DivineMC - Smooth teleport API
 +    public boolean hasTickedAtLeastOnceInNewWorld = false; // DivineMC - Parallel world ticking
  
      // Paper start - rewrite chunk system
      private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
-@@ -747,6 +748,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -748,6 +749,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
  
      @Override
      public void tick() {
@@ -480,7 +479,7 @@ index a1b4720ef128ba5cbe1466a7a584d4fe501a71f8..cf4ab76f463836a8ed9aeedd09ae95e7
          // CraftBukkit start
          if (this.joining) {
              this.joining = false;
-@@ -1424,6 +1426,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1425,6 +1427,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
                  return this;
              } else {
                  // CraftBukkit start
@@ -488,7 +487,7 @@ index a1b4720ef128ba5cbe1466a7a584d4fe501a71f8..cf4ab76f463836a8ed9aeedd09ae95e7
                  /*
                  this.isChangingDimension = true;
                  LevelData levelData = level.getLevelData();
-@@ -1769,6 +1772,12 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1770,6 +1773,12 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
                  return OptionalInt.empty();
              } else {
                  // CraftBukkit start
@@ -501,7 +500,7 @@ index a1b4720ef128ba5cbe1466a7a584d4fe501a71f8..cf4ab76f463836a8ed9aeedd09ae95e7
                  this.containerMenu = abstractContainerMenu; // Moved up
                  if (!this.isImmobile())
                  this.connection
-@@ -1833,6 +1842,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1834,6 +1843,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
      }
      @Override
      public void closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
@@ -514,7 +513,7 @@ index a1b4720ef128ba5cbe1466a7a584d4fe501a71f8..cf4ab76f463836a8ed9aeedd09ae95e7
          // Paper end - Inventory close reason
          this.connection.send(new ClientboundContainerClosePacket(this.containerMenu.containerId));
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 5ebbb4e37469beef11bdfd1531b0d10f3d01c826..ef9b99bc76876e7348b418b4a66339c2b8b33f50 100644
+index 6713eb83b36f115e72fa5999c413e59e4f634f9f..08e337ae96c444da2e50240c808c76a548cd4c12 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -149,6 +149,7 @@ public abstract class PlayerList {
@@ -525,7 +524,7 @@ index 5ebbb4e37469beef11bdfd1531b0d10f3d01c826..ef9b99bc76876e7348b418b4a66339c2
          player.isRealPlayer = true; // Paper
          player.loginTime = System.currentTimeMillis(); // Paper - Replace OfflinePlayer#getLastPlayed
          GameProfile gameProfile = player.getGameProfile();
-@@ -678,6 +679,14 @@ public abstract class PlayerList {
+@@ -685,6 +686,14 @@ public abstract class PlayerList {
      }
  
      public ServerPlayer respawn(ServerPlayer player, boolean keepInventory, Entity.RemovalReason reason, @Nullable org.bukkit.event.player.PlayerRespawnEvent.RespawnReason eventReason, @Nullable org.bukkit.Location location) {
@@ -537,10 +536,10 @@ index 5ebbb4e37469beef11bdfd1531b0d10f3d01c826..ef9b99bc76876e7348b418b4a66339c2
 +                ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot respawn player off-main, respawning in world " + player.level().getWorld().getName());
 +        }
 +        // DivineMC end - Parallel world ticking
+         player.stopRiding(); // CraftBukkit
          this.players.remove(player);
          this.playersByName.remove(player.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
-         player.level().removePlayerImmediately(player, reason);
-@@ -687,6 +696,7 @@ public abstract class PlayerList {
+@@ -695,6 +704,7 @@ public abstract class PlayerList {
          ServerPlayer serverPlayer = player;
          Level fromWorld = player.level();
          player.wonGame = false;
@@ -634,10 +633,10 @@ index f9e7532f86122a379692561a639a209a126e8bba..839f6b7696ef85314da185bedba7cfc5
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 1e201ff091bdf33c96e2cfa333030ae105ab7bc9..5a58fb937419369d887c4fc35d9383d1b5e35a99 100644
+index cad10bd55ac1e52d00b3b9c3205562b346c54e2a..44cd33cec38b1a2af304ec819b14124187011df1 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3432,14 +3432,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3460,14 +3460,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              if (this.portalProcess != null) {
                  if (this.portalProcess.processPortalTeleportation(serverLevel, this, this.canUsePortal(false))) {
                      this.setPortalCooldown();
@@ -678,7 +677,7 @@ index 1e201ff091bdf33c96e2cfa333030ae105ab7bc9..5a58fb937419369d887c4fc35d9383d1
                  } else if (this.portalProcess.hasExpired()) {
                      this.portalProcess = null;
                  }
-@@ -4016,6 +4036,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4044,6 +4064,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      private Entity teleportCrossDimension(ServerLevel oldLevel, ServerLevel newLevel, TeleportTransition teleportTransition) {
@@ -1344,7 +1343,7 @@ index d23f255de9208f42125fa358a9e8194c984fe4d3..92e9bc9ba577474ca1108b8d06157395
      // CraftBukkit end
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 010c7204bfa772ff9a2187a5db76d7c65ea34f66..6de61b3e75edee87562e3aab01c7020cd91133b3 100644
+index cf2ff202103fde0607e4dacef1a976c36b7840ef..8ea69a995c8572ed14cacaef0f53596c748dace6 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -365,6 +365,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
@@ -1356,13 +1355,13 @@ index 010c7204bfa772ff9a2187a5db76d7c65ea34f66..6de61b3e75edee87562e3aab01c7020c
          LevelChunkSection section = this.getSection(this.getSectionIndex(y));
          boolean hasOnlyAir = section.hasOnlyAir();
 diff --git a/net/minecraft/world/level/entity/EntityTickList.java b/net/minecraft/world/level/entity/EntityTickList.java
-index 9e75320e51886e0f93c23683d8614128f44a613e..d8b3e0901922016a22ca2801c2c4e0afd28e1c0a 100644
+index c89701d7bdc9b889038d3c52f2232fb17624b113..f2ba43b92b0d0356a97069fd427f9fa446d6c007 100644
 --- a/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/net/minecraft/world/level/entity/EntityTickList.java
-@@ -10,17 +10,31 @@ import net.minecraft.world.entity.Entity;
- 
+@@ -11,16 +11,31 @@ import net.minecraft.world.entity.Entity;
  public class EntityTickList {
-     public final java.util.concurrent.ConcurrentLinkedQueue<Entity> entities = new java.util.concurrent.ConcurrentLinkedQueue<>(); // Paper - rewrite chunk system // DivineMC - Async mob spawning
+     public final ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet<net.minecraft.world.entity.Entity> entities = new ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet<>(); // Paper - rewrite chunk system
+ 
 +    // DivineMC start - Parallel world ticking
 +    @Nullable
 +    private final net.minecraft.server.level.ServerLevel serverLevel;
@@ -1375,7 +1374,7 @@ index 9e75320e51886e0f93c23683d8614128f44a613e..d8b3e0901922016a22ca2801c2c4e0af
 +        this.serverLevel = serverLevel;
 +    }
 +    // DivineMC end - Parallel world ticking
- 
++
      private void ensureActiveIsNotIterated() {
          // Paper - rewrite chunk system
      }
@@ -1391,7 +1390,7 @@ index 9e75320e51886e0f93c23683d8614128f44a613e..d8b3e0901922016a22ca2801c2c4e0af
          this.ensureActiveIsNotIterated();
          this.entities.remove(entity); // Paper - rewrite chunk system
      }
-@@ -30,6 +44,7 @@ public class EntityTickList {
+@@ -30,6 +45,7 @@ public class EntityTickList {
      }
  
      public void forEach(Consumer<Entity> entity) {

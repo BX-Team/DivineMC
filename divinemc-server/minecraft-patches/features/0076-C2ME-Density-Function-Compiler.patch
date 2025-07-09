@@ -1,16 +1,14 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Wed, 12 Feb 2025 01:05:50 +0300
-Subject: [PATCH] Density Function Compiler
-
-Implements density function compiler to accelerate world generation from C2ME
-
-Density function: https://minecraft.wiki/w/Density_function
+Subject: [PATCH] C2ME: Density Function Compiler
 
 This functionality compiles density functions from world generation
 datapacks (including vanilla generation) to JVM bytecode to increase
 performance by allowing JVM JIT to better optimize the code.
 All functions provided by vanilla are implemented.
+
+About Density function: https://minecraft.wiki/w/Density_function
 
 diff --git a/net/minecraft/util/CubicSpline.java b/net/minecraft/util/CubicSpline.java
 index f36f8f2d49d4eba5c80eb243883749d6f831eb8a..b43b7e242ea0a4f87704853c03201144ce355565 100644

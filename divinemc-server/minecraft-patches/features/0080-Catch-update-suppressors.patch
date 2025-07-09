@@ -5,10 +5,10 @@ Subject: [PATCH] Catch update suppressors
 
 
 diff --git a/net/minecraft/network/protocol/PacketUtils.java b/net/minecraft/network/protocol/PacketUtils.java
-index e65c62dbe4c1560ae153e4c4344e9194c783a2f4..e3d3b062e273fee4a9d3ba3cadc212787096dc54 100644
+index 4535858701b2bb232b9d2feb2af6551526232ddc..aa4dd7517e8be167aef1eaf7aa907e3ce7cc0e62 100644
 --- a/net/minecraft/network/protocol/PacketUtils.java
 +++ b/net/minecraft/network/protocol/PacketUtils.java
-@@ -25,6 +25,10 @@ public class PacketUtils {
+@@ -27,6 +27,10 @@ public class PacketUtils {
                  if (processor.shouldHandleMessage(packet)) {
                      try {
                          packet.handle(processor);
@@ -20,7 +20,7 @@ index e65c62dbe4c1560ae153e4c4344e9194c783a2f4..e3d3b062e273fee4a9d3ba3cadc21278
                          if (var4 instanceof ReportedException reportedException && reportedException.getCause() instanceof OutOfMemoryError) {
                              throw makeReportedException(var4, packet, processor);
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 59642de7b2d3064c59bb1d8d2fc436cb9e2c2914..2f9463cbef40dabd8769ba8fe9c18f1ac8487298 100644
+index c0a272285e244e0267e6ef776aef14524e63c076..99bdd73e13096c692c06fe0b32b90cd9a68bb477 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1685,6 +1685,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
