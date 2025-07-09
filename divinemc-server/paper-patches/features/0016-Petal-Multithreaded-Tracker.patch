@@ -1,8 +1,18 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Sat, 1 Mar 2025 23:06:52 +0300
-Subject: [PATCH] Multithreaded Tracker
+Subject: [PATCH] Petal: Multithreaded Tracker
 
+Original project: https://github.com/Bloom-host/Petal
+Original license: GPL v3
+
+Patch description:
+
+We made much of tracking logic asynchronously, and fixed visible issue
+for the case of some NPC plugins which using real entity type, e.g. Citizens.
+
+But it is still recommending to use those packet based, virtual entity
+based NPC plugins, e.g. ZNPC Plus, Adyeshach, Fancy NPC, etc.
 
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 index d7398b1ecf2660c29fb7d106b48fe02d3736603e..ab499a7eaccdc1578ec64f90f54f79b0da3c0e96 100644
@@ -22,10 +32,10 @@ index d7398b1ecf2660c29fb7d106b48fe02d3736603e..ab499a7eaccdc1578ec64f90f54f79b0
          }
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index acd3b4f8b3e9c40253bacb3d16017fb7102c071c..fda15b81d2405179261fa6fa76c3ec8f7ad6eaf5 100644
+index 4913ac7d0426025689c8aee3790d87f7ac0131fd..d4d3aeae964d9a64805ddc5862e46fff5dd7d98a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -2942,7 +2942,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
+@@ -2953,7 +2953,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
          Iterator<AttributeInstance> iterator = collection.iterator();
          while (iterator.hasNext()) {
              AttributeInstance genericInstance = iterator.next();
@@ -35,7 +45,7 @@ index acd3b4f8b3e9c40253bacb3d16017fb7102c071c..fda15b81d2405179261fa6fa76c3ec8f
                  break;
              }
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index a162440a583801671787163d998d6b9546ef7e61..214bc24aa301f99c911a129676bc7d7d50df7236 100644
+index d10ee84ed2f6b1c81667b968984f3ebf5c39e445..83c6cf3cb062c8a6508728822e37d52a543415a3 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -1808,6 +1808,26 @@ public class CraftEventFactory {

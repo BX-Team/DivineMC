@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Tue, 28 Jan 2025 01:04:55 +0300
-Subject: [PATCH] Async Pathfinding
+Subject: [PATCH] Petal: Async Pathfinding
 
 Original code by Bloom-host, licensed under GPL v3
 You can find the original code on https://github.com/Bloom-host/Petal
@@ -393,7 +393,7 @@ index 86fccf3617a32f3791b03d8067e2eaf6b8d8bebb..2c26d30a7373c6ac8ead22894b63a8d6
      }
  
 diff --git a/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
-index c8e4ccb96a0f162c780066cf4f61b970b49b7703..0b5f1f1e24c8c0468875d709c6b81798882600a0 100644
+index 24dd92449f70144c79f25bf24942ebd666655ed2..8d243cac4a0ba0536bd65c39bf3483d056e00116 100644
 --- a/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 @@ -167,6 +167,10 @@ public abstract class PathNavigation {
@@ -579,10 +579,10 @@ index ca5651f15552f91fba650747d28a75c00fa11442..c5883758d11e91f96b4139b3bd8586a8
          }
      }
 diff --git a/net/minecraft/world/entity/animal/frog/Frog.java b/net/minecraft/world/entity/animal/frog/Frog.java
-index c6e4966d3e4fdb7c91577fc1693fb66930b4f3dc..81f0e444ccb6962d675e3a097341683d504d0889 100644
+index 85963b74a533beb7883ea417ceb3c21d834aebe0..1c9f3f0b2a344c026532c89c0db377ab8183c912 100644
 --- a/net/minecraft/world/entity/animal/frog/Frog.java
 +++ b/net/minecraft/world/entity/animal/frog/Frog.java
-@@ -483,6 +483,17 @@ public class Frog extends Animal {
+@@ -488,6 +488,17 @@ public class Frog extends Animal {
              super(mob, level);
          }
  
@@ -600,7 +600,7 @@ index c6e4966d3e4fdb7c91577fc1693fb66930b4f3dc..81f0e444ccb6962d675e3a097341683d
          @Override
          public boolean canCutCorner(PathType pathType) {
              return pathType != PathType.WATER_BORDER && super.canCutCorner(pathType);
-@@ -491,6 +502,11 @@ public class Frog extends Animal {
+@@ -496,6 +507,11 @@ public class Frog extends Animal {
          @Override
          protected PathFinder createPathFinder(int maxVisitedNodes) {
              this.nodeEvaluator = new Frog.FrogNodeEvaluator(true);
@@ -613,10 +613,10 @@ index c6e4966d3e4fdb7c91577fc1693fb66930b4f3dc..81f0e444ccb6962d675e3a097341683d
          }
      }
 diff --git a/net/minecraft/world/entity/monster/Drowned.java b/net/minecraft/world/entity/monster/Drowned.java
-index 2e6d0f035a01277aa28bbe912d5df8dc4cf04547..edcb20935f58e78fa4ef2c11a7dcc6a7857341c2 100644
+index 2a13332ebabf2e63a8f51a5d794fab3d66c7a1db..d4e7fc0a5bda4f44bcfed3d1adae7cdaf815784b 100644
 --- a/net/minecraft/world/entity/monster/Drowned.java
 +++ b/net/minecraft/world/entity/monster/Drowned.java
-@@ -308,7 +308,7 @@ public class Drowned extends Zombie implements RangedAttackMob {
+@@ -309,7 +309,7 @@ public class Drowned extends Zombie implements RangedAttackMob {
  
      protected boolean closeToNextPos() {
          Path path = this.getNavigation().getPath();
@@ -656,10 +656,10 @@ index fe31c4a45afd61be8b74efe9d0858ccd0aced075..859c41c3c81b3d3ac05eebdc83c959d1
          }
  
 diff --git a/net/minecraft/world/entity/monster/warden/Warden.java b/net/minecraft/world/entity/monster/warden/Warden.java
-index 021aa51da04bea01b0e827390ce1690af7092b8f..0440cbbc0d6657f32dc37a1dbbe9ee78f8e229cf 100644
+index 7bfc597655cc55c46b65c9726a6e9de9f3f5afc8..4944b6d389c65511eed75d580779f912b8ff076d 100644
 --- a/net/minecraft/world/entity/monster/warden/Warden.java
 +++ b/net/minecraft/world/entity/monster/warden/Warden.java
-@@ -574,6 +574,16 @@ public class Warden extends Monster implements VibrationSystem {
+@@ -579,6 +579,16 @@ public class Warden extends Monster implements VibrationSystem {
              @Override
              protected PathFinder createPathFinder(int maxVisitedNodes) {
                  this.nodeEvaluator = new WalkNodeEvaluator();

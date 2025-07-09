@@ -64,10 +64,10 @@ index 25150731bb3f3d04b248ebc47fc9b453e49a705e..75c8ce32e68f92e20201e9c243f46f2b
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 5f2c27800f047f128857044493a6d9325ffd759b..9dcb9e5ecc31fcc3fc7547a47ec98d2689698769 100644
+index 85c4d709b6d04e8f43baf7b900ee59eae5d98fe0..421b59b24bda3d03dea8fd0fc6237a71900e1cdc 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -627,6 +627,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -629,6 +629,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              chunkGenerator = new org.bukkit.craftbukkit.generator.CustomChunkGenerator(this, chunkGenerator, gen);
          }
          // CraftBukkit end
@@ -93,7 +93,7 @@ index b299fc08fe900b4d48ce3e6986bcea000253053e..4dc68a03f607cacbf7f1bf9c08a4cbc1
                  final double maxHeightSlimeChunk = level.getMinecraftWorld().paperConfig().entities.spawning.slimeSpawnHeight.slimeChunk.maximum;
                  if (random.nextInt(10) == 0 && flag && pos.getY() < maxHeightSlimeChunk) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 182c14b660f8860bed627eed4e01fd4002153e9a..5e9f3856c384dbb2bd462121b903cd2b326e4376 100644
+index 81511de113c292549fe5fe720a15bf3e0497ca84..19f74518923783d8d5560b526a1f267dabd23156 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
 @@ -83,6 +83,10 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
@@ -107,7 +107,7 @@ index 182c14b660f8860bed627eed4e01fd4002153e9a..5e9f3856c384dbb2bd462121b903cd2b
      // CraftBukkit start - SPIGOT-6814: move to IChunkAccess to account for 1.17 to 1.18 chunk upgrading.
      private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
      public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
-@@ -192,6 +196,17 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -193,6 +197,17 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
          return GameEventListenerRegistry.NOOP;
      }
  
@@ -412,10 +412,10 @@ index 1f939b325ec5291b3c4aabc4735c863f9436a6f8..0a544577922bef471d2f07544ad45ce2
      }
  
 diff --git a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
-index 1cfa0fcd28685736fcdce4aef817e4d4cc4061cb..86a54586112b84b7c2026a4cbdad99cdf1c6ef81 100644
+index cd3b24a760053dcd650a1a263b3c0093a0cbb175..e4ca880b5d16ae30676ec25c39c3d5b5f6cb3c24 100644
 --- a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
 +++ b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
-@@ -64,7 +64,11 @@ public class JigsawPlacement {
+@@ -66,7 +66,11 @@ public class JigsawPlacement {
          ChunkGenerator chunkGenerator = context.chunkGenerator();
          StructureTemplateManager structureTemplateManager = context.structureTemplateManager();
          LevelHeightAccessor levelHeightAccessor = context.heightAccessor();

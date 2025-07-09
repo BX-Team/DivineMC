@@ -3,9 +3,11 @@ From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Tue, 4 Feb 2025 19:52:24 +0300
 Subject: [PATCH] Optimize Structure Generation
 
+Original project: https://github.com/TelepathicGrunt/StructureLayoutOptimizer
+Original license: MIT
 
 diff --git a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
-index 86a54586112b84b7c2026a4cbdad99cdf1c6ef81..e4ca880b5d16ae30676ec25c39c3d5b5f6cb3c24 100644
+index 1cfa0fcd28685736fcdce4aef817e4d4cc4061cb..cd3b24a760053dcd650a1a263b3c0093a0cbb175 100644
 --- a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
 +++ b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
 @@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
@@ -17,7 +19,7 @@ index 86a54586112b84b7c2026a4cbdad99cdf1c6ef81..e4ca880b5d16ae30676ec25c39c3d5b5
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.Holder;
-@@ -292,6 +294,108 @@ public class JigsawPlacement {
+@@ -288,6 +290,108 @@ public class JigsawPlacement {
              this.random = random;
          }
  
@@ -126,7 +128,7 @@ index 86a54586112b84b7c2026a4cbdad99cdf1c6ef81..e4ca880b5d16ae30676ec25c39c3d5b5
          void tryPlacingChildren(
              PoolElementStructurePiece piece,
              MutableObject<VoxelShape> free,
-@@ -349,9 +453,9 @@ public class JigsawPlacement {
+@@ -345,9 +449,9 @@ public class JigsawPlacement {
                                  mutableObject1 = free;
                              }
  
@@ -138,7 +140,7 @@ index 86a54586112b84b7c2026a4cbdad99cdf1c6ef81..e4ca880b5d16ae30676ec25c39c3d5b5
                              }
  
                              list.addAll(fallback.value().getShuffledTemplates(this.random));
-@@ -362,10 +466,14 @@ public class JigsawPlacement {
+@@ -358,10 +462,14 @@ public class JigsawPlacement {
                                      break;
                                  }
  
@@ -155,7 +157,7 @@ index 86a54586112b84b7c2026a4cbdad99cdf1c6ef81..e4ca880b5d16ae30676ec25c39c3d5b5
                                      BoundingBox boundingBox1 = structurePoolElement.getBoundingBox(this.structureTemplateManager, BlockPos.ZERO, rotation1);
                                      int i2;
                                      if (useExpansionHack && boundingBox1.getYSpan() <= 16) {
-@@ -398,7 +506,7 @@ public class JigsawPlacement {
+@@ -394,7 +502,7 @@ public class JigsawPlacement {
                                      }
  
                                      for (StructureTemplate.JigsawBlockInfo jigsawBlockInfo1 : shuffledJigsawBlocks) {
@@ -164,7 +166,7 @@ index 86a54586112b84b7c2026a4cbdad99cdf1c6ef81..e4ca880b5d16ae30676ec25c39c3d5b5
                                              BlockPos blockPos2 = jigsawBlockInfo1.info().pos();
                                              BlockPos blockPos3 = blockPos1.subtract(blockPos2);
                                              BoundingBox boundingBox2 = structurePoolElement.getBoundingBox(this.structureTemplateManager, blockPos3, rotation1);
-@@ -427,9 +535,26 @@ public class JigsawPlacement {
+@@ -423,9 +531,26 @@ public class JigsawPlacement {
                                                  boundingBox3.encapsulate(new BlockPos(boundingBox3.minX(), boundingBox3.minY() + max, boundingBox3.minZ()));
                                              }
  
@@ -231,7 +233,7 @@ index 5c081a5b3d10f713e4e82fe1a43758f553fe50e0..85e84603a19964f05d9d5e62eb096ca7
 +    // DivineMC end - Optimize Structure Generation
  }
 diff --git a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
-index 5a05536e474bec574aa637f86bfc51f566d76ebf..e0f4500099c582653a81e6679be859e3d669bb88 100644
+index f21e612a35d6ac4482dbf5d14e506959659e371a..c02c3b1fddd513cb477cbb7400c30a9ad57f80a6 100644
 --- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 +++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 @@ -255,6 +255,12 @@ public class StructureTemplate {

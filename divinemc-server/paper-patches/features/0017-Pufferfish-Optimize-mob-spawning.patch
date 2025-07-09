@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 9 Jul 2025 03:01:38 +0300
+Subject: [PATCH] Pufferfish: Optimize mob spawning
+
+Original license: GPL v3
+Original project: https://github.com/pufferfish-gg/Pufferfish
+
+This patch reduces the main-thread impact of mob spawning by moving spawning work to other threads
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
+index ece6db7b9a0dfd535141c0c756947c4898140503..41a725e9926767fbbf2a3e3558f850f0d57c5945 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
+@@ -19,7 +19,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
+ 
+     private final double maxFragFactor;
+ 
+-    private int iteratorCount;
++    private final java.util.concurrent.atomic.AtomicInteger iteratorCount = new java.util.concurrent.atomic.AtomicInteger(); // DivineMC - Pufferfish: Optimize mob spawning
+ 
+     public IteratorSafeOrderedReferenceSet() {
+         this(Object.class);
+@@ -99,7 +99,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
+     }
+ 
+     public int createRawIterator() {
+-        ++this.iteratorCount;
++        this.iteratorCount.incrementAndGet(); // DivineMC - Pufferfish: Optimize mob spawning
+         if (this.indexMap.isEmpty()) {
+             return Integer.MAX_VALUE;
+         } else {
+@@ -120,7 +120,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
+     }
+ 
+     public void finishRawIterator() {
+-        if (--this.iteratorCount == 0) {
++        if (this.iteratorCount.decrementAndGet() == 0) { // DivineMC - Pufferfish: Optimize mob spawning
+             if (this.getFragFactor() >= this.maxFragFactor) {
+                 this.defrag();
+             }
+@@ -137,7 +137,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
+                 throw new IllegalStateException();
+             }
+             this.listElements[index] = null;
+-            if (this.iteratorCount == 0 && this.getFragFactor() >= this.maxFragFactor) {
++            if (this.iteratorCount.get() == 0 && this.getFragFactor() >= this.maxFragFactor) { // DivineMC - Pufferfish: Optimize mob spawning
+                 this.defrag();
+             }
+             //this.check();
+@@ -235,7 +235,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
+     }
+ 
+     public IteratorSafeOrderedReferenceSet.Iterator<E> iterator(final int flags) {
+-        ++this.iteratorCount;
++        this.iteratorCount.incrementAndGet(); // DivineMC - Pufferfish: Optimize mob spawning
+         return new BaseIterator<>(this, true, (flags & ITERATOR_FLAG_SEE_ADDITIONS) != 0 ? Integer.MAX_VALUE : this.listSize);
+     }
+ 

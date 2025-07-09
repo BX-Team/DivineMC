@@ -1,8 +1,18 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Tue, 28 Jan 2025 01:18:49 +0300
-Subject: [PATCH] Multithreaded Tracker
+Subject: [PATCH] Petal: Multithreaded Tracker
 
+Original project: https://github.com/Bloom-host/Petal
+Original license: GPL v3
+
+Patch description:
+
+We made much of tracking logic asynchronously, and fixed visible issue
+for the case of some NPC plugins which using real entity type, e.g. Citizens.
+
+But it is still recommending to use those packet based, virtual entity
+based NPC plugins, e.g. ZNPC Plus, Adyeshach, Fancy NPC, etc.
 
 diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 index 1b8193587814225c2ef2c5d9e667436eb50ff6c5..93272808d94e81d31af728ebe85df9a2bc7aedab 100644
@@ -27,10 +37,10 @@ index 1b8193587814225c2ef2c5d9e667436eb50ff6c5..93272808d94e81d31af728ebe85df9a2
      {
          for (int i = 0; i < this.directByChunk.length; ++i) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index bdc1200ef5317fdaf58973bf580b0a672aee800f..dc2b3ccf7810731c0e2c90e5a476c1c8203a1fb7 100644
+index 053da602eb08b5a8b7a316e56f76a99e86149483..d1adef3f61acdbbc246f7ca3614b7e8aa7d25284 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-@@ -344,7 +344,11 @@ public final class RegionizedPlayerChunkLoader {
+@@ -347,7 +347,11 @@ public final class RegionizedPlayerChunkLoader {
          private boolean canGenerateChunks = true;
  
          private final ArrayDeque<ChunkHolderManager.TicketOperation<?, ?>> delayedTicketOps = new ArrayDeque<>();
@@ -56,7 +66,7 @@ index 9c0c99b936b4a82ebfe924866e53ec71f7bbe9ad..01ed1e3572e9c2ccfd19df117cda0d5c
                  .add(
                      new ClientboundUpdateAttributesPacket.AttributeSnapshot(
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index edda52a8430386238be4963e8ea2406f0c2d4df3..2c5104b9ae1d2ea902eeac5a1c9d49bc1af67c43 100644
+index c0d996fb99f053863ce623889add3feb70d7137d..a3290eb416ecb377d240bf334aef4e2b5e3bbefc 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -255,9 +255,19 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -346,7 +356,7 @@ index f106373ef3ac4a8685c2939c9e8361688a285913..b844b6dd89bc53b74c0d1bdbf4657c11
      public boolean visible = true;
  
 diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
-index e96d4dee14c05f2fa329bfb1588ec795d4e3d730..917029d96afb5843276f4fa4ee37292327aea626 100644
+index 0868189fee30d40dfb82ae39592a65b510e96b54..39e28ad0cbb4617a80d7f197723233d4bdc1eed5 100644
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
 @@ -134,7 +134,7 @@ public class ServerEntity {
@@ -358,7 +368,7 @@ index e96d4dee14c05f2fa329bfb1588ec795d4e3d730..917029d96afb5843276f4fa4ee372923
                          final ServerPlayer serverPlayer = connection.getPlayer(); // Paper
                          savedData.tickCarriedBy(serverPlayer, item);
                          Packet<?> updatePacket = savedData.getUpdatePacket(mapId, serverPlayer);
-@@ -424,8 +424,6 @@ public class ServerEntity {
+@@ -428,8 +428,6 @@ public class ServerEntity {
                  // CraftBukkit end
                  this.broadcastAndSend(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributesToSync));
              }
@@ -368,10 +378,10 @@ index e96d4dee14c05f2fa329bfb1588ec795d4e3d730..917029d96afb5843276f4fa4ee372923
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 9dcb9e5ecc31fcc3fc7547a47ec98d2689698769..2560799fe6ec006916a2bc9915355a358ab6c8bb 100644
+index 78bf3365b426e7090182af84630111d410a2460e..3c1795eb56900cd80cfec38bd1d922d566463ecb 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2504,7 +2504,6 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2517,7 +2517,6 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -379,7 +389,7 @@ index 9dcb9e5ecc31fcc3fc7547a47ec98d2689698769..2560799fe6ec006916a2bc9915355a35
          return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
      }
  
-@@ -2771,7 +2770,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2784,7 +2783,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                          }
  
                          map.carriedByPlayers.remove(player);
@@ -389,10 +399,10 @@ index 9dcb9e5ecc31fcc3fc7547a47ec98d2689698769..2560799fe6ec006916a2bc9915355a35
                          }
                      }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index f36e042b36b94a0de2524d01ed44558900ba2a99..649b01c00ec01eea1514676e424d88acbfa26184 100644
+index b6f67c4359e718db8eb9240a22e71fd0b1bc6d05..bc738535f67d789e9d240b245e9247e026b3c751 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -1931,7 +1931,6 @@ public class ServerGamePacketListenerImpl
+@@ -1934,7 +1934,6 @@ public class ServerGamePacketListenerImpl
      }
  
      public void internalTeleport(PositionMoveRotation posMoveRotation, Set<Relative> relatives) {
@@ -401,10 +411,10 @@ index f36e042b36b94a0de2524d01ed44558900ba2a99..649b01c00ec01eea1514676e424d88ac
          if (this.player.isRemoved()) {
              LOGGER.info("Attempt to teleport removed player {} restricted", player.getScoreboardName());
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index d382a9760c0379f3d1c3bc65303d1de250858343..f5a036cfde9ced6ed8f0e548db3b69b1a46a0d2d 100644
+index a6a7af2393c15f92683f05500bd4f45b1b1f4853..6ac8209ec468ec4f65f75b383478eee0b537fabf 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -1335,13 +1335,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -1353,13 +1353,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      }
  
      private void refreshDirtyAttributes() {
@@ -638,10 +648,10 @@ index 325ec57df2885f5e81b8a6b61e3a9fed9484b30f..1796f0a6f647c94b0943a6003a130779
  
      @Override
 diff --git a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
-index 7bbeed6c998c91e68376d3f17a510d68e3cd0b27..de7b3a8a7c841360310a88005da02a0733b46714 100644
+index ebb0b7e5047efa65e8b6986f12dd5a7d6c0e9613..a77665abefdf653e65393cc6908506a5812b5596 100644
 --- a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
 +++ b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
-@@ -211,6 +211,7 @@ public class MapItemSavedData extends SavedData {
+@@ -212,6 +212,7 @@ public class MapItemSavedData extends SavedData {
  
          for (int i = 0; i < this.carriedBy.size(); i++) {
              MapItemSavedData.HoldingPlayer holdingPlayer1 = this.carriedBy.get(i);

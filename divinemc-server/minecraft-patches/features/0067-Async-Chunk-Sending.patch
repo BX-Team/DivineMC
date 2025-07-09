@@ -5,10 +5,10 @@ Subject: [PATCH] Async Chunk Sending
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index 636ba1c5fef58aabd5b8d6c6a8d183584b9c8be1..998f8f0bd173ff370e947c16c28b9b01f89da1eb 100644
+index 1ed2ae41e47b2446bf1835efc8bad369408d52da..053da602eb08b5a8b7a316e56f76a99e86149483 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-@@ -53,6 +53,8 @@ public final class RegionizedPlayerChunkLoader {
+@@ -54,6 +54,8 @@ public final class RegionizedPlayerChunkLoader {
      public static final int LOADED_TICKET_LEVEL = ChunkTaskScheduler.getTicketLevel(ChunkStatus.EMPTY);
      public static final int TICK_TICKET_LEVEL = ChunkHolderManager.ENTITY_TICKING_TICKET_LEVEL;
  
@@ -17,7 +17,7 @@ index 636ba1c5fef58aabd5b8d6c6a8d183584b9c8be1..998f8f0bd173ff370e947c16c28b9b01
      public static void setUnloadDelay(final long ticks) {
          ((ChunkSystemTicketType)(Object)PLAYER_TICKET_DELAYED).moonrise$setTimeout(Math.max(1, ticks));
      }
-@@ -421,17 +423,61 @@ public final class RegionizedPlayerChunkLoader {
+@@ -415,17 +417,61 @@ public final class RegionizedPlayerChunkLoader {
          }
  
          private void sendChunk(final int chunkX, final int chunkZ) {

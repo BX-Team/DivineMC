@@ -5,7 +5,7 @@ Subject: [PATCH] Lag compensation
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index abfecaf4467092f7baa02e0f5bbfd23d087f2aa3..77a693f42d90b5d17bf56d86b1676247c1ad505d 100644
+index 7a3775185d5c80f43456a595f22a9ebf19760bd6..23144971acc04bbeacd719dafe2363d1618153b9 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -288,6 +288,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -25,18 +25,18 @@ index abfecaf4467092f7baa02e0f5bbfd23d087f2aa3..77a693f42d90b5d17bf56d86b1676247
          this.tickCount++;
          this.tickRateManager.tick();
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index efda5818ac05cbf06b93a1c983d6e3b18412ca86..ebd4b7c36e1cece8730782764c476756feebc211 100644
+index 4a2cace22512fe06c1713bc8735e775e3012f3bc..85c4d709b6d04e8f43baf7b900ee59eae5d98fe0 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -216,6 +216,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-     public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
      private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
      public boolean hasRidableMoveEvent = false; // Purpur - Ridables
+     public net.minecraft.world.item.ItemStack ominousBanner; // DivineMC - Optimize Raids
 +    public org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag Compensation
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -764,6 +765,8 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -763,6 +764,8 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              }
          }
  
@@ -66,10 +66,10 @@ index efda5818ac05cbf06b93a1c983d6e3b18412ca86..ebd4b7c36e1cece8730782764c476756
          this.serverLevelData.setDayTime(time);
          // Purpur start - Configurable daylight cycle
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index b8bd792293cb5985db5e5dfa5644930971a34632..a24829b705945fbda1058d9848b829500e727304 100644
+index 49cb64c6dd0941eab8f7531e0c182a79e4ec1da6..a6a7af2393c15f92683f05500bd4f45b1b1f4853 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -517,6 +517,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -523,6 +523,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              }
          }
  
@@ -77,7 +77,7 @@ index b8bd792293cb5985db5e5dfa5644930971a34632..a24829b705945fbda1058d9848b82950
          this.tickEffects();
          this.yHeadRotO = this.yHeadRot;
          this.yBodyRotO = this.yBodyRot;
-@@ -524,6 +525,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -530,6 +531,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          this.xRotO = this.getXRot();
      }
  
@@ -183,7 +183,7 @@ index 40cb5e6bbcf9dbdb400f1503e86c0804b60e07be..d5352cbb4a64631a0a831de880efa21e
              BlocksAttacks blocksAttacks = stack.get(DataComponents.BLOCKS_ATTACKS);
              return blocksAttacks != null ? 72000 : 0;
 diff --git a/net/minecraft/world/level/GameRules.java b/net/minecraft/world/level/GameRules.java
-index 2d9bf302b779602d733187c6f86e52467f0dc540..69196d7e43054955137569b22c4ca40adff3b1d8 100644
+index d510503a8ad272255aeba20a916642828023fd19..2def087994cb6676b6346e7062fd050e7e346c05 100644
 --- a/net/minecraft/world/level/GameRules.java
 +++ b/net/minecraft/world/level/GameRules.java
 @@ -366,8 +366,31 @@ public class GameRules {
@@ -248,7 +248,7 @@ index 8db95b74f88f8096de93115ae8d3fb2e6184ad3b..e044830439fe9821ab3f62695d318a63
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 53c77efe2f86c5dfb5f02fa0b1886e8cda2e3862..f534f7983424ff3a72809a4f6c20bbed83a54b42 100644
+index a2b21970841a0f7f2b4b469c7b8737440041ebaa..cf2ff202103fde0607e4dacef1a976c36b7840ef 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -917,6 +917,19 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p

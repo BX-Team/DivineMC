@@ -54,10 +54,10 @@ index 23144971acc04bbeacd719dafe2363d1618153b9..7dbefd83d164a7d97a56b02862fef3b2
  
      public ChatDecorator getChatDecorator() {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 89eddabc1a01f78b6945f1b8b8d32cede7e3cd9d..83aa3dc2f8d54e9fc89d809495c9b51f81d4f8e4 100644
+index 3ba558634558b4524245a2b29786237f5e38ef42..b6f67c4359e718db8eb9240a22e71fd0b1bc6d05 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -842,8 +842,11 @@ public class ServerGamePacketListenerImpl
+@@ -836,8 +836,11 @@ public class ServerGamePacketListenerImpl
      }
  
      // Paper start - AsyncTabCompleteEvent

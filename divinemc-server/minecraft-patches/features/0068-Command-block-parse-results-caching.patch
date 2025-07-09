@@ -5,7 +5,7 @@ Subject: [PATCH] Command block parse results caching
 
 
 diff --git a/net/minecraft/world/level/BaseCommandBlock.java b/net/minecraft/world/level/BaseCommandBlock.java
-index 625fffa596e1067d3f0e3402ea8c739f84298730..17a5cee6b06e6b3efff4c690a116f9001eabde00 100644
+index 13950339598f4ec705c54275342fa17ff2e74ca9..5791910babe010d3bdc00a5dd4486f00358df14f 100644
 --- a/net/minecraft/world/level/BaseCommandBlock.java
 +++ b/net/minecraft/world/level/BaseCommandBlock.java
 @@ -34,6 +34,10 @@ public abstract class BaseCommandBlock implements CommandSource {

@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 9 Jul 2025 02:08:35 +0300
+Subject: [PATCH] Use switch for VarInt#write
+
+
+diff --git a/net/minecraft/network/VarInt.java b/net/minecraft/network/VarInt.java
+index 4897ff4648083ebe737ae5b32bae344af27357e4..dddabc57f5415077b905cb59c5b47db1a621807f 100644
+--- a/net/minecraft/network/VarInt.java
++++ b/net/minecraft/network/VarInt.java
+@@ -51,21 +51,46 @@ public class VarInt {
+     }
+ 
+     public static ByteBuf write(ByteBuf buffer, int value) {
+-     // Paper start - Optimize VarInts
+-        // Peel the one and two byte count cases explicitly as they are the most common VarInt sizes
+-        // that the proxy will write, to improve inlining.
+-        if ((value & (0xFFFFFFFF << 7)) == 0) {
+-            buffer.writeByte(value);
+-        } else if ((value & (0xFFFFFFFF << 14)) == 0) {
+-            int w = (value & 0x7F | 0x80) << 8 | (value >>> 7);
+-            buffer.writeShort(w);
+-        } else {
+-            writeOld(buffer, value);
++        // DivineMC start - Use switch for VarInt#write
++        int bytesNeeded = getByteSize(value);
++
++        switch (bytesNeeded) {
++            case 1:
++                buffer.writeByte(value);
++                break;
++            case 2:
++                int w2 = ((value & 0x7F) << 8) | (value >>> 7) | 0x00008000;
++                buffer.writeShort(w2);
++                break;
++            case 3:
++                int w3 = (value & 0x7F) << 16
++                    | (value & 0x3F80) << 1
++                    | (value >>> 14)
++                    | 0x00808000;
++                buffer.writeMedium(w3);
++                break;
++            case 4:
++                int w4 = (value & 0x7F) << 24
++                    | ((value & 0x3F80) << 9)
++                    | (value & 0x1FC000) >> 6
++                    | (value >>> 21)
++                    | 0x80808000;
++                buffer.writeInt(w4);
++                break;
++            case 5:
++                int w5 = (value & 0x7F) << 24
++                    | (value & 0x3F80) << 9
++                    | (value & 0x1FC000) >> 6
++                    | ((value >>> 21) & 0x7F)
++                    | 0x80808080;
++                buffer.writeInt(w5);
++                buffer.writeByte(value >>> 28);
++                break;
+         }
++        // DivineMC end - Use switch for VarInt#write
+         return buffer;
+     }
+     public static ByteBuf writeOld(ByteBuf buffer, int value) {
+-    // Paper end - Optimize VarInts
+         while ((value & -128) != 0) {
+             buffer.writeByte(value & 127 | 128);
+             value >>>= 7;

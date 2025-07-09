@@ -31,7 +31,7 @@ index ca21597263cb430e2a5ae07e8cecfb0d53a270d2..226088405c019922085285ba5d04d7c1
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index ebd4b7c36e1cece8730782764c476756feebc211..324c573899965b204cec17458b6cb9733d83a868 100644
+index 421b59b24bda3d03dea8fd0fc6237a71900e1cdc..78bf3365b426e7090182af84630111d410a2460e 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -802,6 +802,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -43,7 +43,7 @@ index ebd4b7c36e1cece8730782764c476756feebc211..324c573899965b204cec17458b6cb973
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  entity.checkDespawn();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 9971c034391c13237dc403cdc9f8806b3bfc69f4..1e201ff091bdf33c96e2cfa333030ae105ab7bc9 100644
+index 39076c52a1ed15d1403d08851d53787a9055d6ee..cad10bd55ac1e52d00b3b9c3205562b346c54e2a 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -365,6 +365,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -210,7 +210,7 @@ index 6931bc84594362579a1832cb8ccda501e9fb0631..4e84f2faef81ba596ff1017a666c34cd
  
      public static AttributeSupplier.Builder createAttributes() {
 diff --git a/net/minecraft/world/entity/animal/frog/Frog.java b/net/minecraft/world/entity/animal/frog/Frog.java
-index 81f0e444ccb6962d675e3a097341683d504d0889..1c9f3f0b2a344c026532c89c0db377ab8183c912 100644
+index c6e4966d3e4fdb7c91577fc1693fb66930b4f3dc..85963b74a533beb7883ea417ceb3c21d834aebe0 100644
 --- a/net/minecraft/world/entity/animal/frog/Frog.java
 +++ b/net/minecraft/world/entity/animal/frog/Frog.java
 @@ -106,6 +106,7 @@ public class Frog extends Animal {
@@ -268,7 +268,7 @@ index c0e12a6e5dd2b7e12e4cc40f6795228de6b470cc..d8eb93431f4ef8720ccfd58cf5e7942c
  
      public static AttributeSupplier.Builder createAttributes() {
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
-index 36fcc913385afec8bb66c1664b902e4d6868f11d..ec72612cb69a2483349e29eb88063ed717a60029 100644
+index 997cff138d5c99b1be9224cb3c96bdfeeb79915a..217cd170041807b9eb520ec1f7363fb75e0b6b55 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
 @@ -94,6 +94,7 @@ public class Goat extends Animal {
@@ -369,7 +369,7 @@ index 94c1e65a4d7d59e967f31c2692e9b448faf67a55..472f48965dc7806ca751a397cbe1b048
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/warden/Warden.java b/net/minecraft/world/entity/monster/warden/Warden.java
-index 0440cbbc0d6657f32dc37a1dbbe9ee78f8e229cf..4944b6d389c65511eed75d580779f912b8ff076d 100644
+index 021aa51da04bea01b0e827390ce1690af7092b8f..7bfc597655cc55c46b65c9726a6e9de9f3f5afc8 100644
 --- a/net/minecraft/world/entity/monster/warden/Warden.java
 +++ b/net/minecraft/world/entity/monster/warden/Warden.java
 @@ -108,6 +108,7 @@ public class Warden extends Monster implements VibrationSystem {
