@@ -10,12 +10,10 @@ import org.apache.logging.log4j.Logger;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bxteam.divinemc.entity.pathfinding.PathfindTaskRejectPolicy;
-import org.bxteam.divinemc.region.LinearImplementation;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
-import org.bxteam.divinemc.region.RegionFileFormat;
 
 import java.io.File;
 import java.io.IOException;
@@ -343,11 +341,6 @@ public class DivineConfig {
         public static boolean enableStructureLayoutOptimizer = true;
         public static boolean deduplicateShuffledTemplatePoolElementList = false;
 
-        // TNT optimization
-        public static boolean enableFasterTntOptimization = true;
-        public static boolean explosionNoBlockDamage = false;
-        public static double tntRandomRange = -1;
-
         // General optimizations
         public static boolean skipUselessSecondaryPoiSensor = true;
         public static boolean clumpOrbs = true;
@@ -382,7 +375,6 @@ public class DivineConfig {
 
         public static void load() {
             chunkSettings();
-            tntOptimization();
             optimizationSettings();
             dab();
             virtualThreads();
@@ -431,12 +423,6 @@ public class DivineConfig {
                 "This will not break the structure generation, but it will make the structure layout different than",
                 "if this config was off (breaking vanilla seed parity). The cost of speed may be worth it in large",
                 "modpacks where many structure mods are using very high weight values in their template pools.");
-        }
-
-        private static void tntOptimization() {
-            enableFasterTntOptimization = getBoolean(ConfigCategory.PERFORMANCE.key("tnt-optimization.enable-faster-tnt-optimization"), enableFasterTntOptimization);
-            explosionNoBlockDamage = getBoolean(ConfigCategory.PERFORMANCE.key("tnt-optimization.explosion-no-block-damage"), explosionNoBlockDamage);
-            tntRandomRange = getDouble(ConfigCategory.PERFORMANCE.key("tnt-optimization.tnt-random-range"), tntRandomRange);
         }
 
         private static void optimizationSettings() {
@@ -581,14 +567,6 @@ public class DivineConfig {
         public static boolean timeAcceleration = true;
         public static boolean randomTickSpeedAcceleration = true;
 
-        // Region format
-        public static RegionFileFormat regionFormatTypeName = RegionFileFormat.ANVIL;
-        public static LinearImplementation linearImplementation = LinearImplementation.V2;
-        public static int linearFlushMaxThreads = 4;
-        public static int linearFlushDelay = 100;
-        public static boolean linearUseVirtualThread = false;
-        public static int linearCompressionLevel = 1;
-
         // Sentry
         public static String sentryDsn = "";
         public static String logLevel = "WARN";
@@ -597,7 +575,6 @@ public class DivineConfig {
         public static void load() {
             secureSeed();
             lagCompensation();
-            linearRegionFormat();
             sentrySettings();
         }
 
@@ -623,49 +600,6 @@ public class DivineConfig {
             randomTickSpeedAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration"), randomTickSpeedAcceleration);
         }
 
-        private static void linearRegionFormat() {
-            regionFormatTypeName = RegionFileFormat.fromName(getString(ConfigCategory.MISC.key("region-format.type"), regionFormatTypeName.name(),
-                "The type of region file format to use for storing chunk data.",
-                "Valid values:",
-                " - LINEAR: Linear region file format",
-                " - ANVIL: Anvil region file format (default)"));
-            linearImplementation = LinearImplementation.valueOf(getString(ConfigCategory.MISC.key("region-format.implementation"), linearImplementation.name(),
-                "The implementation of the linear region file format to use.",
-                "Valid values:",
-                " - V1: Basic and default linear implementation",
-                " - V2: Introduces a grid-based compression scheme for better data management and flexibility (default)"));
-
-            linearFlushMaxThreads = getInt(ConfigCategory.MISC.key("region-format.flush-max-threads"), linearFlushMaxThreads,
-                "The maximum number of threads to use for flushing linear region files.",
-                "If this value is less than or equal to 0, it will be set to the number of available processors + this value.");
-            linearFlushDelay = getInt(ConfigCategory.MISC.key("region-format.flush-delay"), linearFlushDelay,
-                "The delay in milliseconds to wait before flushing next files.");
-            linearUseVirtualThread = getBoolean(ConfigCategory.MISC.key("region-format.use-virtual-thread"), linearUseVirtualThread,
-                "Whether to use virtual threads for flushing.");
-            linearCompressionLevel = getInt(ConfigCategory.MISC.key("region-format.compression-level"), linearCompressionLevel,
-                "The compression level to use for the linear region file format.");
-
-            setComment(ConfigCategory.MISC.key("region-format"),
-                "The linear region file format is a custom region file format that is designed to be more efficient than the ANVIL format.",
-                "It uses uses ZSTD compression instead of ZLIB. This format saves about 50% of disk space.",
-                "Read more information about linear region format at https://github.com/xymb-endcrystalme/LinearRegionFileFormatTools",
-                "WARNING: If you are want to use this format, make sure to create backup of your world before switching to it, there is potential risk to lose chunk data.");
-
-            if (regionFormatTypeName == RegionFileFormat.UNKNOWN) {
-                LOGGER.error("Unknown region file type: {}, falling back to ANVIL format.", regionFormatTypeName);
-                regionFormatTypeName = RegionFileFormat.ANVIL;
-            }
-
-            if (linearFlushMaxThreads <= 0) {
-                linearFlushMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() + linearFlushMaxThreads, 1);
-            }
-
-            if (linearCompressionLevel > 22 || linearCompressionLevel < 1) {
-                LOGGER.warn("Invalid linear compression level: {}, resetting to default (1)", linearCompressionLevel);
-                linearCompressionLevel = 1;
-            }
-        }
-
         private static void sentrySettings() {
             sentryDsn = getString(ConfigCategory.MISC.key("sentry.dsn"), sentryDsn,
                 "The DSN for Sentry, a service that provides real-time crash reporting that helps you monitor and fix crashes in real time. Leave blank to disable. Obtain link at https://sentry.io");
@@ -681,7 +615,6 @@ public class DivineConfig {
     public static class NetworkCategory {
         // General network settings
         public static boolean disableDisconnectSpam = false;
-        public static boolean gracefulTeleportHandling = false;
         public static boolean dontRespondPingBeforeStart = true;
         public static boolean playerProfileResultCachingEnabled = true;
         public static int playerProfileResultCachingTimeout = 1440;
@@ -702,8 +635,6 @@ public class DivineConfig {
         private static void networkSettings() {
             disableDisconnectSpam = getBoolean(ConfigCategory.NETWORK.key("general.disable-disconnect-spam"), disableDisconnectSpam,
                 "Prevents players being disconnected by 'disconnect.spam' when sending too many chat packets");
-            gracefulTeleportHandling = getBoolean(ConfigCategory.NETWORK.key("general.graceful-teleport-handling"), gracefulTeleportHandling,
-                "Disables being disconnected from 'multiplayer.disconnect.invalid_player_movement' (also declines the packet handling).");
             dontRespondPingBeforeStart = getBoolean(ConfigCategory.NETWORK.key("general.dont-respond-ping-before-start"), dontRespondPingBeforeStart,
                 "Prevents the server from responding to pings before the server is fully booted.");
 
