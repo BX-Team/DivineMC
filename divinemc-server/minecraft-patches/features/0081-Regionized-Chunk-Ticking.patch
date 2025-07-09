@@ -23,7 +23,7 @@ index e72eda830644851656fae3118c513d7bd701be45..4ab30d291de7db5ad7d5684662f41348
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee4019e6e1c7c 100644
+index 4fe0f6ba751666e436053536f7607fb50c8471f6..a2be5bd7167b53ad7ce25f05fac46afad669ae9f 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -47,7 +47,7 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
      @Nullable
      @VisibleForDebug
      private NaturalSpawner.SpawnState lastSpawnState;
-@@ -153,32 +156,241 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -153,31 +156,246 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          return load ? this.syncLoad(chunkX, chunkZ, toStatus) : null;
      }
      // Paper end - rewrite chunk system
@@ -130,15 +130,21 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
 +
 +        final Set<Entity> firstTick = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 +
-+        level.entityTickList.entities.parallelStream().forEach(entity -> {
-+            long chunkKey = entity.chunkPosition().longKey;
-+            int regionIndex = chunkToRegion.get(chunkKey);
-+            if (regionIndex != -1) {
-+                regions.get(regionIndex).entities().add(entity);
-+            } else {
-+                firstTick.add(entity);
++        final ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.Iterator<Entity> iterator = level.entityTickList.entities.iterator();
++        try {
++            while (iterator.hasNext()) {
++                Entity entity = iterator.next();
++                long chunkKey = entity.chunkPosition().longKey;
++                int regionIndex = chunkToRegion.get(chunkKey);
++                if (regionIndex != -1) {
++                    regions.get(regionIndex).entities().add(entity);
++                } else {
++                    firstTick.add(entity);
++                }
 +            }
-+        });
++        } finally {
++            iterator.finishedIterating();
++        }
 +
 +        return new Output(regions.toArray(new RegionData[0]), firstTick);
 +    }
@@ -236,11 +242,7 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
 +                                return regionChunksIDs;
 +                            }, REGION_EXECUTOR));
 +                        }
- 
--            // call mid-tick tasks for chunk system
--            if ((i & 7) == 0) {
--                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
--                continue;
++
 +                        CompletableFuture.runAsync(() -> {
 +                            try {
 +                                CompletableFuture.allOf(ticked.toArray(new CompletableFuture[0])).join();
@@ -274,7 +276,10 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
 +                        latch.await();
 +                        return true;
 +                    }
-+
+ 
+-            // call mid-tick tasks for chunk system
+-            if ((i & 7) == 0) {
+-                continue;
 +                    @Override
 +                    public boolean isReleasable() {
 +                        return latch.getCount() == 0;
@@ -290,7 +295,6 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
 +
 +                // call mid-tick tasks for chunk system
 +                if ((i & 7) == 0) {
-+                    ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
 +                    continue;
 +                }
              }
@@ -299,7 +303,7 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
      }
      // Paper end - chunk tick iteration optimisations
  
-@@ -503,14 +715,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -502,14 +720,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          long gameTime = this.level.getGameTime();
          long l = gameTime - this.lastInhabitedUpdate;
          this.lastInhabitedUpdate = gameTime;
@@ -325,7 +329,7 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
          // DivineMC start - Async mob spawning
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
              for (ServerPlayer player : this.level.players) {
-@@ -554,14 +773,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -553,14 +778,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      }
  
      private void broadcastChangedChunks() {
@@ -350,7 +354,7 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
      }
  
      private void tickChunks(long timeInhabited) {
-@@ -611,23 +834,27 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -610,23 +839,27 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              filteredSpawningCategories = List.of();
          }
  
@@ -393,7 +397,7 @@ index a76f7ce474cc1d6ff918737e845666a7529bd4a3..af3875e88020d6265522f07b263ee401
              this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
          }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 3c1795eb56900cd80cfec38bd1d922d566463ecb..97f3c9de6e472fc271afd3373846cce954293997 100644
+index 07138e724d46ecfd09aa75008428502fa01c05fc..d4841095157106c3c69501ac2cd09511f62cfea0 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -191,7 +191,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -405,7 +409,7 @@ index 3c1795eb56900cd80cfec38bd1d922d566463ecb..97f3c9de6e472fc271afd3373846cce9
      volatile boolean isUpdatingNavigations;
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
-@@ -798,6 +798,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -806,6 +806,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                  this.dragonFight.tick();
              }
  
@@ -419,7 +423,7 @@ index 3c1795eb56900cd80cfec38bd1d922d566463ecb..97f3c9de6e472fc271afd3373846cce9
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
              this.entityTickList
                  .forEach(
-@@ -1813,22 +1820,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1828,22 +1835,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (Shapes.joinIsNotEmpty(collisionShape, collisionShape1, BooleanOp.NOT_SAME)) {
              List<PathNavigation> list = new ObjectArrayList<>();
  
@@ -451,7 +455,7 @@ index 3c1795eb56900cd80cfec38bd1d922d566463ecb..97f3c9de6e472fc271afd3373846cce9
              try {
                  this.isUpdatingNavigations = true;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index bf38e3bfcb0b96c4529d5e535893043512f52b02..82afe39d85395182acbd36a89db7b4436ecc1297 100644
+index dc82e12783989c307be2ac709a21321dac25f217..f6b548dbb8b1bd82b5ddc73e2613cdcde059ce74 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -106,7 +106,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -472,7 +476,7 @@ index bf38e3bfcb0b96c4529d5e535893043512f52b02..82afe39d85395182acbd36a89db7b443
      public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
      @Nullable
      public List<net.minecraft.world.entity.item.ItemEntity> captureDrops;
-@@ -1501,10 +1501,14 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1503,10 +1503,14 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
  
      protected void tickBlockEntities() {
          this.tickingBlockEntities = true;
