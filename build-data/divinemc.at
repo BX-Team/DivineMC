@@ -6,39 +6,13 @@ private-f net.minecraft.world.level.levelgen.NoiseChunk$FlatCache noiseFiller
 private-f net.minecraft.world.level.levelgen.NoiseChunk$NoiseInterpolator noiseFiller
 private-f net.minecraft.world.level.levelgen.RandomState router
 private-f net.minecraft.world.level.levelgen.RandomState sampler
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.executor.RadiusAwarePrioritisedExecutor$Task
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.executor.RadiusAwarePrioritisedExecutor$Task chunkX
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.executor.RadiusAwarePrioritisedExecutor$Task chunkZ
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.ChunkProgressionTask chunkX
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.ChunkProgressionTask chunkZ
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.ChunkProgressionTask world
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.GenericDataLoadTask chunkX
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.GenericDataLoadTask chunkZ
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.GenericDataLoadTask world
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.GenericDataLoadTask$ProcessOffMainTask
-public ca.spottedleaf.moonrise.patches.chunk_system.scheduling.task.GenericDataLoadTask$ProcessOnMainTask
 public net.minecraft.util.Mth SIN
 public net.minecraft.world.entity.ai.Brain sensors
 public net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities lineOfSightTest
 public net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities nearbyEntities
 public net.minecraft.world.entity.ai.sensing.Sensor scanRate
 public net.minecraft.world.entity.ai.sensing.Sensor timeToTick
-public net.minecraft.world.level.ServerExplosion damageSource
-public net.minecraft.world.level.ServerExplosion source
-public net.minecraft.world.level.chunk.LevelChunk$RebindableTickingBlockEntityWrapper
-public net.minecraft.world.level.chunk.LevelChunk$RebindableTickingBlockEntityWrapper rebind(Lnet/minecraft/world/level/block/entity/TickingBlockEntity;)V
-public net.minecraft.world.level.chunk.LevelChunk$RebindableTickingBlockEntityWrapper ticker
-public net.minecraft.world.level.chunk.LevelChunkSection nonEmptyBlockCount
-public net.minecraft.world.level.chunk.LevelChunkSection tickingBlockCount
-public net.minecraft.world.level.chunk.LevelChunkSection tickingFluidCount
-public net.minecraft.world.level.chunk.PalettedContainer palette
-public net.minecraft.world.level.chunk.PalettedContainer strategy
-public net.minecraft.world.level.chunk.PalettedContainer$Data palette
-public net.minecraft.world.level.chunk.storage.RegionFile getOversizedData(II)Lnet/minecraft/nbt/CompoundTag;
-public net.minecraft.world.level.chunk.storage.RegionFile isOversized(II)Z
-public net.minecraft.world.level.chunk.storage.RegionFile recalculateHeader()Z
-public net.minecraft.world.level.chunk.storage.RegionFile setOversized(IIZ)V
-public net.minecraft.world.level.chunk.storage.RegionFile write(Lnet/minecraft/world/level/ChunkPos;Ljava/nio/ByteBuffer;)V
+public net.minecraft.world.level.chunk.PaletteResize
 public net.minecraft.world.level.entity.EntityTickList entities
 public net.minecraft.world.level.levelgen.DensityFunctions$BlendAlpha
 public net.minecraft.world.level.levelgen.DensityFunctions$BlendDensity
@@ -62,26 +36,6 @@ public net.minecraft.world.level.levelgen.NoiseChunk$BlendOffset
 public net.minecraft.world.level.levelgen.NoiseRouterData$QuantizedSpaghettiRarity
 public net.minecraft.world.level.levelgen.NoiseRouterData$QuantizedSpaghettiRarity getSpaghettiRarity3D(D)D
 public net.minecraft.world.level.levelgen.NoiseRouterData$QuantizedSpaghettiRarity getSphaghettiRarity2D(D)D
-public net.minecraft.world.level.levelgen.Xoroshiro128PlusPlus seedHi
-public net.minecraft.world.level.levelgen.Xoroshiro128PlusPlus seedLo
-public net.minecraft.world.level.levelgen.XoroshiroRandomSource randomNumberGenerator
 public net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool rawTemplates
-public net.minecraft.world.level.levelgen.structure.structures.WoodlandMansionPieces$SimpleGrid
-public net.minecraft.world.level.levelgen.synth.BlendedNoise mainNoise
-public net.minecraft.world.level.levelgen.synth.BlendedNoise maxLimitNoise
-public net.minecraft.world.level.levelgen.synth.BlendedNoise minLimitNoise
-public net.minecraft.world.level.levelgen.synth.BlendedNoise smearScaleMultiplier
-public net.minecraft.world.level.levelgen.synth.BlendedNoise xzFactor
-public net.minecraft.world.level.levelgen.synth.BlendedNoise xzMultiplier
-public net.minecraft.world.level.levelgen.synth.BlendedNoise xzScale
-public net.minecraft.world.level.levelgen.synth.BlendedNoise yFactor
-public net.minecraft.world.level.levelgen.synth.BlendedNoise yMultiplier
-public net.minecraft.world.level.levelgen.synth.BlendedNoise yScale
-public net.minecraft.world.level.levelgen.synth.ImprovedNoise p
-public net.minecraft.world.level.levelgen.synth.PerlinNoise amplitudes
-public net.minecraft.world.level.levelgen.synth.PerlinNoise lowestFreqInputFactor
-public net.minecraft.world.level.levelgen.synth.PerlinNoise lowestFreqValueFactor
-public net.minecraft.world.level.levelgen.synth.PerlinNoise noiseLevels
-public net.minecraft.world.level.levelgen.synth.SimplexNoise p
 public net.minecraft.world.level.pathfinder.SwimNodeEvaluator allowBreaching
 public-f ca.spottedleaf.moonrise.paper.PaperHooks

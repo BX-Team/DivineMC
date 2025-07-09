@@ -84,11 +84,11 @@ index 09fd99c9cbd23b5f3c899bfb00c9b89651948ed8..6e264b311894f510112beb996190f5ff
 +    @Override public <T> void compact(net.minecraft.world.level.chunk.Palette<T> srcPalette, net.minecraft.world.level.chunk.Palette<T> dstPalette, short[] out) { } // DivineMC - lithium: faster chunk serialization
  }
 diff --git a/net/minecraft/world/level/chunk/PalettedContainer.java b/net/minecraft/world/level/chunk/PalettedContainer.java
-index baa006132b1fa3d73fd4a14f6bc747a3957d1a0c..be11a87ab1badca64219d74bc7a4f5d51b818a8c 100644
+index a251ba67644cd02a0b00d7c8b0e2c64aa5e26291..9d892c1c3890e0aaf13fd5cd7b7d138afeaad260 100644
 --- a/net/minecraft/world/level/chunk/PalettedContainer.java
 +++ b/net/minecraft/world/level/chunk/PalettedContainer.java
 @@ -32,6 +32,23 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
-     public final PalettedContainer.Strategy strategy;
+     private final PalettedContainer.Strategy strategy;
      //private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer"); // Paper - unused
  
 +    // DivineMC start - lithium: faster chunk serialization

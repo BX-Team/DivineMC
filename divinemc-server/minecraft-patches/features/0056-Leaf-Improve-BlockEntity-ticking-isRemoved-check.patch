@@ -8,13 +8,13 @@ Original project: https://github.com/Winds-Studio/Leaf
 This should help for massive hopper chains or hopper matrix.
 
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 6d9274f0da9507d0152611d6b7785e0524dedb2d..a2b21970841a0f7f2b4b469c7b8737440041ebaa 100644
+index dbb4142ea38cdf484e74c81103cebb024ae8813d..32f17328b7980a9dc382c90af76cca04b74c639a 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -982,13 +982,26 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
  
-     public static class RebindableTickingBlockEntityWrapper implements TickingBlockEntity {
-         public TickingBlockEntity ticker;
+     static class RebindableTickingBlockEntityWrapper implements TickingBlockEntity {
+         private TickingBlockEntity ticker;
 +        private @Nullable BlockEntity blockEntityReference = null; // DivineMC - Improve BlockEntity ticking isRemoved check
  
          RebindableTickingBlockEntityWrapper(TickingBlockEntity ticker) {
@@ -26,7 +26,7 @@ index 6d9274f0da9507d0152611d6b7785e0524dedb2d..a2b21970841a0f7f2b4b469c7b873744
 +            // DivineMC end - Improve BlockEntity ticking isRemoved check
          }
  
-         public void rebind(TickingBlockEntity ticker) {
+         void rebind(TickingBlockEntity ticker) {
              this.ticker = ticker;
 +            // DivineMC start - Improve BlockEntity ticking isRemoved check
 +            if (ticker instanceof BoundTickingBlockEntity<?> boundTicker) {

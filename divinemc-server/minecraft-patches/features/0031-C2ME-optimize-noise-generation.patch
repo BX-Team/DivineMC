@@ -11,7 +11,7 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java b/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java
-index 46e98a99442523614284150964ba528d0c91493f..55ae29a5e846bb2a6d6991ce071aefe6a8113ebb 100644
+index fb11a2eea540d55e50eab59f9857ca5d99f556f8..c40f65c30b6422a27154295a2b3a63483496dcca 100644
 --- a/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java
 @@ -11,6 +11,27 @@ public final class ImprovedNoise {
@@ -180,12 +180,12 @@ index 46e98a99442523614284150964ba528d0c91493f..55ae29a5e846bb2a6d6991ce071aefe6
  
      private double sampleWithDerivative(int gridX, int gridY, int gridZ, double deltaX, double deltaY, double deltaZ, double[] noiseValues) {
 diff --git a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
-index ffac5b7b1eb1364ab8442d7145a7b4ebde68ee10..667d464e61aea2aa7f7b7f1ed082daadc17f723b 100644
+index da3c26fbad32d75d71f7e59c8c3341316a754756..23e12c26e6035b429c89b98a796a048557e8c9b2 100644
 --- a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
 @@ -26,6 +26,10 @@ public class PerlinNoise {
-     public final double lowestFreqValueFactor;
-     public final double lowestFreqInputFactor;
+     private final double lowestFreqValueFactor;
+     private final double lowestFreqInputFactor;
      private final double maxValue;
 +    // DivineMC start - C2ME: optimize noise generation
 +    private final int octaveSamplersCount;
