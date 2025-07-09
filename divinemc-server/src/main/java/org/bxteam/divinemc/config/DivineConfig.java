@@ -338,7 +338,6 @@ public class DivineConfig {
         public static long chunkDataCacheLimit = 32678L;
         public static int maxViewDistance = 32;
         public static int playerNearChunkDetectionRange = 128;
-        public static int threadPoolPriority = Thread.NORM_PRIORITY + 1;
         public static boolean smoothBedrockLayer = false;
         public static boolean enableDensityFunctionCompiler = false;
         public static boolean enableStructureLayoutOptimizer = true;
@@ -400,9 +399,6 @@ public class DivineConfig {
                 LOGGER.warn("Invalid player near chunk detection range: {}, resetting to default (128)", playerNearChunkDetectionRange);
                 playerNearChunkDetectionRange = 128;
             }
-
-            threadPoolPriority = getInt(ConfigCategory.PERFORMANCE.key("chunks.thread-pool-priority"), threadPoolPriority,
-                "Sets the priority of the thread pool used for chunk generation");
 
             smoothBedrockLayer = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer"), smoothBedrockLayer,
                 "Smoothens the bedrock layer at the bottom of overworld, and on the top of nether during the world generation.");
