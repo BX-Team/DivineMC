@@ -21,24 +21,18 @@ index e72eda830644851656fae3118c513d7bd701be45..4ab30d291de7db5ad7d5684662f41348
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 4fe0f6ba751666e436053536f7607fb50c8471f6..b61580cd7216bd35f5bfade2aaf922b646dd61d8 100644
+index 4fe0f6ba751666e436053536f7607fb50c8471f6..a2be5bd7167b53ad7ce25f05fac46afad669ae9f 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -57,6 +57,13 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      private static final Logger LOGGER = LogUtils.getLogger();
      private final DistanceManager distanceManager;
      private final ServerLevel level;
-+    // DivineMC start - Regionized Chunk Ticking
-+    public static final Executor REGION_EXECUTOR = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingUseVirtualThreads
-+        ? java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()
-+        : java.util.concurrent.Executors.newFixedThreadPool(org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount,
-+            new org.bxteam.divinemc.util.NamedAgnosticThreadFactory<>("Region Ticking", ca.spottedleaf.moonrise.common.util.TickThread::new,
-+            org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority));
-+    // DivineMC end - Regionized Chunk Ticking
++    public static final Executor REGION_EXECUTOR = java.util.concurrent.Executors.newFixedThreadPool(org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount, new org.bxteam.divinemc.util.NamedAgnosticThreadFactory<>("Region Ticking", ca.spottedleaf.moonrise.common.util.TickThread::new, org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority)); // DivineMC - Regionized Chunk Ticking
      public final Thread mainThread;
      final ThreadedLevelLightEngine lightEngine;
      public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
-@@ -70,8 +77,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -70,8 +71,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      private final long[] lastChunkPos = new long[4];
      private final ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
      private final ChunkAccess[] lastChunk = new ChunkAccess[4];
@@ -51,7 +45,7 @@ index 4fe0f6ba751666e436053536f7607fb50c8471f6..b61580cd7216bd35f5bfade2aaf922b6
      @Nullable
      @VisibleForDebug
      private NaturalSpawner.SpawnState lastSpawnState;
-@@ -153,31 +162,246 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -153,31 +156,246 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          return load ? this.syncLoad(chunkX, chunkZ, toStatus) : null;
      }
      // Paper end - rewrite chunk system
@@ -307,7 +301,7 @@ index 4fe0f6ba751666e436053536f7607fb50c8471f6..b61580cd7216bd35f5bfade2aaf922b6
      }
      // Paper end - chunk tick iteration optimisations
  
-@@ -502,14 +726,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -502,14 +720,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          long gameTime = this.level.getGameTime();
          long l = gameTime - this.lastInhabitedUpdate;
          this.lastInhabitedUpdate = gameTime;
@@ -333,7 +327,7 @@ index 4fe0f6ba751666e436053536f7607fb50c8471f6..b61580cd7216bd35f5bfade2aaf922b6
          // DivineMC start - Async mob spawning
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
              for (ServerPlayer player : this.level.players) {
-@@ -553,14 +784,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -553,14 +778,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      }
  
      private void broadcastChangedChunks() {
@@ -358,7 +352,7 @@ index 4fe0f6ba751666e436053536f7607fb50c8471f6..b61580cd7216bd35f5bfade2aaf922b6
      }
  
      private void tickChunks(long timeInhabited) {
-@@ -610,23 +845,27 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -610,23 +839,27 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              filteredSpawningCategories = List.of();
          }
  
