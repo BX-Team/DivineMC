@@ -39,11 +39,7 @@ public final class ReloadCommand extends DivineSubCommandPermission {
 
         MinecraftServer server = ((CraftServer) sender.getServer()).getServer();
 
-        try {
-            DivineConfig.init((File) server.options.valueOf("divinemc-settings"));
-        } catch (IOException e) {
-            MinecraftServer.LOGGER.error("Failed to reload DivineMC config", e);
-        }
+        DivineConfig.init((File) server.options.valueOf("divinemc-settings"));
 
         for (ServerLevel level : server.getAllLevels()) {
             try {

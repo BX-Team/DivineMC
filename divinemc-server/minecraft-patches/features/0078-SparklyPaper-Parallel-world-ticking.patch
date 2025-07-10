@@ -333,10 +333,10 @@ index 10e5469df1800bcdfb3f8cb4045ee25a4bafc58c..8efed0ffdc906b6c1ba054831e481f53
                      }
                  } else if (this.visible.remove(advancementHolder)) {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 978934f81ba023d7565d2e66c51f6ca249510702..13d85eb366a070bfd6723088412f51af07892362 100644
+index efe1e50af314c4b8f6b30c7eb0a8dd14aec327a9..41900b602d763fdd1f393e29ef6c54ae2694d7bd 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -224,6 +224,13 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -219,6 +219,13 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          }
          // DivineMC end - Pufferfish SIMD
  
@@ -1343,7 +1343,7 @@ index d23f255de9208f42125fa358a9e8194c984fe4d3..92e9bc9ba577474ca1108b8d06157395
      // CraftBukkit end
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index cf2ff202103fde0607e4dacef1a976c36b7840ef..8ea69a995c8572ed14cacaef0f53596c748dace6 100644
+index 6f25be39103cd0bb26bc365d9599b9846c6fe133..24f13e2b0b694ff4dd01aeea876ef874f1828304 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -365,6 +365,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p

@@ -1067,10 +1067,10 @@ index b10cb4a73df58a5fe64e88868733ba41616f59e4..9f9cbe6056f8a4eeca64c40872d7403b
 +    // DivineMC end - Completely remove Mojang profiler
  }
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 9a36ad8112cc4a4d5c4fefcd3b4bf3c48d9d40ee..7aefb6a81d5f7f5431f3d67a096a93b036bbbd1d 100644
+index 329aeeafd51aee4da289b70ff68cdfe5401cc91a..653988aed936761385f245c520cc9521351664bf 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -795,12 +795,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -790,12 +790,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          return this.settings.getProperties().serverResourcePackInfo;
      }
  
@@ -5015,7 +5015,7 @@ index fa06ecacc27f619853c8db76d909ab4ba75dc529..345d4b80bd4383e0fb66d744d87bc8ef
  
      // Paper start - Add mobcaps commands
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 1d3b16d3f60a394fe69e10ef1bb6052bb937070a..d0c4d63320fb5f58c43b38ebc333e9a7be487a5d 100644
+index b80924fbe054b00fe5117df896358e330f41e993..1669c21534a453c9cf16b992df7a6bf276dea887 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -13,8 +13,6 @@ import net.minecraft.Util;
@@ -5039,7 +5039,7 @@ index 1d3b16d3f60a394fe69e10ef1bb6052bb937070a..d0c4d63320fb5f58c43b38ebc333e9a7
  
          if (this.fire) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 7425e8d6b352718f80e1e741329e28c5da80fcce..d11373d6a88f7b3baaf0e04d4f6e0d3837e2ba3b 100644
+index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..b88254fb3c12b99684c6ede1ae8a6671ffbe9ad6 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -24,8 +24,6 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;

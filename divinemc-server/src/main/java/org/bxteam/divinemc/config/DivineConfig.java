@@ -59,21 +59,30 @@ public class DivineConfig {
 		return convertToBukkit(config);
 	}
 
-	public static void init(File configFile) throws IOException {
-        DivineConfig.configFile = configFile;
-		if (configFile.exists()) {
-			try {
-				config.load(configFile);
-			} catch (InvalidConfigurationException e) {
-				throw new IOException(e);
-			}
-		}
+	public static void init(File configFile) {
+        try {
+            long begin = System.nanoTime();
+            LOGGER.info("Loading config...");
 
-		getInt("version", CONFIG_VERSION);
-        config.options().header(HEADER);
+            DivineConfig.configFile = configFile;
+            if (configFile.exists()) {
+                try {
+                    config.load(configFile);
+                } catch (InvalidConfigurationException e) {
+                    throw new IOException(e);
+                }
+            }
 
-        readConfig(DivineConfig.class, null);
-        checkExperimentalFeatures();
+            getInt("version", CONFIG_VERSION);
+            config.options().header(HEADER);
+
+            readConfig(DivineConfig.class, null);
+            checkExperimentalFeatures();
+
+            LOGGER.info("Config loaded in {}ms", (System.nanoTime() - begin) / 1_000_000);
+        } catch (Exception e) {
+            LOGGER.error("Failed to load config", e);
+        }
 	}
 
     static void readConfig(Class<?> clazz, Object instance) throws IOException {
