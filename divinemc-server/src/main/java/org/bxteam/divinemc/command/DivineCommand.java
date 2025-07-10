@@ -28,14 +28,12 @@ public final class DivineCommand extends Command {
 
     private static final DivineSubCommand MSPT_SUBCOMMAND = new MSPTCommand();
     private static final DivineSubCommand RELOAD_SUBCOMMAND = new ReloadCommand();
-    private static final DivineSubCommand RESEND_CHUNKS_SUBCOMMAND = new ResendChunksCommand();
     private static final DivineSubCommand VERSION_SUBCOMMAND = new VersionCommand();
     private static final Map<String, DivineSubCommand> SUBCOMMANDS = Util.make(() -> {
         final Map<Set<String>, DivineSubCommand> commands = new HashMap<>();
 
         commands.put(Set.of(MSPTCommand.LITERAL_ARGUMENT), MSPT_SUBCOMMAND);
         commands.put(Set.of(ReloadCommand.LITERAL_ARGUMENT), RELOAD_SUBCOMMAND);
-        commands.put(Set.of(ResendChunksCommand.LITERAL_ARGUMENT), RESEND_CHUNKS_SUBCOMMAND);
         commands.put(Set.of(VersionCommand.LITERAL_ARGUMENT), VERSION_SUBCOMMAND);
 
         return commands.entrySet().stream()
