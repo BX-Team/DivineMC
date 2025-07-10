@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 11 Jun 2025 20:15:37 +0300
+Subject: [PATCH] Async Join Thread
+
+
+diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+index 9285697a1da3f216e03b8ea824f07f7f7c716c53..de4d2bd780c98c8c06db5e9375d447dae4d4429e 100644
+--- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+@@ -186,22 +186,25 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+                     return;
+                 }
+                 // Paper end - Add Velocity IP Forwarding Support
+-                // CraftBukkit start
+-                // Paper start - Cache authenticator threads
+-                authenticatorPool.execute(() -> {
++                // DivineMC start - Async Join Thread
++                org.bxteam.divinemc.server.network.AsyncJoinHandler.runAsync(() -> {
+                     try {
+                         GameProfile gameprofile = ServerLoginPacketListenerImpl.this.createOfflineProfile(ServerLoginPacketListenerImpl.this.requestedUsername); // Spigot
+ 
+                         gameprofile = ServerLoginPacketListenerImpl.this.callPlayerPreLoginEvents(gameprofile); // Paper - Add more fields to AsyncPlayerPreLoginEvent
+                         ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
+-                        ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
++                        return gameprofile;
+                     } catch (Exception ex) {
+                         ServerLoginPacketListenerImpl.this.disconnect("Failed to verify username!");
+                         ServerLoginPacketListenerImpl.this.server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + ServerLoginPacketListenerImpl.this.requestedUsername, ex);
++                        return null;
++                    }
++                }, (gameprofile) -> {
++                    if (gameprofile != null) {
++                        ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
+                     }
+                 });
+-                // Paper end - Cache authenticator threads
+-                // CraftBukkit end
++                // DivineMC end - Async Join Thread
+             }
+         }
+     }
+@@ -259,7 +262,8 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+         }
+ 
+         // Paper start - Cache authenticator threads
+-        authenticatorPool.execute(new Runnable() {
++        // DivineMC start - Async Join Thread
++        org.bxteam.divinemc.server.network.AsyncJoinHandler.runAsync(new Runnable() {
+             @Override
+             public void run() {
+                 String string1 = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
+@@ -410,16 +414,23 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+             //TODO Update handling for lazy sessions, might not even have to do anything?
+ 
+             // Proceed with login
+-            authenticatorPool.execute(() -> {
++            // DivineMC start - Async Join Thread
++            org.bxteam.divinemc.server.network.AsyncJoinHandler.runAsync(() -> {
+                 try {
+                     final GameProfile gameprofile = this.callPlayerPreLoginEvents(this.authenticatedProfile);
+                     ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
+-                    ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
++                    return gameprofile;
+                 } catch (Exception ex) {
+                     disconnect("Failed to verify username!");
+                     server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + this.authenticatedProfile.getName(), ex);
++                    return null;
++                }
++            }, (gameprofile) -> {
++                if (gameprofile != null) {
++                    ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
+                 }
+             });
++            // DivineMC end - Async Join Thread
+             return;
+         }
+         // Paper end - Add Velocity IP Forwarding Support

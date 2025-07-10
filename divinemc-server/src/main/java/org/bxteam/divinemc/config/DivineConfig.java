@@ -11,6 +11,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.entity.pathfinding.PathfindTaskRejectPolicy;
+import org.bxteam.divinemc.server.network.AsyncJoinHandler;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlFile;
@@ -229,6 +230,11 @@ public class DivineConfig {
         public static int asyncEntityTrackerKeepalive = 60;
         public static int asyncEntityTrackerQueueSize = 0;
 
+        // Async Join Thread settings
+        public static boolean asyncJoinEnabled = true;
+        public static int asyncJoinThreadCount = 1;
+        public static boolean asyncJoinUseVirtualThreads = false;
+
         // Async chunk sending settings
         public static boolean asyncChunkSendingEnabled = true;
 
@@ -240,6 +246,7 @@ public class DivineConfig {
             regionizedChunkTicking();
             asyncPathfinding();
             multithreadedTracker();
+            asyncJoinSettings();
             asyncChunkSending();
             asyncMobSpawning();
         }
@@ -331,6 +338,18 @@ public class DivineConfig {
             }
 
             if (asyncEntityTrackerQueueSize <= 0) asyncEntityTrackerQueueSize = asyncEntityTrackerMaxThreads * 384;
+        }
+
+        private static void asyncJoinSettings() {
+            asyncJoinEnabled = getBoolean(ConfigCategory.ASYNC.key("join-thread.enabled"), asyncJoinEnabled,
+                "Enables async join thread, which offloads player setup and connection tasks to a separate thread",
+                "This can significantly improve MSPT when multiple players are joining simultaneously");
+            asyncJoinThreadCount = getInt(ConfigCategory.ASYNC.key("join-thread.thread-count"), asyncJoinThreadCount,
+                "Number of threads to use for async join operations");
+            asyncJoinUseVirtualThreads = getBoolean(ConfigCategory.ASYNC.key("join-thread.use-virtual-threads"), asyncJoinUseVirtualThreads,
+                "Whether to use virtual threads for async join operations (requires Java 21+)");
+
+            AsyncJoinHandler.init(asyncJoinEnabled, asyncJoinThreadCount);
         }
 
         private static void asyncChunkSending() {

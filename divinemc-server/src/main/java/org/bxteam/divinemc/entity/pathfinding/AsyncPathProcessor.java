@@ -24,7 +24,7 @@ public class AsyncPathProcessor {
     private static final Logger LOGGER = LogManager.getLogger(THREAD_PREFIX);
 
     private static long lastWarnMillis = System.currentTimeMillis();
-    private static final ThreadPoolExecutor pathProcessingExecutor = new ThreadPoolExecutor(
+    public static final ThreadPoolExecutor PATH_PROCESSING_EXECUTOR = new ThreadPoolExecutor(
         1,
         DivineConfig.AsyncCategory.asyncPathfindingMaxThreads,
         DivineConfig.AsyncCategory.asyncPathfindingKeepalive, TimeUnit.SECONDS,
@@ -63,7 +63,7 @@ public class AsyncPathProcessor {
     }
 
     protected static CompletableFuture<Void> queue(@NotNull AsyncPath path) {
-        return CompletableFuture.runAsync(path::process, pathProcessingExecutor)
+        return CompletableFuture.runAsync(path::process, PATH_PROCESSING_EXECUTOR)
             .orTimeout(60L, TimeUnit.SECONDS)
             .exceptionally(throwable -> {
                 if (throwable instanceof TimeoutException e) {

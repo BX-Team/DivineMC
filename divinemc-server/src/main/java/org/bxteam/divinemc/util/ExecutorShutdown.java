@@ -1,0 +1,51 @@
+package org.bxteam.divinemc.util;
+
+import net.minecraft.server.MinecraftServer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.bxteam.divinemc.entity.pathfinding.AsyncPathProcessor;
+import org.bxteam.divinemc.entity.tracking.MultithreadedTracker;
+import org.bxteam.divinemc.server.network.AsyncJoinHandler;
+import java.util.concurrent.TimeUnit;
+
+@SuppressWarnings("ConstantValue")
+public class ExecutorShutdown {
+    public static final Logger LOGGER = LogManager.getLogger(ExecutorShutdown.class.getSimpleName());
+
+    public static void shutdown(MinecraftServer server) {
+        if (server.mobSpawnExecutor != null && server.mobSpawnExecutor.thread.isAlive()) {
+            LOGGER.info("Shutting down mob spawn executor...");
+
+            try {
+                server.mobSpawnExecutor.join(3000L);
+            } catch (InterruptedException ignored) { }
+        }
+
+        if (MultithreadedTracker.TRACKER_EXECUTOR != null) {
+            LOGGER.info("Shutting down mob tracker executor...");
+            MultithreadedTracker.TRACKER_EXECUTOR.shutdown();
+
+            try {
+                MultithreadedTracker.TRACKER_EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) { }
+        }
+
+        if (AsyncPathProcessor.PATH_PROCESSING_EXECUTOR != null) {
+            LOGGER.info("Shutting down mob pathfinding processing executor...");
+            AsyncPathProcessor.PATH_PROCESSING_EXECUTOR.shutdown();
+
+            try {
+                AsyncPathProcessor.PATH_PROCESSING_EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) { }
+        }
+
+        if (AsyncJoinHandler.JOIN_EXECUTOR != null) {
+            LOGGER.info("Shutting down async join executor...");
+            AsyncJoinHandler.JOIN_EXECUTOR.shutdown();
+
+            try {
+                AsyncJoinHandler.JOIN_EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) { }
+        }
+    }
+}
