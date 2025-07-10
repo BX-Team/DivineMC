@@ -571,10 +571,15 @@ public class DivineConfig {
         public static String logLevel = "WARN";
         public static boolean onlyLogThrown = true;
 
+        // Old features
+        public static boolean copperBulb1gt = false;
+        public static boolean crafter1gt = false;
+
         public static void load() {
             secureSeed();
             lagCompensation();
             sentrySettings();
+            oldFeatures();
         }
 
         private static void secureSeed() {
@@ -608,6 +613,13 @@ public class DivineConfig {
                 "Only log Throwable exceptions to Sentry.");
 
             if (sentryDsn != null && !sentryDsn.isBlank()) gg.pufferfish.pufferfish.sentry.SentryManager.init(Level.getLevel(logLevel));
+        }
+
+        private static void oldFeatures() {
+            copperBulb1gt = getBoolean(ConfigCategory.MISC.key("old-features.copper-bulb-1gt"), copperBulb1gt,
+                "Whether to delay the copper lamp by 1 tick when the redstone signal changes.");
+            crafter1gt = getBoolean(ConfigCategory.MISC.key("old-features.crafter-1gt"), crafter1gt,
+                "Whether to reduce the frequency of the crafter outputting items to 1 tick.");
         }
     }
 

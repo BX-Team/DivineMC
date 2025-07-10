@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Thu, 10 Jul 2025 04:30:21 +0300
+Subject: [PATCH] Copper Bulb 1gt delay
+
+
+diff --git a/net/minecraft/world/level/block/CopperBulbBlock.java b/net/minecraft/world/level/block/CopperBulbBlock.java
+index 25caeb117d9a49fa00f46ec895a35dee8242aacd..3a2b751b150e7930817fd07d50a3baeecb44f7d1 100644
+--- a/net/minecraft/world/level/block/CopperBulbBlock.java
++++ b/net/minecraft/world/level/block/CopperBulbBlock.java
+@@ -32,16 +32,36 @@ public class CopperBulbBlock extends Block {
+     @Override
+     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+         if (oldState.getBlock() != state.getBlock() && level instanceof ServerLevel serverLevel) {
+-            this.checkAndFlip(state, serverLevel, pos);
++            // DivineMC start - Copper Bulb 1gt delay
++            if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.copperBulb1gt) {
++                this.checkAndFlip(state, serverLevel, pos);
++            } else {
++                level.scheduleTick(pos, this, 1);
++            }
++            // DivineMC end - Copper Bulb 1gt delay
+         }
+     }
+ 
+     @Override
+     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston) {
+         if (level instanceof ServerLevel serverLevel) {
+-            this.checkAndFlip(state, serverLevel, pos);
++            // DivineMC start - Copper Bulb 1gt delay
++            if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.copperBulb1gt) {
++                this.checkAndFlip(state, serverLevel, pos);
++            } else {
++                level.scheduleTick(pos, this, 1);
++            }
++        }
++    }
++
++    // DivineMC start - Copper Bulb 1gt delay
++    @Override
++    public void tick(BlockState state, ServerLevel level, BlockPos pos, net.minecraft.util.RandomSource random) {
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.copperBulb1gt) {
++            checkAndFlip(state, level, pos);
+         }
+     }
++    // DivineMC end - Copper Bulb 1gt delay
+ 
+     public void checkAndFlip(BlockState state, ServerLevel level, BlockPos pos) {
+         boolean hasNeighborSignal = level.hasNeighborSignal(pos);
