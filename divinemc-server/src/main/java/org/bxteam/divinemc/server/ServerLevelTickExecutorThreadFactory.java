@@ -9,12 +9,12 @@ public class ServerLevelTickExecutorThreadFactory implements ThreadFactory {
 
     public ServerLevelTickExecutorThreadFactory(String worldName) {
         this.worldName = worldName;
-        ThreadDumperRegistry.REGISTRY.add("serverlevel-tick-worker [" + worldName + "]");
+        ThreadDumperRegistry.REGISTRY.add(worldName + "ServerLevel Tick Worker");
     }
 
     @Override
     public Thread newThread(Runnable runnable) {
-        TickThread.ServerLevelTickThread tickThread = new TickThread.ServerLevelTickThread(runnable, "serverlevel-tick-worker [" + worldName + "]");
+        TickThread.ServerLevelTickThread tickThread = new TickThread.ServerLevelTickThread(runnable, this.worldName + "ServerLevel Tick Worker");
 
         if (tickThread.isDaemon()) {
             tickThread.setDaemon(false);

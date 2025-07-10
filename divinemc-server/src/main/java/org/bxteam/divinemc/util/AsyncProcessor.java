@@ -3,6 +3,7 @@ package org.bxteam.divinemc.util;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bxteam.divinemc.spark.ThreadDumperRegistry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -31,6 +32,7 @@ public class AsyncProcessor {
             }
         }, threadName);
 
+        ThreadDumperRegistry.REGISTRY.add(threadName);
         this.workerThread.start();
     }
 

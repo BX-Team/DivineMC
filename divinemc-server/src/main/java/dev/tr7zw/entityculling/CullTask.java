@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.bxteam.divinemc.config.DivineConfig;
+import org.bxteam.divinemc.spark.ThreadDumperRegistry;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -33,7 +34,7 @@ public class CullTask implements Runnable {
     private final Vec3d aabbMax = new Vec3d(0, 0, 0);
 
     private static final Executor backgroundWorker = Executors.newCachedThreadPool(task -> {
-        final TickThread worker = new TickThread("EntityCulling") {
+        final TickThread worker = new TickThread("Raytrace Entity Tracker Thread") {
             @Override
             public void run() {
                 task.run();
@@ -41,6 +42,7 @@ public class CullTask implements Runnable {
         };
 
         worker.setDaemon(true);
+        ThreadDumperRegistry.REGISTRY.add(worker.getName());
 
         return worker;
     });

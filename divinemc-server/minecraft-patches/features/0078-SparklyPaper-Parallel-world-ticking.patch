@@ -82,13 +82,13 @@ index ac27ff24f018d8798921c5152e679ceed1e88d8d..ec7d1353b19e55b00c558df8981323ef
                      List<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(level.capturedBlockStates.values());
                      level.capturedBlockStates.clear();
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 2f4be37e1ef4ea550bd6acd2c4647e5a7ed77648..101dce7741f74dd79b333fd6cf38a97cb0c832f8 100644
+index 985a5168f7f81fb934e791618362b7c6e71ff893..acbae905cd22511be417600c68c6944b80acd2d7 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -290,6 +290,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
      public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
-     public org.bxteam.divinemc.util.AsyncProcessor mobSpawnExecutor = new org.bxteam.divinemc.util.AsyncProcessor("mob_spawning"); // DivineMC - Async mob spawning
+     public org.bxteam.divinemc.util.AsyncProcessor mobSpawnExecutor = new org.bxteam.divinemc.util.AsyncProcessor("Mob Spawning"); // DivineMC - Pufferfish: Optimize mob spawning
 +    public java.util.concurrent.Semaphore serverLevelTickingSemaphore = null; // DivineMC - Parallel world ticking
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
@@ -351,7 +351,7 @@ index efe1e50af314c4b8f6b30c7eb0a8dd14aec327a9..41900b602d763fdd1f393e29ef6c54ae
          this.setFlightAllowed(properties.allowFlight);
          this.setMotd(properties.motd);
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index a76f7ce474cc1d6ff918737e845666a7529bd4a3..4fe0f6ba751666e436053536f7607fb50c8471f6 100644
+index bf680624bc6c618dfa0eeeb74c103ff6716fd27e..654d03368f06ab9870c11745b0994ea6722fa7bf 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -175,7 +175,6 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon

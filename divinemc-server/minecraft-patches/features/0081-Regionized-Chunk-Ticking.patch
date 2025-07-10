@@ -21,7 +21,7 @@ index e72eda830644851656fae3118c513d7bd701be45..4ab30d291de7db5ad7d5684662f41348
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 4fe0f6ba751666e436053536f7607fb50c8471f6..a2be5bd7167b53ad7ce25f05fac46afad669ae9f 100644
+index 654d03368f06ab9870c11745b0994ea6722fa7bf..7fcf9761c3af761e6d3e402fce2f9cbcc219d3b0 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -324,7 +324,7 @@ index 4fe0f6ba751666e436053536f7607fb50c8471f6..a2be5bd7167b53ad7ce25f05fac46afa
 +        this.broadcastChangedChunks();
 +        // DivineMC end - Regionized Chunk Ticking
 +
-         // DivineMC start - Async mob spawning
+         // DivineMC start - Pufferfish: Optimize mob spawning
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
              for (ServerPlayer player : this.level.players) {
 @@ -553,14 +778,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -352,7 +352,7 @@ index 4fe0f6ba751666e436053536f7607fb50c8471f6..a2be5bd7167b53ad7ce25f05fac46afa
      }
  
      private void tickChunks(long timeInhabited) {
-@@ -610,23 +839,27 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -610,23 +839,28 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              filteredSpawningCategories = List.of();
          }
  
@@ -369,16 +369,17 @@ index 4fe0f6ba751666e436053536f7607fb50c8471f6..a2be5bd7167b53ad7ce25f05fac46afa
 -            // Paper end - chunk tick iteration optimisation
 -
 -            for (LevelChunk levelChunk : list) {
--                this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Async mob spawning
+-                this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Pufferfish: Optimize mob spawning
 +            try {
 +                this.chunkMap.collectSpawningChunks(list);
 +                // Paper start - chunk tick iteration optimisation
 +                this.shuffleRandom.setSeed(this.level.random.nextLong());
-+                if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
++                if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns)
++                    Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
 +                // Paper end - chunk tick iteration optimisation
 +
 +                for (LevelChunk levelChunk : list) {
-+                    this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Async mob spawning
++                    this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, lastSpawnState); // DivineMC - Pufferfish: Optimize mob spawning
 +                }
 +            } finally {
 +                list.clear();
