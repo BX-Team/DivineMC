@@ -1067,10 +1067,10 @@ index b10cb4a73df58a5fe64e88868733ba41616f59e4..9f9cbe6056f8a4eeca64c40872d7403b
 +    // DivineMC end - Completely remove Mojang profiler
  }
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 329aeeafd51aee4da289b70ff68cdfe5401cc91a..653988aed936761385f245c520cc9521351664bf 100644
+index 83bd88eb9944481642f912c2d4862dfecdec2246..06657a0fbf65dd095519d706dd5a8e1d8b6b381a 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -790,12 +790,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -789,12 +789,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          return this.settings.getProperties().serverResourcePackInfo;
      }
  
@@ -4493,7 +4493,7 @@ index cf6ff7b7b4a007d7ff4b3c5a25d4f5a36422c683..c5275d6069a491c3c2b2de175b76fb87
      }
  
 diff --git a/net/minecraft/world/entity/animal/armadillo/Armadillo.java b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
-index 0da5c51c4830cf1826261f4d8877303b34c6cb87..6fbeaff7178a21338920d6738767033260b7a726 100644
+index e4578193f58417c7ef2776bb3d831ba55c553aec..2a7a078e05e16e73e43a24e108d207bce2e876bb 100644
 --- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 +++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 @@ -23,8 +23,6 @@ import net.minecraft.util.ByIdMap;
@@ -4604,7 +4604,7 @@ index 1d5079602e7ae1042e2bb92209dded4007f703da..c6e4966d3e4fdb7c91577fc1693fb669
      }
  
 diff --git a/net/minecraft/world/entity/animal/frog/Tadpole.java b/net/minecraft/world/entity/animal/frog/Tadpole.java
-index 6932e85b3db0205f9a69d9ef965a934f100e6bcf..c0e12a6e5dd2b7e12e4cc40f6795228de6b470cc 100644
+index 3bb197054f5197c0b8c4e2d4714d695255d5ecfa..f85626b690b02908fac3979d277b293ec48aa451 100644
 --- a/net/minecraft/world/entity/animal/frog/Tadpole.java
 +++ b/net/minecraft/world/entity/animal/frog/Tadpole.java
 @@ -12,8 +12,6 @@ import net.minecraft.server.level.ServerLevel;

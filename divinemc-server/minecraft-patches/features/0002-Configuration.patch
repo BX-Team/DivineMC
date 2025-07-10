@@ -5,17 +5,23 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 670553243d26e2faab8a21f099a846d4d1df7927..329aeeafd51aee4da289b70ff68cdfe5401cc91a 100644
+index 670553243d26e2faab8a21f099a846d4d1df7927..83bd88eb9944481642f912c2d4862dfecdec2246 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -193,6 +193,10 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -162,6 +162,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             this.setLocalIp(properties.serverIp);
+         }
+ 
++        org.bxteam.divinemc.config.DivineConfig.init((java.io.File) options.valueOf("divinemc-settings")); // DivineMC - Configuration
++
+         // Spigot start
+         this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
+         org.spigotmc.SpigotConfig.init((java.io.File) this.options.valueOf("spigot-settings"));
+@@ -193,6 +195,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          }
          org.purpurmc.purpur.PurpurConfig.registerCommands();
          // Purpur end - Purpur config files
-+        // DivineMC start - Configuration
-+        org.bxteam.divinemc.config.DivineConfig.init((java.io.File) options.valueOf("divinemc-settings"));
-+        org.bxteam.divinemc.command.DivineCommands.registerCommands(this);
-+        // DivineMC end - Configuration
++        org.bxteam.divinemc.command.DivineCommands.registerCommands(this); // DivineMC - Configuration
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
  
          this.setPvpAllowed(properties.pvp);

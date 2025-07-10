@@ -5,10 +5,10 @@ Subject: [PATCH] Disable offline warn if using proxy
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 41900b602d763fdd1f393e29ef6c54ae2694d7bd..0e66aa733dd9b0c23ef01bb38243a0cab13d9ecf 100644
+index 8820d1789192247c52b4d821abf2dd23c0bf1b62..5a2b9632a1e46b512a1379923765c1b8a28250b9 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -306,7 +306,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -305,7 +305,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          String proxyFlavor = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "Velocity" : "BungeeCord";
          String proxyLink = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "https://docs.papermc.io/velocity/security" : "http://www.spigotmc.org/wiki/firewall-guide/";
          // Paper end - Add Velocity IP Forwarding Support

@@ -26,6 +26,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
 @SuppressWarnings({"unused", "SameParameterValue"})
 public class DivineConfig {
@@ -688,9 +689,20 @@ public class DivineConfig {
         public static boolean noChatReportsDemandOnClient = false;
         public static String noChatReportsDisconnectDemandOnClientMessage = "You do not have No Chat Reports, and this server is configured to require it on client!";
 
+        // Protocols
+        public static boolean protocolsAppleSkinEnabled = false;
+        public static int protocolsAppleSkinSyncTickInterval = 20;
+        public static boolean protocolsJadeEnabled = false;
+        public static boolean protocolsMapsXaeroMapEnabled = false;
+        public static int protocolsMapsXaeroMapServerId = new Random().nextInt();
+        public static boolean protocolsSyncMaticaEnabled = false;
+        public static boolean protocolsSyncMaticaQuota = false;
+        public static int protocolsSyncMaticaQuotaLimit = 40000000;
+
         public static void load() {
             networkSettings();
             noChatReports();
+            protocols();
         }
 
         private static void networkSettings() {
@@ -717,6 +729,32 @@ public class DivineConfig {
                 "Should the server require No Chat Reports on the client side");
             noChatReportsDisconnectDemandOnClientMessage = getString(ConfigCategory.NETWORK.key("no-chat-reports.disconnect-demand-on-client-message"), noChatReportsDisconnectDemandOnClientMessage,
                 "Message to send to the client when they are disconnected for not having No Chat Reports");
+        }
+
+        private static void protocols() {
+            // AppleSkin
+            protocolsAppleSkinEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.appleskin.appleskin-enable"), protocolsAppleSkinEnabled,
+                "Enables AppleSkin protocol support");
+            protocolsAppleSkinSyncTickInterval = getInt(ConfigCategory.NETWORK.key("protocols.appleskin.sync-tick-interval"), protocolsAppleSkinSyncTickInterval,
+                "Sync tick interval for AppleSkin protocol");
+
+            // Jade
+            protocolsJadeEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.jade.jade-enable"), protocolsJadeEnabled,
+                "Enables Jade protocol support");
+
+            // Xaero's Map
+            protocolsMapsXaeroMapEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.xaeromap.xaeromap-enable"), protocolsMapsXaeroMapEnabled,
+                "Enables Xaero's Map protocol support");
+            protocolsMapsXaeroMapServerId = getInt(ConfigCategory.NETWORK.key("protocols.xaeromap.xaero-map-server-id"), protocolsMapsXaeroMapServerId,
+                "Server ID for Xaero's Map protocol");
+
+            // Syncmatica
+            protocolsSyncMaticaEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.syncmatica.syncmatica-enable"), protocolsSyncMaticaEnabled,
+                "Enables SyncMatica protocol support");
+            protocolsSyncMaticaQuota = getBoolean(ConfigCategory.NETWORK.key("protocols.syncmatica.quota"), protocolsSyncMaticaQuota,
+                "Enables quota system for SyncMatica");
+            protocolsSyncMaticaQuotaLimit = getInt(ConfigCategory.NETWORK.key("protocols.syncmatica.quota-limit"), protocolsSyncMaticaQuotaLimit,
+                "Quota limit for SyncMatica protocol");
         }
     }
 

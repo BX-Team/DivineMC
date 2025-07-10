@@ -12,6 +12,8 @@ public net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities lineOfS
 public net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities nearbyEntities
 public net.minecraft.world.entity.ai.sensing.Sensor scanRate
 public net.minecraft.world.entity.ai.sensing.Sensor timeToTick
+public net.minecraft.world.entity.animal.armadillo.Armadillo scuteTime
+public net.minecraft.world.entity.animal.frog.Tadpole getTicksLeftUntilAdult()I
 public net.minecraft.world.level.chunk.PaletteResize
 public net.minecraft.world.level.entity.EntityTickList entities
 public net.minecraft.world.level.levelgen.DensityFunctions$BlendAlpha
@@ -41,4 +43,10 @@ public net.minecraft.world.level.levelgen.Xoroshiro128PlusPlus seedLo
 public net.minecraft.world.level.levelgen.XoroshiroRandomSource randomNumberGenerator
 public net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool rawTemplates
 public net.minecraft.world.level.pathfinder.SwimNodeEvaluator allowBreaching
+public net.minecraft.world.level.storage.loot.LootPool entries
+public net.minecraft.world.level.storage.loot.LootTable pools
+public net.minecraft.world.level.storage.loot.entries.CompositeEntryBase children
+public net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer conditions
+public net.minecraft.world.level.storage.loot.entries.NestedLootTable contents
+public net.minecraft.world.level.storage.loot.predicates.CompositeLootItemCondition terms
 public-f ca.spottedleaf.moonrise.paper.PaperHooks

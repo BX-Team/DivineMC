@@ -7,11 +7,11 @@ Original license: GPL v3
 Original project: https://github.com/pufferfish-gg/Pufferfish
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 653988aed936761385f245c520cc9521351664bf..f963be0d96a54a9077d2d66e9abe73ba8484d653 100644
+index 06657a0fbf65dd095519d706dd5a8e1d8b6b381a..a947fc31f6261531b6f28e5af577e74ca84f2132 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -199,6 +199,26 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-         // DivineMC end - Configuration
+@@ -198,6 +198,26 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         org.bxteam.divinemc.command.DivineCommands.registerCommands(this); // DivineMC - Configuration
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
  
 +        // DivineMC start - Pufferfish SIMD
