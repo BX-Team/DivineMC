@@ -71,23 +71,6 @@ index 3ba558634558b4524245a2b29786237f5e38ef42..b6f67c4359e718db8eb9240a22e71fd0
      // Paper end - AsyncTabCompleteEvent
  
      @Override
-diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index 20ba45054c243fbb85e50cf0bdf75648730cb0bc..10aecbb88a9a3dae3ecdf28aa449f1a1475a1905 100644
---- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-+++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -53,7 +53,11 @@ import org.bukkit.event.player.PlayerPreLoginEvent;
- public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener, TickablePacketListener {
-     private static final AtomicInteger UNIQUE_THREAD_ID = new AtomicInteger(0);
-     static final Logger LOGGER = LogUtils.getLogger();
--    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("User Authenticator #%d").setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build()); // Paper - Cache authenticator threads
-+    // DivineMC start - Virtual Threads
-+    private static final java.util.concurrent.ExecutorService authenticatorPool = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualThreadsEnabled && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualAuthenticatorScheduler
-+        ? java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()
-+        : java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("User Authenticator #%d").setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build()); // Paper - Cache authenticator threads
-+    // DivineMC end - Virtual Threads
-     private static final int MAX_TICKS_BEFORE_LOGIN = 600;
-     private final byte[] challenge;
-     final MinecraftServer server;
 diff --git a/net/minecraft/server/network/ServerTextFilter.java b/net/minecraft/server/network/ServerTextFilter.java
 index b3d46e7687c572d9847124eb58e4a6011a78066c..9d2e2b1cff68383cd19b42e24559e3009ef1df54 100644
 --- a/net/minecraft/server/network/ServerTextFilter.java

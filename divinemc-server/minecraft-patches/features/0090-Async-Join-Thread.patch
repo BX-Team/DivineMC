@@ -5,10 +5,18 @@ Subject: [PATCH] Async Join Thread
 
 
 diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index 9285697a1da3f216e03b8ea824f07f7f7c716c53..de4d2bd780c98c8c06db5e9375d447dae4d4429e 100644
+index 443aebb71b2a55ee9dcd2dd4bf9a30fbb8da9e49..cd926f0576d73bc3ef41c9a075a7ac9c54c9dd41 100644
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -186,22 +186,25 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+@@ -53,7 +53,6 @@ import org.bukkit.event.player.PlayerPreLoginEvent;
+ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener, TickablePacketListener {
+     private static final AtomicInteger UNIQUE_THREAD_ID = new AtomicInteger(0);
+     static final Logger LOGGER = LogUtils.getLogger();
+-    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("User Authenticator #%d").setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build()); // Paper - Cache authenticator threads
+     private static final int MAX_TICKS_BEFORE_LOGIN = 600;
+     private final byte[] challenge;
+     final MinecraftServer server;
+@@ -182,22 +181,25 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
                      return;
                  }
                  // Paper end - Add Velocity IP Forwarding Support
@@ -40,7 +48,7 @@ index 9285697a1da3f216e03b8ea824f07f7f7c716c53..de4d2bd780c98c8c06db5e9375d447da
              }
          }
      }
-@@ -259,7 +262,8 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+@@ -255,7 +257,8 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
          }
  
          // Paper start - Cache authenticator threads
@@ -50,7 +58,7 @@ index 9285697a1da3f216e03b8ea824f07f7f7c716c53..de4d2bd780c98c8c06db5e9375d447da
              @Override
              public void run() {
                  String string1 = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
-@@ -410,16 +414,23 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+@@ -406,16 +409,23 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
              //TODO Update handling for lazy sessions, might not even have to do anything?
  
              // Proceed with login

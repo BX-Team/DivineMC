@@ -399,7 +399,6 @@ public class DivineConfig {
         public static boolean virtualThreadsEnabled = false;
         public static boolean virtualBukkitScheduler = false;
         public static boolean virtualChatScheduler = false;
-        public static boolean virtualAuthenticatorScheduler = false;
         public static boolean virtualTabCompleteScheduler = false;
         public static boolean virtualAsyncExecutor = false;
         public static boolean virtualCommandBuilderScheduler = false;
@@ -523,8 +522,6 @@ public class DivineConfig {
                 "Uses virtual threads for the Bukkit scheduler.");
             virtualChatScheduler = getBoolean(ConfigCategory.PERFORMANCE.key("virtual-threads.chat-scheduler"), virtualChatScheduler,
                 "Uses virtual threads for the Chat scheduler.");
-            virtualAuthenticatorScheduler = getBoolean(ConfigCategory.PERFORMANCE.key("virtual-threads.authenticator-scheduler"), virtualAuthenticatorScheduler,
-                "Uses virtual threads for the Authenticator scheduler.");
             virtualTabCompleteScheduler = getBoolean(ConfigCategory.PERFORMANCE.key("virtual-threads.tab-complete-scheduler"), virtualTabCompleteScheduler,
                 "Uses virtual threads for the Tab Complete scheduler.");
             virtualAsyncExecutor = getBoolean(ConfigCategory.PERFORMANCE.key("virtual-threads.async-executor"), virtualAsyncExecutor,

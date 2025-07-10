@@ -5,10 +5,10 @@ Subject: [PATCH] Player ProfileResult caching
 
 
 diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index 10aecbb88a9a3dae3ecdf28aa449f1a1475a1905..9285697a1da3f216e03b8ea824f07f7f7c716c53 100644
+index 20ba45054c243fbb85e50cf0bdf75648730cb0bc..443aebb71b2a55ee9dcd2dd4bf9a30fbb8da9e49 100644
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -75,6 +75,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+@@ -71,6 +71,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
      public @Nullable java.util.UUID requestedUuid; // Paper
      private final io.papermc.paper.connection.PaperPlayerLoginConnection paperLoginConnection; // Paper - Config API
      private volatile boolean disconnecting = false; // Paper - Fix disconnect still ticking login
@@ -20,7 +20,7 @@ index 10aecbb88a9a3dae3ecdf28aa449f1a1475a1905..9285697a1da3f216e03b8ea824f07f7f
  
      public ServerLoginPacketListenerImpl(MinecraftServer server, Connection connection, boolean transferred) {
          this.server = server;
-@@ -260,9 +265,23 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+@@ -256,9 +261,23 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
                  String string1 = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
  
                  try {
