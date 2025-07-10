@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
+import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.entity.pathfinding.PathfindTaskRejectPolicy;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
@@ -17,6 +18,7 @@ import org.simpleyaml.exceptions.InvalidConfigurationException;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -71,6 +73,7 @@ public class DivineConfig {
         config.options().header(HEADER);
 
         readConfig(DivineConfig.class, null);
+        checkExperimentalFeatures();
 	}
 
     static void readConfig(Class<?> clazz, Object instance) throws IOException {
@@ -188,6 +191,7 @@ public class DivineConfig {
 
     public static class AsyncCategory {
         // Parallel world ticking settings
+        @Experimental("Parallel World Ticking")
         public static boolean enableParallelWorldTicking = false;
         public static int parallelThreadCount = 4;
         public static boolean logContainerCreationStacktraces = false;
@@ -196,6 +200,7 @@ public class DivineConfig {
         public static boolean usePerWorldTpsBar = true;
 
         // Regionized chunk ticking
+        @Experimental("Regionized Chunk Ticking")
         public static boolean enableRegionizedChunkTicking = false;
         public static int regionizedChunkTickingExecutorThreadCount = 4;
         public static boolean regionizedChunkTickingUseVirtualThreads = false;
@@ -262,8 +267,6 @@ public class DivineConfig {
                 LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (5)", regionizedChunkTickingExecutorThreadCount);
                 regionizedChunkTickingExecutorThreadCount = 5;
             }
-
-            if (enableRegionizedChunkTicking) LOGGER.warn("You have enabled Regionized Chunk Ticking. This feature is an experimental, and may not work as expected. Please report any issues you encounter to the BX Team Discord server");
         }
 
         private static void asyncPathfinding() {
@@ -572,6 +575,7 @@ public class DivineConfig {
         public static boolean onlyLogThrown = true;
 
         // Raytrace Entity Tracker
+        @Experimental("Raytrace Entity Tracker")
         public static boolean retEnabled = false;
         public static boolean retSkipMarkerArmorStands = true;
         public static int retCheckIntervalMs = 10;
@@ -688,6 +692,39 @@ public class DivineConfig {
                 "Should the server require No Chat Reports on the client side");
             noChatReportsDisconnectDemandOnClientMessage = getString(ConfigCategory.NETWORK.key("no-chat-reports.disconnect-demand-on-client-message"), noChatReportsDisconnectDemandOnClientMessage,
                 "Message to send to the client when they are disconnected for not having No Chat Reports");
+        }
+    }
+
+    private static void checkExperimentalFeatures() {
+        List<String> enabledExperimentalFeatures = new ArrayList<>();
+
+        Class<?>[] innerClasses = DivineConfig.class.getDeclaredClasses();
+        for (Class<?> innerClass : innerClasses) {
+            if (Modifier.isStatic(innerClass.getModifiers())) {
+                Field[] fields = innerClass.getDeclaredFields();
+                for (Field field : fields) {
+                    if (field.isAnnotationPresent(Experimental.class) &&
+                        field.getType() == boolean.class &&
+                        Modifier.isStatic(field.getModifiers()) &&
+                        Modifier.isPublic(field.getModifiers())) {
+                        try {
+                            field.setAccessible(true);
+                            boolean value = field.getBoolean(null);
+                            if (value) {
+                                Experimental annotation = field.getAnnotation(Experimental.class);
+                                String featureName = annotation.value();
+                                enabledExperimentalFeatures.add(featureName);
+                            }
+                        } catch (IllegalAccessException e) {
+                            LOGGER.debug("Failed to access field {}", field.getName(), e);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!enabledExperimentalFeatures.isEmpty()) {
+            LOGGER.warn("You have the following experimental features enabled: [{}]. Please proceed with caution!", String.join(", ", enabledExperimentalFeatures));
         }
     }
 }
