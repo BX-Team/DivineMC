@@ -231,7 +231,7 @@ public class DivineConfig {
         public static int asyncEntityTrackerQueueSize = 0;
 
         // Async Join Thread settings
-        public static boolean asyncJoinEnabled = true;
+        public static boolean asyncJoinEnabled = false;
         public static int asyncJoinThreadCount = 1;
         public static boolean asyncJoinUseVirtualThreads = false;
 
