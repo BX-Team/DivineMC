@@ -18,10 +18,10 @@ index 394443d00e661715439be1e56dddc129947699a4..480ad57a6b7b74e6b83e9c6ceb69ea1f
      public CrashReport(String title, Throwable exception) {
          io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(exception); // Paper
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index bc3209d3cbe971af74b7856caa6300b59b0bb6bc..9a19c36074b9d8eb291b15b080687e47bcd5d007 100644
+index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..a476b53e0c5b18d9b0abceb4ffeb5ab4c5d7d6d9 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -124,7 +124,6 @@ public class Main {
+@@ -125,7 +125,6 @@ public class Main {
              dedicatedServerSettings.forceSave();
              RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
              Path path2 = Paths.get("eula.txt");
@@ -29,7 +29,7 @@ index bc3209d3cbe971af74b7856caa6300b59b0bb6bc..9a19c36074b9d8eb291b15b080687e47
              // Paper start - load config files early for access below if needed
              org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
              org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("spigot-settings"));
-@@ -147,19 +146,6 @@ public class Main {
+@@ -148,19 +147,6 @@ public class Main {
                  return;
              }
  
@@ -50,7 +50,7 @@ index bc3209d3cbe971af74b7856caa6300b59b0bb6bc..9a19c36074b9d8eb291b15b080687e47
              String awtException = io.papermc.paper.util.ServerEnvironment.awtDependencyCheck();
              if (awtException != null) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 306230339574bc35a309877033fa6012e4596f08..1362f3d2ef75d8b18ac2142194ff5b3f2104ac1e 100644
+index 1c064e1d2edcda5d0b10fb3cc3417937ac0b3835..3b6d2cf670caefd42536de896d3e13c96ebf87b1 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1176,6 +1176,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
