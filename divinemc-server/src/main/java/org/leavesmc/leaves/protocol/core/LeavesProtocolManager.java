@@ -213,49 +213,6 @@ public class LeavesProtocolManager {
             }
             ID2CODEC.put(idInfo.getValue(), codec);
         }
-        // Log all found instances
-        LOGGER.info("Protocol initialization complete. Found instances:");
-        LOGGER.info("  Payload receivers: " + PAYLOAD_RECEIVERS.size());
-        PAYLOAD_RECEIVERS.forEach((clazz, holder) ->
-            LOGGER.info("    " + clazz.getSimpleName() + " -> " + holder.getClass().getSimpleName()));
-
-        LOGGER.info("  IDs: " + IDS.size());
-        IDS.forEach((clazz, id) ->
-            LOGGER.info("    " + clazz.getSimpleName() + " -> " + id));
-
-        LOGGER.info("  Codecs: " + CODECS.size());
-        CODECS.forEach((clazz, codec) ->
-            LOGGER.info("    " + clazz.getSimpleName() + " -> " + codec.getClass().getSimpleName()));
-
-        LOGGER.info("  Strict bytebuf receivers: " + STRICT_BYTEBUF_RECEIVERS.size());
-        STRICT_BYTEBUF_RECEIVERS.forEach((key, holder) ->
-            LOGGER.info("    " + key + " -> " + holder.getClass().getSimpleName()));
-
-        LOGGER.info("  Namespaced bytebuf receivers: " + NAMESPACED_BYTEBUF_RECEIVERS.size());
-        NAMESPACED_BYTEBUF_RECEIVERS.forEach((key, holder) ->
-            LOGGER.info("    " + key + " -> " + holder.getClass().getSimpleName()));
-
-        LOGGER.info("  Generic bytebuf receivers: " + GENERIC_BYTEBUF_RECEIVERS.size());
-        GENERIC_BYTEBUF_RECEIVERS.forEach(holder ->
-            LOGGER.info("    " + holder.getClass().getSimpleName()));
-
-        LOGGER.info("  Tickers: " + TICKERS.size());
-        LOGGER.info("  Player join handlers: " + PLAYER_JOIN.size());
-        LOGGER.info("  Player leave handlers: " + PLAYER_LEAVE.size());
-        LOGGER.info("  Server reload handlers: " + RELOAD_SERVER.size());
-        LOGGER.info("  DataPack reload handlers: " + RELOAD_DATAPACK.size());
-
-        LOGGER.info("  Strict minecraft register: " + STRICT_MINECRAFT_REGISTER.size());
-        STRICT_MINECRAFT_REGISTER.forEach((key, holder) ->
-            LOGGER.info("    " + key + " -> " + holder.getClass().getSimpleName()));
-
-        LOGGER.info("  Namespaced minecraft register: " + NAMESPACED_MINECRAFT_REGISTER.size());
-        NAMESPACED_MINECRAFT_REGISTER.forEach((key, holder) ->
-            LOGGER.info("    " + key + " -> " + holder.getClass().getSimpleName()));
-
-        LOGGER.info("  Wild minecraft register: " + WILD_MINECRAFT_REGISTER.size());
-        WILD_MINECRAFT_REGISTER.forEach(holder ->
-            LOGGER.info("    " + holder.getClass().getSimpleName()));
     }
 
     public static LeavesCustomPayload decode(ResourceLocation location, FriendlyByteBuf buf) {
