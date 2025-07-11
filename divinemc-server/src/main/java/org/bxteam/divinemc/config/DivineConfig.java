@@ -676,6 +676,7 @@ public class DivineConfig {
 
     public static class NetworkCategory {
         // General network settings
+        public static boolean optimizeNonFlushPacketSending = false;
         public static boolean disableDisconnectSpam = false;
         public static boolean dontRespondPingBeforeStart = true;
         public static boolean playerProfileResultCachingEnabled = true;
@@ -706,6 +707,10 @@ public class DivineConfig {
         }
 
         private static void networkSettings() {
+            optimizeNonFlushPacketSending = getBoolean(ConfigCategory.NETWORK.key("general.optimize-non-flush-packet-sending"), optimizeNonFlushPacketSending,
+                "Optimizes non-flush packet sending by using Netty's lazyExecute method to avoid expensive thread wakeup calls when scheduling packet operations.",
+                    "",
+                    "NOTE: This option is NOT compatible with ProtocolLib and may cause issues with other plugins that modify packet handling!");
             disableDisconnectSpam = getBoolean(ConfigCategory.NETWORK.key("general.disable-disconnect-spam"), disableDisconnectSpam,
                 "Prevents players being disconnected by 'disconnect.spam' when sending too many chat packets");
             dontRespondPingBeforeStart = getBoolean(ConfigCategory.NETWORK.key("general.dont-respond-ping-before-start"), dontRespondPingBeforeStart,
