@@ -11,6 +11,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.entity.pathfinding.PathfindTaskRejectPolicy;
+import org.bxteam.divinemc.region.EnumRegionFileExtension;
 import org.bxteam.divinemc.server.network.AsyncJoinHandler;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
@@ -595,6 +596,10 @@ public class DivineConfig {
         public static boolean timeAcceleration = true;
         public static boolean randomTickSpeedAcceleration = true;
 
+        // Region Format
+        public static EnumRegionFileExtension regionFileType = EnumRegionFileExtension.MCA;
+        public static int linearCompressionLevel = 1;
+
         // Sentry
         public static String sentryDsn = "";
         public static String logLevel = "WARN";
@@ -615,6 +620,7 @@ public class DivineConfig {
         public static void load() {
             secureSeed();
             lagCompensation();
+            regionFileExtension();
             sentrySettings();
             ret();
             oldFeatures();
@@ -640,6 +646,21 @@ public class DivineConfig {
             portalAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.portal-acceleration"), portalAcceleration);
             timeAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.time-acceleration"), timeAcceleration);
             randomTickSpeedAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration"), randomTickSpeedAcceleration);
+        }
+
+        private static void regionFileExtension() {
+            regionFileType = EnumRegionFileExtension.fromString(getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString(),
+                "The type of region file format to use for storing chunk data.",
+                "Valid values:",
+                " - MCA: Default Minecraft region file format",
+                " - B_LINEAR: Buffered region file format"));
+            linearCompressionLevel = getInt(ConfigCategory.MISC.key("region-format.compression-level"), linearCompressionLevel,
+                "The compression level to use for the linear region file format.");
+
+            if (linearCompressionLevel > 22 || linearCompressionLevel < 1) {
+                LOGGER.warn("Invalid linear compression level: {}, resetting to default (1)", linearCompressionLevel);
+                linearCompressionLevel = 1;
+            }
         }
 
         private static void sentrySettings() {
