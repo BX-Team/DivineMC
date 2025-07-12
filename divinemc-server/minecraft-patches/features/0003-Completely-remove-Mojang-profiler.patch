@@ -1479,7 +1479,7 @@ index 3c7159d0981c948e71a5612ba4083accb5849ed4..5f2c27800f047f128857044493a6d932
              for (Entity entity : passengerEntity.getPassengers()) {
                  this.tickPassenger(passengerEntity, entity, isActive); // Paper - EAR 2
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index ac4e3a66c5979bbd65618eec0c8e0b744f397603..890c295d2318767081580e9aabddedd2535388cc 100644
+index ba9e1f5963aeda8b5ed52c7daaa2a9fe62006d3b..9a296776480af489561eb19c6ed18d9558ee746a 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -106,8 +106,6 @@ import net.minecraft.util.HashOps;
@@ -4006,7 +4006,7 @@ index 39a604c9a53930b53d959b1d2eb504aa964e9a58..0d0380e3955836ce125f777841477503
  
      @Override
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540431c655d 100644
+index fa829d84cd47b68426bb30f662de6e05b608cc69..02f39e3dc420a5bd49cd6e247c9b1894dc49d303 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -80,8 +80,6 @@ import net.minecraft.tags.TagKey;
@@ -4079,7 +4079,7 @@ index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540
              }
          }
          // Paper start - detailed watchdog information
-@@ -3467,8 +3455,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3466,8 +3454,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              this.processPortalCooldown();
              if (this.portalProcess != null) {
                  if (this.portalProcess.processPortalTeleportation(serverLevel, this, this.canUsePortal(false))) {
@@ -4088,7 +4088,7 @@ index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540
                      this.setPortalCooldown();
                      TeleportTransition portalDestination = this.portalProcess.getPortalDestination(serverLevel, this);
                      if (portalDestination != null) {
-@@ -3478,8 +3464,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3477,8 +3463,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                              this.teleport(portalDestination);
                          }
                      }
@@ -4097,7 +4097,7 @@ index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540
                  } else if (this.portalProcess.hasExpired()) {
                      this.portalProcess = null;
                  }
-@@ -4046,15 +4030,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4045,15 +4029,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              entity.teleport(this.calculatePassengerTransition(teleportTransition, entity));
          }
  
@@ -4113,7 +4113,7 @@ index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540
          return this;
      }
  
-@@ -4070,11 +4051,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4069,11 +4050,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              }
          }
  
@@ -4125,7 +4125,7 @@ index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540
              return null;
          } else {
              // Paper start - Fix item duplication and teleport issues
-@@ -4094,7 +4072,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4093,7 +4071,6 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              newLevel.resetEmptyTime();
              teleportTransition.postTeleportTransition().onTransition(entityx);
              this.teleportSpectators(teleportTransition, oldLevel);
@@ -4134,7 +4134,7 @@ index ce3e5ec505ac37c820436bcf7c7d6452ff015f70..f8b37b4ce54afd61a72e9d18ac323540
          }
      }
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 3d93e89e7bad80cd5b5c7ccbb738980f4b3469bc..02765eab997874c7c8f6ebe78a3473ef9be2380a 100644
+index ddd3acbc804cbc07eaccf578349d3f9e0e00b6fc..0c0144679c9d44d50af153c792d7e5da175365d8 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -69,8 +69,6 @@ import net.minecraft.tags.FluidTags;

@@ -23,7 +23,7 @@ index a3290eb416ecb377d240bf334aef4e2b5e3bbefc..269c3312c1633faf48c1b471583ca71a
                      double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
                      if (rangeY != -1) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 44cd33cec38b1a2af304ec819b14124187011df1..ae8f7a1fdf85b9468d310123c77097df8c7054a4 100644
+index adea48cfde04df3107341075f414133ae37d986e..c1c8e235b9c096cd36c3e83b0831af7cb722cad2 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -145,7 +145,7 @@ import net.minecraft.world.waypoints.WaypointTransmitter;
@@ -35,7 +35,7 @@ index 44cd33cec38b1a2af304ec819b14124187011df1..ae8f7a1fdf85b9468d310123c77097df
      public static javax.script.ScriptEngine scriptEngine = new javax.script.ScriptEngineManager().getEngineByName("rhino"); // Purpur - Configurable entity base attributes
      // CraftBukkit start
      private static final int CURRENT_LEVEL = 2;
-@@ -5475,4 +5475,47 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5474,4 +5474,47 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return false;
      }
      // Purpur end - Ridables
@@ -96,7 +96,7 @@ index 0159627e2c9a540d062073faf9018f5215e10866..26f6941dfbe0453ed5b091e408d84229
      private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> key, EntityType.Builder<T> builder) {
          return Registry.register(BuiltInRegistries.ENTITY_TYPE, key, builder.build(key));
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 18b670a1e6e62c3b79281e529c89f35b16427c69..5ed70f2f427f8cccaeab494b2f5c62442c288e53 100644
+index 05634e09200fa613b69aafe9b2505dbc9b5c54eb..80ce59b79896ff415cf3a93eb6ea3272f42c3d02 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -122,7 +122,6 @@ import net.minecraft.world.phys.AABB;
@@ -159,7 +159,7 @@ index 18b670a1e6e62c3b79281e529c89f35b16427c69..5ed70f2f427f8cccaeab494b2f5c6244
          // Purpur start - Burp delay
          if (this.burpDelay > 0 && --this.burpDelay == 0) {
              this.level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 1.0F, this.level().random.nextFloat() * 0.1F + 0.9F);
-@@ -1467,6 +1504,7 @@ public abstract class Player extends LivingEntity {
+@@ -1466,6 +1503,7 @@ public abstract class Player extends LivingEntity {
          if (this.containerMenu != null && this.hasContainerOpen()) {
              this.doCloseContainer();
          }

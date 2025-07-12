@@ -5,7 +5,7 @@ Subject: [PATCH] Option to disable disconnect.spam
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index a8b2c19cc9803058b421b07c739166afdf291e47..8f4bca6a99b35e869e34f0fa216c13189cd7b384 100644
+index a63ade75461b68a780c56bfb5ff7c61f99f76744..fe7d68f3947bf55a389c73ef301fae8e396bf1da 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -844,7 +844,7 @@ public class ServerGamePacketListenerImpl
@@ -42,7 +42,7 @@ index a8b2c19cc9803058b421b07c739166afdf291e47..8f4bca6a99b35e869e34f0fa216c1318
              && !this.server.getPlayerList().isOp(this.player.getGameProfile())
              && !this.server.isSingleplayerOwner(this.player.getGameProfile())) {
              this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - kick event cause & add proper async disconnect
-@@ -3386,7 +3388,7 @@ public class ServerGamePacketListenerImpl
+@@ -3328,7 +3330,7 @@ public class ServerGamePacketListenerImpl
      public void handlePlaceRecipe(ServerboundPlaceRecipePacket packet) {
          // Paper start - auto recipe limit
          if (!org.bukkit.Bukkit.isPrimaryThread()) {

@@ -67,7 +67,7 @@ index b31a4edee0616a63026f7a4335205f2d99d2f641..0072f3f07b1962adc1766930bb9a2f70
              this.tickables.get(i).run();
          }
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 52f3c374c91f877b51b243b46cd05c5e2fc0face..d383532219bccb706bebbd3ef2923c70553d1a46 100644
+index 86470728c2d03063c4eb0c43cfe323e809cac846..cd43a45b7dfca2520972d2156df8b6069ce54f34 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -432,6 +432,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -91,10 +91,10 @@ index a7c4fad2b1cb0cbac742a18d37d688bb2663944e..b94243d293e805743453adf7b4fc8d85
              bridge.removeChannel(channel);
          }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index bc738535f67d789e9d240b245e9247e026b3c751..9d771e7fba94c09df602a249f58a9caf1d339bcf 100644
+index 42ab4f50d07539aafba120e863d5b9cfc5a436e8..e8fd78e2898931f65e783ad46b5b73ce3fbde235 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -3734,6 +3734,17 @@ public class ServerGamePacketListenerImpl
+@@ -3676,6 +3676,17 @@ public class ServerGamePacketListenerImpl
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {

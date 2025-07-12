@@ -460,7 +460,7 @@ index 3c1795eb56900cd80cfec38bd1d922d566463ecb..07b9a2529be69bf8158528e996e7ddb9
          // Paper start - extra debug info
          if (entity.valid) {
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index b75d2d2746c3e7b12f65b0bcb559cd7e0ce7ebf8..52f3c374c91f877b51b243b46cd05c5e2fc0face 100644
+index c33dbe22a74576935c1a18450502c4ec8d83a4c3..86470728c2d03063c4eb0c43cfe323e809cac846 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -431,6 +431,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -633,10 +633,10 @@ index f9e7532f86122a379692561a639a209a126e8bba..839f6b7696ef85314da185bedba7cfc5
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index cad10bd55ac1e52d00b3b9c3205562b346c54e2a..44cd33cec38b1a2af304ec819b14124187011df1 100644
+index bdf9899f960b6cca3529af97ebff738761208439..adea48cfde04df3107341075f414133ae37d986e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3460,14 +3460,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3459,14 +3459,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              if (this.portalProcess != null) {
                  if (this.portalProcess.processPortalTeleportation(serverLevel, this, this.canUsePortal(false))) {
                      this.setPortalCooldown();
@@ -677,7 +677,7 @@ index cad10bd55ac1e52d00b3b9c3205562b346c54e2a..44cd33cec38b1a2af304ec819b141241
                  } else if (this.portalProcess.hasExpired()) {
                      this.portalProcess = null;
                  }
-@@ -4044,6 +4064,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4043,6 +4063,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      private Entity teleportCrossDimension(ServerLevel oldLevel, ServerLevel newLevel, TeleportTransition teleportTransition) {
@@ -909,7 +909,7 @@ index 2258736e6f9f52efe5bd353b8949a7a0b9a4fdb8..440fbe301782e81cec679a27a876dd3c
                  } else {
                      Entity entity = owner.teleport(
 diff --git a/net/minecraft/world/inventory/AbstractContainerMenu.java b/net/minecraft/world/inventory/AbstractContainerMenu.java
-index 1f601781643945920c7522b9c6100d0a37ad535d..bd31350c5b9b727cfd9150a399d207839a51e4dd 100644
+index 2305a3ef6bbb21ab77cb261f20c08ac8ce1bf9ed..b313f6a4e27f6918d174dacba37479a93936668f 100644
 --- a/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
 @@ -96,8 +96,14 @@ public abstract class AbstractContainerMenu {
@@ -928,7 +928,7 @@ index 1f601781643945920c7522b9c6100d0a37ad535d..bd31350c5b9b727cfd9150a399d20783
          this.containerId = containerId;
      }
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index b95acf4c688a9113a34e9be2639536245c66c83e..160fd27bdd02e9c276cdae241b0652ae547517cf 100644
+index d3892cc9ef3ab66a45fe3ab72e8a5ef8b904b7c0..6b5b6d73897ded23dd2fbf17abb1b5c1ee5b1082 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -398,8 +398,10 @@ public final class ItemStack implements DataComponentHolder {

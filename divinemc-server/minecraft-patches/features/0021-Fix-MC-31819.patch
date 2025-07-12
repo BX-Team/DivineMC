@@ -6,10 +6,10 @@ Subject: [PATCH] Fix MC-31819
 Issue on Mojira: https://bugs.mojang.com/browse/MC/issues/MC-31819
 
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 97b104679bb2b9e466caa10d7b022ee6d597e7e5..18b670a1e6e62c3b79281e529c89f35b16427c69 100644
+index d72e338232b95826b63d784ac0731f5a20bf8dcb..05634e09200fa613b69aafe9b2505dbc9b5c54eb 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1818,6 +1818,11 @@ public abstract class Player extends LivingEntity {
+@@ -1817,6 +1817,11 @@ public abstract class Player extends LivingEntity {
      }
  
      public void causeFoodExhaustion(float exhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason reason) {
