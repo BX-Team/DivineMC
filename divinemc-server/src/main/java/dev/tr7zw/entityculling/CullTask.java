@@ -10,7 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.spark.ThreadDumperRegistry;
+import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -33,19 +33,7 @@ public class CullTask implements Runnable {
     private final Vec3d aabbMin = new Vec3d(0, 0, 0);
     private final Vec3d aabbMax = new Vec3d(0, 0, 0);
 
-    private static final Executor backgroundWorker = Executors.newCachedThreadPool(task -> {
-        final TickThread worker = new TickThread("Raytrace Entity Tracker Thread") {
-            @Override
-            public void run() {
-                task.run();
-            }
-        };
-
-        worker.setDaemon(true);
-        ThreadDumperRegistry.REGISTRY.add(worker.getName());
-
-        return worker;
-    });
+    private static final Executor backgroundWorker = Executors.newFixedThreadPool(DivineConfig.MiscCategory.retThreads, new NamedAgnosticThreadFactory<>("Raytrace Entity Tracker Thread", TickThread::new, DivineConfig.MiscCategory.retThreadsPriority));
 
     private final Executor worker;
 

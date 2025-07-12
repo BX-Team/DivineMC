@@ -612,6 +612,8 @@ public class DivineConfig {
         // Raytrace Entity Tracker
         @Experimental("Raytrace Entity Tracker")
         public static boolean retEnabled = false;
+        public static int retThreads = 2;
+        public static int retThreadsPriority = Thread.NORM_PRIORITY + 2;
         public static boolean retSkipMarkerArmorStands = true;
         public static int retCheckIntervalMs = 10;
         public static int retTracingDistance = 48;
@@ -702,6 +704,12 @@ public class DivineConfig {
         private static void ret() {
             retEnabled = getBoolean(ConfigCategory.MISC.key("raytrace-entity-tracker.enabled"), retEnabled,
                 "Raytrace Entity Tracker uses async ray-tracing to untrack entities players cannot see. Implementation of EntityCulling mod by tr7zw.");
+            retThreads = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.threads"), retThreads,
+                "The number of threads to use for raytrace entity tracker.");
+            retThreadsPriority = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.threads-priority"), retThreadsPriority,
+                "The priority of the threads used for raytrace entity tracker.",
+                "0 - lowest, 10 - highest, 5 - normal");
+
             retSkipMarkerArmorStands = getBoolean(ConfigCategory.MISC.key("raytrace-entity-tracker.skip-marker-armor-stands"), retSkipMarkerArmorStands,
                 "Whether to skip tracing entities with marker armor stand");
             retCheckIntervalMs = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.check-interval-ms"), retCheckIntervalMs,
@@ -755,8 +763,8 @@ public class DivineConfig {
         private static void networkSettings() {
             optimizeNonFlushPacketSending = getBoolean(ConfigCategory.NETWORK.key("general.optimize-non-flush-packet-sending"), optimizeNonFlushPacketSending,
                 "Optimizes non-flush packet sending by using Netty's lazyExecute method to avoid expensive thread wakeup calls when scheduling packet operations.",
-                    "",
-                    "NOTE: This option is NOT compatible with ProtocolLib and may cause issues with other plugins that modify packet handling!");
+                "",
+                "NOTE: This option is NOT compatible with ProtocolLib and may cause issues with other plugins that modify packet handling!");
             disableDisconnectSpam = getBoolean(ConfigCategory.NETWORK.key("general.disable-disconnect-spam"), disableDisconnectSpam,
                 "Prevents players being disconnected by 'disconnect.spam' when sending too many chat packets");
             dontRespondPingBeforeStart = getBoolean(ConfigCategory.NETWORK.key("general.dont-respond-ping-before-start"), dontRespondPingBeforeStart,
