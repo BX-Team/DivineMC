@@ -48,7 +48,7 @@ mv divinemc-server/build/libs/divinemc-paperclip-"$version"-mojmap.jar "$jarName
   fi
 } >> $changelog
 
-number=$(git log --oneline master ^"$(git describe --tags --abbrev=0)" | wc -l)
+number=$(git log --oneline ver/1.21.7 ^"$(git describe --tags --abbrev=0)" | wc -l)
 git log --pretty='- [`%h`](https://github.com/BX-Team/DivineMC/commit/%H) %s' "-$number" >> $changelog
 
 {
@@ -60,4 +60,3 @@ git log --pretty='- [`%h`](https://github.com/BX-Team/DivineMC/commit/%H) %s' "-
   echo "| SHA1 | $(sha1 "$jarName") |"
   echo "| SHA256 | $(sha256 "$jarName") |"
 } >> $changelog
-
