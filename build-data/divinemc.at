@@ -15,6 +15,11 @@ public net.minecraft.world.entity.ai.sensing.Sensor timeToTick
 public net.minecraft.world.entity.animal.armadillo.Armadillo scuteTime
 public net.minecraft.world.entity.animal.frog.Tadpole getTicksLeftUntilAdult()I
 public net.minecraft.world.level.chunk.PaletteResize
+public net.minecraft.world.level.chunk.storage.RegionFile getOversizedData(II)Lnet/minecraft/nbt/CompoundTag;
+public net.minecraft.world.level.chunk.storage.RegionFile isOversized(II)Z
+public net.minecraft.world.level.chunk.storage.RegionFile recalculateHeader()Z
+public net.minecraft.world.level.chunk.storage.RegionFile setOversized(IIZ)V
+public net.minecraft.world.level.chunk.storage.RegionFile write(Lnet/minecraft/world/level/ChunkPos;Ljava/nio/ByteBuffer;)V
 public net.minecraft.world.level.entity.EntityTickList entities
 public net.minecraft.world.level.levelgen.DensityFunctions$BlendAlpha
 public net.minecraft.world.level.levelgen.DensityFunctions$BlendDensity

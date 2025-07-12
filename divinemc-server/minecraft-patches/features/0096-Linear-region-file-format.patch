@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Fri, 11 Jul 2025 21:47:45 +0300
-Subject: [PATCH] Buffered Linear region format
+Subject: [PATCH] Linear region file format
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/io/ChunkSystemRegionFileStorage.java b/ca/spottedleaf/moonrise/patches/chunk_system/io/ChunkSystemRegionFileStorage.java
@@ -126,7 +126,7 @@ index 79d57ca8a7870a02e95562d89cbd4341d8282660..1156772217b139d54266f470b18d4a98
  
      class PoiUpgrader extends WorldUpgrader.SimpleRegionStorageUpgrader {
 diff --git a/net/minecraft/world/level/chunk/storage/RegionFile.java b/net/minecraft/world/level/chunk/storage/RegionFile.java
-index 22f3aa1674664906e8ec45372d758d79017e3987..55eaf7a5d4ceb957717298991fecce0b81c0f377 100644
+index ae0a893498d0bfe90c14508f15b431d4885e06ff..00656cf8634e06f7ce1067ef7ba44edfb4519be3 100644
 --- a/net/minecraft/world/level/chunk/storage/RegionFile.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFile.java
 @@ -22,7 +22,7 @@ import net.minecraft.util.profiling.jfr.JvmProfiler;
@@ -138,24 +138,6 @@ index 22f3aa1674664906e8ec45372d758d79017e3987..55eaf7a5d4ceb957717298991fecce0b
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final int MAX_CHUNK_SIZE = 500 * 1024 * 1024; // Paper - don't write garbage data to disk if writing serialization fails
      private static final int SECTOR_BYTES = 4096;
-@@ -130,7 +130,7 @@ public class RegionFile implements AutoCloseable, ca.spottedleaf.moonrise.patche
-         return this.recalculateCount.get();
-     }
- 
--    boolean recalculateHeader() throws IOException {
-+    public boolean recalculateHeader() throws IOException { // DivineMC - Buffered Linear region format
-         if (!this.canRecalcHeader) {
-             return false;
-         }
-@@ -794,7 +794,7 @@ public class RegionFile implements AutoCloseable, ca.spottedleaf.moonrise.patche
-         }
-     }
- 
--    protected synchronized void write(ChunkPos chunkPos, ByteBuffer chunkData) throws IOException {
-+    public synchronized void write(ChunkPos chunkPos, ByteBuffer chunkData) throws IOException { // DivineMC - Buffered Linear region format
-         int offsetIndex = getOffsetIndex(chunkPos);
-         int i = this.offsets.get(offsetIndex);
-         int sectorNumber = getSectorNumber(i);
 @@ -912,7 +912,7 @@ public class RegionFile implements AutoCloseable, ca.spottedleaf.moonrise.patche
          }
  
@@ -165,29 +147,6 @@ index 22f3aa1674664906e8ec45372d758d79017e3987..55eaf7a5d4ceb957717298991fecce0b
              regionFile.write(this.pos, ByteBuffer.wrap(this.buf, 0, this.count));
          }
          // Paper end - rewrite chunk system
-@@ -978,11 +978,11 @@ public class RegionFile implements AutoCloseable, ca.spottedleaf.moonrise.patche
-         return (x & 31) + (z & 31) * 32;
-     }
- 
--    synchronized boolean isOversized(int x, int z) {
-+    public synchronized boolean isOversized(int x, int z) { // DivineMC - Buffered Linear region format
-         return this.oversized[getChunkIndex(x, z)] == 1;
-     }
- 
--    synchronized void setOversized(int x, int z, boolean oversized) throws IOException {
-+    public synchronized void setOversized(int x, int z, boolean oversized) throws IOException { // DivineMC - Buffered Linear region format
-         final int offset = getChunkIndex(x, z);
-         boolean previous = this.oversized[offset] == 1;
-         this.oversized[offset] = (byte) (oversized ? 1 : 0);
-@@ -1021,7 +1021,7 @@ public class RegionFile implements AutoCloseable, ca.spottedleaf.moonrise.patche
-         return this.path.getParent().resolve(this.path.getFileName().toString().replaceAll("\\.mca$", "") + "_oversized_" + x + "_" + z + ".nbt");
-     }
- 
--    synchronized net.minecraft.nbt.CompoundTag getOversizedData(int x, int z) throws IOException {
-+    public synchronized net.minecraft.nbt.CompoundTag getOversizedData(int x, int z) throws IOException {
-         Path file = getOversizedFile(x, z);
-         try (DataInputStream out = new DataInputStream(new java.io.BufferedInputStream(new java.util.zip.InflaterInputStream(Files.newInputStream(file))))) {
-             return net.minecraft.nbt.NbtIo.read((java.io.DataInput) out);
 diff --git a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 index 8d1174f25e0e90d0533970f4ddd8448442024936..ee797d6b3cd898cba1abd3422cb54b17eb4a639f 100644
 --- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java

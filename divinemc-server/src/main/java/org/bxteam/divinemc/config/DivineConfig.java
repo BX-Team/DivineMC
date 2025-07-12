@@ -12,6 +12,7 @@ import org.bukkit.configuration.MemoryConfiguration;
 import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.entity.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.region.EnumRegionFileExtension;
+import org.bxteam.divinemc.region.type.LinearRegionFile;
 import org.bxteam.divinemc.server.network.AsyncJoinHandler;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
@@ -599,6 +600,9 @@ public class DivineConfig {
         // Region Format
         public static EnumRegionFileExtension regionFileType = EnumRegionFileExtension.MCA;
         public static int linearCompressionLevel = 1;
+        public static int linearIoThreadCount = 6;
+        public static int linearIoFlushDelayMs = 100;
+        public static boolean linearUseVirtualThreads = true;
 
         // Sentry
         public static String sentryDsn = "";
@@ -649,17 +653,38 @@ public class DivineConfig {
         }
 
         private static void regionFileExtension() {
-            regionFileType = EnumRegionFileExtension.fromString(getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString(),
+            EnumRegionFileExtension configuredType = EnumRegionFileExtension.fromString(getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString(),
                 "The type of region file format to use for storing chunk data.",
                 "Valid values:",
                 " - MCA: Default Minecraft region file format",
-                " - B_LINEAR: Buffered region file format"));
+                " - LINEAR: Linear region file format V2",
+                " - B_LINEAR: Buffered region file format (just uses Zstd)"));
+
+            if (configuredType != null) {
+                regionFileType = configuredType;
+            } else {
+                LOGGER.warn("Invalid region file type: {}, resetting to default (MCA)", getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString()));
+                regionFileType = EnumRegionFileExtension.MCA;
+            }
+
             linearCompressionLevel = getInt(ConfigCategory.MISC.key("region-format.compression-level"), linearCompressionLevel,
                 "The compression level to use for the linear region file format.");
+            linearIoThreadCount = getInt(ConfigCategory.MISC.key("region-format.linear-io-thread-count"), linearIoThreadCount,
+                "The number of threads to use for IO operations.");
+            linearIoFlushDelayMs = getInt(ConfigCategory.MISC.key("region-format.linear-io-flush-delay-ms"), linearIoFlushDelayMs,
+                "The delay in milliseconds to wait before flushing IO operations.");
+            linearUseVirtualThreads = getBoolean(ConfigCategory.MISC.key("region-format.linear-use-virtual-threads"), linearUseVirtualThreads,
+                "Whether to use virtual threads for IO operations that was introduced in Java 21.");
 
             if (linearCompressionLevel > 22 || linearCompressionLevel < 1) {
                 LOGGER.warn("Invalid linear compression level: {}, resetting to default (1)", linearCompressionLevel);
                 linearCompressionLevel = 1;
+            }
+
+            if (regionFileType == EnumRegionFileExtension.LINEAR) {
+                LinearRegionFile.SAVE_DELAY_MS = linearIoFlushDelayMs;
+                LinearRegionFile.SAVE_THREAD_MAX_COUNT = linearIoThreadCount;
+                LinearRegionFile.USE_VIRTUAL_THREAD = linearUseVirtualThreads;
             }
         }
 

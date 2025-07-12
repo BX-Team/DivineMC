@@ -1,10 +1,12 @@
-package org.bxteam.divinemc.region;
+package org.bxteam.divinemc.region.type;
 
 import ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO;
 import net.jpountz.xxhash.XXHash32;
 import net.jpountz.xxhash.XXHashFactory;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
+import org.bxteam.divinemc.region.BufferReleaser;
+import org.bxteam.divinemc.region.IRegionFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
