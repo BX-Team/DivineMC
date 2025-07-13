@@ -20,6 +20,22 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * A buffered region file implementation that provides efficient chunk storage and retrieval
+ * with compression, checksums, and automatic compaction capabilities.
+ *
+ * <p>This implementation includes:
+ * <ul>
+ *   <li>Zstandard compression for chunk data</li>
+ *   <li>XXHash32 checksums for data integrity verification</li>
+ *   <li>Automatic file compaction when fragmentation exceeds thresholds</li>
+ *   <li>Thread-safe operations with read-write locks</li>
+ *   <li>Direct ByteBuffer usage for memory efficiency</li>
+ * </ul>
+ *
+ * <p>For conversion tools between MCA and buffered region file formats, see:
+ * <a href="https://github.com/NONPLAYT/LinearRegionFileFormatTools">LinearRegionFileFormatTools</a>
+ */
 public class BufferedRegionFile implements IRegionFile {
     private static final double AUTO_COMPACT_PERCENT = 3.0 / 5.0; // 60%
     private static final long AUTO_COMPACT_SIZE = 1024 * 1024; // 1 MiB
