@@ -461,7 +461,7 @@ index 324c573899965b204cec17458b6cb9733d83a868..2348a3ec6afb2618033b8f40257f7c9c
          // Paper start - extra debug info
          if (entity.valid) {
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index c1b5dd00f3c5ba5677625c623a02d1c98ea131d7..82ff80d4a5a3b3ba3747ca221c7f27f523845192 100644
+index b4bbacdd5061f45c619211bbed40a5f9dc1b0ae0..ca7eeb696c777d6299be49c1e3b2f033b83da5ba 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -430,6 +430,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -480,7 +480,7 @@ index c1b5dd00f3c5ba5677625c623a02d1c98ea131d7..82ff80d4a5a3b3ba3747ca221c7f27f5
          // CraftBukkit start
          if (this.joining) {
              this.joining = false;
-@@ -1424,6 +1426,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1433,6 +1435,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
                  return this;
              } else {
                  // CraftBukkit start
@@ -488,7 +488,7 @@ index c1b5dd00f3c5ba5677625c623a02d1c98ea131d7..82ff80d4a5a3b3ba3747ca221c7f27f5
                  /*
                  this.isChangingDimension = true;
                  LevelData levelData = level.getLevelData();
-@@ -1769,6 +1772,12 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1778,6 +1781,12 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
                  return OptionalInt.empty();
              } else {
                  // CraftBukkit start
@@ -501,7 +501,7 @@ index c1b5dd00f3c5ba5677625c623a02d1c98ea131d7..82ff80d4a5a3b3ba3747ca221c7f27f5
                  this.containerMenu = abstractContainerMenu; // Moved up
                  if (!this.isImmobile())
                  this.connection
-@@ -1833,6 +1842,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1842,6 +1851,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
      }
      @Override
      public void closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
