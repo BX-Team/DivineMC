@@ -26,11 +26,11 @@ jobs:
       - name: Apply Patches
         run: ./gradlew applyAllPatches --stacktrace --no-daemon
 
-      - name: Build Paperclip Jar
-        run: ./gradlew createMojmapPaperclipJar --stacktrace --no-daemon
+      - name: Build Shuttle Jar
+        run: ./gradlew createMojmapShuttleJar --stacktrace --no-daemon
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@main
         with:
           name: DivineMC
-          path: divinemc-server/build/libs/divinemc-paperclip-*-mojmap.jar
+          path: divinemc-server/build/libs/divinemc-shuttle-*-mojmap.jar

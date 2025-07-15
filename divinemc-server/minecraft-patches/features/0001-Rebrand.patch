@@ -18,10 +18,28 @@ index 394443d00e661715439be1e56dddc129947699a4..480ad57a6b7b74e6b83e9c6ceb69ea1f
      public CrashReport(String title, Throwable exception) {
          io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(exception); // Paper
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..a476b53e0c5b18d9b0abceb4ffeb5ab4c5d7d6d9 100644
+index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..9d89af099c6e0f50c73a9372e1ef7f1b0ef932c5 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -125,7 +125,6 @@ public class Main {
+@@ -64,6 +64,17 @@ import org.slf4j.Logger;
+ public class Main {
+     private static final Logger LOGGER = LogUtils.getLogger();
+ 
++    public static void main(String[] arguments) {
++        OptionSet optionSet = org.bxteam.divinemc.DivineBootstrap.bootstrap(arguments);
++
++        io.papermc.paper.ServerBuildInfo info = io.papermc.paper.ServerBuildInfo.buildInfo();
++        if (io.papermc.paper.ServerBuildInfoImpl.IS_EXPERIMENTAL) {
++            LOGGER.warn("Running an experimental version of {}, please proceed with caution.", info.brandName());
++        }
++
++        main(optionSet);
++    }
++
+     @SuppressForbidden(
+         reason = "System.out needed before bootstrap"
+     )
+@@ -125,7 +136,6 @@ public class Main {
              dedicatedServerSettings.forceSave();
              RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
              Path path2 = Paths.get("eula.txt");
@@ -29,7 +47,7 @@ index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..a476b53e0c5b18d9b0abceb4ffeb5ab4
              // Paper start - load config files early for access below if needed
              org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
              org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("spigot-settings"));
-@@ -148,19 +147,6 @@ public class Main {
+@@ -148,19 +158,6 @@ public class Main {
                  return;
              }
  

@@ -43,7 +43,7 @@ Run the following commands in the root directory:
 
 ```bash
 > ./gradlew applyAllPatches              # apply all patches
-> ./gradlew createMojmapPaperclipJar     # build the server jar
+> ./gradlew createMojmapShuttleJar       # build the server jar
 ```
 
 For anything else you can refer to our [contribution guide](https://bxteam.org/docs/divinemc/development/contributing).

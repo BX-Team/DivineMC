@@ -62,8 +62,8 @@ jobs:
           PARALLELISM=$(($(nproc) * 2))
           ./gradlew applyAllPatches --stacktrace --parallel --max-workers=$PARALLELISM --build-cache --no-daemon
 
-      - name: Build Paperclip Jar
-        run: ./gradlew createMojmapPaperclipJar --stacktrace --parallel --no-daemon
+      - name: Build Shuttle Jar
+        run: ./gradlew createMojmapShuttleJar --stacktrace --parallel --no-daemon
 
       - name: Prepare Release Info
         run: bash scripts/releaseInfo.sh

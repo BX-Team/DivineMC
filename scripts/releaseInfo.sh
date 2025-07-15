@@ -28,7 +28,7 @@ make_latest=$([ "$experimental" = "true" ] && echo "false" || echo "true")
 
 rm -f $changelog
 
-mv divinemc-server/build/libs/divinemc-paperclip-"$version"-mojmap.jar "$jarName"
+mv divinemc-server/build/libs/divinemc-shuttle-"$version"-mojmap.jar "$jarName"
 {
   echo "name=$divinemcid"
   echo "tag=$tagid"
