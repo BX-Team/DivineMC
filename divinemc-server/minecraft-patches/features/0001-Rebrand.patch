@@ -18,10 +18,10 @@ index 394443d00e661715439be1e56dddc129947699a4..480ad57a6b7b74e6b83e9c6ceb69ea1f
      public CrashReport(String title, Throwable exception) {
          io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(exception); // Paper
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..9d89af099c6e0f50c73a9372e1ef7f1b0ef932c5 100644
+index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..a058ef4d74da29372a894c8a4d619b2d5ba0c74f 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -64,6 +64,17 @@ import org.slf4j.Logger;
+@@ -64,11 +64,34 @@ import org.slf4j.Logger;
  public class Main {
      private static final Logger LOGGER = LogUtils.getLogger();
  
@@ -39,15 +39,33 @@ index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..9d89af099c6e0f50c73a9372e1ef7f1b
      @SuppressForbidden(
          reason = "System.out needed before bootstrap"
      )
-@@ -125,7 +136,6 @@ public class Main {
+     @DontObfuscate
+     public static void main(final OptionSet optionSet) { // CraftBukkit - replaces main(String[] args)
++        Path path2 = Paths.get("eula.txt");
++        Eula eula = new Eula(path2);
++        boolean eulaAgreed = Boolean.getBoolean("com.mojang.eula.agree");
++        if (eulaAgreed) {
++            LOGGER.error("You have used the Spigot command line EULA agreement flag.");
++            LOGGER.error("By using this setting you are indicating your agreement to Mojang's EULA (https://aka.ms/MinecraftEULA).");
++            LOGGER.error("If you do not agree to the above EULA please stop your server and remove this flag immediately.");
++        }
++        if (!eula.hasAgreedToEULA() && !eulaAgreed) {
++            LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
++            return;
++        }
+         io.papermc.paper.util.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
+         SharedConstants.tryDetectVersion();
+         /* CraftBukkit start - Replace everything
+@@ -124,8 +147,6 @@ public class Main {
+             DedicatedServerSettings dedicatedServerSettings = new DedicatedServerSettings(optionSet); // CraftBukkit - CLI argument support
              dedicatedServerSettings.forceSave();
              RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
-             Path path2 = Paths.get("eula.txt");
+-            Path path2 = Paths.get("eula.txt");
 -            Eula eula = new Eula(path2);
              // Paper start - load config files early for access below if needed
              org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
              org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("spigot-settings"));
-@@ -148,19 +158,6 @@ public class Main {
+@@ -148,19 +169,6 @@ public class Main {
                  return;
              }
  

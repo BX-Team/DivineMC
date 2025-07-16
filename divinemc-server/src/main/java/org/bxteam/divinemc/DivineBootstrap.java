@@ -68,19 +68,6 @@ public class DivineBootstrap {
                 System.setProperty("jdk.console", "java.base");
 
                 SharedConstants.tryDetectVersion();
-                Path path2 = Paths.get("eula.txt");
-                Eula eula = new Eula(path2);
-                boolean eulaAgreed = Boolean.getBoolean("com.mojang.eula.agree");
-                if (eulaAgreed) {
-                    LOGGER.error("You have used the Spigot command line EULA agreement flag.");
-                    LOGGER.error("By using this setting you are indicating your agreement to Mojang's EULA (https://aka.ms/MinecraftEULA).");
-                    LOGGER.error("If you do not agree to the above EULA please stop your server and remove this flag immediately.");
-                }
-                if (!eula.hasAgreedToEULA() && !eulaAgreed) {
-                    LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
-                    System.exit(0);
-                }
-
                 getStartupVersionMessages().forEach(LOGGER::info);
             } catch (Throwable t) {
                 t.printStackTrace();
