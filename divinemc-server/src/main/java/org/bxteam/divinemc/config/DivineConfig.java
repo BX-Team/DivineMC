@@ -372,6 +372,8 @@ public class DivineConfig {
         public static long chunkDataCacheLimit = 32678L;
         public static int maxViewDistance = 32;
         public static int playerNearChunkDetectionRange = 128;
+        public static boolean endBiomeCacheEnabled = false;
+        public static int endBiomeCacheCapacity = 1024;
         public static boolean smoothBedrockLayer = false;
         public static boolean enableDensityFunctionCompiler = false;
         public static boolean enableStructureLayoutOptimizer = true;
@@ -428,10 +430,10 @@ public class DivineConfig {
                 "By default, this range is computed to 8, meaning a player must be within an 8 chunk radius of a chunk position to pass.",
                 "Keep in mind the result is rounded to the nearest whole number.");
 
-            if (playerNearChunkDetectionRange < 0) {
-                LOGGER.warn("Invalid player near chunk detection range: {}, resetting to default (128)", playerNearChunkDetectionRange);
-                playerNearChunkDetectionRange = 128;
-            }
+            endBiomeCacheEnabled = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.end-biome-cache-enabled"), endBiomeCacheEnabled,
+                "Enables the end biome cache, which can accelerate The End worldgen.");
+            endBiomeCacheCapacity = getInt(ConfigCategory.PERFORMANCE.key("chunks.end-biome-cache-capacity"), endBiomeCacheCapacity,
+                "The cache capacity for the end biome cache. Only used if end-biome-cache-enabled is true.");
 
             smoothBedrockLayer = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer"), smoothBedrockLayer,
                 "Smoothens the bedrock layer at the bottom of overworld, and on the top of nether during the world generation.");
@@ -455,6 +457,11 @@ public class DivineConfig {
                 "This will not break the structure generation, but it will make the structure layout different than",
                 "if this config was off (breaking vanilla seed parity). The cost of speed may be worth it in large",
                 "modpacks where many structure mods are using very high weight values in their template pools.");
+
+            if (playerNearChunkDetectionRange < 0) {
+                LOGGER.warn("Invalid player near chunk detection range: {}, resetting to default (128)", playerNearChunkDetectionRange);
+                playerNearChunkDetectionRange = 128;
+            }
         }
 
         private static void optimizationSettings() {
