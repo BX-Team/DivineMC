@@ -3,9 +3,9 @@ package org.bxteam.divinemc.util;
 import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bxteam.divinemc.entity.pathfinding.AsyncPathProcessor;
-import org.bxteam.divinemc.entity.tracking.MultithreadedTracker;
-import org.bxteam.divinemc.server.network.AsyncJoinHandler;
+import org.bxteam.divinemc.async.pathfinding.AsyncPathProcessor;
+import org.bxteam.divinemc.async.tracking.MultithreadedTracker;
+import org.bxteam.divinemc.async.AsyncJoinHandler;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("ConstantValue")

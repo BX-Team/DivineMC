@@ -5,7 +5,7 @@ Subject: [PATCH] Async Join Thread
 
 
 diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index 443aebb71b2a55ee9dcd2dd4bf9a30fbb8da9e49..cd926f0576d73bc3ef41c9a075a7ac9c54c9dd41 100644
+index 443aebb71b2a55ee9dcd2dd4bf9a30fbb8da9e49..6cec77e483d51771c602bbdb537c62c893043c08 100644
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 @@ -53,7 +53,6 @@ import org.bukkit.event.player.PlayerPreLoginEvent;
@@ -24,7 +24,7 @@ index 443aebb71b2a55ee9dcd2dd4bf9a30fbb8da9e49..cd926f0576d73bc3ef41c9a075a7ac9c
 -                // Paper start - Cache authenticator threads
 -                authenticatorPool.execute(() -> {
 +                // DivineMC start - Async Join Thread
-+                org.bxteam.divinemc.server.network.AsyncJoinHandler.runAsync(() -> {
++                org.bxteam.divinemc.async.AsyncJoinHandler.runAsync(() -> {
                      try {
                          GameProfile gameprofile = ServerLoginPacketListenerImpl.this.createOfflineProfile(ServerLoginPacketListenerImpl.this.requestedUsername); // Spigot
  
@@ -54,7 +54,7 @@ index 443aebb71b2a55ee9dcd2dd4bf9a30fbb8da9e49..cd926f0576d73bc3ef41c9a075a7ac9c
          // Paper start - Cache authenticator threads
 -        authenticatorPool.execute(new Runnable() {
 +        // DivineMC start - Async Join Thread
-+        org.bxteam.divinemc.server.network.AsyncJoinHandler.runAsync(new Runnable() {
++        org.bxteam.divinemc.async.AsyncJoinHandler.runAsync(new Runnable() {
              @Override
              public void run() {
                  String string1 = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
@@ -64,7 +64,7 @@ index 443aebb71b2a55ee9dcd2dd4bf9a30fbb8da9e49..cd926f0576d73bc3ef41c9a075a7ac9c
              // Proceed with login
 -            authenticatorPool.execute(() -> {
 +            // DivineMC start - Async Join Thread
-+            org.bxteam.divinemc.server.network.AsyncJoinHandler.runAsync(() -> {
++            org.bxteam.divinemc.async.AsyncJoinHandler.runAsync(() -> {
                  try {
                      final GameProfile gameprofile = this.callPlayerPreLoginEvents(this.authenticatedProfile);
                      ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());

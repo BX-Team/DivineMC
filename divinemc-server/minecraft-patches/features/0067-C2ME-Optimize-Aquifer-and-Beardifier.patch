@@ -11,7 +11,7 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/world/level/levelgen/Aquifer.java b/net/minecraft/world/level/levelgen/Aquifer.java
-index c62a15ea4a1bb22e7bcc2fc544acf8a601892029..2efa0b8bb7189d768cb43e55376b397f4f806374 100644
+index c62a15ea4a1bb22e7bcc2fc544acf8a601892029..06419ac3b18365b27b522baba24736c1add5bd9a 100644
 --- a/net/minecraft/world/level/levelgen/Aquifer.java
 +++ b/net/minecraft/world/level/levelgen/Aquifer.java
 @@ -85,6 +85,15 @@ public interface Aquifer {
@@ -41,7 +41,7 @@ index c62a15ea4a1bb22e7bcc2fc544acf8a601892029..2efa0b8bb7189d768cb43e55376b397f
 +
 +            int sizeY = this.aquiferLocationCache.length / (this.gridSizeX * this.gridSizeZ);
 +
-+            final RandomSource random = org.bxteam.divinemc.util.RandomUtil.getRandom(this.positionalRandomFactory);
++            final RandomSource random = com.ishland.c2me.opts.worldgen.general.common.random_instances.RandomUtils.getRandom(this.positionalRandomFactory);
 +            // index: y, z, x
 +            for (int y = 0; y < sizeY; y++) {
 +                for (int z = 0; z < this.gridSizeZ; z++) {
@@ -49,7 +49,7 @@ index c62a15ea4a1bb22e7bcc2fc544acf8a601892029..2efa0b8bb7189d768cb43e55376b397f
 +                        final int x1 = x + this.minGridX;
 +                        final int y1 = y + this.minGridY;
 +                        final int z1 = z + this.minGridZ;
-+                        org.bxteam.divinemc.util.RandomUtil.derive(this.positionalRandomFactory, random, x1, y1, z1);
++                        com.ishland.c2me.opts.worldgen.general.common.random_instances.RandomUtils.derive(this.positionalRandomFactory, random, x1, y1, z1);
 +                        int x2 = x1 * 16 + random.nextInt(10);
 +                        int y2 = y1 * 12 + random.nextInt(9);
 +                        int z2 = z1 * 16 + random.nextInt(10);

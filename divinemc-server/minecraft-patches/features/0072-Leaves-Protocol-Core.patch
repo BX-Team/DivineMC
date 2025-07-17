@@ -54,7 +54,7 @@ index 62b9d9486c15a1ec6527f786df4e9fc483390bcb..36d8b93182cc44e3bea245800ea9e271
              int i = buffer.readableBytes();
              if (i >= 0 && i <= maxSize) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index b31a4edee0616a63026f7a4335205f2d99d2f641..0072f3f07b1962adc1766930bb9a2f709cb76e6e 100644
+index b6cfd764273a2102525a66955ab2217071d0154d..0ccfbee593fc16073484b1d4ed9458406b8cce50 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1788,6 +1788,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa

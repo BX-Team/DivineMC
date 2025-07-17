@@ -4,7 +4,6 @@ import io.papermc.paper.ServerBuildInfo;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import net.minecraft.SharedConstants;
-import net.minecraft.server.Eula;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.Main;
 import org.slf4j.Logger;
@@ -13,11 +12,8 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
-@SuppressWarnings("DuplicatedCode")
 public class DivineBootstrap {
     private static final Logger LOGGER = LoggerFactory.getLogger("DivineBootstrap");
 

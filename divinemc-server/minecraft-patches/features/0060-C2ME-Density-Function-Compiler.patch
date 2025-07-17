@@ -111,7 +111,7 @@ index f36f8f2d49d4eba5c80eb243883749d6f831eb8a..b43b7e242ea0a4f87704853c03201144
      }
  }
 diff --git a/net/minecraft/world/level/levelgen/DensityFunctions.java b/net/minecraft/world/level/levelgen/DensityFunctions.java
-index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7a4142ddc 100644
+index 4c53031cf8f6198825b190955d96f20bbcccd77e..2b65f922f802a9dbea56f1bae0d243af1080501f 100644
 --- a/net/minecraft/world/level/levelgen/DensityFunctions.java
 +++ b/net/minecraft/world/level/levelgen/DensityFunctions.java
 @@ -275,38 +275,66 @@ public final class DensityFunctions {
@@ -182,7 +182,7 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7
 -                    break;
 -                case MAX:
 -                    d1 = this.argument2.maxValue();
-+                org.bxteam.divinemc.dfc.common.util.ArrayCache arrayCache = contextProvider instanceof org.bxteam.divinemc.dfc.common.ducks.IArrayCacheCapable arrayCacheCapable ? arrayCacheCapable.c2me$getArrayCache() : null;
++                com.ishland.c2me.opts.dfc.common.util.ArrayCache arrayCache = contextProvider instanceof com.ishland.c2me.opts.dfc.common.ducks.IArrayCacheCapable arrayCacheCapable ? arrayCacheCapable.c2me$getArrayCache() : null;
  
 -                    for (int i2 = 0; i2 < array.length; i2++) {
 -                        double d2 = array[i2];
@@ -216,7 +216,7 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7
  
 -    protected record Marker(@Override DensityFunctions.Marker.Type type, @Override DensityFunction wrapped) implements DensityFunctions.MarkerOrMarked {
 +    // DivineMC start - Density Function Compiler
-+    public static final class Marker implements org.bxteam.divinemc.dfc.common.ducks.IFastCacheLike, org.bxteam.divinemc.dfc.common.ducks.IEqualityOverriding, MarkerOrMarked {
++    public static final class Marker implements com.ishland.c2me.opts.dfc.common.ducks.IFastCacheLike, com.ishland.c2me.opts.dfc.common.ducks.IEqualityOverriding, MarkerOrMarked {
 +        private final Type type;
 +        private final DensityFunction wrapped;
 +        private Object c2me$optionalEquality;
@@ -234,7 +234,7 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7
 +                return original.apply(that);
 +            }
 +            Object a = this.c2me$getOverriddenEquality();
-+            Object b = that instanceof org.bxteam.divinemc.dfc.common.ducks.IEqualityOverriding equalityOverriding ? equalityOverriding.c2me$getOverriddenEquality() : null;
++            Object b = that instanceof com.ishland.c2me.opts.dfc.common.ducks.IEqualityOverriding equalityOverriding ? equalityOverriding.c2me$getOverriddenEquality() : null;
 +            if (a == null) {
 +                return original.apply(b != null ? b : that);
 +            } else {
@@ -259,22 +259,22 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7
 +        }
 +
 +        @Override
-+        public double c2me$getCached(int x, int y, int z, org.bxteam.divinemc.dfc.common.ast.EvalType evalType) {
++        public double c2me$getCached(int x, int y, int z, com.ishland.c2me.opts.dfc.common.ast.EvalType evalType) {
 +            return Double.longBitsToDouble(CACHE_MISS_NAN_BITS);
 +        }
 +
 +        @Override
-+        public boolean c2me$getCached(double[] res, int[] x, int[] y, int[] z, org.bxteam.divinemc.dfc.common.ast.EvalType evalType) {
++        public boolean c2me$getCached(double[] res, int[] x, int[] y, int[] z, com.ishland.c2me.opts.dfc.common.ast.EvalType evalType) {
 +            return false;
 +        }
 +
 +        @Override
-+        public void c2me$cache(int x, int y, int z, org.bxteam.divinemc.dfc.common.ast.EvalType evalType, double cached) {
++        public void c2me$cache(int x, int y, int z, com.ishland.c2me.opts.dfc.common.ast.EvalType evalType, double cached) {
 +            // nop
 +        }
 +
 +        @Override
-+        public void c2me$cache(double[] res, int[] x, int[] y, int[] z, org.bxteam.divinemc.dfc.common.ast.EvalType evalType) {
++        public void c2me$cache(double[] res, int[] x, int[] y, int[] z, com.ishland.c2me.opts.dfc.common.ast.EvalType evalType) {
 +            // nop
 +        }
 +
@@ -286,7 +286,7 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7
 +        @Override
 +        public DensityFunction c2me$withDelegate(DensityFunction delegate) {
 +            DensityFunctions.Marker wrapping = new DensityFunctions.Marker(this.type(), delegate);
-+            ((org.bxteam.divinemc.dfc.common.ducks.IEqualityOverriding) (Object) wrapping).c2me$overrideEquality(this);
++            ((com.ishland.c2me.opts.dfc.common.ducks.IEqualityOverriding) (Object) wrapping).c2me$overrideEquality(this);
 +            return wrapping;
 +        }
 +
@@ -294,7 +294,7 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7
 +        public void c2me$overrideEquality(Object object) {
 +            Object inner = object;
 +            while (true) {
-+                Object inner1 = inner instanceof org.bxteam.divinemc.dfc.common.ducks.IEqualityOverriding e1 ? e1.c2me$getOverriddenEquality() : null;
++                Object inner1 = inner instanceof com.ishland.c2me.opts.dfc.common.ducks.IEqualityOverriding e1 ? e1.c2me$getOverriddenEquality() : null;
 +                if (inner1 == null) {
 +                    this.c2me$optionalEquality = inner;
 +                    break;
@@ -339,7 +339,7 @@ index 4c53031cf8f6198825b190955d96f20bbcccd77e..fb3c3c3e837056e2762cf32050440ed7
              FlatCache("flat_cache"),
              Cache2D("cache_2d"),
 diff --git a/net/minecraft/world/level/levelgen/NoiseChunk.java b/net/minecraft/world/level/levelgen/NoiseChunk.java
-index 977b0d595e5637c80e7d4bb20da8896a0b64b844..840c15e4e2613c20b6d4fbcb44cb096997958bd3 100644
+index 977b0d595e5637c80e7d4bb20da8896a0b64b844..1a3da40d668054c92027cfe83d2ddbd803e0a1dd 100644
 --- a/net/minecraft/world/level/levelgen/NoiseChunk.java
 +++ b/net/minecraft/world/level/levelgen/NoiseChunk.java
 @@ -4,9 +4,11 @@ import com.google.common.collect.Lists;
@@ -360,14 +360,14 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..840c15e4e2613c20b6d4fbcb44cb0969
  
 -public class NoiseChunk implements DensityFunction.ContextProvider, DensityFunction.FunctionContext {
 +// DivineMC start - Density Function Compiler
-+import org.bxteam.divinemc.dfc.common.ast.EvalType;
-+import org.bxteam.divinemc.dfc.common.ducks.IArrayCacheCapable;
-+import org.bxteam.divinemc.dfc.common.ducks.ICoordinatesFilling;
-+import org.bxteam.divinemc.dfc.common.ducks.IFastCacheLike;
-+import org.bxteam.divinemc.dfc.common.gen.DelegatingBlendingAwareVisitor;
-+import org.bxteam.divinemc.dfc.common.util.ArrayCache;
-+import org.bxteam.divinemc.dfc.common.vif.EachApplierVanillaInterface;
-+import org.bxteam.divinemc.dfc.common.vif.NoisePosVanillaInterface;
++import com.ishland.c2me.opts.dfc.common.ast.EvalType;
++import com.ishland.c2me.opts.dfc.common.ducks.IArrayCacheCapable;
++import com.ishland.c2me.opts.dfc.common.ducks.ICoordinatesFilling;
++import com.ishland.c2me.opts.dfc.common.ducks.IFastCacheLike;
++import com.ishland.c2me.opts.dfc.common.gen.DelegatingBlendingAwareVisitor;
++import com.ishland.c2me.opts.dfc.common.util.ArrayCache;
++import com.ishland.c2me.opts.dfc.common.vif.EachApplierVanillaInterface;
++import com.ishland.c2me.opts.dfc.common.vif.NoisePosVanillaInterface;
 +// DivineMC end - Density Function Compiler
 +
 +public class NoiseChunk implements DensityFunction.ContextProvider, DensityFunction.FunctionContext, IArrayCacheCapable, ICoordinatesFilling {
@@ -1153,7 +1153,7 @@ index 977b0d595e5637c80e7d4bb20da8896a0b64b844..840c15e4e2613c20b6d4fbcb44cb0969
  
          @Override
 diff --git a/net/minecraft/world/level/levelgen/RandomState.java b/net/minecraft/world/level/levelgen/RandomState.java
-index f1e089ecfffa40cd794c49db30fcedf138d3fee9..b28221ca337ce8d76bbccdd736a4c5b2c7cd08da 100644
+index f1e089ecfffa40cd794c49db30fcedf138d3fee9..3d8bdd7e40c7457c0ad7729162b43cba2043b8b5 100644
 --- a/net/minecraft/world/level/levelgen/RandomState.java
 +++ b/net/minecraft/world/level/levelgen/RandomState.java
 @@ -122,6 +122,41 @@ public final class RandomState {
@@ -1166,29 +1166,29 @@ index f1e089ecfffa40cd794c49db30fcedf138d3fee9..b28221ca337ce8d76bbccdd736a4c5b2
 +            com.google.common.base.Stopwatch stopwatch = com.google.common.base.Stopwatch.createStarted();
 +            it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<DensityFunction, DensityFunction> tempCache = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>();
 +            this.router = new NoiseRouter(
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.barrierNoise(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.fluidLevelFloodednessNoise(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.fluidLevelSpreadNoise(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.lavaNoise(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.temperature(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.vegetation(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.continents(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.erosion(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.depth(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.ridges(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.initialDensityWithoutJaggedness(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.finalDensity(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.veinToggle(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.veinRidged(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.router.veinGap(), tempCache)
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.barrierNoise(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.fluidLevelFloodednessNoise(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.fluidLevelSpreadNoise(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.lavaNoise(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.temperature(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.vegetation(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.continents(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.erosion(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.depth(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.ridges(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.initialDensityWithoutJaggedness(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.finalDensity(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.veinToggle(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.veinRidged(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.veinGap(), tempCache)
 +            );
 +            this.sampler = new Climate.Sampler(
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.sampler.temperature(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.sampler.humidity(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.sampler.continentalness(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.sampler.erosion(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.sampler.depth(), tempCache),
-+                org.bxteam.divinemc.dfc.common.gen.BytecodeGen.compile(this.sampler.weirdness(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.temperature(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.humidity(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.continentalness(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.erosion(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.depth(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.weirdness(), tempCache),
 +                this.sampler.spawnTarget()
 +            );
 +            stopwatch.stop();

@@ -82,13 +82,13 @@ index ac27ff24f018d8798921c5152e679ceed1e88d8d..ec7d1353b19e55b00c558df8981323ef
                      List<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(level.capturedBlockStates.values());
                      level.capturedBlockStates.clear();
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index ed4a722c0fa458a0977366b92561d6a16827da56..9f5beb74d8b0198aebf7cad40def52d12a4a9b3d 100644
+index 951199cb015694790ea8d81264779a7d294ab6ef..85f0abc2ead2d78a7189abaac8f803b70328a21b 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -290,6 +290,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
      public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
-     public org.bxteam.divinemc.util.AsyncProcessor mobSpawnExecutor = new org.bxteam.divinemc.util.AsyncProcessor("Mob Spawning"); // DivineMC - Pufferfish: Optimize mob spawning
+     public gg.pufferfish.pufferfish.util.AsyncExecutor mobSpawnExecutor = new gg.pufferfish.pufferfish.util.AsyncExecutor("Mob Spawning"); // DivineMC - Pufferfish: Optimize mob spawning
 +    public java.util.concurrent.Semaphore serverLevelTickingSemaphore = null; // DivineMC - Parallel world ticking
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
@@ -363,7 +363,7 @@ index bf680624bc6c618dfa0eeeb74c103ff6716fd27e..654d03368f06ab9870c11745b0994ea6
              }
          }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 3c1795eb56900cd80cfec38bd1d922d566463ecb..07b9a2529be69bf8158528e996e7ddb95ede9614 100644
+index 3c1795eb56900cd80cfec38bd1d922d566463ecb..b752bcc03b558a26f9c592c829efb44a299be8de 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -180,7 +180,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -396,7 +396,7 @@ index 3c1795eb56900cd80cfec38bd1d922d566463ecb..07b9a2529be69bf8158528e996e7ddb9
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.preciseTime = this.serverLevelData.getDayTime(); // Purpur - Configurable daylight cycle
          this.ominousBanner = Objects.requireNonNullElse(this.registryAccess(), net.minecraft.core.RegistryAccess.EMPTY).lookup(Registries.BANNER_PATTERN).map(Raid::getOminousBannerInstance).orElse(null); // DivineMC - Optimize Raids
-+        this.tickExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new org.bxteam.divinemc.server.ServerLevelTickExecutorThreadFactory(getWorld().getName())); // DivineMC - Parallel world ticking
++        this.tickExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new org.bxteam.divinemc.async.world.ServerLevelTickThreadFactory(getWorld().getName())); // DivineMC - Parallel world ticking
      }
  
      // Paper start
@@ -686,14 +686,14 @@ index bdf9899f960b6cca3529af97ebff738761208439..adea48cfde04df3107341075f414133a
          List<Entity> list = new ArrayList<>(passengers.size());
          this.ejectPassengers();
 diff --git a/net/minecraft/world/entity/PortalProcessor.java b/net/minecraft/world/entity/PortalProcessor.java
-index 91f6d43b3785ddad7db8eb529ba3293c45f3588d..fc3ab0881bf9b275beb9b32ca5a7475d50789401 100644
+index 91f6d43b3785ddad7db8eb529ba3293c45f3588d..7fd5f40ee928330769bbe0c5e8da17fa65b30db6 100644
 --- a/net/minecraft/world/entity/PortalProcessor.java
 +++ b/net/minecraft/world/entity/PortalProcessor.java
 @@ -11,6 +11,7 @@ public class PortalProcessor {
      private BlockPos entryPosition;
      private int portalTime;
      private boolean insidePortalThisTick;
-+    private org.bxteam.divinemc.util.PWTTeleportState teleportState = org.bxteam.divinemc.util.PWTTeleportState.INACTIVE; // DivineMC - Parallel world ticking
++    private org.bxteam.divinemc.async.world.TeleportState teleportState = org.bxteam.divinemc.async.world.TeleportState.INACTIVE; // DivineMC - Parallel world ticking
  
      public PortalProcessor(Portal portal, BlockPos entryPosition) {
          this.portal = portal;
@@ -721,27 +721,27 @@ index 91f6d43b3785ddad7db8eb529ba3293c45f3588d..fc3ab0881bf9b275beb9b32ca5a7475d
 +
 +    // DivineMC start - Parallel world ticking
 +    public boolean isParallelTeleportPending() {
-+        return this.teleportState == org.bxteam.divinemc.util.PWTTeleportState.PENDING;
++        return this.teleportState == org.bxteam.divinemc.async.world.TeleportState.PENDING;
 +    }
 +
 +    public boolean isParallelTeleportScheduled() {
-+        return this.teleportState != org.bxteam.divinemc.util.PWTTeleportState.INACTIVE;
++        return this.teleportState != org.bxteam.divinemc.async.world.TeleportState.INACTIVE;
 +    }
 +
 +    public boolean isParallelCancelledByPlugin() {
-+        return this.teleportState == org.bxteam.divinemc.util.PWTTeleportState.CANCELLED;
++        return this.teleportState == org.bxteam.divinemc.async.world.TeleportState.CANCELLED;
 +    }
 +
 +    public void setParallelAsScheduled() {
-+        this.teleportState = org.bxteam.divinemc.util.PWTTeleportState.PENDING;
++        this.teleportState = org.bxteam.divinemc.async.world.TeleportState.PENDING;
 +    }
 +
 +    public void confirmParallelAsHandled() {
-+        this.teleportState = org.bxteam.divinemc.util.PWTTeleportState.INACTIVE;
++        this.teleportState = org.bxteam.divinemc.async.world.TeleportState.INACTIVE;
 +    }
 +
 +    public void setParallelAsCancelled() {
-+        this.teleportState = org.bxteam.divinemc.util.PWTTeleportState.CANCELLED;
++        this.teleportState = org.bxteam.divinemc.async.world.TeleportState.CANCELLED;
 +    }
 +    // DivineMC end - Parallel world ticking
  }

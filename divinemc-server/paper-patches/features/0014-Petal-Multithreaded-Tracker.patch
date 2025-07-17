@@ -45,7 +45,7 @@ index 4913ac7d0426025689c8aee3790d87f7ac0131fd..d4d3aeae964d9a64805ddc5862e46fff
                  break;
              }
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index 67d25c18b1d13da3294572ea4ec17f2d18cba43c..87d9228e7ec8688e7949c4472224c6b920bb83c4 100644
+index 67d25c18b1d13da3294572ea4ec17f2d18cba43c..820746afec2d007cc895edcf637622ef4c0d058c 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -1808,6 +1808,26 @@ public class CraftEventFactory {
@@ -53,7 +53,7 @@ index 67d25c18b1d13da3294572ea4ec17f2d18cba43c..87d9228e7ec8688e7949c4472224c6b9
  
      public static boolean handleBlockFormEvent(Level world, BlockPos pos, net.minecraft.world.level.block.state.BlockState state, int flags, @Nullable Entity entity, boolean checkSetResult) {
 +        // DivineMC start - Multithreaded Tracker
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled && Thread.currentThread() instanceof org.bxteam.divinemc.entity.tracking.MultithreadedTracker.MultithreadedTrackerThread) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled && Thread.currentThread() instanceof org.bxteam.divinemc.async.tracking.MultithreadedTracker.MultithreadedTrackerThread) {
 +            java.util.concurrent.CompletableFuture<Boolean> future = new java.util.concurrent.CompletableFuture<>();
 +            net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
 +                boolean resultFlag = false;

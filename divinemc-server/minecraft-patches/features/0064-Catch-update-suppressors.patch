@@ -20,7 +20,7 @@ index 4535858701b2bb232b9d2feb2af6551526232ddc..aa4dd7517e8be167aef1eaf7aa907e3c
                          if (var4 instanceof ReportedException reportedException && reportedException.getCause() instanceof OutOfMemoryError) {
                              throw makeReportedException(var4, packet, processor);
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 4bbb9b8701e4f5a411a12b8fd977e6de19a22b26..b31a4edee0616a63026f7a4335205f2d99d2f641 100644
+index 432b4b981353fe8427f9675806500e43a080535c..b6cfd764273a2102525a66955ab2217071d0154d 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1686,6 +1686,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa

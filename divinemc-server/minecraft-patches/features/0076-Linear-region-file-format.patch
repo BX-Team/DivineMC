@@ -60,7 +60,7 @@ index 51c126735ace8fdde89ad97b5cab62f244212db0..23f6ed26b531ea570fdf2ae48c1e2710
 +    public void moonrise$write(final org.bxteam.divinemc.region.IRegionFile regionFile) throws IOException; // DivineMC - Buffered Linear region format
  }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 0072f3f07b1962adc1766930bb9a2f709cb76e6e..0bb53e820fbc8891cc9942d375e77bf6f9d5a1aa 100644
+index 0ccfbee593fc16073484b1d4ed9458406b8cce50..f1696e8b2143caee9d6e9ce942c9a07c1e5d4998 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -942,10 +942,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa

@@ -66,7 +66,7 @@ index 9c0c99b936b4a82ebfe924866e53ec71f7bbe9ad..01ed1e3572e9c2ccfd19df117cda0d5c
                  .add(
                      new ClientboundUpdateAttributesPacket.AttributeSnapshot(
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index c0d996fb99f053863ce623889add3feb70d7137d..a3290eb416ecb377d240bf334aef4e2b5e3bbefc 100644
+index c0d996fb99f053863ce623889add3feb70d7137d..7ca147cf9da67c399806056e5092841f7ca32321 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -255,9 +255,19 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -98,7 +98,7 @@ index c0d996fb99f053863ce623889add3feb70d7137d..a3290eb416ecb377d240bf334aef4e2b
 +        // DivineMC start - Multithreaded tracker
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
 +            final ServerLevel level = this.level;
-+            org.bxteam.divinemc.entity.tracking.MultithreadedTracker.tick(level);
++            org.bxteam.divinemc.async.tracking.MultithreadedTracker.tick(level);
 +            return;
 +        }
 +        // DivineMC end - Multithreaded tracker
