@@ -42,7 +42,7 @@ public class DivineConfig {
         Downloads: https://github.com/BX-Team/DivineMC/releases""";
 
     public static final Logger LOGGER = LogManager.getLogger(DivineConfig.class.getSimpleName());
-    public static final int CONFIG_VERSION = 6;
+    public static final int CONFIG_VERSION = 7;
 
     private static File configFile;
     public static final YamlFile config = new YamlFile();
@@ -618,6 +618,8 @@ public class DivineConfig {
         public static int retCheckIntervalMs = 10;
         public static int retTracingDistance = 48;
         public static int retHitboxLimit = 50;
+        public static List<String> retSkippedEntities = List.of();
+        public static boolean retInvertSkippedEntities = false;
 
         // Old features
         public static boolean copperBulb1gt = false;
@@ -718,6 +720,28 @@ public class DivineConfig {
                 "The distance in blocks to track entities in the raytrace entity tracker.");
             retHitboxLimit = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.hitbox-limit"), retHitboxLimit,
                 "The maximum size of bounding box to trace.");
+
+            retSkippedEntities = getStringList(ConfigCategory.MISC.key("raytrace-entity-tracker.skipped-entities"), retSkippedEntities,
+                "List of entity types to skip in raytrace entity tracker.");
+            retInvertSkippedEntities = getBoolean(ConfigCategory.MISC.key("raytrace-entity-tracker.invert-skipped-entities"), retInvertSkippedEntities,
+                "If true, the entities in the skipped list will be tracked, and all other entities will be untracked.",
+                "If false, the entities in the skipped list will be untracked, and all other entities will be tracked.");
+
+            for (EntityType<?> entityType : BuiltInRegistries.ENTITY_TYPE) {
+                entityType.skipRaytracingCheck = retInvertSkippedEntities;
+            }
+
+            final String DEFAULT_PREFIX = ResourceLocation.DEFAULT_NAMESPACE + ResourceLocation.NAMESPACE_SEPARATOR;
+
+            for (String name : retSkippedEntities) {
+                String lowerName = name.toLowerCase(Locale.ROOT);
+                String typeId = lowerName.startsWith(DEFAULT_PREFIX) ? lowerName : DEFAULT_PREFIX + lowerName;
+
+                EntityType.byString(typeId).ifPresentOrElse(entityType ->
+                        entityType.skipRaytracingCheck = !retInvertSkippedEntities,
+                    () -> LOGGER.warn("Skipped unknown entity {} in {}", name, ConfigCategory.MISC.key("raytrace-entity-tracker.skipped-entities"))
+                );
+            }
         }
 
         private static void oldFeatures() {
