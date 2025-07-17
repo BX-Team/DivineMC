@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Thu, 10 Jul 2025 22:17:00 +0300
+Subject: [PATCH] Leaves: Syncmatica Protocol
+
+Original project: https://github.com/LeavesMC/Leaves
+Original license: GPLv3
+
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index e8fd78e2898931f65e783ad46b5b73ce3fbde235..75d9d06066c750ac9a176adc021410f1265cd36f 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -313,6 +313,7 @@ public class ServerGamePacketListenerImpl
+     private static final int MAX_SIGN_LINE_LENGTH = Integer.getInteger("Paper.maxSignLength", 80); // Paper - Limit client sign length
+     private final io.papermc.paper.event.packet.ClientTickEndEvent tickEndEvent; // Paper - add client tick end event
+     public final io.papermc.paper.connection.PaperPlayerGameConnection playerGameConnection; // Paper
++    public final org.leavesmc.leaves.protocol.syncmatica.exchange.ExchangeTarget exchangeTarget; // DivineMC - Leaves: Syncmatica Protocol
+ 
+     public ServerGamePacketListenerImpl(MinecraftServer server, Connection connection, ServerPlayer player, CommonListenerCookie cookie) {
+         super(server, connection, cookie);
+@@ -324,6 +325,7 @@ public class ServerGamePacketListenerImpl
+         this.chatMessageChain = new FutureChain(server.chatExecutor); // CraftBukkit - async chat
+         this.tickEndEvent = new io.papermc.paper.event.packet.ClientTickEndEvent(player.getBukkitEntity()); // Paper - add client tick end event
+         this.playerGameConnection =  new io.papermc.paper.connection.PaperPlayerGameConnection(this); // Paper
++        this.exchangeTarget = new org.leavesmc.leaves.protocol.syncmatica.exchange.ExchangeTarget(this); // DivineMC - Leaves: Syncmatica Protocol
+     }
+ 
+     // Paper start - configuration phase API

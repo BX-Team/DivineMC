@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1817,6 +_,11 @@
+     }
+ 
+     public void causeFoodExhaustion(float exhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason reason) {
++        // DivineMC start - Fix MC-31819
++        if (this.level().getDifficulty() == Difficulty.PEACEFUL) {
++            return;
++        }
++        // DivineMC end - Fix MC-31819
+         // CraftBukkit end
+         if (!this.abilities.invulnerable) {
+             if (!this.level().isClientSide) {

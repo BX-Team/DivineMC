@@ -1,0 +1,21 @@
+--- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+@@ -36,14 +_,15 @@
+ 
+     // SimplePluginManager
+     public void callEvent(@NotNull Event event) {
++        // DivineMC start - Skip event if no listeners
++        RegisteredListener[] listeners = event.getHandlers().getRegisteredListeners();
++        if (listeners.length == 0) return;
++        // DivineMC end - Skip event if no listeners
+         if (event.isAsynchronous() && this.server.isPrimaryThread()) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
+         } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered synchronously.");
+         }
+-
+-        HandlerList handlers = event.getHandlers();
+-        RegisteredListener[] listeners = handlers.getRegisteredListeners();
+ 
+         for (RegisteredListener registration : listeners) {
+             if (!registration.getPlugin().isEnabled()) {

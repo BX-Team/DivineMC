@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/LocalMobCapCalculator.java
++++ b/net/minecraft/world/level/LocalMobCapCalculator.java
+@@ -42,14 +_,14 @@
+     }
+ 
+     static class MobCounts {
+-        private final Object2IntMap<MobCategory> counts = new Object2IntOpenHashMap<>(MobCategory.values().length);
++        private final int[] counts = new int[MobCategory.values().length]; // DivineMC - VMP: store mob counts in an array
+ 
+         public void add(MobCategory category) {
+-            this.counts.computeInt(category, (key, value) -> value == null ? 1 : value + 1);
++            this.counts[category.ordinal()]++; // DivineMC - VMP: store mob counts in an array
+         }
+ 
+         public boolean canSpawn(MobCategory category) {
+-            return this.counts.getOrDefault(category, 0) < category.getMaxInstancesPerChunk();
++            return this.counts[category.ordinal()] < category.getMaxInstancesPerChunk(); // DivineMC - VMP: store mob counts in an array
+         }
+     }
+ }

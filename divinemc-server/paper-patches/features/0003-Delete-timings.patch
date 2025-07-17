@@ -5,7 +5,7 @@ Subject: [PATCH] Delete timings
 
 
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..11e5b9ebafa562e5a93643d954839e86d0b731f0 100644
+index e989053b703fddfbffc3e4ed9381594aaaa0df41..d7398b1ecf2660c29fb7d106b48fe02d3736603e 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 @@ -1,6 +1,5 @@
@@ -15,7 +15,7 @@ index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..11e5b9ebafa562e5a93643d954839e86
  import com.destroystokyo.paper.event.server.ServerExceptionEvent;
  import com.destroystokyo.paper.exception.ServerEventException;
  import com.google.common.collect.Sets;
-@@ -95,7 +94,6 @@ class PaperEventManager {
+@@ -96,7 +95,6 @@ class PaperEventManager {
              throw new IllegalPluginAccessException("Plugin attempted to register " + event + " while not enabled");
          }
  
@@ -23,7 +23,7 @@ index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..11e5b9ebafa562e5a93643d954839e86
          this.getEventListeners(event).register(new RegisteredListener(listener, executor, priority, plugin, ignoreCancelled));
      }
  
-@@ -182,7 +180,7 @@ class PaperEventManager {
+@@ -183,7 +181,7 @@ class PaperEventManager {
                  }
              }
  

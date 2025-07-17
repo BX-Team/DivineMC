@@ -1,0 +1,21 @@
+--- a/src/main/java/org/bukkit/craftbukkit/command/CraftCommandMap.java
++++ b/src/main/java/org/bukkit/craftbukkit/command/CraftCommandMap.java
+@@ -14,4 +_,18 @@
+     public Map<String, Command> getKnownCommands() {
+         return this.knownCommands;
+     }
++
++    // DivineMC start - Force Minecraft command
++    @Override
++    public Command getCommand(String name) {
++        Command target = super.getCommand(name);
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.forceMinecraftCommand && !(target instanceof org.bukkit.craftbukkit.command.VanillaCommandWrapper)) {
++            Command minecraftTarget = super.getCommand("minecraft:" + name);
++            if (minecraftTarget != null) {
++                return minecraftTarget;
++            }
++        }
++        return target;
++    }
++    // DivineMC end - Force Minecraft command
+ }

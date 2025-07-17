@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.java
++++ b/net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.java
+@@ -22,6 +_,12 @@
+ 
+     @Override
+     protected void doTick(ServerLevel level, Villager entity) {
++        // DivineMC start - lithium: skip useless secondary poi sensor
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.skipUselessSecondaryPoiSensor && entity.getVillagerData().profession().value().secondaryPoi().isEmpty()) {
++            entity.getBrain().eraseMemory(MemoryModuleType.SECONDARY_JOB_SITE);
++            return;
++        }
++        // DivineMC end - lithium: skip useless secondary poi sensor
+         // Purpur start - Option for Villager Clerics to farm Nether Wart - make sure clerics don't wander to soul sand when the option is off
+         Brain<?> brain = entity.getBrain();
+         if (!level.purpurConfig.villagerClericsFarmWarts && entity.getVillagerData().profession().is(net.minecraft.world.entity.npc.VillagerProfession.CLERIC)) {

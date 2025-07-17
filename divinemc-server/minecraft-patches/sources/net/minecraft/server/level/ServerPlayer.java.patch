@@ -1,0 +1,10 @@
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -2233,6 +_,7 @@
+             this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, gameMode.getId()));
+             if (gameMode == GameType.SPECTATOR) {
+                 this.removeEntitiesOnShoulder();
++                this.stopSleeping(); // DivineMC - Fix MC-119417
+                 this.stopRiding();
+                 EnchantmentHelper.stopLocationBasedEffects(this);
+             } else {

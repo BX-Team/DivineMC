@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java
++++ b/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java
+@@ -114,6 +_,7 @@
+     }
+ 
+     protected void alertOther(Mob mob, LivingEntity target) {
++        if (mob == target) return; // DivineMC - Fix MC-110386
+         mob.setTarget(target, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_NEARBY_ENTITY); // CraftBukkit - reason
+     }
+ }
