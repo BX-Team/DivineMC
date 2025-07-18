@@ -5,83 +5,181 @@ Subject: [PATCH] Async Chunk Sending
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index 1ed2ae41e47b2446bf1835efc8bad369408d52da..053da602eb08b5a8b7a316e56f76a99e86149483 100644
+index 1ed2ae41e47b2446bf1835efc8bad369408d52da..c4a1e3908cf8e1b0614ff6c3a0f5f6708a7667e5 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-@@ -54,6 +54,8 @@ public final class RegionizedPlayerChunkLoader {
-     public static final int LOADED_TICKET_LEVEL = ChunkTaskScheduler.getTicketLevel(ChunkStatus.EMPTY);
-     public static final int TICK_TICKET_LEVEL = ChunkHolderManager.ENTITY_TICKING_TICKET_LEVEL;
- 
-+    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("RegionizedPlayerChunkLoader"); // DivineMC - Async Chunk Sending
-+
-     public static void setUnloadDelay(final long ticks) {
-         ((ChunkSystemTicketType)(Object)PLAYER_TICKET_DELAYED).moonrise$setTimeout(Math.max(1, ticks));
-     }
-@@ -415,17 +417,61 @@ public final class RegionizedPlayerChunkLoader {
-         }
- 
-         private void sendChunk(final int chunkX, final int chunkZ) {
--            if (this.sentChunks.add(CoordinateUtils.getChunkKey(chunkX, chunkZ))) {
--                ((ChunkSystemChunkHolder)((ChunkSystemServerLevel)this.world).moonrise$getChunkTaskScheduler().chunkHolderManager
--                        .getChunkHolder(chunkX, chunkZ).vanillaChunkHolder).moonrise$addReceivedChunk(this.player);
+@@ -441,7 +441,13 @@ public final class RegionizedPlayerChunkLoader {
+             // Note: drop isAlive() check so that chunks properly unload client-side when the player dies
+             ((ChunkSystemChunkHolder)((ChunkSystemServerLevel)this.world).moonrise$getChunkTaskScheduler().chunkHolderManager
+                 .getChunkHolder(chunkX, chunkZ).vanillaChunkHolder).moonrise$removeReceivedChunk(this.player);
+-            this.player.connection.send(new ClientboundForgetLevelChunkPacket(new ChunkPos(chunkX, chunkZ)));
 +            // DivineMC start - Async Chunk Sending
-+            final long chunkKey = CoordinateUtils.getChunkKey(chunkX, chunkZ);
-+
-+            if (!this.sentChunks.add(chunkKey)) return;
- 
--                final LevelChunk chunk = ((ChunkSystemLevel)this.world).moonrise$getFullChunkIfLoaded(chunkX, chunkZ);
-+            final LevelChunk chunk = ((ChunkSystemLevel) this.world).moonrise$getFullChunkIfLoaded(chunkX, chunkZ);
-+            if (chunk == null) {
-+                this.sentChunks.remove(chunkKey);
-+                return;
-+            }
- 
-+            try {
-+                ((ChunkSystemServerLevel) this.world).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(chunkX, chunkZ).vanillaChunkHolder.moonrise$addReceivedChunk(this.player);
-                 PlatformHooks.get().onChunkWatch(this.world, chunk, this.player);
--                PlayerChunkSender.sendChunk(this.player.connection, this.world, chunk);
-+            } catch (IllegalStateException e) {
-+                this.sentChunks.remove(chunkKey);
-                 return;
-             }
--            throw new IllegalStateException();
-+
 +            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncChunkSendingEnabled) {
-+                net.minecraft.Util.backgroundExecutor().execute(() -> {
-+                    try {
-+                        // Modified from PlayerChunkSender#sendChunk
-+                        final net.minecraft.server.network.ServerGamePacketListenerImpl connection = this.player.connection;
-+                        final ServerLevel serverLevel = this.world;
-+
-+                        final net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket packet = new net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket(
-+                            chunk, serverLevel.getLightEngine(), null, null,
-+                            serverLevel.chunkPacketBlockController.shouldModify(this.player, chunk)
-+                        );
-+
-+                        serverLevel.getServer().execute(() -> {
-+                            if (this.removed || !this.sentChunks.contains(chunkKey)) return;
-+
-+                            connection.send(packet);
-+
-+                            if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {
-+                                new io.papermc.paper.event.packet.PlayerChunkLoadEvent(
-+                                    new org.bukkit.craftbukkit.CraftChunk(chunk),
-+                                    this.player.getBukkitEntity()
-+                                ).callEvent();
-+                            }
-+
-+                            net.minecraft.network.protocol.game.DebugPackets.sendPoiPacketsForChunk(serverLevel, chunk.getPos());
-+                        });
-+                    } catch (Exception e) {
-+                        LOGGER.error("Failed to send chunk asynchronously!", e);
-+
-+                        if (!this.removed) this.sentChunks.remove(chunkKey);
-+                    }
-+                });
++                org.bxteam.divinemc.async.AsyncChunkSend.POOL.execute(() -> this.player.connection.send(new ClientboundForgetLevelChunkPacket(new ChunkPos(chunkX, chunkZ))));
 +            } else {
-+                PlayerChunkSender.sendChunk(this.player.connection, this.world, chunk);
++                this.player.connection.send(new ClientboundForgetLevelChunkPacket(new ChunkPos(chunkX, chunkZ)));
 +            }
 +            // DivineMC end - Async Chunk Sending
+             // Paper start - PlayerChunkUnloadEvent
+             if (io.papermc.paper.event.packet.PlayerChunkUnloadEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                 new io.papermc.paper.event.packet.PlayerChunkUnloadEvent(player.getBukkitEntity().getWorld().getChunkAt(new ChunkPos(chunkX, chunkZ).longKey), player.getBukkitEntity()).callEvent();
+diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
+index 9f6d7c5dc0e591488a8a3763d8a1f1b3671d5299..4983a34e42ef972f2d5ad8a12dfad99ca88d7032 100644
+--- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
++++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
+@@ -75,6 +75,52 @@ public class ClientboundLevelChunkPacketData {
+         }
+     }
+ 
++    // DivineMC start - Async Chunk Sending
++    public ClientboundLevelChunkPacketData(LevelChunk levelChunk, io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo, BlockEntity[] blockEntities, Map<Heightmap.Types, long[]> heightmaps) {
++        this.heightmaps = heightmaps;
++
++        if (Thread.currentThread() instanceof org.bxteam.divinemc.async.AsyncChunkSend.AsyncChunkSendThread) {
++            int size = calculateChunkSize(levelChunk);
++            ByteBuf buffer = Unpooled.buffer(size);
++            extractChunkData(new FriendlyByteBuf(buffer), levelChunk, chunkPacketInfo);
++            // make sure all sections is latest
++            while (size != buffer.writerIndex()) {
++                buffer.writerIndex(0);
++                size = calculateChunkSize(levelChunk);
++                extractChunkData(new FriendlyByteBuf(buffer), levelChunk, chunkPacketInfo);
++            }
++            byte[] array = it.unimi.dsi.fastutil.bytes.ByteArrays.setLength(buffer.array(), buffer.writerIndex());
++            if (chunkPacketInfo != null) {
++                chunkPacketInfo.setBuffer(array);
++            }
++            this.buffer = array;
++        } else {
++            this.buffer = new byte[calculateChunkSize(levelChunk)];
++            // Paper start - Anti-Xray - Add chunk packet info
++            if (chunkPacketInfo != null) {
++                chunkPacketInfo.setBuffer(this.buffer);
++            }
++            extractChunkData(new FriendlyByteBuf(this.getWriteBuffer()), levelChunk, chunkPacketInfo);
++        }
++
++        this.blockEntitiesData = Lists.newArrayList();
++        int totalTileEntities = 0; // Paper - Handle oversized block entities in chunks
++
++        for (BlockEntity blockEntity : blockEntities) {
++            // Paper start - Handle oversized block entities in chunks
++            if (++totalTileEntities > BLOCK_ENTITY_LIMIT) {
++                net.minecraft.network.protocol.Packet<ClientGamePacketListener> packet = blockEntity.getUpdatePacket();
++                if (packet != null) {
++                    this.extraPackets.add(packet);
++                    continue;
++                }
++            }
++            // Paper end - Handle oversized block entities in chunks
++            this.blockEntitiesData.add(ClientboundLevelChunkPacketData.BlockEntityInfo.create(blockEntity));
++        }
++    }
++    // DivineMC end - Async Chunk Sending
++
+     public ClientboundLevelChunkPacketData(RegistryFriendlyByteBuf buffer, int x, int z) {
+         this.heightmaps = HEIGHTMAPS_STREAM_CODEC.decode(buffer);
+         int varInt = buffer.readVarInt();
+@@ -123,6 +169,8 @@ public class ClientboundLevelChunkPacketData {
+             // Paper end  - Anti-Xray - Add chunk packet info
          }
  
-         private void sendUnloadChunk(final int chunkX, final int chunkZ) {
++        if (Thread.currentThread() instanceof org.bxteam.divinemc.async.AsyncChunkSend.AsyncChunkSendThread) return; // DivineMC - Async Chunk Sending
++
+         if (buffer.writerIndex() != buffer.capacity()) {
+             throw new IllegalStateException("Didn't fill chunk buffer: expected " + buffer.capacity() + " bytes, got " + buffer.writerIndex());
+         }
+diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
+index 8578d1f78ddd1bb75f3230f04bfaa35af9f5f822..7c55fabd264e4e813d68798433dfccfb170537a2 100644
+--- a/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
+@@ -45,6 +45,18 @@ public class ClientboundLevelChunkWithLightPacket implements Packet<ClientGamePa
+         chunk.getLevel().chunkPacketBlockController.modifyBlocks(this, chunkPacketInfo); // Paper - Anti-Xray - Modify blocks
+     }
+ 
++    // DivineMC start - Async Chunk Sending
++    public ClientboundLevelChunkWithLightPacket(LevelChunk chunk, LevelLightEngine lightEngine, @Nullable BitSet skyLight, @Nullable BitSet blockLight, boolean modifyBlocks, net.minecraft.world.level.block.entity.BlockEntity[] blockEntities, java.util.Map<net.minecraft.world.level.levelgen.Heightmap.Types, long[]> heightmaps) {
++        ChunkPos pos = chunk.getPos();
++        this.x = pos.x;
++        this.z = pos.z;
++        io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? chunk.getLevel().chunkPacketBlockController.getChunkPacketInfo(this, chunk) : null; // Paper - Ant-Xray
++        this.chunkData = new ClientboundLevelChunkPacketData(chunk, chunkPacketInfo, blockEntities, heightmaps); // Paper - Anti-Xray
++        this.lightData = new ClientboundLightUpdatePacketData(pos, lightEngine, skyLight, blockLight);
++        chunk.getLevel().chunkPacketBlockController.modifyBlocks(this, chunkPacketInfo); // Paper - Anti-Xray - Modify blocks
++    }
++    // DivineMC end - Async Chunk Sending
++
+     private ClientboundLevelChunkWithLightPacket(RegistryFriendlyByteBuf buffer) {
+         this.x = buffer.readInt();
+         this.z = buffer.readInt();
+diff --git a/net/minecraft/server/network/PlayerChunkSender.java b/net/minecraft/server/network/PlayerChunkSender.java
+index 0376a10ee0544b13e8fd629a7b13f78811e57a30..68c34ebf4dcf280aca6be27f3e34a5a74934ff45 100644
+--- a/net/minecraft/server/network/PlayerChunkSender.java
++++ b/net/minecraft/server/network/PlayerChunkSender.java
+@@ -64,13 +64,25 @@ public class PlayerChunkSender {
+                     if (!list.isEmpty()) {
+                         ServerGamePacketListenerImpl serverGamePacketListenerImpl = player.connection;
+                         this.unacknowledgedBatches++;
+-                        serverGamePacketListenerImpl.send(ClientboundChunkBatchStartPacket.INSTANCE);
++                        // DivineMC start - Async Chunk Sending
++                        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncChunkSendingEnabled) {
++                            org.bxteam.divinemc.async.AsyncChunkSend.POOL.execute(() -> serverGamePacketListenerImpl.send(ClientboundChunkBatchStartPacket.INSTANCE));
++                        } else {
++                            serverGamePacketListenerImpl.send(ClientboundChunkBatchStartPacket.INSTANCE);
++                        }
++                        // DivineMC end - Async Chunk Sending
+ 
+                         for (LevelChunk levelChunk : list) {
+                             sendChunk(serverGamePacketListenerImpl, serverLevel, levelChunk);
+                         }
+ 
+-                        serverGamePacketListenerImpl.send(new ClientboundChunkBatchFinishedPacket(list.size()));
++                        // DivineMC start - Async Chunk Sending
++                        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncChunkSendingEnabled) {
++                            org.bxteam.divinemc.async.AsyncChunkSend.POOL.execute(() -> serverGamePacketListenerImpl.send(new ClientboundChunkBatchFinishedPacket(list.size())));
++                        } else {
++                            serverGamePacketListenerImpl.send(new ClientboundChunkBatchFinishedPacket(list.size()));
++                        }
++                        // DivineMC end - Async Chunk Sending
+                         this.batchQuota = this.batchQuota - list.size();
+                     }
+                 }
+@@ -81,7 +93,24 @@ public class PlayerChunkSender {
+     // Paper start - Anti-Xray
+     public static void sendChunk(ServerGamePacketListenerImpl packetListener, ServerLevel level, LevelChunk chunk) {
+         final boolean shouldModify = level.chunkPacketBlockController.shouldModify(packetListener.player, chunk);
+-        packetListener.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null, shouldModify));
++
++        // DivineMC start - Async Chunk Sending
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncChunkSendingEnabled) {
++            var blockEntities = chunk.blockEntities.values().toArray(new net.minecraft.world.level.block.entity.BlockEntity[0]);
++            java.util.Map<net.minecraft.world.level.levelgen.Heightmap.Types, long[]> heightmaps = new java.util.concurrent.ConcurrentHashMap<>();
++
++            for (var entry : chunk.getHeightmaps()) {
++                if (entry.getKey().sendToClient()) {
++                    heightmaps.put(entry.getKey(), entry.getValue().getRawData());
++                }
++            }
++
++            org.bxteam.divinemc.async.AsyncChunkSend.POOL.execute(() -> packetListener.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null, shouldModify, blockEntities, heightmaps)));
++        } else {
++            packetListener.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null, shouldModify));
++        }
++        // DivineMC end - Async Chunk Sending
++
+         // Paper end - Anti-Xray
+         // Paper start - PlayerChunkLoadEvent
+         if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {
+diff --git a/net/minecraft/world/level/chunk/LevelChunkSection.java b/net/minecraft/world/level/chunk/LevelChunkSection.java
+index df717c545472006b99532280c38c1fbef12bcf82..ba4c20df405f41a526273a6216d2aedf4e5c435e 100644
+--- a/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -18,7 +18,7 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+     public static final int SECTION_HEIGHT = 16;
+     public static final int SECTION_SIZE = 4096;
+     public static final int BIOME_CONTAINER_BITS = 2;
+-    short nonEmptyBlockCount; // Paper - package private
++    volatile short nonEmptyBlockCount; // Paper - package private // DivineMC - Async Chunk Sending
+     private short tickingBlockCount;
+     private short tickingFluidCount;
+     public final PalettedContainer<BlockState> states;

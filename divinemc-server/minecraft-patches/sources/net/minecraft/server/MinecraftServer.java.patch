@@ -4,7 +4,7 @@
          // Paper end - rewrite chunk system
          // Paper start - Improved watchdog support - move final shutdown items here
          Util.shutdownExecutors();
-+        org.bxteam.divinemc.util.ExecutorShutdown.shutdown(this); // DivineMC - Shutdown executors
++        org.bxteam.divinemc.async.ExecutorShutdown.shutdown(this); // DivineMC - Shutdown executors
          try {
              net.minecrell.terminalconsole.TerminalConsoleAppender.close(); // Paper - Use TerminalConsoleAppender
          } catch (final Exception ignored) {

@@ -1,11 +1,12 @@
 package org.bxteam.divinemc.util;
 
 import com.mojang.logging.LogUtils;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.bxteam.divinemc.spark.ThreadDumperRegistry;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
+
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NamedAgnosticThreadFactory<T extends Thread> implements ThreadFactory {
     private static final Logger LOGGER = LogUtils.getLogger();

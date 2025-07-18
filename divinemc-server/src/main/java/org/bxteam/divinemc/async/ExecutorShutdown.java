@@ -1,11 +1,11 @@
-package org.bxteam.divinemc.util;
+package org.bxteam.divinemc.async;
 
 import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.async.pathfinding.AsyncPathProcessor;
 import org.bxteam.divinemc.async.tracking.MultithreadedTracker;
-import org.bxteam.divinemc.async.AsyncJoinHandler;
+
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("ConstantValue")
@@ -18,6 +18,15 @@ public class ExecutorShutdown {
 
             try {
                 server.mobSpawnExecutor.join(3000L);
+            } catch (InterruptedException ignored) { }
+        }
+
+        if (AsyncChunkSend.POOL != null) {
+            LOGGER.info("Shutting down async chunk send executor...");
+            AsyncChunkSend.POOL.shutdown();
+
+            try {
+                AsyncChunkSend.POOL.awaitTermination(10L, TimeUnit.SECONDS);
             } catch (InterruptedException ignored) { }
         }
 
