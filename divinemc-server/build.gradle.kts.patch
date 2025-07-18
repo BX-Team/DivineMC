@@ -185,8 +185,9 @@
          val gitBranch = git.exec(providers, "rev-parse", "--abbrev-ref", "HEAD").get().trim()
 +        val experimental = rootProject.providers.gradleProperty("experimental").get() // DivineMC - Experimental flag
          attributes(
-             "Main-Class" to "org.bukkit.craftbukkit.Main",
+-            "Main-Class" to "org.bukkit.craftbukkit.Main",
 -            "Implementation-Title" to "Purpur", // Purpur
++            "Main-Class" to "net.minecraft.server.Main", // DivineMC - Rebrand
 +            "Implementation-Title" to "DivineMC", // DivineMC - Rebrand
              "Implementation-Version" to implementationVersion,
              "Implementation-Vendor" to date,
@@ -207,3 +208,12 @@
          )
          for (tld in setOf("net", "com", "org")) {
              attributes("$tld/bukkit", "Sealed" to true)
+@@ -333,7 +_,7 @@
+     block: JavaExec.() -> Unit
+ ): TaskProvider<JavaExec> = register<JavaExec>(name) {
+     group = "runs"
+-    mainClass.set("org.bukkit.craftbukkit.Main")
++    mainClass.set("net.minecraft.server.Main") // DivineMC - Rebrand
+     standardInput = System.`in`
+     workingDir = rootProject.layout.projectDirectory
+         .dir(providers.gradleProperty("paper.runWorkDir").getOrElse("run"))

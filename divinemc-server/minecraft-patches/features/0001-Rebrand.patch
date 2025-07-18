@@ -31,10 +31,10 @@ index 97844ec1ccc986eb3d3a185d78a03ceeca49fc1a..5e40ec3fbe6e6d5f98ad98df7d4c27d6
  
      @Override
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..a058ef4d74da29372a894c8a4d619b2d5ba0c74f 100644
+index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..c3ac5ba5d8084fefc0e9f58b09b521ef516126eb 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -64,11 +64,34 @@ import org.slf4j.Logger;
+@@ -64,41 +64,39 @@ import org.slf4j.Logger;
  public class Main {
      private static final Logger LOGGER = LogUtils.getLogger();
  
@@ -66,10 +66,41 @@ index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..a058ef4d74da29372a894c8a4d619b2d
 +            LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
 +            return;
 +        }
++
          io.papermc.paper.util.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
          SharedConstants.tryDetectVersion();
-         /* CraftBukkit start - Replace everything
-@@ -124,8 +147,6 @@ public class Main {
+-        /* CraftBukkit start - Replace everything
+-        OptionParser optionParser = new OptionParser();
+-        OptionSpec<Void> optionSpec = optionParser.accepts("nogui");
+-        OptionSpec<Void> optionSpec1 = optionParser.accepts("initSettings", "Initializes 'server.properties' and 'eula.txt', then quits");
+-        OptionSpec<Void> optionSpec2 = optionParser.accepts("demo");
+-        OptionSpec<Void> optionSpec3 = optionParser.accepts("bonusChest");
+-        OptionSpec<Void> optionSpec4 = optionParser.accepts("forceUpgrade");
+-        OptionSpec<Void> optionSpec5 = optionParser.accepts("eraseCache");
+-        OptionSpec<Void> optionSpec6 = optionParser.accepts("recreateRegionFiles");
+-        OptionSpec<Void> optionSpec7 = optionParser.accepts("safeMode", "Loads level with vanilla datapack only");
+-        OptionSpec<Void> optionSpec8 = optionParser.accepts("help").forHelp();
+-        OptionSpec<String> optionSpec9 = optionParser.accepts("universe").withRequiredArg().defaultsTo(".");
+-        OptionSpec<String> optionSpec10 = optionParser.accepts("world").withRequiredArg();
+-        OptionSpec<Integer> optionSpec11 = optionParser.accepts("port").withRequiredArg().ofType(Integer.class).defaultsTo(-1);
+-        OptionSpec<String> optionSpec12 = optionParser.accepts("serverId").withRequiredArg();
+-        OptionSpec<Void> optionSpec13 = optionParser.accepts("jfrProfile");
+-        OptionSpec<Path> optionSpec14 = optionParser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
+-        OptionSpec<String> optionSpec15 = optionParser.nonOptions();
+ 
+         try {
+-            OptionSet optionSet = optionParser.parse(args);
+-            if (optionSet.has(optionSpec8)) {
+-                optionParser.printHelpOn(System.err);
+-                return;
+-            }
+-            */ // CraftBukkit end
+-        try {
+-
+             Path path = (Path) optionSet.valueOf("pidFile"); // CraftBukkit
+             if (path != null) {
+                 writePidFile(path);
+@@ -124,8 +122,6 @@ public class Main {
              DedicatedServerSettings dedicatedServerSettings = new DedicatedServerSettings(optionSet); // CraftBukkit - CLI argument support
              dedicatedServerSettings.forceSave();
              RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
@@ -78,7 +109,7 @@ index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..a058ef4d74da29372a894c8a4d619b2d
              // Paper start - load config files early for access below if needed
              org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
              org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("spigot-settings"));
-@@ -148,19 +169,6 @@ public class Main {
+@@ -148,19 +144,6 @@ public class Main {
                  return;
              }
  
