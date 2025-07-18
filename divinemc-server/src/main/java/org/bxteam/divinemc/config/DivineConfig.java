@@ -372,6 +372,7 @@ public class DivineConfig {
         public static long chunkDataCacheLimit = 32678L;
         public static int maxViewDistance = 32;
         public static int playerNearChunkDetectionRange = 128;
+        public static boolean useEuclideanDistanceSquared = true;
         public static boolean endBiomeCacheEnabled = false;
         public static int endBiomeCacheCapacity = 1024;
         public static boolean smoothBedrockLayer = false;
@@ -429,6 +430,8 @@ public class DivineConfig {
                 "This value is used in the calculation 'range/16' to get the distance in chunks any player must be to allow the check to pass.",
                 "By default, this range is computed to 8, meaning a player must be within an 8 chunk radius of a chunk position to pass.",
                 "Keep in mind the result is rounded to the nearest whole number.");
+            useEuclideanDistanceSquared = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.use-euclidean-distance-squared"), useEuclideanDistanceSquared,
+                "If enabled, euclidean distance squared for chunk task ordering will be used.");
 
             endBiomeCacheEnabled = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.end-biome-cache-enabled"), endBiomeCacheEnabled,
                 "Enables the end biome cache, which can accelerate The End worldgen.");
