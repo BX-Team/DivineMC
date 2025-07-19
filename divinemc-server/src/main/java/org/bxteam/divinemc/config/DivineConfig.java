@@ -767,6 +767,7 @@ public class DivineConfig {
         public static boolean optimizeNonFlushPacketSending = false;
         public static boolean disableDisconnectSpam = false;
         public static boolean dontRespondPingBeforeStart = true;
+        public static boolean sendSpectatorChangePacket = true;
         public static boolean playerProfileResultCachingEnabled = true;
         public static int playerProfileResultCachingTimeout = 1440;
 
@@ -803,6 +804,8 @@ public class DivineConfig {
                 "Prevents players being disconnected by 'disconnect.spam' when sending too many chat packets");
             dontRespondPingBeforeStart = getBoolean(ConfigCategory.NETWORK.key("general.dont-respond-ping-before-start"), dontRespondPingBeforeStart,
                 "Prevents the server from responding to pings before the server is fully booted.");
+            sendSpectatorChangePacket = getBoolean(ConfigCategory.NETWORK.key("general.send-spectator-change-packet"), sendSpectatorChangePacket,
+                "When disabled, tab list will not show that the player have entered the spectator mode. Otherwise, it will act as normal spectator change packet.");
 
             playerProfileResultCachingEnabled = getBoolean(ConfigCategory.NETWORK.key("player-profile-result-caching.enabled"), playerProfileResultCachingEnabled,
                 "Enables caching of player profile results on first join.");

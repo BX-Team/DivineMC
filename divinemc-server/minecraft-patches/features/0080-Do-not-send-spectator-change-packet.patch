@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 20 Jul 2025 00:09:31 +0300
+Subject: [PATCH] Do not send spectator change packet
+
+
+diff --git a/net/minecraft/server/level/ServerPlayerGameMode.java b/net/minecraft/server/level/ServerPlayerGameMode.java
+index 6e7ed7451a45f4525946563617ccf0a55851449b..6a2f8a798f46b337d611c14556ab5ecc1f2584cd 100644
+--- a/net/minecraft/server/level/ServerPlayerGameMode.java
++++ b/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -75,10 +75,18 @@ public class ServerPlayerGameMode {
+             // CraftBukkit end
+             this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer); // Paper - Fix MC-259571
+             this.player.onUpdateAbilities();
+-            this.level
+-                .getServer()
+-                .getPlayerList()
+-                .broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player), this.player); // CraftBukkit
++
++            // DivineMC start - Do not send spectator change packet
++            if (!org.bxteam.divinemc.config.DivineConfig.NetworkCategory.sendSpectatorChangePacket) {
++                this.level.getServer().getPlayerList().broadcastPlayerInfoWithoutSpectatorName(this.player);
++            } else {
++                this.level
++                    .getServer()
++                    .getPlayerList()
++                    .broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player), this.player);
++            }
++            // DivineMC end - Do not send spectator change packet
++
+             this.level.updateSleepingPlayerList();
+             if (gameModeForPlayer == GameType.CREATIVE) {
+                 this.player.resetCurrentImpulseContext();
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index 96af2c75b526c59510965665da0b2ca00bf657b3..b59078273bb6214295a448d5607538557d7eb1ee 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -1473,4 +1473,32 @@ public abstract class PlayerList {
+     public boolean isAllowCommandsForAllPlayers() {
+         return this.allowCommandsForAllPlayers;
+     }
++
++    // DivineMC start - Do not send spectator change packet
++    public void broadcastPlayerInfoWithoutSpectatorName(ServerPlayer player) {
++        net.minecraft.world.level.GameType displayMode = player.gameMode.getGameModeForPlayer() == net.minecraft.world.level.GameType.SPECTATOR ? net.minecraft.world.level.GameType.SURVIVAL : player.gameMode.getGameModeForPlayer();
++
++        for (ServerPlayer otherPlayer : this.players) {
++            if (otherPlayer != player && otherPlayer.getBukkitEntity().canSee(player.getBukkitEntity())) {
++                ClientboundPlayerInfoUpdatePacket packet = createPlayerInfoPacketWithoutSpectatorName(player, displayMode);
++                otherPlayer.connection.send(packet);
++            }
++        }
++    }
++
++    private ClientboundPlayerInfoUpdatePacket createPlayerInfoPacketWithoutSpectatorName(ServerPlayer player, net.minecraft.world.level.GameType displayMode) {
++        net.minecraft.world.level.GameType originalMode = player.gameMode.gameModeForPlayer;
++
++        player.gameMode.gameModeForPlayer = displayMode;
++
++        ClientboundPlayerInfoUpdatePacket packet = new ClientboundPlayerInfoUpdatePacket(
++            ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE,
++            player
++        );
++
++        player.gameMode.gameModeForPlayer = originalMode;
++
++        return packet;
++    }
++    // DivineMC end - Do not send spectator change packet
+ }
