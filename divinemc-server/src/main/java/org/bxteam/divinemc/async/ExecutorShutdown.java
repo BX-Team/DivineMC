@@ -5,6 +5,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.async.pathfinding.AsyncPathProcessor;
 import org.bxteam.divinemc.async.tracking.MultithreadedTracker;
+import org.bxteam.divinemc.config.DivineConfig;
+import org.bxteam.divinemc.region.EnumRegionFileExtension;
+import org.bxteam.divinemc.region.type.BufferedRegionFile;
 
 import java.util.concurrent.TimeUnit;
 
@@ -13,6 +16,14 @@ public class ExecutorShutdown {
     public static final Logger LOGGER = LogManager.getLogger(ExecutorShutdown.class.getSimpleName());
 
     public static void shutdown(MinecraftServer server) {
+        if (BufferedRegionFile.flusherInitialized && DivineConfig.MiscCategory.regionFileType == EnumRegionFileExtension.B_LINEAR) {
+            LOGGER.info("Shutting down buffered region executors...");
+
+            try {
+                BufferedRegionFile.shutdown();
+            } catch (InterruptedException ignored) { }
+        }
+
         if (server.mobSpawnExecutor != null && server.mobSpawnExecutor.thread.isAlive()) {
             LOGGER.info("Shutting down mob spawn executor...");
 
