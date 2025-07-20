@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 20 Jul 2025 16:09:38 +0300
+Subject: [PATCH] Paper PR: Fire ServerListPingEvent for secondary motd send
+
+Original license: GPLv3
+Original project: https://github.com/PaperMC/Paper
+Paper pull request: https://github.com/PaperMC/Paper/pull/8074
+
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index b59078273bb6214295a448d5607538557d7eb1ee..c097afcdece95e33486c833063dc2aed159d93f7 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -304,10 +304,15 @@ public abstract class PlayerList {
+             mutableComponent.withStyle(ChatFormatting.YELLOW);
+             Component joinMessage = mutableComponent; // Paper - Adventure
+             serverGamePacketListenerImpl.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
+-            ServerStatus status = this.server.getStatus();
+-            if (status != null && !cookie.transferred()) {
+-                player.sendServerStatus(status);
++            // DivineMC start - Paper PR: Fire ServerListPingEvent for secondary motd send
++            if (!cookie.transferred()) {
++                io.papermc.paper.util.MCUtil.scheduleAsyncTask(() -> {
++                    if (player.hasDisconnected()) return;
++                    net.minecraft.network.protocol.status.ServerStatus status = com.destroystokyo.paper.network.StandardPaperServerListPingEventImpl.getEventResponse(this.server, player.connection.connection);
++                    if (status != null) player.sendServerStatus(status);
++                });
+             }
++            // DivineMC end - Paper PR: Fire ServerListPingEvent for secondary motd send
+ 
+             // player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(this.players)); // CraftBukkit - replaced with loop below
+             this.players.add(player);
