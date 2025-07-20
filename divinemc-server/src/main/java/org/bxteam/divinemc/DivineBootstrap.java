@@ -66,9 +66,10 @@ public class DivineBootstrap {
                 SharedConstants.tryDetectVersion();
                 getStartupVersionMessages().forEach(LOGGER::info);
             } catch (Throwable t) {
-                t.printStackTrace();
+                LOGGER.error("Failed to initialize the server", t);
             }
         }
+
         return options;
     }
 

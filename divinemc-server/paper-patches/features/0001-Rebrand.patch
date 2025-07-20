@@ -231,25 +231,10 @@ index 62e2d5704c348955bc8284dc2d54c933b7bcdd06..341f13e57896f03058ea3ec68e69b7cb
              public void executeAsync(final Runnable runnable) {
                  MCUtil.scheduleAsyncTask(this.catching(runnable, "asynchronous"));
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 748bd9650da4a209743b7a5dde584b2e19c5a578..7e90142cb65937103aa99fd011540086449c45c8 100644
+index 748bd9650da4a209743b7a5dde584b2e19c5a578..3a4239d6f5768f7e2b6025477670dd2eb9f8cbc4 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -1,14 +1,8 @@
- package org.bukkit.craftbukkit;
- 
- import java.io.File;
--import java.io.IOException;
- import java.text.SimpleDateFormat;
--import java.util.Calendar;
--import java.util.Date;
--import java.util.logging.Level;
--import java.util.logging.Logger;
- import joptsimple.OptionParser;
--import joptsimple.OptionSet;
- import joptsimple.util.PathConverter;
- 
- import static java.util.Arrays.asList;
-@@ -24,7 +18,7 @@ public class Main {
+@@ -24,7 +24,7 @@ public class Main {
      }
      // Paper end - Reset loggers after shutdown
  
@@ -258,7 +243,7 @@ index 748bd9650da4a209743b7a5dde584b2e19c5a578..7e90142cb65937103aa99fd011540086
          if (System.getProperty("jdk.nio.maxCachedBufferSize") == null) System.setProperty("jdk.nio.maxCachedBufferSize", "262144"); // Paper - cap per-thread NIO cache size; https://www.evanjones.ca/java-bytebuffer-leak.html
          OptionParser parser = new OptionParser() {
              {
-@@ -180,77 +174,6 @@ public class Main {
+@@ -180,77 +180,6 @@ public class Main {
              }
          };
  

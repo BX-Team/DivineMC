@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -106,7 +_,7 @@
+     public static final int TICKS_PER_DAY = 24000;
+     public static final int MAX_ENTITY_SPAWN_Y = 20000000;
+     public static final int MIN_ENTITY_SPAWN_Y = -20000000;
+-    public final List<TickingBlockEntity> blockEntityTickers = Lists.newArrayList();
++    public final org.bxteam.divinemc.util.BlockEntityTickersList blockEntityTickers = new org.bxteam.divinemc.util.BlockEntityTickersList(); // Paper - public // DivineMC - optimize block entity removals - Fix MC-117075
+     protected final NeighborUpdater neighborUpdater;
+     private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
+     private boolean tickingBlockEntities;
+@@ -1501,13 +_,11 @@
+         boolean runsNormally = this.tickRateManager().runsNormally();
+ 
+         int tickedEntities = 0; // Paper - rewrite chunk system
+-        var toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<TickingBlockEntity>(); // Paper - Fix MC-117075; use removeAll
+-        toRemove.add(null); // Paper - Fix MC-117075
+         for (this.tileTickPosition = 0; this.tileTickPosition < this.blockEntityTickers.size(); this.tileTickPosition++) { // Paper - Disable tick limiters
+             TickingBlockEntity tickingBlockEntity = this.blockEntityTickers.get(this.tileTickPosition);
+             // Spigot end
+             if (tickingBlockEntity.isRemoved()) {
+-                toRemove.add(tickingBlockEntity); // Paper - Fix MC-117075; use removeAll
++                this.blockEntityTickers.markAsRemoved(this.tileTickPosition); // DivineMC - optimize block entity removals - Fix MC-117075
+             } else if (runsNormally && this.shouldTickBlocksAt(tickingBlockEntity.getPos())) {
+                 tickingBlockEntity.tick();
+                 // Paper start - rewrite chunk system
+@@ -1517,7 +_,7 @@
+                 // Paper end - rewrite chunk system
+             }
+         }
+-        this.blockEntityTickers.removeAll(toRemove); // Paper - Fix MC-117075
++        this.blockEntityTickers.removeMarkedEntries(); // DivineMC - optimize block entity removals - Fix MC-117075
+ 
+         this.tickingBlockEntities = false;
+         profilerFiller.pop();

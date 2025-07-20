@@ -37,6 +37,7 @@ import java.util.Set;
  * <p>For conversion tools between MCA and buffered region file formats, see:
  * <a href="https://github.com/NONPLAYT/LinearRegionFileFormatTools">LinearRegionFileFormatTools</a>
  */
+@SuppressWarnings({"unused", "FieldMayBeFinal"})
 public class BufferedRegionFile implements IRegionFile {
     private static final double AUTO_COMPACT_PERCENT = 3.0 / 5.0; // 60%
     private static final long AUTO_COMPACT_SIZE = 1024 * 1024; // 1 MiB
@@ -751,7 +752,7 @@ public class BufferedRegionFile implements IRegionFile {
         }
     }
 
-    private class Sector{
+    private class Sector {
         private final int index;
         private long offset;
         private long length;

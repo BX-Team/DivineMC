@@ -5,7 +5,7 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 592e8a4c04ef5acda9fdfd1405d8ff4952396ada..c8c7fa0304e8eaf0d444fc0c9a36c00bb27ccc71 100644
+index 53702f1e87e143a6b4260a21c858643746814146..906865cdb2ddde3d9e018cd9cca0fa3bdcc9b4d8 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -1060,6 +1060,7 @@ public final class CraftServer implements Server {
@@ -31,10 +31,10 @@ index 592e8a4c04ef5acda9fdfd1405d8ff4952396ada..c8c7fa0304e8eaf0d444fc0c9a36c00b
  
          Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 7e90142cb65937103aa99fd011540086449c45c8..7653ba0259ddc930dc4e2af84636641d3dba6e7f 100644
+index 3a4239d6f5768f7e2b6025477670dd2eb9f8cbc4..0838fcfaa950300f7a394295509be86cab824f99 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -166,6 +166,14 @@ public class Main {
+@@ -172,6 +172,14 @@ public class Main {
                      .describedAs("Yml file");
                  // Purpur end - Purpur config files
  
