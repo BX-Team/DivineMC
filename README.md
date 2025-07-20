@@ -11,19 +11,13 @@ DivineMC is a multi-functional fork of [Purpur](https://github.com/PurpurMC/Purp
 </div>
 
 ## ⚙️ Features
-
-### 🚀 Core Performance
 - **Based on [Purpur](https://github.com/PurpurMC/Purpur)** - Adds a high customization level to your server
 - **Regionized Chunk Ticking** - Tick chunks in parallel, similar to how Folia does it
 - **Parallel World Ticking** - Leverage multiple CPU cores for world processing
 - **Async Operations** - Pathfinding, entity tracker, mob spawning, joining and chunk sending
-
-### 🔧 Advanced Features
 - **Secure Seed** - Enhanced 1024-bit seed system (vs standard 64-bit) for maximum security 
 - **Linear Region File Format** - Optimize your world with the old V1/V2 linear format and the new Buffered format
 - **Mod Protocols Support** - Compatible with Syncmatica, Apple Skin, Jade and Xaero's Map
-
-### 🔌 Compatibility & Reliability
 - **Fully Compatible** - Works seamlessly with Bukkit, Spigot and Paper plugins
 - **Bug Fixes** - Resolves various Minecraft issues (~10)
 - **Sentry Integration** - Detailed error tracking and monitoring (original by [Pufferfish](https://github.com/pufferfish-gg/Pufferfish))
