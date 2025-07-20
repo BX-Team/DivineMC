@@ -333,12 +333,12 @@ index 3836d60ce84fb26f30a609486a5755d3fd1c94f1..1aab02441e4dfa7703963855d77bb918
                      }
                  } else if (this.visible.remove(advancementHolder)) {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index dcd004749846aa9e650be438b0f097e414c2ec76..5a2b9632a1e46b512a1379923765c1b8a28250b9 100644
+index 46adbe6ccf1e4291e33a52a6612f624558c18f96..374abd7e1502edefb78cd6451a36c3b8ad6d8f8f 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -218,6 +218,13 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          }
-         // DivineMC end - Pufferfish SIMD
+         // DivineMC end - Pufferfish: SIMD Support
  
 +        // DivineMC start - Parallel world ticking
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {

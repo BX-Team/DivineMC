@@ -1,21 +1,23 @@
 package gg.pufferfish.pufferfish.simd;
 
-import org.slf4j.Logger;
-import jdk.incubator.vector.FloatVector;
-import jdk.incubator.vector.IntVector;
 import jdk.incubator.vector.VectorSpecies;
+import org.slf4j.Logger;
 
-@Deprecated
 public class SIMDChecker {
-    public static boolean canEnable(Logger logger) {
+    private final VectorSpecies<Integer> ISPEC;
+    private final VectorSpecies<Float> FSPEC;
+
+    public SIMDChecker(VectorSpecies<Integer> ISPEC, VectorSpecies<Float> FSPEC) {
+        this.ISPEC = ISPEC;
+        this.FSPEC = FSPEC;
+    }
+
+    public boolean canEnable(Logger logger) {
         try {
-            if (SIMDDetection.getJavaVersion() < 17) {
+            if ((SIMDDetection.getJavaVersion() < SIMDDetection.MIN_JAVA_VERSION || SIMDDetection.getJavaVersion() > SIMDDetection.MAX_JAVA_VERSION)) {
                 return false;
             } else {
                 SIMDDetection.testRun = true;
-
-                VectorSpecies<Integer> ISPEC = IntVector.SPECIES_PREFERRED;
-                VectorSpecies<Float> FSPEC = FloatVector.SPECIES_PREFERRED;
 
                 logger.info("Max SIMD vector size on this system is {} bits (int)", ISPEC.vectorBitSize());
                 logger.info("Max SIMD vector size on this system is {} bits (float)", FSPEC.vectorBitSize());
@@ -27,7 +29,10 @@ public class SIMDChecker {
 
                 return true;
             }
-        } catch (NoClassDefFoundError | Exception ignored) {} // Basically, we don't do anything. This lets us detect if it's not functional and disable it.
+        } catch (NoClassDefFoundError | Exception ignored) {
+            // Basically, we don't do anything. This lets us detect if it's not functional and disable it.
+        }
+
         return false;
     }
 }

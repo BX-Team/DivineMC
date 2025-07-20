@@ -5,7 +5,7 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 512eeef7a770fa8264acbe4194a0debb23f8c3c1..80d04f4eb5122d571409a50f5921c3403dacf31f 100644
+index 536a3da1d87e1d4087977196c5766f6550a95e47..bbe93d1861541991215d32186eec82fa8602fea2 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -162,6 +162,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -24,9 +24,9 @@ index 512eeef7a770fa8264acbe4194a0debb23f8c3c1..80d04f4eb5122d571409a50f5921c340
 +        org.bxteam.divinemc.command.DivineCommands.registerCommands(this); // DivineMC - Configuration
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
  
-         // DivineMC start - Pufferfish SIMD
+         // DivineMC start - Pufferfish: SIMD Support
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index dccfd0f30111316c9c82004358c2a7051cbd5cdb..1ad419b4a2ad4610a0a8d18b26665a7ec0ccc960 100644
+index 848f936a26429d844ad439ca336dbcb8d81f09e8..2c60b1c8ecb54c4c9526a2b2f6e6698b77359065 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -161,6 +161,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
