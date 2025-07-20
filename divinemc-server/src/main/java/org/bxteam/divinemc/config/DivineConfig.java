@@ -7,8 +7,6 @@ import net.minecraft.world.entity.EntityType;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.MemoryConfiguration;
 import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.region.EnumRegionFileExtension;
@@ -30,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
-@SuppressWarnings({"unused", "SameParameterValue"})
+@SuppressWarnings({"SameParameterValue", "ConstantValue", "DataFlowIssue"})
 public class DivineConfig {
     private static final String HEADER = """
         This is the main configuration file for DivineMC.
@@ -46,22 +44,6 @@ public class DivineConfig {
 
     private static File configFile;
     public static final YamlFile config = new YamlFile();
-
-	private static ConfigurationSection convertToBukkit(org.simpleyaml.configuration.ConfigurationSection section) {
-		ConfigurationSection newSection = new MemoryConfiguration();
-		for (String key : section.getKeys(false)) {
-			if (section.isConfigurationSection(key)) {
-				newSection.set(key, convertToBukkit(section.getConfigurationSection(key)));
-			} else {
-				newSection.set(key, section.get(key));
-			}
-		}
-		return newSection;
-	}
-
-	public static ConfigurationSection getConfigCopy() {
-		return convertToBukkit(config);
-	}
 
 	public static void init(File configFile) {
         try {
