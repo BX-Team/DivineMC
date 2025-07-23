@@ -1,0 +1,11 @@
+--- a/ca/spottedleaf/moonrise/patches/chunk_tick_iteration/ChunkTickConstants.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_tick_iteration/ChunkTickConstants.java
+@@ -2,7 +_,7 @@
+ 
+ public final class ChunkTickConstants {
+ 
+-    public static final int PLAYER_SPAWN_TRACK_RANGE = 8;
++    public static final int PLAYER_SPAWN_TRACK_RANGE = (int) Math.round(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.playerNearChunkDetectionRange / 16.0); // DivineMC - Configurable player spawn tracking range
+     // the smallest distance on x/z is at 45 degrees, we need to subtract 0.5 since this is calculated from chunk center and not chunk perimeter
+     // note: vanilla does not subtract 0.5 but the result is (luckily!) the same
+     public static final int NARROW_SPAWN_TRACK_RANGE = (int)Math.floor(((double)PLAYER_SPAWN_TRACK_RANGE / Math.sqrt(2.0)) - 0.5);

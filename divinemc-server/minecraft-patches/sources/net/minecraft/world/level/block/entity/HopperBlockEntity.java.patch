@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -423,6 +_,11 @@
+         } else {
+             Direction opposite = blockEntity.facing.getOpposite();
+             if (isFullContainer(attachedContainer, opposite)) {
++                // DivineMC start - SparklyPaper: Allow throttling hopper checks if the target container is full
++                if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.hopperThrottleWhenFull && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.hopperThrottleSkipTicks > 0) {
++                    blockEntity.setCooldown(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.hopperThrottleSkipTicks);
++                }
++                // DivineMC end - SparklyPaper: Allow throttling hopper checks if the target container is full
+                 return false;
+             } else {
+                 // Paper start - Perf: Optimize Hoppers

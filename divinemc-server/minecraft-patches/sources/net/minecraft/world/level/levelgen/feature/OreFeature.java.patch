@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/levelgen/feature/OreFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/OreFeature.java
+@@ -69,7 +_,7 @@
+         int height
+     ) {
+         int i = 0;
+-        BitSet bitSet = new BitSet(width * height * width);
++        BitSet bitSet = org.bxteam.divinemc.util.cache.CachedOrNewBitsGetter.getCachedOrNewBitSet(width * height * width); // DivineMC - C2ME: Reduce Allocations
+         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+         int i1 = config.size;
+         double[] doubles = new double[i1 * 4];

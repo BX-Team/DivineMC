@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
++++ b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
+@@ -160,6 +_,7 @@
+         }
+ 
+         this.vanillaRender.buffer = colors.array(); // Paper - Use Vanilla map renderer when possible
++        this.setDirty(false); // DivineMC - SparklyPaper: Reset dirty flag when loading maps from the disk
+     }
+ 
+     public static MapItemSavedData createFresh(

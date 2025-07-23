@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Fri, 11 Jul 2025 20:39:54 +0300
+Subject: [PATCH] Paper PR: Optimise non-flush packet sending
+
+Original project: https://github.com/PaperMC/Paper
+Original license: GPLv3
+Paper pull request: https://github.com/PaperMC/Paper/pull/10172
+
+Places like entity tracking make heavy use of packet sending,
+and internally netty will use some very expensive thread wakeup
+calls when scheduling.
+
+Thanks to various hacks in ProtocolLib as well as other
+plugins, we cannot simply use a queue of packets to group
+send on execute. We have to call execute for each packet.
+
+Tux's suggestion here is exactly what was needed - tag
+the Runnable indicating it should not make a wakeup call.
+
+Big thanks to Tux for making this possible as I had given
+up on this optimisation before he came along.
+
+Locally this patch drops the entity tracker tick by a full 1.5x.
+
+diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
+index 4ab30d291de7db5ad7d5684662f41348270802b9..8bb7d9f2bce06880164f0ae36e1674e9dc380809 100644
+--- a/net/minecraft/network/Connection.java
++++ b/net/minecraft/network/Connection.java
+@@ -149,6 +149,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+     // Paper start - Optimize network
+     public boolean isPending = true;
+     public boolean queueImmunity;
++    private io.netty.channel.SingleThreadEventLoop eventLoop; // Paper - Optimise non-flush packet sending
+     // Paper end - Optimize network
+ 
+     public Connection(PacketFlow receiving) {
+@@ -159,6 +160,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+     public void channelActive(ChannelHandlerContext context) throws Exception {
+         super.channelActive(context);
+         this.channel = context.channel();
++        this.eventLoop = (io.netty.channel.SingleThreadEventLoop) this.channel.eventLoop(); // Paper - Optimise non-flush packet sending
+         this.address = this.channel.remoteAddress();
+         this.preparing = false; // Spigot
+         if (this.delayedDisconnect != null) {
+@@ -473,7 +475,13 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+         if (this.channel.eventLoop().inEventLoop()) {
+             this.doSendPacket(packet, channelFutureListener, flag);
+         } else {
+-            this.channel.eventLoop().execute(() -> this.doSendPacket(packet, channelFutureListener, flag));
++            // Paper start - Optimise non-flush packet sending
++            if (!flag && org.bxteam.divinemc.config.DivineConfig.NetworkCategory.optimizeNonFlushPacketSending) {
++                this.eventLoop.lazyExecute(() -> this.doSendPacket(packet, channelFutureListener, flag));
++            } else {
++                this.channel.eventLoop().execute(() -> this.doSendPacket(packet, channelFutureListener, flag));
++            }
++            // Paper end - Optimise non-flush packet sending
+         }
+     }
+ 

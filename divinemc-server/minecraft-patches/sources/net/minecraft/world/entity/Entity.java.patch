@@ -1,0 +1,34 @@
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -374,6 +_,7 @@
+     public boolean isTemporarilyActive;
+     public long activatedImmunityTick = Integer.MIN_VALUE;
+     public @Nullable Boolean immuneToFire = null; // Purpur - Fire immune API
++    private boolean boundingBoxChanged = false; // DivineMC - VMP: skip entity move if movement is zero
+ 
+     public void inactiveTick() {
+     }
+@@ -1125,6 +_,7 @@
+     // Paper end - detailed watchdog information
+ 
+     public void move(MoverType type, Vec3 movement) {
++        if (!this.boundingBoxChanged && movement.equals(Vec3.ZERO)) return; // DivineMC - VMP: skip entity move if movement is zero
+         final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
+         // Paper start - detailed watchdog information
+         ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
+@@ -4219,6 +_,7 @@
+     }
+ 
+     public boolean canTeleport(Level fromLevel, Level toLevel) {
++        if (!fromLevel.divineConfig.allowEntityPortalWithPassenger && (this.isPassenger() || this.isVehicle())) return false; // DivineMC - Allow entity teleport with passenger
+         if (!this.isAlive() || !this.valid) return false; // Paper - Fix item duplication and teleport issues
+         if (fromLevel.dimension() == Level.END && toLevel.dimension() == Level.OVERWORLD) {
+             for (Entity entity : this.getPassengers()) {
+@@ -4448,6 +_,7 @@
+     }
+ 
+     public final void setBoundingBox(AABB bb) {
++        if (!this.bb.equals(bb)) this.boundingBoxChanged = true; // DivineMC - VMP: skip entity move if movement is zero
+         // CraftBukkit start - block invalid bounding boxes
+         double minX = bb.minX,
+                 minY = bb.minY,

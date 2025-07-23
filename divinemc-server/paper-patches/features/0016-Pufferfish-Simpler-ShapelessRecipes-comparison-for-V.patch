@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 9 Jul 2025 03:07:19 +0300
+Subject: [PATCH] Pufferfish: Simpler ShapelessRecipes comparison for Vanilla
+
+Original license: GPL v3
+Original project: https://github.com/pufferfish-gg/Pufferfish
+
+Patch description:
+
+Paper added a fancy sorting comparison due to Bukkit recipes breaking
+the vanilla one, however this is far more advanced than what you need
+for all the vanilla recipes.
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftShapelessRecipe.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftShapelessRecipe.java
+index 7c989318dc7ad89bb0d9143fcaac1e4bba6f5907..233446d9aa149ec5be7a009622d0c89353f3d3df 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftShapelessRecipe.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftShapelessRecipe.java
+@@ -44,6 +44,6 @@ public class CraftShapelessRecipe extends ShapelessRecipe implements CraftRecipe
+             data.add(this.toNMS(i, true));
+         }
+ 
+-        MinecraftServer.getServer().getRecipeManager().addRecipe(new RecipeHolder<>(CraftRecipe.toMinecraft(this.getKey()), new net.minecraft.world.item.crafting.ShapelessRecipe(this.getGroup(), CraftRecipe.getCategory(this.getCategory()), CraftItemStack.asNMSCopy(this.getResult()), data)));
++        MinecraftServer.getServer().getRecipeManager().addRecipe(new RecipeHolder<>(CraftRecipe.toMinecraft(this.getKey()), new net.minecraft.world.item.crafting.ShapelessRecipe(this.getGroup(), CraftRecipe.getCategory(this.getCategory()), CraftItemStack.asNMSCopy(this.getResult()), data, true))); // DivineMC - Pufferfish: Simpler ShapelessRecipes comparison for Vanilla
+     }
+ }

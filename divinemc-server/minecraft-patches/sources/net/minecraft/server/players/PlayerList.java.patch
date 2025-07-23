@@ -1,10 +1,10 @@
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -678,7 +_,6 @@
-     }
- 
-     public ServerPlayer respawn(ServerPlayer player, boolean keepInventory, Entity.RemovalReason reason, @Nullable org.bukkit.event.player.PlayerRespawnEvent.RespawnReason eventReason, @Nullable org.bukkit.Location location) {
--        player.stopRiding(); // CraftBukkit
-         this.players.remove(player);
-         this.playersByName.remove(player.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
-         player.level().removePlayerImmediately(player, reason);
+@@ -1143,6 +_,7 @@
+         player.connection.send(new ClientboundInitializeBorderPacket(worldBorder));
+         player.connection.send(new ClientboundSetTimePacket(level.getGameTime(), level.getDayTime(), level.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)));
+         player.connection.send(new ClientboundSetDefaultSpawnPositionPacket(level.getSharedSpawnPos(), level.getSharedSpawnAngle()));
++        org.leavesmc.leaves.protocol.XaeroMapProtocol.onSendWorldInfo(player); // DivineMC - Leaves: Xaero's Map Protocol
+         if (level.isRaining()) {
+             // CraftBukkit start - handle player weather
+             // player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.START_RAINING, 0.0F));

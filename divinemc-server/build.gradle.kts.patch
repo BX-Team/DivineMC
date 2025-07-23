@@ -72,7 +72,7 @@
      }
  }
  val log4jPlugins = sourceSets.create("log4jPlugins") {
-@@ -156,10 +_,23 @@
+@@ -156,10 +_,21 @@
  }
  
  dependencies {
@@ -84,11 +84,9 @@
 +    implementation ("me.carleslc.Simple-YAML:Simple-Yaml:1.8.4") {
 +        exclude(group="org.yaml", module="snakeyaml")
 +    }
-+    implementation("net.objecthunter:exp4j:0.4.8")
-+    implementation("org.agrona:agrona:2.0.1")
-+    implementation("net.openhft:zero-allocation-hashing:0.16")
-+    implementation("com.github.luben:zstd-jni:1.5.6-9")
++    implementation("com.github.luben:zstd-jni:1.5.7-3")
 +    implementation("org.lz4:lz4-java:1.8.0")
++    implementation("net.openhft:zero-allocation-hashing:0.16")
 +    // DivineMC end - Dependencies
 +
      implementation("ca.spottedleaf:concurrentutil:0.0.3")
@@ -187,8 +185,9 @@
          val gitBranch = git.exec(providers, "rev-parse", "--abbrev-ref", "HEAD").get().trim()
 +        val experimental = rootProject.providers.gradleProperty("experimental").get() // DivineMC - Experimental flag
          attributes(
-             "Main-Class" to "org.bukkit.craftbukkit.Main",
+-            "Main-Class" to "org.bukkit.craftbukkit.Main",
 -            "Implementation-Title" to "Purpur", // Purpur
++            "Main-Class" to "net.minecraft.server.Main", // DivineMC - Rebrand
 +            "Implementation-Title" to "DivineMC", // DivineMC - Rebrand
              "Implementation-Version" to implementationVersion,
              "Implementation-Vendor" to date,
@@ -209,3 +208,12 @@
          )
          for (tld in setOf("net", "com", "org")) {
              attributes("$tld/bukkit", "Sealed" to true)
+@@ -333,7 +_,7 @@
+     block: JavaExec.() -> Unit
+ ): TaskProvider<JavaExec> = register<JavaExec>(name) {
+     group = "runs"
+-    mainClass.set("org.bukkit.craftbukkit.Main")
++    mainClass.set("net.minecraft.server.Main") // DivineMC - Rebrand
+     standardInput = System.`in`
+     workingDir = rootProject.layout.projectDirectory
+         .dir(providers.gradleProperty("paper.runWorkDir").getOrElse("run"))

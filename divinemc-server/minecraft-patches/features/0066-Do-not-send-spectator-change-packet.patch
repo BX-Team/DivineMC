@@ -1,0 +1,144 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 20 Jul 2025 00:09:31 +0300
+Subject: [PATCH] Do not send spectator change packet
+
+
+diff --git a/net/minecraft/server/level/ServerPlayerGameMode.java b/net/minecraft/server/level/ServerPlayerGameMode.java
+index 6e7ed7451a45f4525946563617ccf0a55851449b..518d670d2f8535679d5d22cb1f15cb85e5bb50f0 100644
+--- a/net/minecraft/server/level/ServerPlayerGameMode.java
++++ b/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -75,10 +75,7 @@ public class ServerPlayerGameMode {
+             // CraftBukkit end
+             this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer); // Paper - Fix MC-259571
+             this.player.onUpdateAbilities();
+-            this.level
+-                .getServer()
+-                .getPlayerList()
+-                .broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player), this.player); // CraftBukkit
++            this.sendGameModeUpdatePacket(gameModeForPlayer); // DivineMC - Do not send spectator change packet
+             this.level.updateSleepingPlayerList();
+             if (gameModeForPlayer == GameType.CREATIVE) {
+                 this.player.resetCurrentImpulseContext();
+@@ -571,4 +568,17 @@ public class ServerPlayerGameMode {
+         return false;
+     }
+     // Purpur end - Shift right click to use exp for mending
++
++    // DivineMC start - Do not send spectator change packet
++    private void sendGameModeUpdatePacket(GameType newGameMode) {
++        ClientboundPlayerInfoUpdatePacket packet = new ClientboundPlayerInfoUpdatePacket(
++            ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player);
++
++        if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.sendSpectatorChangePacket || newGameMode != GameType.SPECTATOR) {
++            this.level.getServer().getPlayerList().broadcastAll(packet, this.player);
++        } else {
++            this.player.connection.send(packet);
++        }
++    }
++    // DivineMC end - Do not send spectator change packet
+ }
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index 96af2c75b526c59510965665da0b2ca00bf657b3..baa682c9ba48427edb10f5610a5a0a9e21da0581 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -359,6 +359,8 @@ public abstract class PlayerList {
+             // CraftBukkit start - sendAll above replaced with this loop
+             ClientboundPlayerInfoUpdatePacket packet = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player)); // Paper - Add Listing API for Player
+ 
++            ClientboundPlayerInfoUpdatePacket modifiedPacket = this.createSpectatorFilteredPacket(packet); // DivineMC - Do not send spectator change packet
++
+             final List<ServerPlayer> onlinePlayers = Lists.newArrayListWithExpectedSize(this.players.size() - 1); // Paper - Use single player info update packet on join
+             for (int i = 0; i < this.players.size(); ++i) {
+                 ServerPlayer entityplayer1 = (ServerPlayer) this.players.get(i);
+@@ -367,7 +369,7 @@ public abstract class PlayerList {
+                     // Paper start - Add Listing API for Player
+                     if (entityplayer1.getBukkitEntity().isListed(bukkitPlayer)) {
+                         // Paper end - Add Listing API for Player
+-                        entityplayer1.connection.send(packet);
++                        this.sendPlayerInfoPacket(entityplayer1, player, packet, modifiedPacket); // DivineMC - Do not send spectator change packet
+                         // Paper start - Add Listing API for Player
+                     } else {
+                         entityplayer1.connection.send(ClientboundPlayerInfoUpdatePacket.createSinglePlayerInitializing(player, false));
+@@ -383,7 +385,10 @@ public abstract class PlayerList {
+             }
+             // Paper start - Use single player info update packet on join
+             if (!onlinePlayers.isEmpty()) {
+-                player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(onlinePlayers, player)); // Paper - Add Listing API for Player
++                // DivineMC start - Do not send spectator change packet
++                ClientboundPlayerInfoUpdatePacket updatePacket = this.createFilteredPlayerListPacket(onlinePlayers, player);
++                player.connection.send(updatePacket); // Paper - Add Listing API for Player
++                // DivineMC end - Do not send spectator change packet
+             }
+             // Paper end - Use single player info update packet on join
+             player.sentListPacket = true;
+@@ -1473,4 +1478,69 @@ public abstract class PlayerList {
+     public boolean isAllowCommandsForAllPlayers() {
+         return this.allowCommandsForAllPlayers;
+     }
++
++    // DivineMC start - Do not send spectator change packet
++    @Nullable
++    private ClientboundPlayerInfoUpdatePacket createSpectatorFilteredPacket(ClientboundPlayerInfoUpdatePacket originalPacket) {
++        if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.sendSpectatorChangePacket) {
++            return null;
++        }
++
++        ClientboundPlayerInfoUpdatePacket.Entry entry = originalPacket.entries().getFirst();
++        if (entry.gameMode() != net.minecraft.world.level.GameType.SPECTATOR) {
++            return null;
++        }
++
++        ClientboundPlayerInfoUpdatePacket.Entry filteredEntry = new ClientboundPlayerInfoUpdatePacket.Entry(
++            entry.profileId(),
++            entry.profile(),
++            entry.listed(),
++            entry.latency(),
++            net.minecraft.world.level.GameType.SURVIVAL,
++            entry.displayName(),
++            entry.showHat(),
++            entry.listOrder(),
++            entry.chatSession());
++
++        return new ClientboundPlayerInfoUpdatePacket(originalPacket.actions(), List.of(filteredEntry));
++    }
++
++    private void sendPlayerInfoPacket(ServerPlayer receiver, ServerPlayer joiningPlayer,
++                                    ClientboundPlayerInfoUpdatePacket originalPacket,
++                                    @Nullable ClientboundPlayerInfoUpdatePacket filteredPacket) {
++        if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.sendSpectatorChangePacket ||
++            receiver == joiningPlayer ||
++            filteredPacket == null) {
++            receiver.connection.send(originalPacket);
++        } else {
++            receiver.connection.send(filteredPacket);
++        }
++    }
++
++    private ClientboundPlayerInfoUpdatePacket createFilteredPlayerListPacket(List<ServerPlayer> onlinePlayers, ServerPlayer joiningPlayer) {
++        ClientboundPlayerInfoUpdatePacket updatePacket = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(onlinePlayers, joiningPlayer);
++
++        if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.sendSpectatorChangePacket) {
++            return updatePacket;
++        }
++
++        List<ClientboundPlayerInfoUpdatePacket.Entry> newEntries = new java.util.ArrayList<>();
++        for (ClientboundPlayerInfoUpdatePacket.Entry entry : updatePacket.entries()) {
++            ClientboundPlayerInfoUpdatePacket.Entry newEntry = new ClientboundPlayerInfoUpdatePacket.Entry(
++                entry.profileId(),
++                entry.profile(),
++                entry.listed(),
++                entry.latency(),
++                entry.gameMode() == net.minecraft.world.level.GameType.SPECTATOR ?
++                    net.minecraft.world.level.GameType.SURVIVAL : entry.gameMode(),
++                entry.displayName(),
++                entry.showHat(),
++                entry.listOrder(),
++                entry.chatSession());
++            newEntries.add(newEntry);
++        }
++
++        return new ClientboundPlayerInfoUpdatePacket(updatePacket.actions(), newEntries);
++    }
++    // DivineMC end - Do not send spectator change packet
+ }

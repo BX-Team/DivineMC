@@ -5,27 +5,28 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index debea77d5777b90c6b17b225e27e6b3c72370175..f5761420749110ca8811533c3fb5d80c8b025c67 100644
+index 536a3da1d87e1d4087977196c5766f6550a95e47..bbe93d1861541991215d32186eec82fa8602fea2 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -193,6 +193,15 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -162,6 +162,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             this.setLocalIp(properties.serverIp);
+         }
+ 
++        org.bxteam.divinemc.config.DivineConfig.init((java.io.File) options.valueOf("divinemc-settings")); // DivineMC - Configuration
++
+         // Spigot start
+         this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
+         org.spigotmc.SpigotConfig.init((java.io.File) this.options.valueOf("spigot-settings"));
+@@ -193,6 +195,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          }
          org.purpurmc.purpur.PurpurConfig.registerCommands();
          // Purpur end - Purpur config files
-+        // DivineMC start - Configuration
-+        try {
-+            org.bxteam.divinemc.config.DivineConfig.init((java.io.File) options.valueOf("divinemc-settings"));
-+        } catch (Exception e) {
-+            DedicatedServer.LOGGER.error("Unable to load DivineMC configuration", e);
-+            return false;
-+        }
-+        org.bxteam.divinemc.command.DivineCommands.registerCommands(this);
-+        // DivineMC end - Configuration
++        org.bxteam.divinemc.command.DivineCommands.registerCommands(this); // DivineMC - Configuration
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
  
-         // DivineMC start - Pufferfish SIMD
+         // DivineMC start - Pufferfish: SIMD Support
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 801c4e8e01590beeb3633275f58d436d87ad746e..5ffaae02967dbc079619d35c2b8e3f7763b75d38 100644
+index 848f936a26429d844ad439ca336dbcb8d81f09e8..2c60b1c8ecb54c4c9526a2b2f6e6698b77359065 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -161,6 +161,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl

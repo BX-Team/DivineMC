@@ -1,0 +1,169 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Thu, 10 Jul 2025 04:51:08 +0300
+Subject: [PATCH] Raytrace Entity Tracker
+
+Original project: https://github.com/tr7zw/EntityCulling
+Original license: Custom License
+
+Original project: https://github.com/LogisticsCraft/OcclusionCulling
+Original license: MIT
+
+diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
+index 7ca147cf9da67c399806056e5092841f7ca32321..a6bf257ca93e4b3819b65b4ef4ba71d9e2b40933 100644
+--- a/net/minecraft/server/level/ChunkMap.java
++++ b/net/minecraft/server/level/ChunkMap.java
+@@ -1421,7 +1421,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 double d1 = vec3_dx * vec3_dx + vec3_dz * vec3_dz; // Paper
+                 double d2 = d * d;
+                 // Paper start - Configurable entity tracking range by Y
+-                boolean flag = d1 <= d2;
++                boolean flag = d1 <= d2 && !entity.isCulled(); // DivineMC - Raytrace Entity Tracker
+                 if (flag && level.paperConfig().entities.trackingRangeY.enabled) {
+                     double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
+                     if (rangeY != -1) {
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index adea48cfde04df3107341075f414133ae37d986e..c1c8e235b9c096cd36c3e83b0831af7cb722cad2 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -145,7 +145,7 @@ import net.minecraft.world.waypoints.WaypointTransmitter;
+ import org.jetbrains.annotations.Contract;
+ import org.slf4j.Logger;
+ 
+-public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess, ScoreHolder, DataComponentGetter, ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity, ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity { // Paper - rewrite chunk system // Paper - optimise entity tracker
++public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess, ScoreHolder, DataComponentGetter, ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity, ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity, dev.tr7zw.entityculling.versionless.access.Cullable { // Paper - rewrite chunk system // Paper - optimise entity tracker // DivineMC - Raytrace Entity Tracker
+     public static javax.script.ScriptEngine scriptEngine = new javax.script.ScriptEngineManager().getEngineByName("rhino"); // Purpur - Configurable entity base attributes
+     // CraftBukkit start
+     private static final int CURRENT_LEVEL = 2;
+@@ -5474,4 +5474,47 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         return false;
+     }
+     // Purpur end - Ridables
++
++    // DivineMC start - Raytrace Entity Tracker
++    private long lasttime = 0;
++    private boolean culled = false;
++    private boolean outOfCamera = false;
++
++    @Override
++    public void setTimeout() {
++        this.lasttime = System.currentTimeMillis() + 1000;
++    }
++
++    @Override
++    public boolean isForcedVisible() {
++        return this.lasttime > System.currentTimeMillis();
++    }
++
++    @Override
++    public void setCulled(boolean value) {
++        this.culled = value;
++        if (!value) {
++            setTimeout();
++        }
++    }
++
++    @Override
++    public boolean isCulled() {
++        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.retEnabled) return false;
++
++        return this.culled;
++    }
++
++    @Override
++    public void setOutOfCamera(boolean value) {
++        this.outOfCamera = value;
++    }
++
++    @Override
++    public boolean isOutOfCamera() {
++        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.retEnabled) return false;
++
++        return this.outOfCamera;
++    }
++    // DivineMC end - Raytrace Entity Tracker
+ }
+diff --git a/net/minecraft/world/entity/EntityType.java b/net/minecraft/world/entity/EntityType.java
+index 0159627e2c9a540d062073faf9018f5215e10866..26f6941dfbe0453ed5b091e408d8422901f4ca32 100644
+--- a/net/minecraft/world/entity/EntityType.java
++++ b/net/minecraft/world/entity/EntityType.java
+@@ -1093,6 +1093,7 @@ public class EntityType<T extends Entity> implements FeatureElement, EntityTypeT
+     public EntityDimensions dimensions;
+     private final float spawnDimensionsScale;
+     private final FeatureFlagSet requiredFeatures;
++    public boolean skipRaytracingCheck = false; // DivineMC - Raytrace Entity Tracker
+ 
+     private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> key, EntityType.Builder<T> builder) {
+         return Registry.register(BuiltInRegistries.ENTITY_TYPE, key, builder.build(key));
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index 05634e09200fa613b69aafe9b2505dbc9b5c54eb..80ce59b79896ff415cf3a93eb6ea3272f42c3d02 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -122,7 +122,6 @@ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.Scoreboard;
+-import net.minecraft.world.scores.Team;
+ import org.slf4j.Logger;
+ 
+ public abstract class Player extends LivingEntity {
+@@ -222,6 +221,25 @@ public abstract class Player extends LivingEntity {
+     public int burpDelay = 0; // Purpur - Burp delay
+     public boolean canPortalInstant = false; // Purpur - Add portal permission bypass
+     public int sixRowEnderchestSlotCount = -1; // Purpur - Barrels and enderchests 6 rows
++    // DivineMC start - Raytrace Entity Tracker
++    public dev.tr7zw.entityculling.CullTask cullTask;
++    {
++        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.retEnabled) {
++            this.cullTask = null;
++        } else {
++            final com.logisticscraft.occlusionculling.OcclusionCullingInstance culling = new com.logisticscraft.occlusionculling.OcclusionCullingInstance(
++                org.bxteam.divinemc.config.DivineConfig.MiscCategory.retTracingDistance,
++                new dev.tr7zw.entityculling.DefaultChunkDataProvider(this.level())
++            );
++
++            this.cullTask = new dev.tr7zw.entityculling.CullTask(
++                culling, this,
++                org.bxteam.divinemc.config.DivineConfig.MiscCategory.retHitboxLimit,
++                org.bxteam.divinemc.config.DivineConfig.MiscCategory.retCheckIntervalMs
++            );
++        }
++    }
++    // DivineMC end - Raytrace Entity Tracker
+ 
+     // CraftBukkit start
+     public boolean fauxSleeping;
+@@ -310,6 +328,25 @@ public abstract class Player extends LivingEntity {
+ 
+     @Override
+     public void tick() {
++        // DivineMC start - Raytrace Entity Tracker
++        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.retEnabled) {
++            if (this.cullTask != null) this.cullTask.signalStop();
++            this.cullTask = null;
++        } else {
++            final com.logisticscraft.occlusionculling.OcclusionCullingInstance culling = new com.logisticscraft.occlusionculling.OcclusionCullingInstance(
++                org.bxteam.divinemc.config.DivineConfig.MiscCategory.retTracingDistance,
++                new dev.tr7zw.entityculling.DefaultChunkDataProvider(this.level())
++            );
++
++            this.cullTask = new dev.tr7zw.entityculling.CullTask(
++                culling, this,
++                org.bxteam.divinemc.config.DivineConfig.MiscCategory.retHitboxLimit,
++                org.bxteam.divinemc.config.DivineConfig.MiscCategory.retCheckIntervalMs
++            );
++        }
++        if (this.cullTask != null) this.cullTask.setup();
++        if (this.cullTask != null) this.cullTask.requestCullSignal();
++        // DivineMC end - Raytrace Entity Tracker
+         // Purpur start - Burp delay
+         if (this.burpDelay > 0 && --this.burpDelay == 0) {
+             this.level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 1.0F, this.level().random.nextFloat() * 0.1F + 0.9F);
+@@ -1466,6 +1503,7 @@ public abstract class Player extends LivingEntity {
+         if (this.containerMenu != null && this.hasContainerOpen()) {
+             this.doCloseContainer();
+         }
++        if (this.cullTask != null) this.cullTask.signalStop(); // DivineMC - Raytrace Entity Tracker
+     }
+ 
+     @Override

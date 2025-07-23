@@ -1,0 +1,213 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 9 Jul 2025 02:08:35 +0300
+Subject: [PATCH] Optimize VarInt and VarLong write
+
+This patch is based on the following commit:
+"Reapply "Optimize varint writing""
+By: Andrew Steinborn <git@steinborn.me>
+As part of: Velocity (https://github.com/PaperMC/Velocity)
+Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
+
+diff --git a/net/minecraft/network/VarInt.java b/net/minecraft/network/VarInt.java
+index 4897ff4648083ebe737ae5b32bae344af27357e4..e138b64c4b09d83e5f38d7421fc23e9cc5e5d5a7 100644
+--- a/net/minecraft/network/VarInt.java
++++ b/net/minecraft/network/VarInt.java
+@@ -50,28 +50,45 @@ public class VarInt {
+         return i;
+     }
+ 
+-    public static ByteBuf write(ByteBuf buffer, int value) {
+-     // Paper start - Optimize VarInts
+-        // Peel the one and two byte count cases explicitly as they are the most common VarInt sizes
+-        // that the proxy will write, to improve inlining.
+-        if ((value & (0xFFFFFFFF << 7)) == 0) {
+-            buffer.writeByte(value);
+-        } else if ((value & (0xFFFFFFFF << 14)) == 0) {
+-            int w = (value & 0x7F | 0x80) << 8 | (value >>> 7);
+-            buffer.writeShort(w);
+-        } else {
+-            writeOld(buffer, value);
+-        }
+-        return buffer;
+-    }
+-    public static ByteBuf writeOld(ByteBuf buffer, int value) {
+-    // Paper end - Optimize VarInts
+-        while ((value & -128) != 0) {
+-            buffer.writeByte(value & 127 | 128);
+-            value >>>= 7;
++     // DivineMC start - Optimize VarInt
++     public static ByteBuf write(ByteBuf buffer, int value) {
++        int bytesNeeded = getByteSize(value);
++
++        switch (bytesNeeded) {
++            case 1:
++                buffer.writeByte(value);
++                break;
++            case 2:
++                int w2 = ((value & 0x7F) << 8) | (value >>> 7) | 0x00008000;
++                buffer.writeShort(w2);
++                break;
++            case 3:
++                int w3 = (value & 0x7F) << 16
++                    | (value & 0x3F80) << 1
++                    | (value >>> 14)
++                    | 0x00808000;
++                buffer.writeMedium(w3);
++                break;
++            case 4:
++                int w4 = (value & 0x7F) << 24
++                    | ((value & 0x3F80) << 9)
++                    | (value & 0x1FC000) >> 6
++                    | (value >>> 21)
++                    | 0x80808000;
++                buffer.writeInt(w4);
++                break;
++            case 5:
++                int w5 = (value & 0x7F) << 24
++                    | (value & 0x3F80) << 9
++                    | (value & 0x1FC000) >> 6
++                    | ((value >>> 21) & 0x7F)
++                    | 0x80808080;
++                buffer.writeInt(w5);
++                buffer.writeByte(value >>> 28);
++                break;
+         }
+ 
+-        buffer.writeByte(value);
+         return buffer;
+     }
++    // DivineMC end - Optimize VarInt
+ }
+diff --git a/net/minecraft/network/VarLong.java b/net/minecraft/network/VarLong.java
+index df9a85b19a9767c85f02837af6835f7ddb6c7dc3..77f090bc1b9225dd5a61d8c57c902fcdea8ed7cd 100644
+--- a/net/minecraft/network/VarLong.java
++++ b/net/minecraft/network/VarLong.java
+@@ -38,13 +38,122 @@ public class VarLong {
+         return l;
+     }
+ 
++    // DivineMC start - Optimize VarLong
+     public static ByteBuf write(ByteBuf buffer, long value) {
+-        while ((value & -128L) != 0L) {
+-            buffer.writeByte((int)(value & 127L) | 128);
+-            value >>>= 7;
++        if ((value & 0xFFFFFFFFFFFFFF80L) == 0) {
++            buffer.writeByte((int) value);
++        } else if (value < 0) {
++            int least7bits = (int) (value & 0xFFFFFFFL);
++            int w = (least7bits & 0x7F) << 24
++                | (least7bits & 0x3F80) << 9
++                | (least7bits & 0x1FC000) >> 6
++                | ((least7bits >>> 21) & 0x7F)
++                | 0x80808080;
++            long nonLeast7Bits = value >>> 28;
++            int secondLeast7bits = (int) (nonLeast7Bits & 0xFFFFFFFL);
++            int w2 = (secondLeast7bits & 0x7F) << 24
++                | ((secondLeast7bits & 0x3F80) << 9)
++                | (secondLeast7bits & 0x1FC000) >> 6
++                | (secondLeast7bits >>> 21)
++                | 0x80808080;
++            int thirdLeast7Bits = (int) (nonLeast7Bits >>> 28);
++            int w3 = (thirdLeast7Bits & 0x7F) << 8
++                | (thirdLeast7Bits >>> 7)
++                | 0x00008000;
++            buffer.writeInt(w);
++            buffer.writeInt(w2);
++            buffer.writeShort(w3);
++        } else if ((value & 0xFFFFFFFFFFFFC000L) == 0) {
++            int least7bits = (int) value;
++            int w = (least7bits & 0x7F) << 8
++                | (least7bits >>> 7)
++                | 0x00008000;
++            buffer.writeShort(w);
++        } else if ((value & 0xFFFFFFFFFFE00000L) == 0) {
++            int least7bits = (int) value;
++            int w = (least7bits & 0x7F) << 16
++                | (least7bits & 0x3F80) << 1
++                | (least7bits >>> 14)
++                | 0x00808000;
++            buffer.writeMedium(w);
++        } else if ((value & 0xFFFFFFFFF0000000L) == 0) {
++            int least7bits = (int) value;
++            int w = (least7bits & 0x7F) << 24
++                | ((least7bits & 0x3F80) << 9)
++                | (least7bits & 0x1FC000) >> 6
++                | (least7bits >>> 21)
++                | 0x80808000;
++            buffer.writeInt(w);
++        } else if ((value & 0xFFFFFFF800000000L) == 0) {
++            int least7bits = (int) (value & 0xFFFFFFFL);
++            int w = (least7bits & 0x7F) << 24
++                | (least7bits & 0x3F80) << 9
++                | (least7bits & 0x1FC000) >> 6
++                | ((least7bits >>> 21) & 0x7F)
++                | 0x80808080;
++            buffer.writeInt(w);
++            buffer.writeByte((int) (value >>> 28));
++        } else if ((value & 0xFFFFFC0000000000L) == 0) {
++            int least7bits = (int) (value & 0xFFFFFFFL);
++            int w = (least7bits & 0x7F) << 24
++                | (least7bits & 0x3F80) << 9
++                | (least7bits & 0x1FC000) >> 6
++                | ((least7bits >>> 21) & 0x7F)
++                | 0x80808080;
++            int secondLeast7bits = (int) (value >>> 28);
++            int w2 = (secondLeast7bits & 0x7F) << 8
++                | (secondLeast7bits >>> 7)
++                | 0x00008000;
++            buffer.writeInt(w);
++            buffer.writeShort(w2);
++        } else if ((value & 0xFFFE000000000000L) == 0) {
++            int least7bits = (int) (value & 0xFFFFFFFL);
++            int w = (least7bits & 0x7F) << 24
++                | (least7bits & 0x3F80) << 9
++                | (least7bits & 0x1FC000) >> 6
++                | ((least7bits >>> 21) & 0x7F)
++                | 0x80808080;
++            int secondLeast7bits = (int) (value >>> 28);
++            int w2 = (secondLeast7bits & 0x7F) << 16
++                | (secondLeast7bits & 0x3F80) << 1
++                | (secondLeast7bits >>> 14)
++                | 0x00808000;
++            buffer.writeInt(w);
++            buffer.writeMedium(w2);
++        } else if ((value & 0xFF00000000000000L) == 0) {
++            int least7bits = (int) (value & 0xFFFFFFFL);
++            int w = (least7bits & 0x7F) << 24
++                | (least7bits & 0x3F80) << 9
++                | (least7bits & 0x1FC000) >> 6
++                | ((least7bits >>> 21) & 0x7F)
++                | 0x80808080;
++            int secondLeast7bits = (int) (value >>> 28);
++            int w2 = (secondLeast7bits & 0x7F) << 24
++                | ((secondLeast7bits & 0x3F80) << 9)
++                | (secondLeast7bits & 0x1FC000) >> 6
++                | (secondLeast7bits >>> 21)
++                | 0x80808000;
++            buffer.writeInt(w);
++            buffer.writeInt(w2);
++        } else {
++            int least7bits = (int) (value & 0xFFFFFFFL);
++            int w = (least7bits & 0x7F) << 24
++                | (least7bits & 0x3F80) << 9
++                | (least7bits & 0x1FC000) >> 6
++                | ((least7bits >>> 21) & 0x7F)
++                | 0x80808080;
++            long nonLeast7Bits = value >>> 28;
++            int secondLeast7bits = (int) (nonLeast7Bits & 0xFFFFFFFL);
++            int w2 = (secondLeast7bits & 0x7F) << 24
++                | ((secondLeast7bits & 0x3F80) << 9)
++                | (secondLeast7bits & 0x1FC000) >> 6
++                | (secondLeast7bits >>> 21)
++                | 0x80808080;
++            buffer.writeInt(w);
++            buffer.writeInt(w2);
++            buffer.writeByte((int) (nonLeast7Bits >>> 28));
+         }
+-
+-        buffer.writeByte((int)value);
+         return buffer;
+     }
++    // DivineMC end - Optimize VarLong
+ }

@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 9 Jul 2025 04:37:59 +0300
+Subject: [PATCH] C2ME: Limit NBT cache
+
+This patch is based on the following mixins:
+* "com/ishland/c2me/opts/chunkio/mixin/limit_nbt_cache/MixinStorageIoWorker.java"
+By: ishland <ishlandmc@yeah.net>
+As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
+Licensed under: MIT (https://opensource.org/licenses/MIT)
+
+diff --git a/net/minecraft/world/level/chunk/storage/IOWorker.java b/net/minecraft/world/level/chunk/storage/IOWorker.java
+index 27e1edbd8d8ffd80c1a3df17bc47f4a6936619f7..c3326e753ecf8a0ba1930d8c7573ebd2c594cf45 100644
+--- a/net/minecraft/world/level/chunk/storage/IOWorker.java
++++ b/net/minecraft/world/level/chunk/storage/IOWorker.java
+@@ -212,7 +212,38 @@ public class IOWorker implements ChunkScanAccess, AutoCloseable {
+         });
+     }
+ 
++    // DivineMC start - C2ME: Limit NBT cache
++    private void checkHardLimit() {
++        if (this.pendingWrites.size() >= org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheLimit) {
++            LOGGER.warn("Chunk data cache size exceeded hard limit ({} >= {}), forcing writes to disk (you can increase chunkDataCacheLimit in divinemc.yml)", this.pendingWrites.size(), org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheLimit);
++            while (this.pendingWrites.size() >= org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheSoftLimit * 0.75) {
++                writeResult0();
++            }
++        }
++    }
++
++    private void writeResult0() {
++        java.util.Iterator<java.util.Map.Entry<net.minecraft.world.level.ChunkPos, net.minecraft.world.level.chunk.storage.IOWorker.PendingStore>> iterator = this.pendingWrites.entrySet().iterator();
++        if (iterator.hasNext()) {
++            java.util.Map.Entry<ChunkPos, IOWorker.PendingStore> entry = iterator.next();
++            iterator.remove();
++            this.runStore(entry.getKey(), entry.getValue());
++        }
++    }
++    // DivineMC end - C2ME: Limit NBT cache
++
+     private void storePendingChunk() {
++        // DivineMC start - C2ME: Limit NBT cache
++        if (!this.pendingWrites.isEmpty()) {
++            checkHardLimit();
++            if (this.pendingWrites.size() >= org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheSoftLimit) {
++                int writeFrequency = Math.min(1, (this.pendingWrites.size() - (int) org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.chunkDataCacheSoftLimit) / 16);
++                for (int i = 0; i < writeFrequency; i++) {
++                    writeResult0();
++                }
++            }
++        }
++        // DivineMC end - C2ME: Limit NBT cache
+         Entry<ChunkPos, IOWorker.PendingStore> entry = this.pendingWrites.pollFirstEntry();
+         if (entry != null) {
+             this.runStore(entry.getKey(), entry.getValue());

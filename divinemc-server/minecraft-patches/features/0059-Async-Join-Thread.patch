@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 11 Jun 2025 20:15:37 +0300
+Subject: [PATCH] Async Join Thread
+
+
+diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+index 443aebb71b2a55ee9dcd2dd4bf9a30fbb8da9e49..6cec77e483d51771c602bbdb537c62c893043c08 100644
+--- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+@@ -53,7 +53,6 @@ import org.bukkit.event.player.PlayerPreLoginEvent;
+ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener, TickablePacketListener {
+     private static final AtomicInteger UNIQUE_THREAD_ID = new AtomicInteger(0);
+     static final Logger LOGGER = LogUtils.getLogger();
+-    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("User Authenticator #%d").setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build()); // Paper - Cache authenticator threads
+     private static final int MAX_TICKS_BEFORE_LOGIN = 600;
+     private final byte[] challenge;
+     final MinecraftServer server;
+@@ -182,22 +181,25 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+                     return;
+                 }
+                 // Paper end - Add Velocity IP Forwarding Support
+-                // CraftBukkit start
+-                // Paper start - Cache authenticator threads
+-                authenticatorPool.execute(() -> {
++                // DivineMC start - Async Join Thread
++                org.bxteam.divinemc.async.AsyncJoinHandler.runAsync(() -> {
+                     try {
+                         GameProfile gameprofile = ServerLoginPacketListenerImpl.this.createOfflineProfile(ServerLoginPacketListenerImpl.this.requestedUsername); // Spigot
+ 
+                         gameprofile = ServerLoginPacketListenerImpl.this.callPlayerPreLoginEvents(gameprofile); // Paper - Add more fields to AsyncPlayerPreLoginEvent
+                         ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
+-                        ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
++                        return gameprofile;
+                     } catch (Exception ex) {
+                         ServerLoginPacketListenerImpl.this.disconnect("Failed to verify username!");
+                         ServerLoginPacketListenerImpl.this.server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + ServerLoginPacketListenerImpl.this.requestedUsername, ex);
++                        return null;
++                    }
++                }, (gameprofile) -> {
++                    if (gameprofile != null) {
++                        ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
+                     }
+                 });
+-                // Paper end - Cache authenticator threads
+-                // CraftBukkit end
++                // DivineMC end - Async Join Thread
+             }
+         }
+     }
+@@ -255,7 +257,8 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+         }
+ 
+         // Paper start - Cache authenticator threads
+-        authenticatorPool.execute(new Runnable() {
++        // DivineMC start - Async Join Thread
++        org.bxteam.divinemc.async.AsyncJoinHandler.runAsync(new Runnable() {
+             @Override
+             public void run() {
+                 String string1 = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
+@@ -406,16 +409,23 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+             //TODO Update handling for lazy sessions, might not even have to do anything?
+ 
+             // Proceed with login
+-            authenticatorPool.execute(() -> {
++            // DivineMC start - Async Join Thread
++            org.bxteam.divinemc.async.AsyncJoinHandler.runAsync(() -> {
+                 try {
+                     final GameProfile gameprofile = this.callPlayerPreLoginEvents(this.authenticatedProfile);
+                     ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
+-                    ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
++                    return gameprofile;
+                 } catch (Exception ex) {
+                     disconnect("Failed to verify username!");
+                     server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + this.authenticatedProfile.getName(), ex);
++                    return null;
++                }
++            }, (gameprofile) -> {
++                if (gameprofile != null) {
++                    ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
+                 }
+             });
++            // DivineMC end - Async Join Thread
+             return;
+         }
+         // Paper end - Add Velocity IP Forwarding Support

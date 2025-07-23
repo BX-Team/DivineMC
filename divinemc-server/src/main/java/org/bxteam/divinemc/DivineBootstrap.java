@@ -1,45 +1,76 @@
 package org.bxteam.divinemc;
 
 import io.papermc.paper.ServerBuildInfo;
+import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import net.minecraft.SharedConstants;
-import net.minecraft.server.Eula;
-import net.minecraft.server.Main;
+import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.Main;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 public class DivineBootstrap {
     private static final Logger LOGGER = LoggerFactory.getLogger("DivineBootstrap");
 
-    public static void boot(final OptionSet options) {
-        SharedConstants.tryDetectVersion();
+    public static OptionSet bootstrap(String[] args) {
+        OptionParser parser = Main.main(args);
+        OptionSet options = parser.parse(args);
 
-        io.papermc.paper.ServerBuildInfo info = io.papermc.paper.ServerBuildInfo.buildInfo();
-        if (io.papermc.paper.ServerBuildInfoImpl.IS_EXPERIMENTAL) {
-            LOGGER.warn("Running an experimental version of {}, please proceed with caution.", info.brandName());
+        if ((options == null) || (options.has("?"))) {
+            try {
+                parser.printHelpOn(System.out);
+            } catch (IOException ex) {
+                LOGGER.warn(ex.getMessage());
+            }
+        } else if (options.has("v")) {
+            System.out.println(CraftServer.class.getPackage().getImplementationVersion());
+        } else {
+            String path = new File(".").getAbsolutePath();
+            if (path.contains("!") || path.contains("+")) {
+                System.err.println("Cannot run server in a directory with ! or + in the pathname. Please rename the affected folders and try again.");
+                System.exit(70);
+            }
+
+            boolean skip = Boolean.getBoolean("Paper.IgnoreJavaVersion");
+            String javaVersionName = System.getProperty("java.version");
+            boolean isPreRelease = javaVersionName.contains("-");
+            if (isPreRelease) {
+                if (!skip) {
+                    System.err.println("Unsupported Java detected (" + javaVersionName + "). You are running an unsupported, non official, version. Only general availability versions of Java are supported. Please update your Java version. See https://docs.papermc.io/paper/faq#unsupported-java-detected-what-do-i-do for more information.");
+                    System.exit(70);
+                }
+
+                System.err.println("Unsupported Java detected ("+ javaVersionName + "), but the check was skipped. Proceed with caution! ");
+            }
+
+            try {
+                if (options.has("nojline")) {
+                    System.setProperty(net.minecrell.terminalconsole.TerminalConsoleAppender.JLINE_OVERRIDE_PROPERTY, "false");
+                    Main.useJline = false;
+                }
+
+                if (options.has("noconsole")) {
+                    Main.useConsole = false;
+                    Main.useJline = false;
+                    System.setProperty(net.minecrell.terminalconsole.TerminalConsoleAppender.JLINE_OVERRIDE_PROPERTY, "false"); // Paper
+                }
+
+                System.setProperty("library.jansi.version", "Paper");
+                System.setProperty("jdk.console", "java.base");
+
+                SharedConstants.tryDetectVersion();
+                getStartupVersionMessages().forEach(LOGGER::info);
+            } catch (Throwable t) {
+                LOGGER.error("Failed to initialize the server", t);
+            }
         }
 
-        Path path2 = Paths.get("eula.txt");
-        Eula eula = new Eula(path2);
-        boolean eulaAgreed = Boolean.getBoolean("com.mojang.eula.agree");
-        if (eulaAgreed) {
-            LOGGER.error("You have used the Spigot command line EULA agreement flag.");
-            LOGGER.error("By using this setting you are indicating your agreement to Mojang's EULA (https://aka.ms/MinecraftEULA).");
-            LOGGER.error("If you do not agree to the above EULA please stop your server and remove this flag immediately.");
-        }
-        if (!eula.hasAgreedToEULA() && !eulaAgreed) {
-            LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
-            return;
-        }
-        System.out.println("Loading libraries, please wait..."); // Restore CraftBukkit log
-        getStartupVersionMessages().forEach(LOGGER::info);
-
-        Main.main(options);
+        return options;
     }
 
     private static List<String> getStartupVersionMessages() {

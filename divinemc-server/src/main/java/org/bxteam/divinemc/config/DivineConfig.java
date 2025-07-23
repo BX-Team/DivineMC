@@ -7,26 +7,28 @@ import net.minecraft.world.entity.EntityType;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.MemoryConfiguration;
-import org.bxteam.divinemc.entity.pathfinding.PathfindTaskRejectPolicy;
-import org.bxteam.divinemc.region.LinearImplementation;
+import org.bxteam.divinemc.config.annotations.Experimental;
+import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
+import org.bxteam.divinemc.region.EnumRegionFileExtension;
+import org.bxteam.divinemc.region.type.LinearRegionFile;
+import org.bxteam.divinemc.async.AsyncJoinHandler;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
-import org.bxteam.divinemc.region.RegionFileFormat;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
-@SuppressWarnings({"unused", "SameParameterValue"})
+@SuppressWarnings({"SameParameterValue", "ConstantValue", "DataFlowIssue"})
 public class DivineConfig {
     private static final String HEADER = """
         This is the main configuration file for DivineMC.
@@ -38,41 +40,35 @@ public class DivineConfig {
         Downloads: https://github.com/BX-Team/DivineMC/releases""";
 
     public static final Logger LOGGER = LogManager.getLogger(DivineConfig.class.getSimpleName());
-    public static final int CONFIG_VERSION = 6;
+    public static final int CONFIG_VERSION = 7;
 
     private static File configFile;
     public static final YamlFile config = new YamlFile();
 
-	private static ConfigurationSection convertToBukkit(org.simpleyaml.configuration.ConfigurationSection section) {
-		ConfigurationSection newSection = new MemoryConfiguration();
-		for (String key : section.getKeys(false)) {
-			if (section.isConfigurationSection(key)) {
-				newSection.set(key, convertToBukkit(section.getConfigurationSection(key)));
-			} else {
-				newSection.set(key, section.get(key));
-			}
-		}
-		return newSection;
-	}
+	public static void init(File configFile) {
+        try {
+            long begin = System.nanoTime();
+            LOGGER.info("Loading config...");
 
-	public static ConfigurationSection getConfigCopy() {
-		return convertToBukkit(config);
-	}
+            DivineConfig.configFile = configFile;
+            if (configFile.exists()) {
+                try {
+                    config.load(configFile);
+                } catch (InvalidConfigurationException e) {
+                    throw new IOException(e);
+                }
+            }
 
-	public static void init(File configFile) throws IOException {
-        DivineConfig.configFile = configFile;
-		if (configFile.exists()) {
-			try {
-				config.load(configFile);
-			} catch (InvalidConfigurationException e) {
-				throw new IOException(e);
-			}
-		}
+            getInt("version", CONFIG_VERSION);
+            config.options().header(HEADER);
 
-		getInt("version", CONFIG_VERSION);
-        config.options().header(HEADER);
+            readConfig(DivineConfig.class, null);
+            checkExperimentalFeatures();
 
-        readConfig(DivineConfig.class, null);
+            LOGGER.info("Config loaded in {}ms", (System.nanoTime() - begin) / 1_000_000);
+        } catch (Exception e) {
+            LOGGER.error("Failed to load config", e);
+        }
 	}
 
     static void readConfig(Class<?> clazz, Object instance) throws IOException {
@@ -190,6 +186,7 @@ public class DivineConfig {
 
     public static class AsyncCategory {
         // Parallel world ticking settings
+        @Experimental("Parallel World Ticking")
         public static boolean enableParallelWorldTicking = false;
         public static int parallelThreadCount = 4;
         public static boolean logContainerCreationStacktraces = false;
@@ -198,8 +195,10 @@ public class DivineConfig {
         public static boolean usePerWorldTpsBar = true;
 
         // Regionized chunk ticking
+        @Experimental("Regionized Chunk Ticking")
         public static boolean enableRegionizedChunkTicking = false;
         public static int regionizedChunkTickingExecutorThreadCount = 4;
+        public static boolean regionizedChunkTickingUseVirtualThreads = false;
         public static int regionizedChunkTickingExecutorThreadPriority = Thread.NORM_PRIORITY + 2;
 
         // Async pathfinding settings
@@ -216,6 +215,11 @@ public class DivineConfig {
         public static int asyncEntityTrackerKeepalive = 60;
         public static int asyncEntityTrackerQueueSize = 0;
 
+        // Async Join Thread settings
+        public static boolean asyncJoinEnabled = false;
+        public static int asyncJoinThreadCount = 1;
+        public static boolean asyncJoinUseVirtualThreads = false;
+
         // Async chunk sending settings
         public static boolean asyncChunkSendingEnabled = true;
 
@@ -227,6 +231,7 @@ public class DivineConfig {
             regionizedChunkTicking();
             asyncPathfinding();
             multithreadedTracker();
+            asyncJoinSettings();
             asyncChunkSending();
             asyncMobSpawning();
         }
@@ -254,6 +259,8 @@ public class DivineConfig {
 
             regionizedChunkTickingExecutorThreadCount = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-count"), regionizedChunkTickingExecutorThreadCount,
                 "The amount of threads to allocate to regionized chunk ticking.");
+            regionizedChunkTickingUseVirtualThreads = getBoolean(ConfigCategory.ASYNC.key("regionized-chunk-ticking.use-virtual-threads"), regionizedChunkTickingUseVirtualThreads,
+                "If enabled, regionized chunk ticking will use virtual threads for the executor that was introduced in Java 21.");
             regionizedChunkTickingExecutorThreadPriority = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-priority"), regionizedChunkTickingExecutorThreadPriority,
                 "Configures the thread priority of the executor");
 
@@ -261,8 +268,6 @@ public class DivineConfig {
                 LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (5)", regionizedChunkTickingExecutorThreadCount);
                 regionizedChunkTickingExecutorThreadCount = 5;
             }
-
-            if (enableRegionizedChunkTicking) LOGGER.warn("You have enabled Regionized Chunk Ticking. This feature is an experimental, and may not work as expected. Please report any issues you encounter to the BX Team Discord server");
         }
 
         private static void asyncPathfinding() {
@@ -320,6 +325,18 @@ public class DivineConfig {
             if (asyncEntityTrackerQueueSize <= 0) asyncEntityTrackerQueueSize = asyncEntityTrackerMaxThreads * 384;
         }
 
+        private static void asyncJoinSettings() {
+            asyncJoinEnabled = getBoolean(ConfigCategory.ASYNC.key("join-thread.enabled"), asyncJoinEnabled,
+                "Enables async join thread, which offloads player setup and connection tasks to a separate thread",
+                "This can significantly improve MSPT when multiple players are joining simultaneously");
+            asyncJoinThreadCount = getInt(ConfigCategory.ASYNC.key("join-thread.thread-count"), asyncJoinThreadCount,
+                "Number of threads to use for async join operations");
+            asyncJoinUseVirtualThreads = getBoolean(ConfigCategory.ASYNC.key("join-thread.use-virtual-threads"), asyncJoinUseVirtualThreads,
+                "Whether to use virtual threads for async join operations (requires Java 21+)");
+
+            AsyncJoinHandler.init(asyncJoinEnabled, asyncJoinThreadCount);
+        }
+
         private static void asyncChunkSending() {
             asyncChunkSendingEnabled = getBoolean(ConfigCategory.ASYNC.key("chunk-sending.enable"), asyncChunkSendingEnabled,
                 "Makes chunk sending asynchronous, which can significantly reduce main thread load when many players are loading chunks.");
@@ -337,16 +354,13 @@ public class DivineConfig {
         public static long chunkDataCacheLimit = 32678L;
         public static int maxViewDistance = 32;
         public static int playerNearChunkDetectionRange = 128;
-        public static int threadPoolPriority = Thread.NORM_PRIORITY + 1;
+        public static boolean useEuclideanDistanceSquared = true;
+        public static boolean endBiomeCacheEnabled = false;
+        public static int endBiomeCacheCapacity = 1024;
         public static boolean smoothBedrockLayer = false;
         public static boolean enableDensityFunctionCompiler = false;
         public static boolean enableStructureLayoutOptimizer = true;
         public static boolean deduplicateShuffledTemplatePoolElementList = false;
-
-        // TNT optimization
-        public static boolean enableFasterTntOptimization = true;
-        public static boolean explosionNoBlockDamage = false;
-        public static double tntRandomRange = -1;
 
         // General optimizations
         public static boolean skipUselessSecondaryPoiSensor = true;
@@ -357,6 +371,7 @@ public class DivineConfig {
         public static boolean sheepOptimization = true;
         public static boolean optimizedDragonRespawn = false;
         public static boolean reduceChuckLoadAndLookup = true;
+        public static boolean createSnapshotOnRetrievingBlockState = true;
         public static boolean hopperThrottleWhenFull = false;
         public static int hopperThrottleSkipTicks = 0;
 
@@ -373,7 +388,6 @@ public class DivineConfig {
         public static boolean virtualThreadsEnabled = false;
         public static boolean virtualBukkitScheduler = false;
         public static boolean virtualChatScheduler = false;
-        public static boolean virtualAuthenticatorScheduler = false;
         public static boolean virtualTabCompleteScheduler = false;
         public static boolean virtualAsyncExecutor = false;
         public static boolean virtualCommandBuilderScheduler = false;
@@ -382,7 +396,6 @@ public class DivineConfig {
 
         public static void load() {
             chunkSettings();
-            tntOptimization();
             optimizationSettings();
             dab();
             virtualThreads();
@@ -400,14 +413,13 @@ public class DivineConfig {
                 "This value is used in the calculation 'range/16' to get the distance in chunks any player must be to allow the check to pass.",
                 "By default, this range is computed to 8, meaning a player must be within an 8 chunk radius of a chunk position to pass.",
                 "Keep in mind the result is rounded to the nearest whole number.");
+            useEuclideanDistanceSquared = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.use-euclidean-distance-squared"), useEuclideanDistanceSquared,
+                "If enabled, euclidean distance squared for chunk task ordering will be used.");
 
-            if (playerNearChunkDetectionRange < 0) {
-                LOGGER.warn("Invalid player near chunk detection range: {}, resetting to default (128)", playerNearChunkDetectionRange);
-                playerNearChunkDetectionRange = 128;
-            }
-
-            threadPoolPriority = getInt(ConfigCategory.PERFORMANCE.key("chunks.thread-pool-priority"), threadPoolPriority,
-                "Sets the priority of the thread pool used for chunk generation");
+            endBiomeCacheEnabled = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.end-biome-cache-enabled"), endBiomeCacheEnabled,
+                "Enables the end biome cache, which can accelerate The End worldgen.");
+            endBiomeCacheCapacity = getInt(ConfigCategory.PERFORMANCE.key("chunks.end-biome-cache-capacity"), endBiomeCacheCapacity,
+                "The cache capacity for the end biome cache. Only used if end-biome-cache-enabled is true.");
 
             smoothBedrockLayer = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer"), smoothBedrockLayer,
                 "Smoothens the bedrock layer at the bottom of overworld, and on the top of nether during the world generation.");
@@ -431,12 +443,11 @@ public class DivineConfig {
                 "This will not break the structure generation, but it will make the structure layout different than",
                 "if this config was off (breaking vanilla seed parity). The cost of speed may be worth it in large",
                 "modpacks where many structure mods are using very high weight values in their template pools.");
-        }
 
-        private static void tntOptimization() {
-            enableFasterTntOptimization = getBoolean(ConfigCategory.PERFORMANCE.key("tnt-optimization.enable-faster-tnt-optimization"), enableFasterTntOptimization);
-            explosionNoBlockDamage = getBoolean(ConfigCategory.PERFORMANCE.key("tnt-optimization.explosion-no-block-damage"), explosionNoBlockDamage);
-            tntRandomRange = getDouble(ConfigCategory.PERFORMANCE.key("tnt-optimization.tnt-random-range"), tntRandomRange);
+            if (playerNearChunkDetectionRange < 0) {
+                LOGGER.warn("Invalid player near chunk detection range: {}, resetting to default (128)", playerNearChunkDetectionRange);
+                playerNearChunkDetectionRange = 128;
+            }
         }
 
         private static void optimizationSettings() {
@@ -456,6 +467,9 @@ public class DivineConfig {
                 "When enabled, improving performance and reducing lag during the dragon’s resurrection event.");
             reduceChuckLoadAndLookup = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.reduce-chunk-load-and-lookup"), reduceChuckLoadAndLookup,
                 "If enabled, optimizes chunk loading and block state lookups by reducing the number of chunk accesses required during operations such as Enderman teleportation.");
+            createSnapshotOnRetrievingBlockState = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.create-snapshot-on-retrieving-block-state"), createSnapshotOnRetrievingBlockState,
+                "Whether to create a snapshot (copy) of BlockState data when plugins retrieve them.",
+                "If false, plugins get direct BlockState access for better performance but risk data corruption from poor plugin design.");
 
             hopperThrottleWhenFull = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.hopper-throttle-when-full.enabled"), hopperThrottleWhenFull,
                 "When enabled, hoppers will throttle if target container is full.");
@@ -507,8 +521,6 @@ public class DivineConfig {
                 "Uses virtual threads for the Bukkit scheduler.");
             virtualChatScheduler = getBoolean(ConfigCategory.PERFORMANCE.key("virtual-threads.chat-scheduler"), virtualChatScheduler,
                 "Uses virtual threads for the Chat scheduler.");
-            virtualAuthenticatorScheduler = getBoolean(ConfigCategory.PERFORMANCE.key("virtual-threads.authenticator-scheduler"), virtualAuthenticatorScheduler,
-                "Uses virtual threads for the Authenticator scheduler.");
             virtualTabCompleteScheduler = getBoolean(ConfigCategory.PERFORMANCE.key("virtual-threads.tab-complete-scheduler"), virtualTabCompleteScheduler,
                 "Uses virtual threads for the Tab Complete scheduler.");
             virtualAsyncExecutor = getBoolean(ConfigCategory.PERFORMANCE.key("virtual-threads.async-executor"), virtualAsyncExecutor,
@@ -581,24 +593,41 @@ public class DivineConfig {
         public static boolean timeAcceleration = true;
         public static boolean randomTickSpeedAcceleration = true;
 
-        // Region format
-        public static RegionFileFormat regionFormatTypeName = RegionFileFormat.ANVIL;
-        public static LinearImplementation linearImplementation = LinearImplementation.V2;
-        public static int linearFlushMaxThreads = 4;
-        public static int linearFlushDelay = 100;
-        public static boolean linearUseVirtualThread = false;
+        // Region Format
+        public static EnumRegionFileExtension regionFileType = EnumRegionFileExtension.MCA;
         public static int linearCompressionLevel = 1;
+        public static int linearIoThreadCount = 6;
+        public static int linearIoFlushDelayMs = 100;
+        public static boolean linearUseVirtualThreads = true;
 
         // Sentry
         public static String sentryDsn = "";
         public static String logLevel = "WARN";
         public static boolean onlyLogThrown = true;
 
+        // Raytrace Entity Tracker
+        @Experimental("Raytrace Entity Tracker")
+        public static boolean retEnabled = false;
+        public static int retThreads = 2;
+        public static int retThreadsPriority = Thread.NORM_PRIORITY + 2;
+        public static boolean retSkipMarkerArmorStands = true;
+        public static int retCheckIntervalMs = 10;
+        public static int retTracingDistance = 48;
+        public static int retHitboxLimit = 50;
+        public static List<String> retSkippedEntities = List.of();
+        public static boolean retInvertSkippedEntities = false;
+
+        // Old features
+        public static boolean copperBulb1gt = false;
+        public static boolean crafter1gt = false;
+
         public static void load() {
             secureSeed();
             lagCompensation();
-            linearRegionFormat();
+            regionFileExtension();
             sentrySettings();
+            ret();
+            oldFeatures();
         }
 
         private static void secureSeed() {
@@ -623,46 +652,39 @@ public class DivineConfig {
             randomTickSpeedAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration"), randomTickSpeedAcceleration);
         }
 
-        private static void linearRegionFormat() {
-            regionFormatTypeName = RegionFileFormat.fromName(getString(ConfigCategory.MISC.key("region-format.type"), regionFormatTypeName.name(),
+        private static void regionFileExtension() {
+            EnumRegionFileExtension configuredType = EnumRegionFileExtension.fromString(getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString(),
                 "The type of region file format to use for storing chunk data.",
                 "Valid values:",
-                " - LINEAR: Linear region file format",
-                " - ANVIL: Anvil region file format (default)"));
-            linearImplementation = LinearImplementation.valueOf(getString(ConfigCategory.MISC.key("region-format.implementation"), linearImplementation.name(),
-                "The implementation of the linear region file format to use.",
-                "Valid values:",
-                " - V1: Basic and default linear implementation",
-                " - V2: Introduces a grid-based compression scheme for better data management and flexibility (default)"));
+                " - MCA: Default Minecraft region file format",
+                " - LINEAR: Linear region file format V2",
+                " - B_LINEAR: Buffered region file format (just uses Zstd)"));
 
-            linearFlushMaxThreads = getInt(ConfigCategory.MISC.key("region-format.flush-max-threads"), linearFlushMaxThreads,
-                "The maximum number of threads to use for flushing linear region files.",
-                "If this value is less than or equal to 0, it will be set to the number of available processors + this value.");
-            linearFlushDelay = getInt(ConfigCategory.MISC.key("region-format.flush-delay"), linearFlushDelay,
-                "The delay in milliseconds to wait before flushing next files.");
-            linearUseVirtualThread = getBoolean(ConfigCategory.MISC.key("region-format.use-virtual-thread"), linearUseVirtualThread,
-                "Whether to use virtual threads for flushing.");
+            if (configuredType != null) {
+                regionFileType = configuredType;
+            } else {
+                LOGGER.warn("Invalid region file type: {}, resetting to default (MCA)", getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString()));
+                regionFileType = EnumRegionFileExtension.MCA;
+            }
+
             linearCompressionLevel = getInt(ConfigCategory.MISC.key("region-format.compression-level"), linearCompressionLevel,
                 "The compression level to use for the linear region file format.");
-
-            setComment(ConfigCategory.MISC.key("region-format"),
-                "The linear region file format is a custom region file format that is designed to be more efficient than the ANVIL format.",
-                "It uses uses ZSTD compression instead of ZLIB. This format saves about 50% of disk space.",
-                "Read more information about linear region format at https://github.com/xymb-endcrystalme/LinearRegionFileFormatTools",
-                "WARNING: If you are want to use this format, make sure to create backup of your world before switching to it, there is potential risk to lose chunk data.");
-
-            if (regionFormatTypeName == RegionFileFormat.UNKNOWN) {
-                LOGGER.error("Unknown region file type: {}, falling back to ANVIL format.", regionFormatTypeName);
-                regionFormatTypeName = RegionFileFormat.ANVIL;
-            }
-
-            if (linearFlushMaxThreads <= 0) {
-                linearFlushMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() + linearFlushMaxThreads, 1);
-            }
+            linearIoThreadCount = getInt(ConfigCategory.MISC.key("region-format.linear-io-thread-count"), linearIoThreadCount,
+                "The number of threads to use for IO operations.");
+            linearIoFlushDelayMs = getInt(ConfigCategory.MISC.key("region-format.linear-io-flush-delay-ms"), linearIoFlushDelayMs,
+                "The delay in milliseconds to wait before flushing IO operations.");
+            linearUseVirtualThreads = getBoolean(ConfigCategory.MISC.key("region-format.linear-use-virtual-threads"), linearUseVirtualThreads,
+                "Whether to use virtual threads for IO operations that was introduced in Java 21.");
 
             if (linearCompressionLevel > 22 || linearCompressionLevel < 1) {
                 LOGGER.warn("Invalid linear compression level: {}, resetting to default (1)", linearCompressionLevel);
                 linearCompressionLevel = 1;
+            }
+
+            if (regionFileType == EnumRegionFileExtension.LINEAR) {
+                LinearRegionFile.SAVE_DELAY_MS = linearIoFlushDelayMs;
+                LinearRegionFile.SAVE_THREAD_MAX_COUNT = linearIoThreadCount;
+                LinearRegionFile.USE_VIRTUAL_THREAD = linearUseVirtualThreads;
             }
         }
 
@@ -676,13 +698,62 @@ public class DivineConfig {
 
             if (sentryDsn != null && !sentryDsn.isBlank()) gg.pufferfish.pufferfish.sentry.SentryManager.init(Level.getLevel(logLevel));
         }
+
+        private static void ret() {
+            retEnabled = getBoolean(ConfigCategory.MISC.key("raytrace-entity-tracker.enabled"), retEnabled,
+                "Raytrace Entity Tracker uses async ray-tracing to untrack entities players cannot see. Implementation of EntityCulling mod by tr7zw.");
+            retThreads = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.threads"), retThreads,
+                "The number of threads to use for raytrace entity tracker.");
+            retThreadsPriority = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.threads-priority"), retThreadsPriority,
+                "The priority of the threads used for raytrace entity tracker.",
+                "0 - lowest, 10 - highest, 5 - normal");
+
+            retSkipMarkerArmorStands = getBoolean(ConfigCategory.MISC.key("raytrace-entity-tracker.skip-marker-armor-stands"), retSkipMarkerArmorStands,
+                "Whether to skip tracing entities with marker armor stand");
+            retCheckIntervalMs = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.check-interval-ms"), retCheckIntervalMs,
+                "The interval in milliseconds between each trace.");
+            retTracingDistance = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.tracing-distance"), retTracingDistance,
+                "The distance in blocks to track entities in the raytrace entity tracker.");
+            retHitboxLimit = getInt(ConfigCategory.MISC.key("raytrace-entity-tracker.hitbox-limit"), retHitboxLimit,
+                "The maximum size of bounding box to trace.");
+
+            retSkippedEntities = getStringList(ConfigCategory.MISC.key("raytrace-entity-tracker.skipped-entities"), retSkippedEntities,
+                "List of entity types to skip in raytrace entity tracker.");
+            retInvertSkippedEntities = getBoolean(ConfigCategory.MISC.key("raytrace-entity-tracker.invert-skipped-entities"), retInvertSkippedEntities,
+                "If true, the entities in the skipped list will be tracked, and all other entities will be untracked.",
+                "If false, the entities in the skipped list will be untracked, and all other entities will be tracked.");
+
+            for (EntityType<?> entityType : BuiltInRegistries.ENTITY_TYPE) {
+                entityType.skipRaytracingCheck = retInvertSkippedEntities;
+            }
+
+            final String DEFAULT_PREFIX = ResourceLocation.DEFAULT_NAMESPACE + ResourceLocation.NAMESPACE_SEPARATOR;
+
+            for (String name : retSkippedEntities) {
+                String lowerName = name.toLowerCase(Locale.ROOT);
+                String typeId = lowerName.startsWith(DEFAULT_PREFIX) ? lowerName : DEFAULT_PREFIX + lowerName;
+
+                EntityType.byString(typeId).ifPresentOrElse(entityType ->
+                        entityType.skipRaytracingCheck = !retInvertSkippedEntities,
+                    () -> LOGGER.warn("Skipped unknown entity {} in {}", name, ConfigCategory.MISC.key("raytrace-entity-tracker.skipped-entities"))
+                );
+            }
+        }
+
+        private static void oldFeatures() {
+            copperBulb1gt = getBoolean(ConfigCategory.MISC.key("old-features.copper-bulb-1gt"), copperBulb1gt,
+                "Whether to delay the copper lamp by 1 tick when the redstone signal changes.");
+            crafter1gt = getBoolean(ConfigCategory.MISC.key("old-features.crafter-1gt"), crafter1gt,
+                "Whether to reduce the frequency of the crafter outputting items to 1 tick.");
+        }
     }
 
     public static class NetworkCategory {
         // General network settings
+        public static boolean optimizeNonFlushPacketSending = false;
         public static boolean disableDisconnectSpam = false;
-        public static boolean gracefulTeleportHandling = false;
         public static boolean dontRespondPingBeforeStart = true;
+        public static boolean sendSpectatorChangePacket = true;
         public static boolean playerProfileResultCachingEnabled = true;
         public static int playerProfileResultCachingTimeout = 1440;
 
@@ -694,18 +765,33 @@ public class DivineConfig {
         public static boolean noChatReportsDemandOnClient = false;
         public static String noChatReportsDisconnectDemandOnClientMessage = "You do not have No Chat Reports, and this server is configured to require it on client!";
 
+        // Protocols
+        public static boolean protocolsAppleSkinEnabled = false;
+        public static int protocolsAppleSkinSyncTickInterval = 20;
+        public static boolean protocolsJadeEnabled = false;
+        public static boolean protocolsMapsXaeroMapEnabled = false;
+        public static int protocolsMapsXaeroMapServerId = new Random().nextInt();
+        public static boolean protocolsSyncMaticaEnabled = false;
+        public static boolean protocolsSyncMaticaQuota = false;
+        public static int protocolsSyncMaticaQuotaLimit = 40000000;
+
         public static void load() {
             networkSettings();
             noChatReports();
+            protocols();
         }
 
         private static void networkSettings() {
+            optimizeNonFlushPacketSending = getBoolean(ConfigCategory.NETWORK.key("general.optimize-non-flush-packet-sending"), optimizeNonFlushPacketSending,
+                "Optimizes non-flush packet sending by using Netty's lazyExecute method to avoid expensive thread wakeup calls when scheduling packet operations.",
+                "",
+                "NOTE: This option is NOT compatible with ProtocolLib and may cause issues with other plugins that modify packet handling!");
             disableDisconnectSpam = getBoolean(ConfigCategory.NETWORK.key("general.disable-disconnect-spam"), disableDisconnectSpam,
                 "Prevents players being disconnected by 'disconnect.spam' when sending too many chat packets");
-            gracefulTeleportHandling = getBoolean(ConfigCategory.NETWORK.key("general.graceful-teleport-handling"), gracefulTeleportHandling,
-                "Disables being disconnected from 'multiplayer.disconnect.invalid_player_movement' (also declines the packet handling).");
             dontRespondPingBeforeStart = getBoolean(ConfigCategory.NETWORK.key("general.dont-respond-ping-before-start"), dontRespondPingBeforeStart,
                 "Prevents the server from responding to pings before the server is fully booted.");
+            sendSpectatorChangePacket = getBoolean(ConfigCategory.NETWORK.key("general.send-spectator-change-packet"), sendSpectatorChangePacket,
+                "When disabled, tab list will not show that the player have entered the spectator mode. Otherwise, it will act as normal spectator change packet.");
 
             playerProfileResultCachingEnabled = getBoolean(ConfigCategory.NETWORK.key("player-profile-result-caching.enabled"), playerProfileResultCachingEnabled,
                 "Enables caching of player profile results on first join.");
@@ -725,6 +811,65 @@ public class DivineConfig {
                 "Should the server require No Chat Reports on the client side");
             noChatReportsDisconnectDemandOnClientMessage = getString(ConfigCategory.NETWORK.key("no-chat-reports.disconnect-demand-on-client-message"), noChatReportsDisconnectDemandOnClientMessage,
                 "Message to send to the client when they are disconnected for not having No Chat Reports");
+        }
+
+        private static void protocols() {
+            // AppleSkin
+            protocolsAppleSkinEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.appleskin.appleskin-enable"), protocolsAppleSkinEnabled,
+                "Enables AppleSkin protocol support");
+            protocolsAppleSkinSyncTickInterval = getInt(ConfigCategory.NETWORK.key("protocols.appleskin.sync-tick-interval"), protocolsAppleSkinSyncTickInterval,
+                "Sync tick interval for AppleSkin protocol");
+
+            // Jade
+            protocolsJadeEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.jade.jade-enable"), protocolsJadeEnabled,
+                "Enables Jade protocol support");
+
+            // Xaero's Map
+            protocolsMapsXaeroMapEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.xaeromap.xaeromap-enable"), protocolsMapsXaeroMapEnabled,
+                "Enables Xaero's Map protocol support");
+            protocolsMapsXaeroMapServerId = getInt(ConfigCategory.NETWORK.key("protocols.xaeromap.xaero-map-server-id"), protocolsMapsXaeroMapServerId,
+                "Server ID for Xaero's Map protocol");
+
+            // Syncmatica
+            protocolsSyncMaticaEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.syncmatica.syncmatica-enable"), protocolsSyncMaticaEnabled,
+                "Enables SyncMatica protocol support");
+            protocolsSyncMaticaQuota = getBoolean(ConfigCategory.NETWORK.key("protocols.syncmatica.quota"), protocolsSyncMaticaQuota,
+                "Enables quota system for SyncMatica");
+            protocolsSyncMaticaQuotaLimit = getInt(ConfigCategory.NETWORK.key("protocols.syncmatica.quota-limit"), protocolsSyncMaticaQuotaLimit,
+                "Quota limit for SyncMatica protocol");
+        }
+    }
+
+    private static void checkExperimentalFeatures() {
+        List<String> enabledExperimentalFeatures = new ArrayList<>();
+
+        Class<?>[] innerClasses = DivineConfig.class.getDeclaredClasses();
+        for (Class<?> innerClass : innerClasses) {
+            if (Modifier.isStatic(innerClass.getModifiers())) {
+                Field[] fields = innerClass.getDeclaredFields();
+                for (Field field : fields) {
+                    if (field.isAnnotationPresent(Experimental.class) &&
+                        field.getType() == boolean.class &&
+                        Modifier.isStatic(field.getModifiers()) &&
+                        Modifier.isPublic(field.getModifiers())) {
+                        try {
+                            field.setAccessible(true);
+                            boolean value = field.getBoolean(null);
+                            if (value) {
+                                Experimental annotation = field.getAnnotation(Experimental.class);
+                                String featureName = annotation.value();
+                                enabledExperimentalFeatures.add(featureName);
+                            }
+                        } catch (IllegalAccessException e) {
+                            LOGGER.debug("Failed to access field {}", field.getName(), e);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!enabledExperimentalFeatures.isEmpty()) {
+            LOGGER.warn("You have the following experimental features enabled: [{}]. Please proceed with caution!", String.join(", ", enabledExperimentalFeatures));
         }
     }
 }

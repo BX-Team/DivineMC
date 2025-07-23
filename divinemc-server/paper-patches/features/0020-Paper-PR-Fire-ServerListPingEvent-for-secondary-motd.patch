@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 20 Jul 2025 16:10:25 +0300
+Subject: [PATCH] Paper PR: Fire ServerListPingEvent for secondary motd send
+
+Original license: GPLv3
+Original project: https://github.com/PaperMC/Paper
+Paper pull request: https://github.com/PaperMC/Paper/pull/8074
+
+diff --git a/src/main/java/com/destroystokyo/paper/network/StandardPaperServerListPingEventImpl.java b/src/main/java/com/destroystokyo/paper/network/StandardPaperServerListPingEventImpl.java
+index 30a19d10869f73d67b794e8e4c035bc5c10209e6..95acdc0e849c4bb36bab33ee8bc9a9d4e8667829 100644
+--- a/src/main/java/com/destroystokyo/paper/network/StandardPaperServerListPingEventImpl.java
++++ b/src/main/java/com/destroystokyo/paper/network/StandardPaperServerListPingEventImpl.java
+@@ -64,13 +64,24 @@ public final class StandardPaperServerListPingEventImpl extends PaperServerListP
+     }
+ 
+     public static void processRequest(MinecraftServer server, Connection networkManager) {
++        // DivineMC start - Paper PR: Fire ServerListPingEvent for secondary motd send
++        ServerStatus ping = getEventResponse(server, networkManager);
++        if (ping == null) {
++            networkManager.disconnect((Component) null);
++            return;
++        }
++
++        networkManager.send(new ClientboundStatusResponsePacket(ping));
++    }
++
++    public static ServerStatus getEventResponse(MinecraftServer server, Connection networkManager) {
++        // DivineMC end - Paper PR: Fire ServerListPingEvent for secondary motd send
+         StandardPaperServerListPingEventImpl event = new StandardPaperServerListPingEventImpl(server, networkManager, server.getStatus());
+         server.server.getPluginManager().callEvent(event);
+ 
+         // Close connection immediately if event is cancelled
+         if (event.isCancelled()) {
+-            networkManager.disconnect((Component) null);
+-            return;
++            return null; // DivineMC - Paper PR: Fire ServerListPingEvent for secondary motd send
+         }
+ 
+         // Setup response
+@@ -98,8 +109,6 @@ public final class StandardPaperServerListPingEventImpl extends PaperServerListP
+         }
+         final ServerStatus ping = new ServerStatus(description, players, Optional.of(version), favicon, server.enforceSecureProfile());
+ 
+-        // Send response
+-        networkManager.send(new ClientboundStatusResponsePacket(ping));
++        return ping; // DivineMC - Paper PR: Fire ServerListPingEvent for secondary motd send
+     }
+-
+ }

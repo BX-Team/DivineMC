@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Fri, 18 Jul 2025 13:54:17 +0300
+Subject: [PATCH] Euclidean distance squared option
+
+
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
+index fef167837e05d6e80246d4fccd037cc1c9500f97..1ef70cc1ca0a47ddae8655e88fa6b74fa7f81dc6 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
+@@ -387,10 +387,19 @@ public final class RegionizedPlayerChunkLoader {
+             final int centerX = PlayerChunkLoaderData.this.lastChunkX;
+             final int centerZ = PlayerChunkLoaderData.this.lastChunkZ;
+ 
+-            return Integer.compare(
+-                Math.abs(c1x - centerX) + Math.abs(c1z - centerZ),
+-                Math.abs(c2x - centerX) + Math.abs(c2z - centerZ)
+-            );
++            // DivineMC start - Euclidean distance squared option
++            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.useEuclideanDistanceSquared) {
++                return Integer.compare(
++                    (c1x - centerX) * (c1x - centerX) + (c1z - centerZ) * (c1z - centerZ),
++                    (c2x - centerX) * (c2x - centerX) + (c2z - centerZ) * (c2z - centerZ)
++                );
++            } else {
++                return Integer.compare(
++                    Math.abs(c1x - centerX) + Math.abs(c1z - centerZ),
++                    Math.abs(c2x - centerX) + Math.abs(c2z - centerZ)
++                );
++            }
++            // DivineMC end - Euclidean distance squared option
+         };
+         private final LongHeapPriorityQueue sendQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
+         private final LongHeapPriorityQueue tickingQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);

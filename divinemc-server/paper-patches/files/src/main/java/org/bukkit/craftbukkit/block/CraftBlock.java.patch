@@ -1,0 +1,11 @@
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -332,7 +_,7 @@
+ 
+     @Override
+     public BlockState getState() {
+-        return CraftBlockStates.getBlockState(this);
++        return CraftBlockStates.getBlockState(this, org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.createSnapshotOnRetrievingBlockState); // DivineMC - EMC: Don't use snapshots for acquiring blockstate
+     }
+ 
+     // Paper start

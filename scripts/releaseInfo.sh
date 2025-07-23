@@ -28,7 +28,7 @@ make_latest=$([ "$experimental" = "true" ] && echo "false" || echo "true")
 
 rm -f $changelog
 
-mv divinemc-server/build/libs/divinemc-paperclip-"$version"-mojmap.jar "$jarName"
+mv divinemc-server/build/libs/divinemc-shuttle-"$version"-mojmap.jar "$jarName"
 {
   echo "name=$divinemcid"
   echo "tag=$tagid"
@@ -60,4 +60,3 @@ git log --pretty='- [`%h`](https://github.com/BX-Team/DivineMC/commit/%H) %s' "-
   echo "| SHA1 | $(sha1 "$jarName") |"
   echo "| SHA256 | $(sha256 "$jarName") |"
 } >> $changelog
-

@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 26 Mar 2025 01:46:49 +0300
+Subject: [PATCH] Leaf: Improve BlockEntity ticking isRemoved check
+
+Original project: https://github.com/Winds-Studio/Leaf
+
+This should help for massive hopper chains or hopper matrix.
+
+diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
+index dbb4142ea38cdf484e74c81103cebb024ae8813d..32f17328b7980a9dc382c90af76cca04b74c639a 100644
+--- a/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -982,13 +982,26 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+ 
+     static class RebindableTickingBlockEntityWrapper implements TickingBlockEntity {
+         private TickingBlockEntity ticker;
++        private @Nullable BlockEntity blockEntityReference = null; // DivineMC - Improve BlockEntity ticking isRemoved check
+ 
+         RebindableTickingBlockEntityWrapper(TickingBlockEntity ticker) {
+             this.ticker = ticker;
++            // DivineMC start - Improve BlockEntity ticking isRemoved check
++            if (ticker instanceof BoundTickingBlockEntity<?> boundTicker) {
++                blockEntityReference = boundTicker.blockEntity;
++            }
++            // DivineMC end - Improve BlockEntity ticking isRemoved check
+         }
+ 
+         void rebind(TickingBlockEntity ticker) {
+             this.ticker = ticker;
++            // DivineMC start - Improve BlockEntity ticking isRemoved check
++            if (ticker instanceof BoundTickingBlockEntity<?> boundTicker) {
++                blockEntityReference = boundTicker.blockEntity;
++            } else {
++                blockEntityReference = null;
++            }
++            // DivineMC end - Improve BlockEntity ticking isRemoved check
+         }
+ 
+         @Override
+@@ -998,6 +1011,12 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+ 
+         @Override
+         public boolean isRemoved() {
++            // DivineMC start - Improve BlockEntity ticking isRemoved check
++            if (blockEntityReference != null) {
++                return blockEntityReference.isRemoved();
++            }
++            // DivineMC end - Improve BlockEntity ticking isRemoved check
++
+             return this.ticker.isRemoved();
+         }
+ 

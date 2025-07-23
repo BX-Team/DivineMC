@@ -5,24 +5,18 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index d9d158ef36225345eec871fd6e6fb19db08d4c21..ade084fb8f6f9290104677d6fc10a72816715746 100644
+index 53702f1e87e143a6b4260a21c858643746814146..906865cdb2ddde3d9e018cd9cca0fa3bdcc9b4d8 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -1060,6 +1060,13 @@ public final class CraftServer implements Server {
+@@ -1060,6 +1060,7 @@ public final class CraftServer implements Server {
          org.spigotmc.SpigotConfig.init((File) this.console.options.valueOf("spigot-settings")); // Spigot
          this.console.paperConfigurations.reloadConfigs(this.console);
          org.purpurmc.purpur.PurpurConfig.init((File) console.options.valueOf("purpur-settings")); // Purpur - Purpur config files
-+        // DivineMC start - Configuration
-+        try {
-+            org.bxteam.divinemc.config.DivineConfig.init((File) console.options.valueOf("divinemc-settings"));
-+        } catch (IOException e) {
-+            this.logger.log(Level.WARNING, "Failed to load DivineMC configuration, " + e.getMessage());
-+        }
-+        // DivineMC end - Configuration
++        org.bxteam.divinemc.config.DivineConfig.init((File) console.options.valueOf("divinemc-settings")); // DivineMC - Configuration
          for (ServerLevel world : this.console.getAllLevels()) {
              // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
              world.setSpawnSettings(world.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && config.spawnMonsters); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
-@@ -1076,6 +1083,13 @@ public final class CraftServer implements Server {
+@@ -1076,6 +1077,13 @@ public final class CraftServer implements Server {
              }
              world.spigotConfig.init(); // Spigot
              world.purpurConfig.init(); // Purpur - Purpur config files
@@ -37,7 +31,7 @@ index d9d158ef36225345eec871fd6e6fb19db08d4c21..ade084fb8f6f9290104677d6fc10a728
  
          Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index cc4f4fbbe1cacce5f0f5500a8dda199aa0bcdf31..03fe7d98252b93f4625359f50552e3cf60e82b9c 100644
+index 3a4239d6f5768f7e2b6025477670dd2eb9f8cbc4..0838fcfaa950300f7a394295509be86cab824f99 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
 @@ -172,6 +172,14 @@ public class Main {

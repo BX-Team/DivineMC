@@ -231,18 +231,97 @@ index 62e2d5704c348955bc8284dc2d54c933b7bcdd06..341f13e57896f03058ea3ec68e69b7cb
              public void executeAsync(final Runnable runnable) {
                  MCUtil.scheduleAsyncTask(this.catching(runnable, "asynchronous"));
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index c92ae5af5186a7c36f685272a13cfcfad21e8e69..24013949b6646016267132396e61d6cd4af8e374 100644
+index 748bd9650da4a209743b7a5dde584b2e19c5a578..3a4239d6f5768f7e2b6025477670dd2eb9f8cbc4 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -247,7 +247,7 @@ public class Main {
-                 System.setProperty("library.jansi.version", "Paper"); // Paper - set meaningless jansi version to prevent git builds from crashing on Windows
-                 System.setProperty("jdk.console", "java.base"); // Paper - revert default console provider back to java.base so we can have our own jline
+@@ -24,7 +24,7 @@ public class Main {
+     }
+     // Paper end - Reset loggers after shutdown
  
--                io.papermc.paper.PaperBootstrap.boot(options);
-+                org.bxteam.divinemc.DivineBootstrap.boot(options); // DivineMC - Replace with DivineBootstrap
-             } catch (Throwable t) {
-                 t.printStackTrace();
+-    public static void main(String[] args) {
++    public static OptionParser main(String[] args) { // DivineMC - Rebrand
+         if (System.getProperty("jdk.nio.maxCachedBufferSize") == null) System.setProperty("jdk.nio.maxCachedBufferSize", "262144"); // Paper - cap per-thread NIO cache size; https://www.evanjones.ca/java-bytebuffer-leak.html
+         OptionParser parser = new OptionParser() {
+             {
+@@ -180,77 +180,6 @@ public class Main {
              }
+         };
+ 
+-        OptionSet options = null;
+-
+-        try {
+-            options = parser.parse(args);
+-        } catch (joptsimple.OptionException ex) {
+-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex.getLocalizedMessage());
+-        }
+-
+-        if ((options == null) || (options.has("?"))) {
+-            try {
+-                parser.printHelpOn(System.out);
+-            } catch (IOException ex) {
+-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+-            }
+-        } else if (options.has("v")) {
+-            System.out.println(CraftServer.class.getPackage().getImplementationVersion());
+-        } else {
+-            // Do you love Java using + and ! as string based identifiers? I sure do!
+-            String path = new File(".").getAbsolutePath();
+-            if (path.contains("!") || path.contains("+")) {
+-                System.err.println("Cannot run server in a directory with ! or + in the pathname. Please rename the affected folders and try again.");
+-                return;
+-            }
+-
+-            // Paper start - Improve java version check
+-            boolean skip = Boolean.getBoolean("Paper.IgnoreJavaVersion");
+-            String javaVersionName = System.getProperty("java.version");
+-            // J2SE SDK/JRE Version String Naming Convention
+-            boolean isPreRelease = javaVersionName.contains("-");
+-            if (isPreRelease) {
+-                if (!skip) {
+-                    System.err.println("Unsupported Java detected (" + javaVersionName + "). You are running an unsupported, non official, version. Only general availability versions of Java are supported. Please update your Java version. See https://docs.papermc.io/paper/faq#unsupported-java-detected-what-do-i-do for more information.");
+-                    return;
+-                }
+-
+-                System.err.println("Unsupported Java detected ("+ javaVersionName + "), but the check was skipped. Proceed with caution! ");
+-            }
+-            // Paper end - Improve java version check
+-
+-            try {
+-                if (options.has("nojline")) {
+-                    System.setProperty(net.minecrell.terminalconsole.TerminalConsoleAppender.JLINE_OVERRIDE_PROPERTY, "false");
+-                    useJline = false;
+-                }
+-
+-                if (options.has("noconsole")) {
+-                    Main.useConsole = false;
+-                    useJline = false; // Paper
+-                    System.setProperty(net.minecrell.terminalconsole.TerminalConsoleAppender.JLINE_OVERRIDE_PROPERTY, "false"); // Paper
+-                }
+-
+-                if (false && Main.class.getPackage().getImplementationVendor() != null && System.getProperty("IReallyKnowWhatIAmDoingISwear") == null) { // Purpur - Disable outdated build check
+-                    Date buildDate = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z").parse(Main.class.getPackage().getImplementationVendor()); // Paper
+-
+-                    Calendar deadline = Calendar.getInstance();
+-                    deadline.add(Calendar.DAY_OF_YEAR, -14);
+-                    if (buildDate.before(deadline.getTime())) {
+-                        // Paper start - This is some stupid bullshit
+-                        System.err.println("*** Warning, you've not updated in a while! ***");
+-                        System.err.println("*** Please download a new build from https://papermc.io/downloads/paper ***");
+-                        // Paper end
+-                    }
+-                }
+-
+-                System.setProperty("library.jansi.version", "Paper"); // Paper - set meaningless jansi version to prevent git builds from crashing on Windows
+-                System.setProperty("jdk.console", "java.base"); // Paper - revert default console provider back to java.base so we can have our own jline
+-
+-                io.papermc.paper.PaperBootstrap.boot(options);
+-            } catch (Throwable t) {
+-                t.printStackTrace();
+-            }
+-        }
++        return parser; // DivineMC - Rebrand
+     }
+ }
 diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
 index 2e7c3d4befeb6256ce81ecaa9ed4e8fbcb21651e..a839dbbb72f48b8f8736d9f4693c528686570732 100644
 --- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java

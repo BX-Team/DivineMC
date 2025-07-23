@@ -17,11 +17,123 @@ index 394443d00e661715439be1e56dddc129947699a4..480ad57a6b7b74e6b83e9c6ceb69ea1f
  
      public CrashReport(String title, Throwable exception) {
          io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(exception); // Paper
+diff --git a/net/minecraft/network/protocol/common/custom/BrandPayload.java b/net/minecraft/network/protocol/common/custom/BrandPayload.java
+index 97844ec1ccc986eb3d3a185d78a03ceeca49fc1a..5e40ec3fbe6e6d5f98ad98df7d4c27d6de615778 100644
+--- a/net/minecraft/network/protocol/common/custom/BrandPayload.java
++++ b/net/minecraft/network/protocol/common/custom/BrandPayload.java
+@@ -12,7 +12,7 @@ public record BrandPayload(String brand) implements CustomPacketPayload {
+     }
+ 
+     private void write(FriendlyByteBuf buffer) {
+-        buffer.writeUtf(this.brand);
++        buffer.writeUtf(org.purpurmc.purpur.PurpurConfig.f3Name + "§r"); // DivineMC - Update Purpur rebrand settings
+     }
+ 
+     @Override
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index b06c2c4aa77edafb374f7cf0406cf4d29c6e7f9f..c3ac5ba5d8084fefc0e9f58b09b521ef516126eb 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -64,41 +64,39 @@ import org.slf4j.Logger;
+ public class Main {
+     private static final Logger LOGGER = LogUtils.getLogger();
+ 
++    public static void main(String[] arguments) {
++        OptionSet optionSet = org.bxteam.divinemc.DivineBootstrap.bootstrap(arguments);
++
++        io.papermc.paper.ServerBuildInfo info = io.papermc.paper.ServerBuildInfo.buildInfo();
++        if (io.papermc.paper.ServerBuildInfoImpl.IS_EXPERIMENTAL) {
++            LOGGER.warn("Running an experimental version of {}, please proceed with caution.", info.brandName());
++        }
++
++        main(optionSet);
++    }
++
+     @SuppressForbidden(
+         reason = "System.out needed before bootstrap"
+     )
+     @DontObfuscate
+     public static void main(final OptionSet optionSet) { // CraftBukkit - replaces main(String[] args)
++        Path path2 = Paths.get("eula.txt");
++        Eula eula = new Eula(path2);
++        boolean eulaAgreed = Boolean.getBoolean("com.mojang.eula.agree");
++        if (eulaAgreed) {
++            LOGGER.error("You have used the Spigot command line EULA agreement flag.");
++            LOGGER.error("By using this setting you are indicating your agreement to Mojang's EULA (https://aka.ms/MinecraftEULA).");
++            LOGGER.error("If you do not agree to the above EULA please stop your server and remove this flag immediately.");
++        }
++        if (!eula.hasAgreedToEULA() && !eulaAgreed) {
++            LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
++            return;
++        }
++
+         io.papermc.paper.util.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
+         SharedConstants.tryDetectVersion();
+-        /* CraftBukkit start - Replace everything
+-        OptionParser optionParser = new OptionParser();
+-        OptionSpec<Void> optionSpec = optionParser.accepts("nogui");
+-        OptionSpec<Void> optionSpec1 = optionParser.accepts("initSettings", "Initializes 'server.properties' and 'eula.txt', then quits");
+-        OptionSpec<Void> optionSpec2 = optionParser.accepts("demo");
+-        OptionSpec<Void> optionSpec3 = optionParser.accepts("bonusChest");
+-        OptionSpec<Void> optionSpec4 = optionParser.accepts("forceUpgrade");
+-        OptionSpec<Void> optionSpec5 = optionParser.accepts("eraseCache");
+-        OptionSpec<Void> optionSpec6 = optionParser.accepts("recreateRegionFiles");
+-        OptionSpec<Void> optionSpec7 = optionParser.accepts("safeMode", "Loads level with vanilla datapack only");
+-        OptionSpec<Void> optionSpec8 = optionParser.accepts("help").forHelp();
+-        OptionSpec<String> optionSpec9 = optionParser.accepts("universe").withRequiredArg().defaultsTo(".");
+-        OptionSpec<String> optionSpec10 = optionParser.accepts("world").withRequiredArg();
+-        OptionSpec<Integer> optionSpec11 = optionParser.accepts("port").withRequiredArg().ofType(Integer.class).defaultsTo(-1);
+-        OptionSpec<String> optionSpec12 = optionParser.accepts("serverId").withRequiredArg();
+-        OptionSpec<Void> optionSpec13 = optionParser.accepts("jfrProfile");
+-        OptionSpec<Path> optionSpec14 = optionParser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
+-        OptionSpec<String> optionSpec15 = optionParser.nonOptions();
+ 
+         try {
+-            OptionSet optionSet = optionParser.parse(args);
+-            if (optionSet.has(optionSpec8)) {
+-                optionParser.printHelpOn(System.err);
+-                return;
+-            }
+-            */ // CraftBukkit end
+-        try {
+-
+             Path path = (Path) optionSet.valueOf("pidFile"); // CraftBukkit
+             if (path != null) {
+                 writePidFile(path);
+@@ -124,8 +122,6 @@ public class Main {
+             DedicatedServerSettings dedicatedServerSettings = new DedicatedServerSettings(optionSet); // CraftBukkit - CLI argument support
+             dedicatedServerSettings.forceSave();
+             RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
+-            Path path2 = Paths.get("eula.txt");
+-            Eula eula = new Eula(path2);
+             // Paper start - load config files early for access below if needed
+             org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
+             org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("spigot-settings"));
+@@ -148,19 +144,6 @@ public class Main {
+                 return;
+             }
+ 
+-            // Spigot start
+-            boolean eulaAgreed = Boolean.getBoolean("com.mojang.eula.agree");
+-            if (eulaAgreed) {
+-                LOGGER.error("You have used the Spigot command line EULA agreement flag.");
+-                LOGGER.error("By using this setting you are indicating your agreement to Mojang's EULA (https://aka.ms/MinecraftEULA).");
+-                LOGGER.error("If you do not agree to the above EULA please stop your server and remove this flag immediately.");
+-            }
+-            if (!eula.hasAgreedToEULA() && !eulaAgreed) {
+-                // Spigot end
+-                LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
+-                return;
+-            }
+-
+             // Paper start - Detect headless JRE
+             String awtException = io.papermc.paper.util.ServerEnvironment.awtDependencyCheck();
+             if (awtException != null) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index ac0ed2e7261a0d698fafd5b314108ff38a169073..8f32168ff0371a9168bbf9b08b2154200f8131a0 100644
+index 3de43e4edb33bb2c657a315ad2676ce44ee3bd6a..2d01252a66e59f69ff69055b83d7e881f2f3e5cd 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1183,6 +1183,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1184,6 +1184,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      protected void runServer() {
          try {
@@ -30,7 +142,7 @@ index ac0ed2e7261a0d698fafd5b314108ff38a169073..8f32168ff0371a9168bbf9b08b215420
                  throw new IllegalStateException("Failed to initialize server");
              }
 diff --git a/net/minecraft/server/gui/MinecraftServerGui.java b/net/minecraft/server/gui/MinecraftServerGui.java
-index 614c7d9f673c926562acc8fa3b3788623900db41..33456c7c106abbddf743e1203a6e8122cf10b797 100644
+index 614c7d9f673c926562acc8fa3b3788623900db41..937469a134e721c47e235a34acc565f12adf85ff 100644
 --- a/net/minecraft/server/gui/MinecraftServerGui.java
 +++ b/net/minecraft/server/gui/MinecraftServerGui.java
 @@ -51,7 +51,7 @@ public class MinecraftServerGui extends JComponent {
@@ -38,7 +150,7 @@ index 614c7d9f673c926562acc8fa3b3788623900db41..33456c7c106abbddf743e1203a6e8122
          }
  
 -        final JFrame jFrame = new JFrame("Purpur Minecraft server"); // Purpur - Improve GUI
-+        final JFrame jFrame = new JFrame("DivineMC Minecraft server"); // Purpur - Improve GUI // DivineMC - Rebrand
++        final JFrame jFrame = new JFrame(org.purpurmc.purpur.PurpurConfig.serverGUIName); // Purpur - Improve GUI // DivineMC - Update Purpur rebrand settings
          final MinecraftServerGui minecraftServerGui = new MinecraftServerGui(server);
          jFrame.setDefaultCloseOperation(2);
          jFrame.add(minecraftServerGui);
@@ -47,7 +159,7 @@ index 614c7d9f673c926562acc8fa3b3788623900db41..33456c7c106abbddf743e1203a6e8122
          jFrame.setVisible(true);
          // Paper start - Improve ServerGUI
 -        jFrame.setName("Purpur Minecraft server"); // Purpur - Improve GUI
-+        jFrame.setName("DivineMC Minecraft server"); // Purpur - Improve GUI // DivineMC - Rebrand
++        jFrame.setName(org.purpurmc.purpur.PurpurConfig.serverGUIName); // Purpur - Improve GUI // DivineMC - Update Purpur rebrand settings
          try {
              jFrame.setIconImage(javax.imageio.ImageIO.read(java.util.Objects.requireNonNull(MinecraftServerGui.class.getClassLoader().getResourceAsStream("logo.png"))));
          } catch (java.io.IOException ignore) {
@@ -56,7 +168,7 @@ index 614c7d9f673c926562acc8fa3b3788623900db41..33456c7c106abbddf743e1203a6e8122
              public void windowClosing(WindowEvent event) {
                  if (!minecraftServerGui.isClosing.getAndSet(true)) {
 -                    jFrame.setTitle("Purpur Minecraft server - shutting down!"); // Purpur - Improve GUI
-+                    jFrame.setTitle("DivineMC Minecraft server - shutting down!"); // Purpur - Improve GUI // DivineMC - Rebrand
++                    jFrame.setTitle(org.purpurmc.purpur.PurpurConfig.serverGUIName + " - shutting down!"); // Purpur - Improve GUI // DivineMC - Update Purpur rebrand settings
                      server.halt(true);
                      minecraftServerGui.runFinalizers();
                  }

@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Mon, 7 Jul 2025 04:21:38 +0300
+Subject: [PATCH] Small optimization to LinearPalette
+
+
+diff --git a/net/minecraft/world/level/chunk/LinearPalette.java b/net/minecraft/world/level/chunk/LinearPalette.java
+index 2073f6ff41aa570102621d183ee890b076267d54..93cb815032fada7b8abc7301a7005114eea8384d 100644
+--- a/net/minecraft/world/level/chunk/LinearPalette.java
++++ b/net/minecraft/world/level/chunk/LinearPalette.java
+@@ -12,7 +12,7 @@ public class LinearPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.pat
+     private final T[] values;
+     private final PaletteResize<T> resizeHandler;
+     private final int bits;
+-    private int size;
++    private volatile int size; // DivineMC - Small optimization to LinearPalette
+ 
+     // Paper start - optimise palette reads
+     @Override
+@@ -49,11 +49,14 @@ public class LinearPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.pat
+ 
+     @Override
+     public int idFor(T state) {
+-        for (int i = 0; i < this.size; i++) {
+-            if (this.values[i] == state) {
++        // DivineMC start - Small optimization to LinearPalette
++        final T[] values = this.values;
++        for (int i = 0; i < values.length; i++) {
++            if (values[i] == state) {
+                 return i;
+             }
+         }
++        // DivineMC end - Small optimization to LinearPalette
+ 
+         int ix = this.size;
+         if (ix < this.values.length) {
+@@ -67,17 +70,23 @@ public class LinearPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.pat
+ 
+     @Override
+     public boolean maybeHas(Predicate<T> filter) {
+-        for (int i = 0; i < this.size; i++) {
+-            if (filter.test(this.values[i])) {
++        // DivineMC start - Small optimization to LinearPalette
++        final T[] values = this.values;
++        final int currentSize = this.size;
++
++        for (int i = 0; i < currentSize; i++) {
++            T value = values[i];
++            if (value != null && filter.test(value)) {
+                 return true;
+             }
+         }
++        // DivineMC end - Small optimization to LinearPalette
+ 
+         return false;
+     }
+ 
+     @Override
+-    public T valueFor(int id) {
++    public synchronized T valueFor(int id) { // DivineMC - Small optimization to LinearPalette
+         if (id >= 0 && id < this.size) {
+             return this.values[id];
+         } else {

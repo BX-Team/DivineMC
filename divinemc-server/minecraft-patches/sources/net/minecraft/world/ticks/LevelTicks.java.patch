@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/ticks/LevelTicks.java
++++ b/net/minecraft/world/ticks/LevelTicks.java
+@@ -191,7 +_,6 @@
+     }
+ 
+     private void cleanupAfterTick() {
+-        this.toRunThisTick.clear();
+         this.containersToTick.clear();
+         this.alreadyRunThisTick.clear();
+         this.toRunThisTickSet.clear();

@@ -1,0 +1,450 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sat, 1 Feb 2025 16:05:57 +0300
+Subject: [PATCH] Optimize entity brain
+
+
+diff --git a/net/minecraft/world/entity/AgeableMob.java b/net/minecraft/world/entity/AgeableMob.java
+index 04875840085541ebfc7014868beec49bb7ab9976..bbfb1de1a03c4208406feb803a2f378db9910556 100644
+--- a/net/minecraft/world/entity/AgeableMob.java
++++ b/net/minecraft/world/entity/AgeableMob.java
+@@ -125,6 +125,16 @@ public abstract class AgeableMob extends PathfinderMob {
+     public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+         if (DATA_BABY_ID.equals(key)) {
+             this.refreshDimensions();
++            // DivineMC start - Optimize entity brain
++            if (isBaby()) {
++                org.bxteam.divinemc.util.entity.SensorHelper.enableSensor(this, net.minecraft.world.entity.ai.sensing.SensorType.NEAREST_ADULT, true);
++            } else {
++                org.bxteam.divinemc.util.entity.SensorHelper.disableSensor(this, net.minecraft.world.entity.ai.sensing.SensorType.NEAREST_ADULT);
++                if (this.getBrain().hasMemoryValue(net.minecraft.world.entity.ai.memory.MemoryModuleType.NEAREST_VISIBLE_ADULT)) {
++                    this.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.NEAREST_VISIBLE_ADULT, java.util.Optional.empty());
++                }
++            }
++            // DivineMC end - Optimize entity brain
+         }
+ 
+         super.onSyncedDataUpdated(key);
+diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
+index 99ced3cb7d3d4c7a80d890689d7585fa9acd17f6..9277b5da6065a5500e40727815083da25b9c9327 100644
+--- a/net/minecraft/world/entity/ai/Brain.java
++++ b/net/minecraft/world/entity/ai/Brain.java
+@@ -45,16 +45,75 @@ public class Brain<E extends LivingEntity> {
+     static final Logger LOGGER = LogUtils.getLogger();
+     private final Supplier<Codec<Brain<E>>> codec;
+     private static final int SCHEDULE_UPDATE_DELAY = 20;
+-    private final Map<MemoryModuleType<?>, Optional<? extends ExpirableValue<?>>> memories = Maps.newHashMap();
+-    public final Map<SensorType<? extends Sensor<? super E>>, Sensor<? super E>> sensors = Maps.newLinkedHashMap();
++    // DivineMC start - Optimize entity brain
++    private Map<MemoryModuleType<?>, Optional<? extends ExpirableValue<?>>> memories = Maps.newConcurrentMap();
++    public Map<SensorType<? extends Sensor<? super E>>, Sensor<? super E>> sensors = Maps.newLinkedHashMap();
+     private final Map<Integer, Map<Activity, Set<BehaviorControl<? super E>>>> availableBehaviorsByPriority = Maps.newTreeMap();
+     private Schedule schedule = Schedule.EMPTY;
+-    private final Map<Activity, Set<Pair<MemoryModuleType<?>, MemoryStatus>>> activityRequirements = Maps.newHashMap();
++    private Map<Activity, Set<Pair<MemoryModuleType<?>, MemoryStatus>>> activityRequirements = Maps.newHashMap();
++    // DivineMC end - Optimize entity brain
+     private final Map<Activity, Set<MemoryModuleType<?>>> activityMemoriesToEraseWhenStopped = Maps.newHashMap();
+     private Set<Activity> coreActivities = Sets.newHashSet();
+     private final Set<Activity> activeActivities = Sets.newHashSet();
+     private Activity defaultActivity = Activity.IDLE;
+     private long lastScheduleUpdate = -9999L;
++    // DivineMC start - Optimize entity brain
++    private java.util.ArrayList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> possibleTasks;
++    private org.bxteam.divinemc.util.collections.MaskedList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> runningTasks;
++
++    private void onTasksChanged() {
++        this.runningTasks = null;
++        this.onPossibleActivitiesChanged();
++    }
++
++    private void onPossibleActivitiesChanged() {
++        this.possibleTasks = null;
++    }
++
++    private void initPossibleTasks() {
++        this.possibleTasks = new java.util.ArrayList<>();
++        for (Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {
++            for (Map.Entry<Activity, Set<BehaviorControl<? super E>>> entry : map.entrySet()) {
++                Activity activity = entry.getKey();
++                if (!this.activeActivities.contains(activity)) {
++                    continue;
++                }
++                Set<BehaviorControl<? super E>> set = entry.getValue();
++                for (BehaviorControl<? super E> task : set) {
++                    //noinspection UseBulkOperation
++                    this.possibleTasks.add(task);
++                }
++            }
++        }
++    }
++
++    private java.util.ArrayList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> getPossibleTasks() {
++        if (this.possibleTasks == null) {
++            this.initPossibleTasks();
++        }
++        return this.possibleTasks;
++    }
++
++    private org.bxteam.divinemc.util.collections.MaskedList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> getCurrentlyRunningTasks() {
++        if (this.runningTasks == null) {
++            this.initCurrentlyRunningTasks();
++        }
++        return this.runningTasks;
++    }
++
++    private void initCurrentlyRunningTasks() {
++        org.bxteam.divinemc.util.collections.MaskedList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> list = new org.bxteam.divinemc.util.collections.MaskedList<>(new ObjectArrayList<>(), false);
++
++        for (Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {
++            for (Set<BehaviorControl<? super E>> set : map.values()) {
++                for (BehaviorControl<? super E> task : set) {
++                    list.addOrSet(task, task.getStatus() == Behavior.Status.RUNNING);
++                }
++            }
++        }
++        this.runningTasks = list;
++    }
++    // DivineMC end - Optimize entity brain
+ 
+     public static <E extends LivingEntity> Brain.Provider<E> provider(
+         Collection<? extends MemoryModuleType<?>> memoryTypes, Collection<? extends SensorType<? extends Sensor<? super E>>> sensorTypes
+@@ -146,6 +205,12 @@ public class Brain<E extends LivingEntity> {
+         for (Brain.MemoryValue<?> memoryValue : memoryValues) {
+             memoryValue.setMemoryInternal(this);
+         }
++        // DivineMC start - Optimize entity brain
++        this.onTasksChanged();
++        this.memories = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>(this.memories);
++        this.sensors = new it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap<>(this.sensors);
++        this.activityRequirements = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(this.activityRequirements);
++        // DivineMC end - Optimize entity brain
+     }
+ 
+     public <T> DataResult<T> serializeStart(DynamicOps<T> ops) {
+@@ -165,6 +230,7 @@ public class Brain<E extends LivingEntity> {
+     }
+ 
+     public <U> void eraseMemory(MemoryModuleType<U> type) {
++        if (!this.memories.containsKey(type)) return; // DivineMC - skip if memory does not contain key
+         this.setMemory(type, Optional.empty());
+     }
+ 
+@@ -180,16 +246,33 @@ public class Brain<E extends LivingEntity> {
+         this.setMemoryInternal(memoryType, memory.map(ExpirableValue::of));
+     }
+ 
++    // DivineMC start - Optimize entity brain
+     <U> void setMemoryInternal(MemoryModuleType<U> memoryType, Optional<? extends ExpirableValue<?>> memory) {
++        if (memory.isPresent() && this.isEmptyCollection(memory.get().getValue())) {
++            this.eraseMemory(memoryType);
++            return;
++        }
++
+         if (this.memories.containsKey(memoryType)) {
+-            if (memory.isPresent() && this.isEmptyCollection(memory.get().getValue())) {
+-                this.eraseMemory(memoryType);
+-            } else {
+-                this.memories.put(memoryType, memory);
+-            }
++            this.increaseMemoryModificationCount(this.memories, memoryType, memory);
+         }
+     }
+ 
++    private long memoryModCount = 1;
++
++    public long getMemoryModCount() {
++        return memoryModCount;
++    }
++
++    private <T, A> Object increaseMemoryModificationCount(Map<T, A> map, T key, A newValue) {
++        Object oldValue = map.put(key, newValue);
++        if (oldValue == null || ((Optional<?>) oldValue).isPresent() != ((Optional<?>) newValue).isPresent()) {
++            this.memoryModCount++;
++        }
++        return oldValue;
++    }
++    // DivineMC end - Optimize entity brain
++
+     public <U> Optional<U> getMemory(MemoryModuleType<U> type) {
+         Optional<? extends ExpirableValue<?>> optional = this.memories.get(type);
+         if (optional == null) {
+@@ -251,19 +334,7 @@ public class Brain<E extends LivingEntity> {
+     @Deprecated
+     @VisibleForDebug
+     public List<BehaviorControl<? super E>> getRunningBehaviors() {
+-        List<BehaviorControl<? super E>> list = new ObjectArrayList<>();
+-
+-        for (Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {
+-            for (Set<BehaviorControl<? super E>> set : map.values()) {
+-                for (BehaviorControl<? super E> behaviorControl : set) {
+-                    if (behaviorControl.getStatus() == Behavior.Status.RUNNING) {
+-                        list.add(behaviorControl);
+-                    }
+-                }
+-            }
+-        }
+-
+-        return list;
++        return this.getCurrentlyRunningTasks(); // DivineMC - Optimize entity brain
+     }
+ 
+     public void useDefaultActivity() {
+@@ -294,6 +365,7 @@ public class Brain<E extends LivingEntity> {
+             this.activeActivities.clear();
+             this.activeActivities.addAll(this.coreActivities);
+             this.activeActivities.add(activity);
++            this.onPossibleActivitiesChanged(); // DivineMC - Optimize entity brain
+         }
+     }
+ 
+@@ -383,11 +455,13 @@ public class Brain<E extends LivingEntity> {
+                 .computeIfAbsent(activity, activity1 -> Sets.newLinkedHashSet())
+                 .add((BehaviorControl<? super E>)pair.getSecond());
+         }
++        this.onTasksChanged(); // DivineMC - Optimize entity brain
+     }
+ 
+     @VisibleForTesting
+     public void removeAllBehaviors() {
+         this.availableBehaviorsByPriority.clear();
++        this.onTasksChanged(); // DivineMC - Optimize entity brain
+     }
+ 
+     public boolean isActive(Activity activity) {
+@@ -404,6 +478,7 @@ public class Brain<E extends LivingEntity> {
+             }
+         }
+ 
++        brain.memoryModCount = this.memoryModCount + 1; // DivineMC - Optimize entity brain
+         return brain;
+     }
+ 
+@@ -438,31 +513,38 @@ public class Brain<E extends LivingEntity> {
+ 
+         for (BehaviorControl<? super E> behaviorControl : this.getRunningBehaviors()) {
+             behaviorControl.doStop(level, owner, gameTime);
++            // DivineMC start - Optimize entity brain
++            if (this.runningTasks != null) {
++                this.runningTasks.setVisible(behaviorControl, false);
++            }
++            // DivineMC end - Optimize entity brain
+         }
+     }
+ 
++    // DivineMC start - Optimize entity brain
+     private void startEachNonRunningBehavior(ServerLevel level, E entity) {
+-        long gameTime = level.getGameTime();
+-
+-        for (Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {
+-            for (Entry<Activity, Set<BehaviorControl<? super E>>> entry : map.entrySet()) {
+-                Activity activity = entry.getKey();
+-                if (this.activeActivities.contains(activity)) {
+-                    for (BehaviorControl<? super E> behaviorControl : entry.getValue()) {
+-                        if (behaviorControl.getStatus() == Behavior.Status.STOPPED) {
+-                            behaviorControl.tryStart(level, entity, gameTime);
+-                        }
+-                    }
++        long startTime = level.getGameTime();
++        for (BehaviorControl<? super E> task : this.getPossibleTasks()) {
++            if (task.getStatus() == Behavior.Status.STOPPED) {
++                task.tryStart(level, entity, startTime);
++                if (this.runningTasks != null && task.getStatus() == Behavior.Status.RUNNING) {
++                    this.runningTasks.setVisible(task, true);
+                 }
+             }
+         }
+     }
++    // DivineMC end - Optimize entity brain
+ 
+     private void tickEachRunningBehavior(ServerLevel level, E entity) {
+         long gameTime = level.getGameTime();
+ 
+         for (BehaviorControl<? super E> behaviorControl : this.getRunningBehaviors()) {
+             behaviorControl.tickOrStop(level, entity, gameTime);
++            // DivineMC start - Optimize entity brain
++            if (this.runningTasks != null && behaviorControl.getStatus() != Behavior.Status.RUNNING) {
++                this.runningTasks.setVisible(behaviorControl, false);
++            }
++            // DivineMC end - Optimize entity brain
+         }
+     }
+ 
+diff --git a/net/minecraft/world/entity/ai/behavior/Behavior.java b/net/minecraft/world/entity/ai/behavior/Behavior.java
+index 5b0cadd2544fb2a627822e645ff32fec2e9cfda9..f367012ebcc4d06ac868bbc1733bee39ad2d67b1 100644
+--- a/net/minecraft/world/entity/ai/behavior/Behavior.java
++++ b/net/minecraft/world/entity/ai/behavior/Behavior.java
+@@ -14,6 +14,10 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+     private long endTimestamp;
+     private final int minDuration;
+     private final int maxDuration;
++    // DivineMC start - Optimize entity brain
++    private long cachedMemoryModCount = -1;
++    private boolean cachedHasRequiredMemoryState;
++    // DivineMC end - Optimize entity brain
+     private final String configKey; // Paper - configurable behavior tick rate and timings
+ 
+     public Behavior(Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
+@@ -27,7 +31,7 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+     public Behavior(Map<MemoryModuleType<?>, MemoryStatus> entryCondition, int minDuration, int maxDuration) {
+         this.minDuration = minDuration;
+         this.maxDuration = maxDuration;
+-        this.entryCondition = entryCondition;
++        this.entryCondition = new it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap<>(entryCondition); // DivineMC - Optimize entity brain - Use fastutil
+         // Paper start - configurable behavior tick rate and timings
+         String key = io.papermc.paper.util.MappingEnvironment.reobf() ? io.papermc.paper.util.ObfHelper.INSTANCE.deobfClassName(this.getClass().getName()) : this.getClass().getName();
+         int lastSeparator = key.lastIndexOf('.');
+@@ -103,17 +107,26 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+         return this.getClass().getSimpleName();
+     }
+ 
+-    protected boolean hasRequiredMemories(E owner) {
+-        for (Entry<MemoryModuleType<?>, MemoryStatus> entry : this.entryCondition.entrySet()) {
+-            MemoryModuleType<?> memoryModuleType = entry.getKey();
+-            MemoryStatus memoryStatus = entry.getValue();
+-            if (!owner.getBrain().checkMemory(memoryModuleType, memoryStatus)) {
+-                return false;
++    // DivineMC start - Optimize entity brain
++    public boolean hasRequiredMemories(E entity) {
++        net.minecraft.world.entity.ai.Brain<?> brain = entity.getBrain();
++        long modCount = brain.getMemoryModCount();
++        if (this.cachedMemoryModCount == modCount) {
++            return this.cachedHasRequiredMemoryState;
++        }
++        this.cachedMemoryModCount = modCount;
++
++        it.unimi.dsi.fastutil.objects.ObjectIterator<it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<net.minecraft.world.entity.ai.memory.MemoryModuleType<?>, net.minecraft.world.entity.ai.memory.MemoryStatus>> fastIterator = ((it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap<net.minecraft.world.entity.ai.memory.MemoryModuleType<?>, net.minecraft.world.entity.ai.memory.MemoryStatus>) this.entryCondition).reference2ObjectEntrySet().fastIterator();
++        while (fastIterator.hasNext()) {
++            it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<MemoryModuleType<?>, MemoryStatus> entry = fastIterator.next();
++            if (!brain.checkMemory(entry.getKey(), entry.getValue())) {
++                return this.cachedHasRequiredMemoryState = false;
+             }
+         }
+ 
+-        return true;
++        return this.cachedHasRequiredMemoryState = true;
+     }
++    // DivineMC end - Optimize entity brain
+ 
+     public static enum Status {
+         STOPPED,
+diff --git a/net/minecraft/world/entity/ai/behavior/LongJumpToRandomPos.java b/net/minecraft/world/entity/ai/behavior/LongJumpToRandomPos.java
+index 977afa268838304abdb34be253ca36ac1c22e99f..ff04ea295b70583137deb8babe5e75ebc755f697 100644
+--- a/net/minecraft/world/entity/ai/behavior/LongJumpToRandomPos.java
++++ b/net/minecraft/world/entity/ai/behavior/LongJumpToRandomPos.java
+@@ -119,6 +119,12 @@ public class LongJumpToRandomPos<E extends Mob> extends Behavior<E> {
+         int x = blockPos.getX();
+         int y = blockPos.getY();
+         int z = blockPos.getZ();
++        // DivineMC start - Optimize entity brain
++        if (this.maxLongJumpWidth < 128 && this.maxLongJumpHeight < 128) {
++            this.jumpCandidates = org.bxteam.divinemc.util.collections.LongJumpChoiceList.forCenter(blockPos, (byte) this.maxLongJumpWidth, (byte) this.maxLongJumpHeight);
++            return;
++        }
++        // DivineMC end - Optimize entity brain
+         this.jumpCandidates = BlockPos.betweenClosedStream(
+                 x - this.maxLongJumpWidth,
+                 y - this.maxLongJumpHeight,
+@@ -174,12 +180,25 @@ public class LongJumpToRandomPos<E extends Mob> extends Behavior<E> {
+         }
+     }
+ 
++    // DivineMC start - Optimize entity brain
+     protected Optional<LongJumpToRandomPos.PossibleJump> getJumpCandidate(ServerLevel level) {
+-        Optional<LongJumpToRandomPos.PossibleJump> randomItem = WeightedRandom.getRandomItem(
+-            level.random, this.jumpCandidates, LongJumpToRandomPos.PossibleJump::weight
+-        );
+-        randomItem.ifPresent(this.jumpCandidates::remove);
+-        return randomItem;
++        Optional<LongJumpToRandomPos.PossibleJump> optional = getRandomFast(level.random, this.jumpCandidates);
++        skipRemoveIfAlreadyRemoved(optional, this.jumpCandidates::remove);
++        return optional;
++    }
++
++    private Optional<LongJumpToRandomPos.PossibleJump> getRandomFast(net.minecraft.util.RandomSource random, List<LongJumpToRandomPos.PossibleJump> pool) {
++        if (pool instanceof org.bxteam.divinemc.util.collections.LongJumpChoiceList longJumpChoiceList) {
++            return Optional.ofNullable(longJumpChoiceList.removeRandomWeightedByDistanceSq(random));
++        } else {
++            return WeightedRandom.getRandomItem(random, pool, LongJumpToRandomPos.PossibleJump::weight);
++        }
++    }
++
++    private void skipRemoveIfAlreadyRemoved(Optional<LongJumpToRandomPos.PossibleJump> result, java.util.function.Consumer<? super net.minecraft.world.entity.ai.behavior.LongJumpToRandomPos.PossibleJump> removeAction) {
++        if (!(this.jumpCandidates instanceof org.bxteam.divinemc.util.collections.LongJumpChoiceList)) {
++            result.ifPresent(removeAction);
++        }
+     }
+ 
+     private boolean isAcceptableLandingPosition(ServerLevel level, E entity, BlockPos pos) {
+diff --git a/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java b/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
+index 24d1928445b5571e040a2b12d5c82e77a880d9bd..dac0a23aebf2dea1972c07d5c82079da7c9837ac 100644
+--- a/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
++++ b/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
+@@ -21,9 +21,22 @@ public class VillagerBabiesSensor extends Sensor<LivingEntity> {
+         entity.getBrain().setMemory(MemoryModuleType.VISIBLE_VILLAGER_BABIES, this.getNearestVillagerBabies(entity));
+     }
+ 
++    // DivineMC start - Optimize baby villager sensor
+     private List<LivingEntity> getNearestVillagerBabies(LivingEntity livingEntity) {
+-        return ImmutableList.copyOf(this.getVisibleEntities(livingEntity).findAll(this::isVillagerBaby));
++        NearestVisibleLivingEntities visibleEntities = this.getVisibleEntities(livingEntity);
++        ImmutableList.Builder<LivingEntity> babies = ImmutableList.builder();
++
++        for (LivingEntity target : visibleEntities.nearbyEntities) {
++            if (target.getType() == EntityType.VILLAGER
++                && target.isBaby()
++                && visibleEntities.lineOfSightTest.test(target)) {
++                babies.add(target);
++            }
++        }
++
++        return babies.build();
+     }
++    // DivineMC end - Optimize baby villager sensor
+ 
+     private boolean isVillagerBaby(LivingEntity livingEntity) {
+         return livingEntity.getType() == EntityType.VILLAGER && livingEntity.isBaby();
+diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
+index 70b32e0d06f9b8b7999df5fdfd773c09394e23fb..997cff138d5c99b1be9224cb3c96bdfeeb79915a 100644
+--- a/net/minecraft/world/entity/animal/goat/Goat.java
++++ b/net/minecraft/world/entity/animal/goat/Goat.java
+@@ -100,6 +100,13 @@ public class Goat extends Animal {
+         this.getNavigation().setCanFloat(true);
+         this.setPathfindingMalus(PathType.POWDER_SNOW, -1.0F);
+         this.setPathfindingMalus(PathType.DANGER_POWDER_SNOW, -1.0F);
++        // DivineMC start - Optimize entity brain
++        if (!this.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM)) {
++            org.bxteam.divinemc.util.entity.SensorHelper.disableSensor(this, SensorType.NEAREST_ITEMS);
++        } else if (net.minecraft.SharedConstants.IS_RUNNING_IN_IDE) {
++            throw new IllegalStateException("Goat Entity has a nearest visible wanted item memory module! This patch(Optimize-Brain, Goat.java changes) should probably be removed permanently!");
++        }
++        // DivineMC end - Optimize entity brain
+     }
+ 
+     public ItemStack createHorn() {
+diff --git a/net/minecraft/world/entity/schedule/Activity.java b/net/minecraft/world/entity/schedule/Activity.java
+index 5a143bb6fabba3dc4e2272afb0be636d5722ea22..f17cc8135121f1a97f13bf83a0205e7fcb08b431 100644
+--- a/net/minecraft/world/entity/schedule/Activity.java
++++ b/net/minecraft/world/entity/schedule/Activity.java
+@@ -32,10 +32,12 @@ public class Activity {
+     public static final Activity DIG = register("dig");
+     private final String name;
+     private final int hashCode;
++    public final int id; // DivineMC - Cache registry ID
+ 
+-    private Activity(String name) {
++    private Activity(String name, int id) {
+         this.name = name;
+         this.hashCode = name.hashCode();
++        this.id = id; // DivineMC - Cache registry ID
+     }
+ 
+     public String getName() {
+@@ -43,7 +45,7 @@ public class Activity {
+     }
+ 
+     private static Activity register(String key) {
+-        return Registry.register(BuiltInRegistries.ACTIVITY, key, new Activity(key));
++        return Registry.register(BuiltInRegistries.ACTIVITY, key, new Activity(key, BuiltInRegistries.ACTIVITY.size())); // DivineMC - Cache registry ID
+     }
+ 
+     @Override

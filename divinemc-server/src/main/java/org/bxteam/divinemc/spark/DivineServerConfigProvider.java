@@ -131,6 +131,7 @@ public class DivineServerConfigProvider extends ServerConfigProvider {
             .add("world-settings.*.seed-*")
             .add("feature-seeds")
             .add("seed-*")
+            .add("sentry.dsn")
             .addAll(getSystemPropertyList("spark.serverconfigs.hiddenpaths"));
 
         FILES = files.build();

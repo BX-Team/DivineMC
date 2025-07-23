@@ -18,11 +18,11 @@
          Object2IntMap<Stat<?>> map = new Object2IntOpenHashMap<>();
  
 -        for (Stat<?> stat : this.getDirty()) {
-+        for (Stat<?> stat : this.dirty) { // DivineMC - Skip dirty stats copy when requesting player stats
++        for (Stat<?> stat : this.dirty) { // DivineMC - SparklyPaper: Skip dirty stats copy when requesting player stats
              map.put(stat, this.getValue(stat));
          }
 +
-+        this.dirty.clear(); // DivineMC - Skip dirty stats copy when requesting player stats
++        this.dirty.clear(); // DivineMC - SparklyPaper: Clear dirty stats after copying
  
          player.connection.send(new ClientboundAwardStatsPacket(map));
      }

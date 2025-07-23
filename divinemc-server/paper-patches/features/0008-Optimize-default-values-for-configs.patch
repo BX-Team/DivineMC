@@ -1,0 +1,307 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sat, 26 Apr 2025 23:43:59 +0300
+Subject: [PATCH] Optimize default values for configs
+
+
+diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+index c5a491acfe4b93bfa8fd21861edbaf464a178bf3..f572613f3b2aeacfbfcd0a5f96048f55ec2384b9 100644
+--- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
++++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+@@ -348,8 +348,8 @@ public class GlobalConfiguration extends ConfigurationPart {
+         @Constraints.Min(4)
+         public int regionFileCacheSize = 256;
+         @Comment("See https://luckformula.emc.gs")
+-        public boolean useAlternativeLuckFormula = false;
+-        public boolean useDimensionTypeForCustomSpawners = false;
++        public boolean useAlternativeLuckFormula = true; // DivineMC - Optimize default values for configs
++        public boolean useDimensionTypeForCustomSpawners = true; // DivineMC - Optimize default values for configs
+         public boolean strictAdvancementDimensionCheck = false;
+         public IntOr.Default compressionLevel = IntOr.Default.USE_DEFAULT;
+         @Comment("Defines the leniency distance added on the server to the interaction range of a player when validating interact packets.")
+diff --git a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
+index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d4790bd92 100644
+--- a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
++++ b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
+@@ -148,8 +148,10 @@ public class WorldConfiguration extends ConfigurationPart {
+         public ArmorStands armorStands;
+ 
+         public class ArmorStands extends ConfigurationPart {
+-            public boolean doCollisionEntityLookups = true;
+-            public boolean tick = true;
++            // DivineMC start - Optimize default values for configs
++            public boolean doCollisionEntityLookups = false;
++            public boolean tick = false;
++            // DivineMC end - Optimize default values for configs
+         }
+ 
+         public Markers markers;
+@@ -275,8 +277,38 @@ public class WorldConfiguration extends ConfigurationPart {
+             public AltItemDespawnRate altItemDespawnRate;
+ 
+             public class AltItemDespawnRate extends ConfigurationPart {
+-                public boolean enabled = false;
+-                public Reference2IntMap<Item> items = new Reference2IntOpenHashMap<>(Map.of(Items.COBBLESTONE, 300));
++                // DivineMC start - Optimize default values for configs
++                public boolean enabled = true;
++                public Reference2IntMap<Item> items = new Reference2IntOpenHashMap<>(Map.ofEntries(
++                    Map.entry(Items.COBBLESTONE, 300),
++                    Map.entry(Items.NETHERRACK, 300),
++                    Map.entry(Items.SAND, 300),
++                    Map.entry(Items.RED_SAND, 300),
++                    Map.entry(Items.GRAVEL, 300),
++                    Map.entry(Items.DIRT, 300),
++                    Map.entry(Items.SHORT_GRASS, 300),
++                    Map.entry(Items.PUMPKIN, 300),
++                    Map.entry(Items.MELON_SLICE, 300),
++                    Map.entry(Items.KELP, 300),
++                    Map.entry(Items.BAMBOO, 300),
++                    Map.entry(Items.SUGAR_CANE, 300),
++                    Map.entry(Items.TWISTING_VINES, 300),
++                    Map.entry(Items.WEEPING_VINES, 300),
++                    Map.entry(Items.OAK_LEAVES, 300),
++                    Map.entry(Items.SPRUCE_LEAVES, 300),
++                    Map.entry(Items.BIRCH_LEAVES, 300),
++                    Map.entry(Items.JUNGLE_LEAVES, 300),
++                    Map.entry(Items.ACACIA_LEAVES, 300),
++                    Map.entry(Items.DARK_OAK_LEAVES, 300),
++                    Map.entry(Items.MANGROVE_LEAVES, 300),
++                    Map.entry(Items.CHERRY_LEAVES, 300),
++                    Map.entry(Items.CACTUS, 300),
++                    Map.entry(Items.DIORITE, 300),
++                    Map.entry(Items.GRANITE, 300),
++                    Map.entry(Items.ANDESITE, 300),
++                    Map.entry(Items.SCAFFOLDING, 600)
++                ));
++                // DivineMC end - Optimize default values for configs
+             }
+         }
+ 
+@@ -419,7 +451,7 @@ public class WorldConfiguration extends ConfigurationPart {
+     public class Environment extends ConfigurationPart {
+         public boolean disableThunder = false;
+         public boolean disableIceAndSnow = false;
+-        public boolean optimizeExplosions = false;
++        public boolean optimizeExplosions = true; // DivineMC - Optimize default values for configs
+         public boolean disableExplosionKnockback = false;
+         public boolean generateFlatBedrock = false;
+         public FrostedIce frostedIce;
+@@ -472,7 +504,7 @@ public class WorldConfiguration extends ConfigurationPart {
+     public Fixes fixes;
+ 
+     public class Fixes extends ConfigurationPart {
+-        public boolean fixItemsMergingThroughWalls = false;
++        public boolean fixItemsMergingThroughWalls = true; // DivineMC - Optimize default values for configs
+         public boolean disableUnloadedChunkEnderpearlExploit = false;
+         public boolean preventTntFromMovingInWater = false;
+         public boolean splitOverstackedLoot = true;
+@@ -500,9 +532,9 @@ public class WorldConfiguration extends ConfigurationPart {
+     public class Collisions extends ConfigurationPart {
+         public boolean onlyPlayersCollide = false;
+         public boolean allowVehicleCollisions = true;
+-        public boolean fixClimbingBypassingCrammingRule = false;
++        public boolean fixClimbingBypassingCrammingRule = true; // DivineMC - Optimize default values for configs
+         @RequiresSpigotInitialization(MaxEntityCollisionsInitializer.class)
+-        public int maxEntityCollisions = 8;
++        public int maxEntityCollisions = 2; // DivineMC - Optimize default values for configs
+         public boolean allowPlayerCrammingDamage = false;
+     }
+ 
+@@ -512,16 +544,33 @@ public class WorldConfiguration extends ConfigurationPart {
+         public AutosavePeriod autoSaveInterval = AutosavePeriod.def();
+         public int maxAutoSaveChunksPerTick = 24;
+         public int fixedChunkInhabitedTime = -1;
+-        public boolean preventMovingIntoUnloadedChunks = false;
++        public boolean preventMovingIntoUnloadedChunks = true; // DivineMC - Optimize default values for configs
+         public Duration delayChunkUnloadsBy = Duration.of("10s");
+         public Reference2IntMap<EntityType<?>> entityPerChunkSaveLimit = Util.make(new Reference2IntOpenHashMap<>(BuiltInRegistries.ENTITY_TYPE.size()), map -> {
+             map.defaultReturnValue(-1);
+-            map.put(EntityType.EXPERIENCE_ORB, -1);
+-            map.put(EntityType.SNOWBALL, -1);
+-            map.put(EntityType.ENDER_PEARL, -1);
+-            map.put(EntityType.ARROW, -1);
+-            map.put(EntityType.FIREBALL, -1);
+-            map.put(EntityType.SMALL_FIREBALL, -1);
++            // DivineMC start - Optimize default values for configs
++            map.put(EntityType.AREA_EFFECT_CLOUD, 8);
++            map.put(EntityType.ARROW, 16);
++            map.put(EntityType.BREEZE_WIND_CHARGE, 8);
++            map.put(EntityType.DRAGON_FIREBALL, 3);
++            map.put(EntityType.EGG, 8);
++            map.put(EntityType.ENDER_PEARL, 8);
++            map.put(EntityType.EXPERIENCE_BOTTLE, 3);
++            map.put(EntityType.EXPERIENCE_ORB, 16);
++            map.put(EntityType.EYE_OF_ENDER, 8);
++            map.put(EntityType.FIREBALL, 8);
++            map.put(EntityType.FIREWORK_ROCKET, 8);
++            map.put(EntityType.LLAMA_SPIT, 3);
++            map.put(EntityType.SPLASH_POTION, 8);
++            map.put(EntityType.LINGERING_POTION, 8);
++            map.put(EntityType.SHULKER_BULLET, 8);
++            map.put(EntityType.SMALL_FIREBALL, 8);
++            map.put(EntityType.SNOWBALL, 8);
++            map.put(EntityType.SPECTRAL_ARROW, 16);
++            map.put(EntityType.TRIDENT, 16);
++            map.put(EntityType.WIND_CHARGE, 8);
++            map.put(EntityType.WITHER_SKULL, 4);
++            // DivineMC end - Optimize default values for configs
+         });
+         public boolean flushRegionsOnSave = false;
+ 
+@@ -541,9 +590,9 @@ public class WorldConfiguration extends ConfigurationPart {
+     public TickRates tickRates;
+ 
+     public class TickRates extends ConfigurationPart {
+-        public int grassSpread = 1;
++        public int grassSpread = 4;
+         public int containerUpdate = 1;
+-        public int mobSpawner = 1;
++        public int mobSpawner = 2;
+         public int wetFarmland = 1;
+         public int dryFarmland = 1;
+         public Table<EntityType<?>, String, Integer> sensor = Util.make(HashBasedTable.create(), table -> table.put(EntityType.VILLAGER, "secondarypoisensor", 40));
+@@ -578,7 +627,7 @@ public class WorldConfiguration extends ConfigurationPart {
+     public class Misc extends ConfigurationPart {
+         public boolean updatePathfindingOnBlockUpdate = true;
+         public boolean showSignClickCommandFailureMsgsToPlayer = false;
+-        public RedstoneImplementation redstoneImplementation = RedstoneImplementation.VANILLA;
++        public RedstoneImplementation redstoneImplementation = RedstoneImplementation.ALTERNATE_CURRENT; // DivineMC - Optimize default values for configs
+         public AlternateCurrentUpdateOrder alternateCurrentUpdateOrder = AlternateCurrentUpdateOrder.HORIZONTAL_FIRST_OUTWARD;
+         public boolean disableEndCredits = false;
+         public DoubleOr.Default maxLeashDistance = DoubleOr.Default.USE_DEFAULT;
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index 43c6240ec2855c0f668ce04de29d22a223d2612f..74cae42b0c8971e0ad724ef28a7ddb42906e574d 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -135,13 +135,13 @@ public class SpigotWorldConfig {
+ 
+     public double itemMerge;
+     private void itemMerge() {
+-        this.itemMerge = this.getDouble("merge-radius.item", 0.5);
++        this.itemMerge = this.getDouble("merge-radius.item", 3.5); // DivineMC - Optimize default values for configs
+         this.log("Item Merge Radius: " + this.itemMerge);
+     }
+ 
+     public double expMerge;
+     private void expMerge() {
+-        this.expMerge = this.getDouble("merge-radius.exp", -1);
++        this.expMerge = this.getDouble("merge-radius.exp", 4.0); // DivineMC - Optimize default values for configs
+         this.log("Experience Merge Radius: " + this.expMerge);
+     }
+ 
+@@ -174,7 +174,7 @@ public class SpigotWorldConfig {
+ 
+     public byte mobSpawnRange;
+     private void mobSpawnRange() {
+-        this.mobSpawnRange = (byte) getInt("mob-spawn-range", 8); // Paper - Vanilla
++        this.mobSpawnRange = (byte) getInt("mob-spawn-range", 3); // Paper - Vanilla // DivineMC - Optimize default values for configs
+         this.log("Mob Spawn Range: " + this.mobSpawnRange);
+     }
+ 
+@@ -184,13 +184,15 @@ public class SpigotWorldConfig {
+         this.log("Item Despawn Rate: " + this.itemDespawnRate);
+     }
+ 
+-    public int animalActivationRange = 32;
+-    public int monsterActivationRange = 32;
+-    public int raiderActivationRange = 64;
+-    public int miscActivationRange = 16;
+-    public int flyingMonsterActivationRange = 32;
+-    public int waterActivationRange = 16;
+-    public int villagerActivationRange = 32;
++    // DivineMC start - Optimize default values for configs
++    public int animalActivationRange = 16;
++    public int monsterActivationRange = 24;
++    public int raiderActivationRange = 48;
++    public int miscActivationRange = 8;
++    public int flyingMonsterActivationRange = 48;
++    public int waterActivationRange = 8;
++    public int villagerActivationRange = 16;
++    // DivineMC end - Optimize default values for configs
+     public int wakeUpInactiveAnimals = 4;
+     public int wakeUpInactiveAnimalsEvery = 60 * 20;
+     public int wakeUpInactiveAnimalsFor = 5 * 20;
+@@ -243,10 +245,10 @@ public class SpigotWorldConfig {
+         this.log("Entity Activation Range: An " + this.animalActivationRange + " / Mo " + this.monsterActivationRange + " / Ra " + this.raiderActivationRange + " / Mi " + this.miscActivationRange + " / Tiv " + this.tickInactiveVillagers + " / Isa " + this.ignoreSpectatorActivation);
+     }
+ 
+-    public int playerTrackingRange = 128;
+-    public int animalTrackingRange = 96;
+-    public int monsterTrackingRange = 96;
+-    public int miscTrackingRange = 96;
++    public int playerTrackingRange = 48;
++    public int animalTrackingRange = 48;
++    public int monsterTrackingRange = 48;
++    public int miscTrackingRange = 32;
+     public int displayTrackingRange = 128;
+     public int otherTrackingRange = 64;
+     private void trackingRange() {
+@@ -269,7 +271,7 @@ public class SpigotWorldConfig {
+         if (SpigotConfig.version < 11) {
+             this.set("ticks-per.hopper-check", 1);
+         }
+-        this.hopperCheck = this.getInt("ticks-per.hopper-check", 1);
++        this.hopperCheck = this.getInt("ticks-per.hopper-check", 8); // DivineMC - Optimize default values for configs
+         this.hopperAmount = this.getInt("hopper-amount", 1);
+         this.hopperCanLoadChunks = this.getBoolean("hopper-can-load-chunks", false);
+         this.log("Hopper Transfer: " + this.hopperTransfer + " Hopper Check: " + this.hopperCheck + " Hopper Amount: " + this.hopperAmount + " Hopper Can Load Chunks: " + this.hopperCanLoadChunks);
+diff --git a/src/main/resources/configurations/bukkit.yml b/src/main/resources/configurations/bukkit.yml
+index 00a5b4dc0d7bc57ae3f9231f84a081617ec4b15b..874f862a67e6c2109bce03d21fb4441a53e71633 100644
+--- a/src/main/resources/configurations/bukkit.yml
++++ b/src/main/resources/configurations/bukkit.yml
+@@ -16,28 +16,28 @@ settings:
+     update-folder: update
+     plugin-profiling: false
+     connection-throttle: 4000
+-    query-plugins: true
++    query-plugins: false
+     deprecated-verbose: default
+     shutdown-message: Server closed
+     minimum-api: none
+     use-map-color-cache: true
+ spawn-limits:
+-    monsters: 70
+-    animals: 10
+-    water-animals: 5
+-    water-ambient: 20
+-    water-underground-creature: 5
+-    axolotls: 5
+-    ambient: 15
++    monsters: 20
++    animals: 8
++    water-animals: 3
++    water-ambient: 1
++    water-underground-creature: 3
++    axolotls: 3
++    ambient: 1
+ chunk-gc:
+-    period-in-ticks: 600
++    period-in-ticks: 400
+ ticks-per:
+     animal-spawns: 400
+-    monster-spawns: 1
+-    water-spawns: 1
+-    water-ambient-spawns: 1
+-    water-underground-creature-spawns: 1
+-    axolotl-spawns: 1
+-    ambient-spawns: 1
++    monster-spawns: 20
++    water-spawns: 400
++    water-ambient-spawns: 600
++    water-underground-creature-spawns: 600
++    axolotl-spawns: 400
++    ambient-spawns: 1800
+     autosave: 6000
+ aliases: now-in-commands.yml
+diff --git a/src/main/resources/configurations/commands.yml b/src/main/resources/configurations/commands.yml
+index ddf2cd4b802cf7d22342eed7f09c989761aed7a9..59f2bed6512f23ca7e28aebe0cef7d50bcfb8f8c 100644
+--- a/src/main/resources/configurations/commands.yml
++++ b/src/main/resources/configurations/commands.yml
+@@ -10,6 +10,4 @@
+ 
+ command-block-overrides: []
+ ignore-vanilla-permissions: false
+-aliases:
+-    icanhasbukkit:
+-      - "version $1-"
++aliases: []

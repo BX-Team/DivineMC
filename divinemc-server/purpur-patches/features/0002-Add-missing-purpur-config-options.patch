@@ -5,10 +5,10 @@ Subject: [PATCH] Add missing purpur config options
 
 
 diff --git a/src/main/java/org/purpurmc/purpur/PurpurConfig.java b/src/main/java/org/purpurmc/purpur/PurpurConfig.java
-index 72fcad4a0b5857551221741b9c73fa75596e6981..374af5eb6b55c731535be4e8c242ffc3a6e4647a 100644
+index e5244941506e99a8a2450e798483fed6fc328b85..657776f124e761fd2017cd43c73cd94a4abb20e6 100644
 --- a/src/main/java/org/purpurmc/purpur/PurpurConfig.java
 +++ b/src/main/java/org/purpurmc/purpur/PurpurConfig.java
-@@ -327,6 +327,7 @@ public class PurpurConfig {
+@@ -333,6 +333,7 @@ public class PurpurConfig {
      }
  
      public static int barrelRows = 3;
@@ -16,7 +16,7 @@ index 72fcad4a0b5857551221741b9c73fa75596e6981..374af5eb6b55c731535be4e8c242ffc3
      public static boolean enderChestSixRows = false;
      public static boolean enderChestPermissionRows = false;
      public static boolean cryingObsidianValidForPortalFrame = false;
-@@ -370,6 +371,7 @@ public class PurpurConfig {
+@@ -376,6 +377,7 @@ public class PurpurConfig {
              case 1 -> 9;
              default -> 27;
          });
@@ -25,7 +25,7 @@ index 72fcad4a0b5857551221741b9c73fa75596e6981..374af5eb6b55c731535be4e8c242ffc3
          org.bukkit.event.inventory.InventoryType.ENDER_CHEST.setDefaultSize(enderChestSixRows ? 54 : 27);
          enderChestPermissionRows = getBoolean("settings.blocks.ender_chest.use-permissions-for-rows", enderChestPermissionRows);
 diff --git a/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java b/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
-index 3346e45393776c9ed120c2be70e24a9289f74fd3..225d3fab20ef461c87b260b2674229806649bc56 100644
+index a03e166b490952534e8050654c1afa975795f731..1b17643fffecd7af6ec60ef8a24eac85ddd7b80d 100644
 --- a/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
 +++ b/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
 @@ -1184,12 +1184,20 @@ public class PurpurWorldConfig {

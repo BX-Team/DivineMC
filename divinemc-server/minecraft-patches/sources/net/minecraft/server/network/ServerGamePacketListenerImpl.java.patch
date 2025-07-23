@@ -1,19 +1,18 @@
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -766,8 +_,14 @@
-         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
-         if (packet.getId() == this.awaitingTeleport) {
-             if (this.awaitingPositionFromClient == null) {
--                ServerGamePacketListenerImpl.LOGGER.warn("Disconnected on accept teleport packet. Was not expecting position data from client at this time"); // Purpur - Add more logger output for invalid movement kicks
--                this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
-+                // DivineMC start - Graceful teleport handling
-+                if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.gracefulTeleportHandling) {
-+                    LOGGER.info("Was not expecting position data from client at this time, gracefully returning instead of disconnect.");
-+                } else {
-+                    ServerGamePacketListenerImpl.LOGGER.warn("Disconnected on accept teleport packet. Was not expecting position data from client at this time"); // Purpur - Add more logger output for invalid movement kicks
-+                    this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
-+                }
-+                // DivineMC end - Graceful teleport handling
-                 return;
-             }
+@@ -313,6 +_,7 @@
+     private static final int MAX_SIGN_LINE_LENGTH = Integer.getInteger("Paper.maxSignLength", 80); // Paper - Limit client sign length
+     private final io.papermc.paper.event.packet.ClientTickEndEvent tickEndEvent; // Paper - add client tick end event
+     public final io.papermc.paper.connection.PaperPlayerGameConnection playerGameConnection; // Paper
++    public final org.leavesmc.leaves.protocol.syncmatica.exchange.ExchangeTarget exchangeTarget; // DivineMC - Leaves: Syncmatica Protocol
  
+     public ServerGamePacketListenerImpl(MinecraftServer server, Connection connection, ServerPlayer player, CommonListenerCookie cookie) {
+         super(server, connection, cookie);
+@@ -324,6 +_,7 @@
+         this.chatMessageChain = new FutureChain(server.chatExecutor); // CraftBukkit - async chat
+         this.tickEndEvent = new io.papermc.paper.event.packet.ClientTickEndEvent(player.getBukkitEntity()); // Paper - add client tick end event
+         this.playerGameConnection =  new io.papermc.paper.connection.PaperPlayerGameConnection(this); // Paper
++        this.exchangeTarget = new org.leavesmc.leaves.protocol.syncmatica.exchange.ExchangeTarget(this); // DivineMC - Leaves: Syncmatica Protocol
+     }
+ 
+     // Paper start - configuration phase API
