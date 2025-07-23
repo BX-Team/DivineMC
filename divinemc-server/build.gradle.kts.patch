@@ -7,7 +7,7 @@
 +val bxTeamMavenPublicUrl = "https://repo.bxteam.org/snapshots/"
  
  dependencies {
-     mache("io.papermc:mache:1.21.7+build.2")
+     mache("io.papermc:mache:1.21.8+build.1")
 @@ -29,6 +_,7 @@
  
      // Purpur start - Rebrand
@@ -116,9 +116,9 @@
 +    implementation("io.netty:netty-codec-haproxy:4.1.119.Final") // Add support for proxy protocol // DivineMC - Bump dependencies
 +    implementation("org.apache.logging.log4j:log4j-iostreams:2.24.3") // DivineMC - Bump dependencies
      implementation("org.ow2.asm:asm-commons:9.8")
-     implementation("org.spongepowered:configurate-yaml:4.2.0-20250225.064233-199")
-     implementation("org.spongepowered:configurate-core:4.2.0-20250225.064233-204") // Pinned dependency of above pinned yaml snapshot.
-@@ -191,24 +_,31 @@
+     implementation("org.spongepowered:configurate-yaml:4.2.0")
+ 
+@@ -190,7 +_,12 @@
      // Deps that were previously in the API but have now been moved here for backwards compat, eventually to be removed
      runtimeOnly("commons-lang:commons-lang:2.6")
      runtimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
@@ -132,17 +132,7 @@
      runtimeOnly("com.lmax:disruptor:3.4.4")
      implementation("com.googlecode.json-simple:json-simple:1.1.1") { // change to runtimeOnly once Timings is removed
          isTransitive = false // includes junit
-     }
- 
--    runtimeOnly("org.apache.maven:maven-resolver-provider:3.9.6")
--    runtimeOnly("org.apache.maven.resolver:maven-resolver-connector-basic:1.9.18")
--    runtimeOnly("org.apache.maven.resolver:maven-resolver-transport-http:1.9.18")
-+    // DivineMC start - Bump dependencies
-+    runtimeOnly("org.apache.maven:maven-resolver-provider:3.9.9")
-+    runtimeOnly("org.apache.maven.resolver:maven-resolver-connector-basic:1.9.22")
-+    runtimeOnly("org.apache.maven.resolver:maven-resolver-transport-http:1.9.22")
-+    // DivineMC end - Bump dependencies
- 
+@@ -199,11 +_,11 @@
      testImplementation("io.github.classgraph:classgraph:4.8.179") // For mob goal test
      testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
      testImplementation("org.junit.platform:junit-platform-suite-engine:1.12.2")
@@ -158,7 +148,7 @@
  
      implementation("net.neoforged:srgutils:1.0.9") // Mappings handling
      implementation("net.neoforged:AutoRenamingTool:2.0.3") // Remap plugins
-@@ -224,30 +_,42 @@
+@@ -219,30 +_,42 @@
      implementation("me.lucko:spark-paper:1.10.133-20250413.112336-1")
  }
  
@@ -208,7 +198,7 @@
          )
          for (tld in setOf("net", "com", "org")) {
              attributes("$tld/bukkit", "Sealed" to true)
-@@ -333,7 +_,7 @@
+@@ -328,7 +_,7 @@
      block: JavaExec.() -> Unit
  ): TaskProvider<JavaExec> = register<JavaExec>(name) {
      group = "runs"

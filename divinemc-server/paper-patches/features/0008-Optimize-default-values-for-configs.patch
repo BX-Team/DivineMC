@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize default values for configs
 
 
 diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
-index c5a491acfe4b93bfa8fd21861edbaf464a178bf3..f572613f3b2aeacfbfcd0a5f96048f55ec2384b9 100644
+index 3f5e76e4df8ff8152060449f89b522910adee834..4eb45775c7ada4fd4137c87104580314f888bc50 100644
 --- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
 +++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
-@@ -348,8 +348,8 @@ public class GlobalConfiguration extends ConfigurationPart {
+@@ -349,8 +349,8 @@ public class GlobalConfiguration extends ConfigurationPart {
          @Constraints.Min(4)
          public int regionFileCacheSize = 256;
          @Comment("See https://luckformula.emc.gs")
@@ -20,7 +20,7 @@ index c5a491acfe4b93bfa8fd21861edbaf464a178bf3..f572613f3b2aeacfbfcd0a5f96048f55
          public IntOr.Default compressionLevel = IntOr.Default.USE_DEFAULT;
          @Comment("Defines the leniency distance added on the server to the interaction range of a player when validating interact packets.")
 diff --git a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
-index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d4790bd92 100644
+index 7100a3fce29ef0cbbdb3659835a0896e168c5803..8e695b602b95ff6a85316e19d24be94b31ff9558 100644
 --- a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
 +++ b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
 @@ -148,8 +148,10 @@ public class WorldConfiguration extends ConfigurationPart {
@@ -36,7 +36,7 @@ index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d
          }
  
          public Markers markers;
-@@ -275,8 +277,38 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -274,8 +276,38 @@ public class WorldConfiguration extends ConfigurationPart {
              public AltItemDespawnRate altItemDespawnRate;
  
              public class AltItemDespawnRate extends ConfigurationPart {
@@ -77,7 +77,7 @@ index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d
              }
          }
  
-@@ -419,7 +451,7 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -418,7 +450,7 @@ public class WorldConfiguration extends ConfigurationPart {
      public class Environment extends ConfigurationPart {
          public boolean disableThunder = false;
          public boolean disableIceAndSnow = false;
@@ -86,7 +86,7 @@ index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d
          public boolean disableExplosionKnockback = false;
          public boolean generateFlatBedrock = false;
          public FrostedIce frostedIce;
-@@ -472,7 +504,7 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -471,7 +503,7 @@ public class WorldConfiguration extends ConfigurationPart {
      public Fixes fixes;
  
      public class Fixes extends ConfigurationPart {
@@ -95,7 +95,7 @@ index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d
          public boolean disableUnloadedChunkEnderpearlExploit = false;
          public boolean preventTntFromMovingInWater = false;
          public boolean splitOverstackedLoot = true;
-@@ -500,9 +532,9 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -499,9 +531,9 @@ public class WorldConfiguration extends ConfigurationPart {
      public class Collisions extends ConfigurationPart {
          public boolean onlyPlayersCollide = false;
          public boolean allowVehicleCollisions = true;
@@ -107,7 +107,7 @@ index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d
          public boolean allowPlayerCrammingDamage = false;
      }
  
-@@ -512,16 +544,33 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -511,16 +543,33 @@ public class WorldConfiguration extends ConfigurationPart {
          public AutosavePeriod autoSaveInterval = AutosavePeriod.def();
          public int maxAutoSaveChunksPerTick = 24;
          public int fixedChunkInhabitedTime = -1;
@@ -148,7 +148,7 @@ index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d
          });
          public boolean flushRegionsOnSave = false;
  
-@@ -541,9 +590,9 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -540,9 +589,9 @@ public class WorldConfiguration extends ConfigurationPart {
      public TickRates tickRates;
  
      public class TickRates extends ConfigurationPart {
@@ -160,7 +160,7 @@ index ed687b0ab589fd2ddb8bf77f42ba42cf8b1c2ea7..b01509c5d579c57e3be019f8fb850a8d
          public int wetFarmland = 1;
          public int dryFarmland = 1;
          public Table<EntityType<?>, String, Integer> sensor = Util.make(HashBasedTable.create(), table -> table.put(EntityType.VILLAGER, "secondarypoisensor", 40));
-@@ -578,7 +627,7 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -577,7 +626,7 @@ public class WorldConfiguration extends ConfigurationPart {
      public class Misc extends ConfigurationPart {
          public boolean updatePathfindingOnBlockUpdate = true;
          public boolean showSignClickCommandFailureMsgsToPlayer = false;

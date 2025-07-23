@@ -5,10 +5,10 @@ Subject: [PATCH] Extend Location API
 
 
 diff --git a/src/main/java/org/bukkit/Location.java b/src/main/java/org/bukkit/Location.java
-index 47f667ccc86086d27d8649dd01f5867610556c60..3f8ca9dfcf695f52393af117f14d8b0586fb6cfa 100644
+index 1e75bc2f5772e18c082feb7f3c6419c85519ef40..7e6795f5ed0ef46440ff36b03ec7602da6096b8a 100644
 --- a/src/main/java/org/bukkit/Location.java
 +++ b/src/main/java/org/bukkit/Location.java
-@@ -1271,4 +1271,170 @@ public class Location implements Cloneable, ConfigurationSerializable, io.paperm
+@@ -1282,4 +1282,170 @@ public class Location implements Cloneable, ConfigurationSerializable, io.paperm
      public @NotNull Location toLocation(@NotNull World world) {
          return new Location(world, this.x(), this.y(), this.z(), this.getYaw(), this.getPitch());
      }

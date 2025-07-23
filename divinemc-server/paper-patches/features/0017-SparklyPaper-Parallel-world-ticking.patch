@@ -330,7 +330,7 @@ index cd43af3f442f7d8af1a4552a0eff33958873a366..cf4967875c2d9e87da86645e5a1f0cba
      }
      // Paper end
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
-index a4d5c65edc1db59f3486ce5d3757cc306211a54b..d8f68164b0b4430ccdc7e4a419eace7185c82cd1 100644
+index 7a0d37dec5a1af05a4fb78f791a9bd652aaf4806..92487ba35bb0a5584b16ee6c3234aa3430c9ebce 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 @@ -75,6 +75,11 @@ public class CraftBlock implements Block {
@@ -439,7 +439,7 @@ index a4d5c65edc1db59f3486ce5d3757cc306211a54b..d8f68164b0b4430ccdc7e4a419eace71
          return this.breakNaturally(null);
      }
  
-@@ -542,6 +587,11 @@ public class CraftBlock implements Block {
+@@ -548,6 +593,11 @@ public class CraftBlock implements Block {
  
      @Override
      public boolean applyBoneMeal(BlockFace face) {
@@ -451,7 +451,7 @@ index a4d5c65edc1db59f3486ce5d3757cc306211a54b..d8f68164b0b4430ccdc7e4a419eace71
          Direction direction = CraftBlock.blockFaceToNotch(face);
          BlockFertilizeEvent event = null;
          ServerLevel world = this.getCraftWorld().getHandle();
-@@ -553,8 +603,10 @@ public class CraftBlock implements Block {
+@@ -559,8 +609,10 @@ public class CraftBlock implements Block {
          world.captureTreeGeneration = false;
  
          if (!world.capturedBlockStates.isEmpty()) {
@@ -464,7 +464,7 @@ index a4d5c65edc1db59f3486ce5d3757cc306211a54b..d8f68164b0b4430ccdc7e4a419eace71
              List<BlockState> states = new ArrayList<>(world.capturedBlockStates.values());
              world.capturedBlockStates.clear();
              StructureGrowEvent structureEvent = null;
-@@ -644,6 +696,11 @@ public class CraftBlock implements Block {
+@@ -650,6 +702,11 @@ public class CraftBlock implements Block {
  
      @Override
      public RayTraceResult rayTrace(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode) {
@@ -476,7 +476,7 @@ index a4d5c65edc1db59f3486ce5d3757cc306211a54b..d8f68164b0b4430ccdc7e4a419eace71
          Preconditions.checkArgument(start != null, "Location start cannot be null");
          Preconditions.checkArgument(this.getWorld().equals(start.getWorld()), "Location start cannot be a different world");
          start.checkFinite();
-@@ -685,6 +742,11 @@ public class CraftBlock implements Block {
+@@ -691,6 +748,11 @@ public class CraftBlock implements Block {
  
      @Override
      public boolean canPlace(BlockData data) {
@@ -488,7 +488,7 @@ index a4d5c65edc1db59f3486ce5d3757cc306211a54b..d8f68164b0b4430ccdc7e4a419eace71
          Preconditions.checkArgument(data != null, "BlockData cannot be null");
          net.minecraft.world.level.block.state.BlockState iblockdata = ((CraftBlockData) data).getState();
          net.minecraft.world.level.Level world = this.world.getMinecraftWorld();
-@@ -724,6 +786,11 @@ public class CraftBlock implements Block {
+@@ -730,6 +792,11 @@ public class CraftBlock implements Block {
  
      @Override
      public void tick() {
@@ -569,7 +569,7 @@ index 196835bdf95ba0e149b2977e9ef41698971f501f..b35dbe2b6e75ec89483aef093474c675
          net.minecraft.world.item.ItemStack nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(item);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
-index a43f3d6e54de52da6b1ee050aefd0028a1adafcf..e36e3822abdf805b3318d1b0d0f92c17131f1699 100644
+index 7d9f79eec2cb36a88b3b25154a02f2aee7ec1e21..02664f27a81e7836ba7d307d7b45988d329a4437 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
 @@ -195,14 +195,16 @@ public final class CraftBlockStates {

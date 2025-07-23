@@ -13,7 +13,7 @@ This patch does not add any API that should be used by plugins. Any
 classes and methods added by this patch should NOT be used in plugins.
 
 diff --git a/src/main/java/org/bukkit/map/MapPalette.java b/src/main/java/org/bukkit/map/MapPalette.java
-index 2b9e4aa8cf35e7106e510e547954ee7e1bcf3d81..482a08c38748d82313e02f6f699006aa83a071bc 100644
+index 204860b32b4958a2804b2e5bc82f5be099e461f3..b3933fea40c5902f545fa0230b818d2ef3c2a675 100644
 --- a/src/main/java/org/bukkit/map/MapPalette.java
 +++ b/src/main/java/org/bukkit/map/MapPalette.java
 @@ -35,7 +35,7 @@ public final class MapPalette {
@@ -23,7 +23,7 @@ index 2b9e4aa8cf35e7106e510e547954ee7e1bcf3d81..482a08c38748d82313e02f6f699006aa
 -    static final Color[] colors = {
 +    public static final Color[] colors = { // DivineMC - Vectorized map color conversion - package -> public
          // Start generate - MapPalette#colors
-         // @GeneratedFrom 1.21.7
+         // @GeneratedFrom 1.21.8
          new Color(0x00000000, true),
 @@ -395,9 +395,15 @@ public final class MapPalette {
          temp.getRGB(0, 0, temp.getWidth(), temp.getHeight(), pixels, 0, temp.getWidth());

@@ -24,10 +24,10 @@ up on this optimisation before he came along.
 Locally this patch drops the entity tracker tick by a full 1.5x.
 
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 4ab30d291de7db5ad7d5684662f41348270802b9..8bb7d9f2bce06880164f0ae36e1674e9dc380809 100644
+index 3f60d1b0ac91cfd3418e791222cd7267774b367a..882a912ba3f23ee8239c24068704d9ec9a7f7c40 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -149,6 +149,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -150,6 +150,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
      // Paper start - Optimize network
      public boolean isPending = true;
      public boolean queueImmunity;
@@ -35,7 +35,7 @@ index 4ab30d291de7db5ad7d5684662f41348270802b9..8bb7d9f2bce06880164f0ae36e1674e9
      // Paper end - Optimize network
  
      public Connection(PacketFlow receiving) {
-@@ -159,6 +160,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -160,6 +161,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
      public void channelActive(ChannelHandlerContext context) throws Exception {
          super.channelActive(context);
          this.channel = context.channel();
@@ -43,7 +43,7 @@ index 4ab30d291de7db5ad7d5684662f41348270802b9..8bb7d9f2bce06880164f0ae36e1674e9
          this.address = this.channel.remoteAddress();
          this.preparing = false; // Spigot
          if (this.delayedDisconnect != null) {
-@@ -473,7 +475,13 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -474,7 +476,13 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, channelFutureListener, flag);
          } else {

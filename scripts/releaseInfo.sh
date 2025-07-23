@@ -48,7 +48,7 @@ mv divinemc-server/build/libs/divinemc-shuttle-"$version"-mojmap.jar "$jarName"
   fi
 } >> $changelog
 
-number=$(git log --oneline ver/1.21.7 ^"$(git describe --tags --abbrev=0)" | wc -l)
+number=$(git log --oneline ver/1.21.8 ^"$(git describe --tags --abbrev=0)" | wc -l)
 git log --pretty='- [`%h`](https://github.com/BX-Team/DivineMC/commit/%H) %s' "-$number" >> $changelog
 
 {
