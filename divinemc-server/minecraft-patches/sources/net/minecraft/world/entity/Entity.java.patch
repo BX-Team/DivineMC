@@ -16,6 +16,22 @@
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
          ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
+@@ -2576,6 +_,7 @@
+             }
+ 
+             this.addAdditionalSaveData(output, includeAll); // CraftBukkit - pass on includeAll
++            if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc2025) output.store("AABB", org.bxteam.divinemc.util.Codecs.AABB_CODEC, this.getBoundingBox()); // DivineMC - Fix MC-2025
+             if (this.isVehicle()) {
+                 ValueOutput.ValueOutputList valueOutputList = output.childrenList("Passengers");
+ 
+@@ -2684,6 +_,7 @@
+                 this.tags.clear();
+                 input.read("Tags", TAG_LIST_CODEC).ifPresent(this.tags::addAll);
+                 this.readAdditionalSaveData(input);
++                if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc2025) input.read("AABB", org.bxteam.divinemc.util.Codecs.AABB_CODEC).ifPresent(this::setBoundingBox); // DivineMC - Fix MC-2025
+                 if (this.repositionEntityAfterLoad()) {
+                     this.reapplyPosition();
+                 }
 @@ -4219,6 +_,7 @@
      }
  

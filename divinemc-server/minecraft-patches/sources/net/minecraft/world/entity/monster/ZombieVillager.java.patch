@@ -6,7 +6,7 @@
                  }
 +
 +                // DivineMC start - Fix MC-200418
-+                if (mob.isPassenger() && mob.getVehicle() instanceof net.minecraft.world.entity.animal.Chicken && mob.isBaby()) {
++                if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc200418 && mob.isPassenger() && mob.getVehicle() instanceof net.minecraft.world.entity.animal.Chicken && mob.isBaby()) {
 +                    mob.removeVehicle();
 +                }
 +                // DivineMC end - Fix MC-200418

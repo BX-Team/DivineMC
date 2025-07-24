@@ -545,8 +545,12 @@ public class DivineConfig {
         public static boolean forceMinecraftCommand = false;
         public static boolean disableLeafDecay = false;
 
-        // Bug fixes (MC-*)
-        public static boolean slopesVisualFix = false;
+        // MC Bug fixes
+        public static boolean fixMc258859 = false;
+        public static boolean fixMc200418 = false;
+        public static boolean fixMc2025 = false;
+        public static boolean fixMc94054 = false;
+        public static boolean fixMc183990 = false;
 
         public static void load() {
             gameplayFixes();
@@ -572,8 +576,21 @@ public class DivineConfig {
         }
 
         private static void bugFixes() {
-            slopesVisualFix = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-258859"), slopesVisualFix,
-                "Fixes MC-258859, fixing slopes visual bug in biomes like Snowy Slopes, Frozen Peaks, Jagged Peaks, and including Terralith.");
+            fixMc258859 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-258859"), fixMc258859,
+                "Fixes MC-258859: https://bugs.mojang.com/browse/MC-258859",
+                "Fixes slopes visual bug in biomes like Snowy Slopes, Frozen Peaks, Jagged Peaks, and including Terralith.");
+            fixMc200418 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-200418"), fixMc200418,
+                "Fixes MC-200418: https://bugs.mojang.com/browse/MC-200418",
+                "Baby zombie villagers stay as jockey variant.");
+            fixMc2025 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-2025"), fixMc2025,
+                "Fixes MC-2025: https://bugs.mojang.com/browse/MC-2025",
+                "Mobs going out of fenced areas/suffocate in blocks when loading chunks.");
+            fixMc94054 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-94054"), fixMc94054,
+                "Fixes MC-94054: https://bugs.mojang.com/browse/MC-94054",
+                "Cave spiders spin around when walking.");
+            fixMc183990 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-183990"), fixMc183990,
+                "Fixes MC-183990: https://bugs.mojang.com/browse/MC-183990",
+                "AI of some mobs breaks when their target dies.");
         }
     }
 

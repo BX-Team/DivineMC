@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/Mob.java
++++ b/net/minecraft/world/entity/Mob.java
+@@ -328,6 +_,8 @@
+             this.playAmbientSound();
+         }
+ 
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc183990 && this.target != null && this.target.isDeadOrDying()) this.setTarget(null); // DivineMC - Fix MC-183990
++
+         profilerFiller.pop();
+         incrementTicksSinceLastInteraction(); // Purpur - Entity lifespan
+     }
