@@ -91,10 +91,10 @@ index a7c4fad2b1cb0cbac742a18d37d688bb2663944e..b94243d293e805743453adf7b4fc8d85
              bridge.removeChannel(channel);
          }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index c537d22fd97225c1b6d58bed61add83a20d9be24..75d9d06066c750ac9a176adc021410f1265cd36f 100644
+index d45d23ec160a90cfcff853433862bd7acd25099c..b5d31634cc988af87e5f488d2d6215a31b3077fb 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -3678,6 +3678,17 @@ public class ServerGamePacketListenerImpl
+@@ -3679,6 +3679,17 @@ public class ServerGamePacketListenerImpl
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {

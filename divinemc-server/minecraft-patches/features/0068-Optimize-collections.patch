@@ -4,19 +4,6 @@ Date: Thu, 24 Jul 2025 14:07:47 +0300
 Subject: [PATCH] Optimize collections
 
 
-diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-index 2d24d03bbdb5ee0d862cbfff2219f58afffafe12..b4c982264234925f15cb88b3174711e00b1633db 100644
---- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-+++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-@@ -44,7 +44,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
- 
-     public final Level world;
- 
--    protected final SWMRLong2ObjectHashTable<ChunkSlicesRegion> regions = new SWMRLong2ObjectHashTable<>(128, 0.5f);
-+    protected final it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap<ChunkSlicesRegion> regions = new it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap<>(128); // DivineMC - Optimize collections
- 
-     protected final LevelCallback<Entity> worldCallback;
- 
 diff --git a/net/minecraft/core/NonNullList.java b/net/minecraft/core/NonNullList.java
 index 7e31c5c8659d24948fd45a2d6ee7bdeca6027d27..95221434fd8eef388f0308b72af3f93407a6e09c 100644
 --- a/net/minecraft/core/NonNullList.java
@@ -67,7 +54,7 @@ index b0c5e41fefc7c9adf1a61bd5b52861736657d37e..dfc62772d5617f0dce72b45a1bebf1b2
          brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, entitiesOfClass);
          brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(level, entity, entitiesOfClass));
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index f6b548dbb8b1bd82b5ddc73e2613cdcde059ce74..d5ffa5ef26222e8d111c9e4f15362fa3b73edd1c 100644
+index 66ba223dacefb3531c46b144c4499b2b2285eafe..0b7f9af0c4e43115878769043ebd06a09ccdf059 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -253,7 +253,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
