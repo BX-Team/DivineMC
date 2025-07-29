@@ -36,10 +36,10 @@ index 758ce439d2e10e6ef42a58d147a77093667e0acd..de622982f864d96a5b76efcd69f1836e
          new java.util.concurrent.LinkedBlockingQueue<>(),
          new com.google.common.util.concurrent.ThreadFactoryBuilder()
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index dd88e4d0f72a482e4feea38bc194fc16799adf02..2baa4dc93bcc448ce65bae50ca39d41e562e2211 100644
+index 9dd56cdd243b63d36e2d6a1b0e2aa48aa766c3b6..a5130d66312717737e7b3a6e6f5fac3e4c0a62d7 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -2640,8 +2640,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2643,8 +2643,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
  
@@ -54,7 +54,7 @@ index dd88e4d0f72a482e4feea38bc194fc16799adf02..2baa4dc93bcc448ce65bae50ca39d41e
  
      public ChatDecorator getChatDecorator() {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 1bd6368704665f90eaa621366b4dec21bc937a96..7b10fe7cf66757ed68f9e39e03259700dfabf184 100644
+index b58fc16f9054f36d5ddb2dffabd9274969e56897..2d3200834e46a24156659a32170aa4974caf8060 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -838,8 +838,11 @@ public class ServerGamePacketListenerImpl

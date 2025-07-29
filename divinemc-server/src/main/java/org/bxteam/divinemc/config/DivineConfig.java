@@ -198,7 +198,6 @@ public class DivineConfig {
         @Experimental("Regionized Chunk Ticking")
         public static boolean enableRegionizedChunkTicking = false;
         public static int regionizedChunkTickingExecutorThreadCount = 4;
-        public static boolean regionizedChunkTickingUseVirtualThreads = false;
         public static int regionizedChunkTickingExecutorThreadPriority = Thread.NORM_PRIORITY + 2;
 
         // Async pathfinding settings
@@ -259,14 +258,12 @@ public class DivineConfig {
 
             regionizedChunkTickingExecutorThreadCount = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-count"), regionizedChunkTickingExecutorThreadCount,
                 "The amount of threads to allocate to regionized chunk ticking.");
-            regionizedChunkTickingUseVirtualThreads = getBoolean(ConfigCategory.ASYNC.key("regionized-chunk-ticking.use-virtual-threads"), regionizedChunkTickingUseVirtualThreads,
-                "If enabled, regionized chunk ticking will use virtual threads for the executor that was introduced in Java 21.");
             regionizedChunkTickingExecutorThreadPriority = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-priority"), regionizedChunkTickingExecutorThreadPriority,
                 "Configures the thread priority of the executor");
 
             if (regionizedChunkTickingExecutorThreadCount < 1 || regionizedChunkTickingExecutorThreadCount > 10) {
-                LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (5)", regionizedChunkTickingExecutorThreadCount);
-                regionizedChunkTickingExecutorThreadCount = 5;
+                LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (4)", regionizedChunkTickingExecutorThreadCount);
+                regionizedChunkTickingExecutorThreadCount = 4;
             }
         }
 

@@ -105,6 +105,7 @@ public final class Shuttle {
             Files.createDirectories(outputDir);
         }
     }
+
     private void executePatchingPhase(Provider<String> versionProvider) throws IOException {
         new PatchBuilder().start(versionProvider);
     }

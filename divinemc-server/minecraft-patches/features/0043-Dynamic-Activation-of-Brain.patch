@@ -43,7 +43,7 @@ index 421b59b24bda3d03dea8fd0fc6237a71900e1cdc..78bf3365b426e7090182af84630111d4
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  entity.checkDespawn();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 6e4429db2a0512f78b10c44955384bc893964e6f..88855cb5d55f1bf6c711e441b037a44f61b8ab27 100644
+index 989043d73af2c719e6c36ac5d4c35e7d31d3410c..461abfac4749ca06b613cfee9e1ad9e6961299df 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -365,6 +365,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -68,10 +68,10 @@ index 9950fccc0a708e701b81fcabc9e8f370e6d3a19d..0159627e2c9a540d062073faf9018f52
      @Nullable
      private Component description;
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index 6e50571901431ab5959ce6b35a047bd7f1025114..397534250d03848104ed4818d033349ae2245abf 100644
+index 74bd00f5f8ab628d3f35d0f2e39fb1dbf7045c23..faf29073db00f8e10136e03dc877dcfb38f795d0 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -209,10 +209,10 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
+@@ -210,10 +210,10 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
      @Override
      public void inactiveTick() {
          super.inactiveTick();
@@ -84,7 +84,7 @@ index 6e50571901431ab5959ce6b35a047bd7f1025114..397534250d03848104ed4818d033349a
              this.targetSelector.tick();
          }
      }
-@@ -760,13 +760,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
+@@ -773,13 +773,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
          // Paper end - Allow nerfed mobs to jump and float
          this.sensing.tick();
          int i = this.tickCount + this.getId();

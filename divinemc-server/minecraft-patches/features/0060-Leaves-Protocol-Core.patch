@@ -54,7 +54,7 @@ index 62b9d9486c15a1ec6527f786df4e9fc483390bcb..36d8b93182cc44e3bea245800ea9e271
              int i = buffer.readableBytes();
              if (i >= 0 && i <= maxSize) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 008530bf0f09180ba365fc514b51d22630564de2..7bc07d120ca3b8cffa6b1147f1687b5a4023b709 100644
+index 89c1fa23b7ce507f86c69c8dcc8f0de38bfa8e99..ce422e12d985a274816abf2841bb3a939568b13b 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1788,6 +1788,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -67,7 +67,7 @@ index 008530bf0f09180ba365fc514b51d22630564de2..7bc07d120ca3b8cffa6b1147f1687b5a
              this.tickables.get(i).run();
          }
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 77d1cab278a13e08ba8096af2c683b5042cc1574..74b639bec2243800077a4fe579fcfeadc514e30d 100644
+index 963aaef7493e1e281882a9eeca72b1a08fe9cbe8..7f6996e03d7c7d3ecd9a71f9b261a1c0b60ab59c 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -432,6 +432,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -91,10 +91,10 @@ index a7c4fad2b1cb0cbac742a18d37d688bb2663944e..b94243d293e805743453adf7b4fc8d85
              bridge.removeChannel(channel);
          }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index d45d23ec160a90cfcff853433862bd7acd25099c..b5d31634cc988af87e5f488d2d6215a31b3077fb 100644
+index 4d37b16adc5491db24fce1ce656f6cde575e10f4..799bb99c4b9403f72eaf30119fd423dd3d80183a 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -3679,6 +3679,17 @@ public class ServerGamePacketListenerImpl
+@@ -3680,6 +3680,17 @@ public class ServerGamePacketListenerImpl
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {
@@ -113,7 +113,7 @@ index d45d23ec160a90cfcff853433862bd7acd25099c..b5d31634cc988af87e5f488d2d6215a3
      }
  
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index cfe2bbc46046f144044d8cba67cda978f231d354..96af2c75b526c59510965665da0b2ca00bf657b3 100644
+index e4513af9b89222cec9f9573a053504ec87fc30b8..2b4a87643e4f2d2564597b923a025b432bcf5d23 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -343,6 +343,11 @@ public abstract class PlayerList {
@@ -136,7 +136,7 @@ index cfe2bbc46046f144044d8cba67cda978f231d354..96af2c75b526c59510965665da0b2ca0
          // Paper end - Fix kick event leave message not being sent
          org.purpurmc.purpur.task.BossBarTask.removeFromAll(player.getBukkitEntity()); // Purpur - Implement TPSBar
          ServerLevel serverLevel = player.level();
-@@ -1461,6 +1467,7 @@ public abstract class PlayerList {
+@@ -1459,6 +1465,7 @@ public abstract class PlayerList {
              serverPlayer.connection.send(clientboundUpdateRecipesPacket);
              serverPlayer.getRecipeBook().sendInitialRecipeBook(serverPlayer);
          }

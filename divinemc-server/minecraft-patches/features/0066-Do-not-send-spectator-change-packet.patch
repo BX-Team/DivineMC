@@ -5,7 +5,7 @@ Subject: [PATCH] Do not send spectator change packet
 
 
 diff --git a/net/minecraft/server/level/ServerPlayerGameMode.java b/net/minecraft/server/level/ServerPlayerGameMode.java
-index 6e7ed7451a45f4525946563617ccf0a55851449b..518d670d2f8535679d5d22cb1f15cb85e5bb50f0 100644
+index 02c02314a4a6a7a6da427f0d064dbc61ce92301d..56efd53d22f6d7338ef7d7cc36d612d410018c89 100644
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
 @@ -75,10 +75,7 @@ public class ServerPlayerGameMode {
@@ -39,7 +39,7 @@ index 6e7ed7451a45f4525946563617ccf0a55851449b..518d670d2f8535679d5d22cb1f15cb85
 +    // DivineMC end - Do not send spectator change packet
  }
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 96af2c75b526c59510965665da0b2ca00bf657b3..baa682c9ba48427edb10f5610a5a0a9e21da0581 100644
+index 2b4a87643e4f2d2564597b923a025b432bcf5d23..a0b7d7046b762e6a3142408051ee327cafe80f45 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -359,6 +359,8 @@ public abstract class PlayerList {
@@ -72,7 +72,7 @@ index 96af2c75b526c59510965665da0b2ca00bf657b3..baa682c9ba48427edb10f5610a5a0a9e
              }
              // Paper end - Use single player info update packet on join
              player.sentListPacket = true;
-@@ -1473,4 +1478,69 @@ public abstract class PlayerList {
+@@ -1471,4 +1476,69 @@ public abstract class PlayerList {
      public boolean isAllowCommandsForAllPlayers() {
          return this.allowCommandsForAllPlayers;
      }
