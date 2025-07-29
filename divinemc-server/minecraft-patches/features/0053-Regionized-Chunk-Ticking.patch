@@ -21,7 +21,7 @@ index 411e1284a208ca1a097cf6eaa92e1e0d2203d83d..3f60d1b0ac91cfd3418e791222cd7267
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 654d03368f06ab9870c11745b0994ea6722fa7bf..7fcf9761c3af761e6d3e402fce2f9cbcc219d3b0 100644
+index 654d03368f06ab9870c11745b0994ea6722fa7bf..440bd8f16664fdc29db69b92f2c856dd7cc4ffd1 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,6 +57,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -45,7 +45,7 @@ index 654d03368f06ab9870c11745b0994ea6722fa7bf..7fcf9761c3af761e6d3e402fce2f9cbc
      @Nullable
      @VisibleForDebug
      private NaturalSpawner.SpawnState lastSpawnState;
-@@ -153,31 +156,246 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -153,31 +156,248 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          return load ? this.syncLoad(chunkX, chunkZ, toStatus) : null;
      }
      // Paper end - rewrite chunk system
@@ -128,20 +128,22 @@ index 654d03368f06ab9870c11745b0994ea6722fa7bf..7fcf9761c3af761e6d3e402fce2f9cbc
 +
 +        final Set<Entity> firstTick = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 +
-+        final ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.Iterator<Entity> iterator = level.entityTickList.entities.iterator();
-+        try {
-+            while (iterator.hasNext()) {
-+                Entity entity = iterator.next();
-+                long chunkKey = entity.chunkPosition().longKey;
-+                int regionIndex = chunkToRegion.get(chunkKey);
-+                if (regionIndex != -1) {
-+                    regions.get(regionIndex).entities().add(entity);
-+                } else {
-+                    firstTick.add(entity);
++        synchronized (level.entityTickList.entities) {
++            final ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.Iterator<Entity> iterator = level.entityTickList.entities.iterator();
++            try {
++                while (iterator.hasNext()) {
++                    Entity entity = iterator.next();
++                    long chunkKey = entity.chunkPosition().longKey;
++                    int regionIndex = chunkToRegion.get(chunkKey);
++                    if (regionIndex != -1) {
++                        regions.get(regionIndex).entities().add(entity);
++                    } else {
++                        firstTick.add(entity);
++                    }
 +                }
++            } finally {
++                iterator.finishedIterating();
 +            }
-+        } finally {
-+            iterator.finishedIterating();
 +        }
 +
 +        return new Output(regions.toArray(new RegionData[0]), firstTick);
@@ -301,7 +303,7 @@ index 654d03368f06ab9870c11745b0994ea6722fa7bf..7fcf9761c3af761e6d3e402fce2f9cbc
      }
      // Paper end - chunk tick iteration optimisations
  
-@@ -502,14 +720,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -502,14 +722,21 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          long gameTime = this.level.getGameTime();
          long l = gameTime - this.lastInhabitedUpdate;
          this.lastInhabitedUpdate = gameTime;
@@ -327,7 +329,7 @@ index 654d03368f06ab9870c11745b0994ea6722fa7bf..7fcf9761c3af761e6d3e402fce2f9cbc
          // DivineMC start - Pufferfish: Optimize mob spawning
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
              for (ServerPlayer player : this.level.players) {
-@@ -553,14 +778,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -553,14 +780,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      }
  
      private void broadcastChangedChunks() {
@@ -352,7 +354,7 @@ index 654d03368f06ab9870c11745b0994ea6722fa7bf..7fcf9761c3af761e6d3e402fce2f9cbc
      }
  
      private void tickChunks(long timeInhabited) {
-@@ -610,23 +839,28 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -610,23 +841,28 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              filteredSpawningCategories = List.of();
          }
  
@@ -454,7 +456,7 @@ index f9091b2daf735fd0788f8d6d60e3c812fd6dd4f2..0ad18866c323308ad9b87322932e03a2
              try {
                  this.isUpdatingNavigations = true;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index dc82e12783989c307be2ac709a21321dac25f217..f6b548dbb8b1bd82b5ddc73e2613cdcde059ce74 100644
+index 22a2b6b31f6f9b9b613586f7d674302304be3232..66ba223dacefb3531c46b144c4499b2b2285eafe 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -106,7 +106,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
