@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/GameRules.java
++++ b/net/minecraft/world/level/GameRules.java
+@@ -288,7 +_,7 @@
+     }
+ 
+     private GameRules(Map<GameRules.Key<?>, GameRules.Value<?>> rules, FeatureFlagSet enabledFeatures) {
+-        this.rules = rules;
++        this.rules = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(rules); // DivineMC - lithium: collections/gamerules
+         this.enabledFeatures = enabledFeatures;
+ 
+         // Paper start - Perf: Use array for gamerule storage

@@ -3,6 +3,12 @@ From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
 Date: Mon, 24 Feb 2025 19:10:17 +0300
 Subject: [PATCH] lithium: fast_util
 
+This patch is based on the following mixins:
+* "net/caffeinemc/mods/lithium/mixin/math/fast_util/DirectionMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/math/fast_util/AABBMixin.java"
+By: 2No2Name <2No2Name@web.de>
+As part of: Lithium (https://github.com/CaffeineMC/lithium)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
 
 diff --git a/net/minecraft/core/Direction.java b/net/minecraft/core/Direction.java
 index 63fd7b45750430b565d599337d3112cbaa7e7550..4275a2e1e29c15cdda75c29c468255635f5c7bc1 100644
