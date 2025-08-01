@@ -1355,10 +1355,10 @@ index 6f25be39103cd0bb26bc365d9599b9846c6fe133..24f13e2b0b694ff4dd01aeea876ef874
          LevelChunkSection section = this.getSection(this.getSectionIndex(y));
          boolean hasOnlyAir = section.hasOnlyAir();
 diff --git a/net/minecraft/world/level/entity/EntityTickList.java b/net/minecraft/world/level/entity/EntityTickList.java
-index c89701d7bdc9b889038d3c52f2232fb17624b113..f2ba43b92b0d0356a97069fd427f9fa446d6c007 100644
+index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0aedd925f7 100644
 --- a/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/net/minecraft/world/level/entity/EntityTickList.java
-@@ -11,16 +11,31 @@ import net.minecraft.world.entity.Entity;
+@@ -11,25 +11,67 @@ import net.minecraft.world.entity.Entity;
  public class EntityTickList {
      public final ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet<net.minecraft.world.entity.Entity> entities = new ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet<>(); // Paper - rewrite chunk system
  
@@ -1382,15 +1382,46 @@ index c89701d7bdc9b889038d3c52f2232fb17624b113..f2ba43b92b0d0356a97069fd427f9fa4
      public void add(Entity entity) {
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(entity, "Asynchronous entity ticklist addition"); // DivineMC - Parallel world ticking
          this.ensureActiveIsNotIterated();
-         this.entities.add(entity); // Paper - rewrite chunk system
+-        this.entities.add(entity); // Paper - rewrite chunk system
++        // DivineMC start - Parallel world ticking
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++            synchronized (this.entities) {
++                this.entities.add(entity);
++            }
++        } else {
++            this.entities.add(entity); // Paper - rewrite chunk system
++        }
++        // DivineMC end - Parallel world ticking
      }
  
      public void remove(Entity entity) {
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(entity, "Asynchronous entity ticklist removal"); // DivineMC - Parallel world ticking
          this.ensureActiveIsNotIterated();
-         this.entities.remove(entity); // Paper - rewrite chunk system
+-        this.entities.remove(entity); // Paper - rewrite chunk system
++        // DivineMC start - Parallel world ticking
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++            synchronized (this.entities) {
++                if (this.entities.contains(entity)) {
++                    this.entities.remove(entity);
++                }
++            }
++        } else {
++            this.entities.remove(entity); // Paper - rewrite chunk system
++        }
++        // DivineMC end - Parallel world ticking
      }
-@@ -30,6 +45,7 @@ public class EntityTickList {
+ 
+     public boolean contains(Entity entity) {
+-        return this.entities.contains(entity); // Paper - rewrite chunk system
++        // DivineMC start - Parallel world ticking
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++            synchronized (this.entities) {
++                return this.entities.contains(entity);
++            }
++        } else {
++            return this.entities.contains(entity); // Paper - rewrite chunk system
++        }
++        // DivineMC end - Parallel world ticking
      }
  
      public void forEach(Consumer<Entity> entity) {
