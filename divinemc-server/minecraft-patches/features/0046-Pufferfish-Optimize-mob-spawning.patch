@@ -20,6 +20,18 @@ index 2baa4dc93bcc448ce65bae50ca39d41e562e2211..a0cad0bdb8245b19f4ff983245d61d7b
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> threadFunction) {
          ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index 46adbe6ccf1e4291e33a52a6612f624558c18f96..d90341ff814bb2b14867b7d9a401ae9672076f5b 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -367,6 +367,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+ 
+             org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur - Implement TPSBar
+             if (org.purpurmc.purpur.PurpurConfig.beeCountPayload) org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur - Give bee counts in beehives to Purpur clients
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) mobSpawnExecutor.start(); // DivineMC - Pufferfish: Optimize mob spawning
+             return true;
+         }
+     }
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
 index 75c8ce32e68f92e20201e9c243f46f2be716eac8..bf680624bc6c618dfa0eeeb74c103ff6716fd27e 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
