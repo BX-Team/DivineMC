@@ -37,7 +37,7 @@ index 7e31c5c8659d24948fd45a2d6ee7bdeca6027d27..95221434fd8eef388f0308b72af3f934
  
      protected NonNullList(List<E> list, @Nullable E defaultValue) {
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index a6bf257ca93e4b3819b65b4ef4ba71d9e2b40933..038d75aa39a158b65887c81f2687cb3c8140a6e2 100644
+index de7800b46f7e8c68f24de8476032f2179edc4797..3ca2f56cb31d41e88eb2a3e59c3749fbdef7c85e 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -132,8 +132,10 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -53,23 +53,6 @@ index a6bf257ca93e4b3819b65b4ef4ba71d9e2b40933..038d75aa39a158b65887c81f2687cb3c
      // Paper - rewrite chunk system
      public int serverViewDistance;
      public final WorldGenContext worldGenContext; // Paper - public
-diff --git a/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java b/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
-index b0c5e41fefc7c9adf1a61bd5b52861736657d37e..dfc62772d5617f0dce72b45a1bebf1b2f051efd5 100644
---- a/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
-+++ b/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
-@@ -17,10 +17,10 @@ public class NearestLivingEntitySensor<T extends LivingEntity> extends Sensor<T>
-     protected void doTick(ServerLevel level, T entity) {
-         double attributeValue = entity.getAttributeValue(Attributes.FOLLOW_RANGE);
-         AABB aabb = entity.getBoundingBox().inflate(attributeValue, attributeValue, attributeValue);
--        List<LivingEntity> entitiesOfClass = level.getEntitiesOfClass(
-+        it.unimi.dsi.fastutil.objects.ObjectArrayList<LivingEntity> entitiesOfClass = (it.unimi.dsi.fastutil.objects.ObjectArrayList<LivingEntity>) level.getEntitiesOfClass( // DivineMC - Optimize collections
-             LivingEntity.class, aabb, matchableEntity -> matchableEntity != entity && matchableEntity.isAlive()
-         );
--        entitiesOfClass.sort(Comparator.comparingDouble(entity::distanceToSqr));
-+        entitiesOfClass.unstableSort(Comparator.comparingDouble(entity::distanceToSqr)); // DivineMC - Optimize collections
-         Brain<?> brain = entity.getBrain();
-         brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, entitiesOfClass);
-         brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(level, entity, entitiesOfClass));
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
 index 66ba223dacefb3531c46b144c4499b2b2285eafe..0b7f9af0c4e43115878769043ebd06a09ccdf059 100644
 --- a/net/minecraft/world/level/Level.java
@@ -92,16 +75,16 @@ index 66ba223dacefb3531c46b144c4499b2b2285eafe..0b7f9af0c4e43115878769043ebd06a0
  
          ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getHardCollidingEntities(entity, box, ret, predicate);
  
-diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 24f13e2b0b694ff4dd01aeea876ef874f1828304..1135aa373a631cb90b6c0c75fd3590bcbefd4a4c 100644
---- a/net/minecraft/world/level/chunk/LevelChunk.java
-+++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -75,7 +75,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
-             return "<null>";
-         }
-     };
--    private final Map<BlockPos, LevelChunk.RebindableTickingBlockEntityWrapper> tickersInLevel = Maps.newHashMap();
-+    private final Map<BlockPos, LevelChunk.RebindableTickingBlockEntityWrapper> tickersInLevel = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(); // DivineMC - Optimize collections
-     public boolean loaded;
-     public final ServerLevel level; // CraftBukkit - type
+diff --git a/net/minecraft/world/level/chunk/ProtoChunk.java b/net/minecraft/world/level/chunk/ProtoChunk.java
+index aa085d8a78a3fb40a214e4b152ab04d9a409f76f..5ed1a8b6ac025d03fdeb408a6eaa00320087f690 100644
+--- a/net/minecraft/world/level/chunk/ProtoChunk.java
++++ b/net/minecraft/world/level/chunk/ProtoChunk.java
+@@ -46,7 +46,7 @@ public class ProtoChunk extends ChunkAccess {
+     @Nullable
+     private volatile LevelLightEngine lightEngine;
+     private volatile ChunkStatus status = ChunkStatus.EMPTY;
+-    private final List<CompoundTag> entities = Lists.newArrayList();
++    private final List<CompoundTag> entities = Collections.synchronizedList(Lists.newArrayList()); // DivineMC - Optimize collections
+     @Nullable
+     private CarvingMask carvingMask;
      @Nullable

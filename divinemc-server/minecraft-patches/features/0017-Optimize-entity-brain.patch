@@ -375,6 +375,23 @@ index 977afa268838304abdb34be253ca36ac1c22e99f..ff04ea295b70583137deb8babe5e75eb
      }
  
      private boolean isAcceptableLandingPosition(ServerLevel level, E entity, BlockPos pos) {
+diff --git a/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java b/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
+index b0c5e41fefc7c9adf1a61bd5b52861736657d37e..dfc62772d5617f0dce72b45a1bebf1b2f051efd5 100644
+--- a/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
++++ b/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
+@@ -17,10 +17,10 @@ public class NearestLivingEntitySensor<T extends LivingEntity> extends Sensor<T>
+     protected void doTick(ServerLevel level, T entity) {
+         double attributeValue = entity.getAttributeValue(Attributes.FOLLOW_RANGE);
+         AABB aabb = entity.getBoundingBox().inflate(attributeValue, attributeValue, attributeValue);
+-        List<LivingEntity> entitiesOfClass = level.getEntitiesOfClass(
++        it.unimi.dsi.fastutil.objects.ObjectArrayList<LivingEntity> entitiesOfClass = (it.unimi.dsi.fastutil.objects.ObjectArrayList<LivingEntity>) level.getEntitiesOfClass( // DivineMC - Optimize collections
+             LivingEntity.class, aabb, matchableEntity -> matchableEntity != entity && matchableEntity.isAlive()
+         );
+-        entitiesOfClass.sort(Comparator.comparingDouble(entity::distanceToSqr));
++        entitiesOfClass.unstableSort(Comparator.comparingDouble(entity::distanceToSqr)); // DivineMC - Optimize collections
+         Brain<?> brain = entity.getBrain();
+         brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, entitiesOfClass);
+         brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(level, entity, entitiesOfClass));
 diff --git a/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java b/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
 index 24d1928445b5571e040a2b12d5c82e77a880d9bd..dac0a23aebf2dea1972c07d5c82079da7c9837ac 100644
 --- a/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java

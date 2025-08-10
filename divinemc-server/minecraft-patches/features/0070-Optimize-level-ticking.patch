@@ -1,0 +1,221 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Thu, 24 Jul 2025 14:07:47 +0300
+Subject: [PATCH] Optimize level ticking
+
+
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index 386fdc23b35675a7db66d16bf2a8a6dd5b44059a..4934ce03ac533d9c60674632cdac6621e62f6b44 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -908,9 +908,10 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     // Paper start - optimise random ticking
+     private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
+ 
++    // DivineMC start - Optimize level ticking
+     private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
+         final LevelChunkSection[] sections = chunk.getSections();
+-        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection((ServerLevel)(Object)this);
++        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this); // DivineMC - Optimize level ticking
+         final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
+         final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
+ 
+@@ -919,42 +920,38 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+         final int offsetZ = cpos.z << 4;
+ 
+         for (int sectionIndex = 0, sectionsLen = sections.length; sectionIndex < sectionsLen; sectionIndex++) {
+-            final int offsetY = (sectionIndex + minSection) << 4;
+             final LevelChunkSection section = sections[sectionIndex];
++            if (!section.isRandomlyTickingBlocks()) continue;
++            final int offsetY = (sectionIndex + minSection) << 4;
+             final net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> states = section.states;
+-            if (!section.isRandomlyTickingBlocks()) {
+-                continue;
+-            }
+ 
+-            final ca.spottedleaf.moonrise.common.list.ShortList tickList = ((ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection)section).moonrise$getTickingBlockList();
++            final ca.spottedleaf.moonrise.common.list.ShortList tickList = section.moonrise$getTickingBlockList();
+ 
+             for (int i = 0; i < tickSpeed; ++i) {
+-                final int tickingBlocks = tickList.size();
+                 final int index = simpleRandom.nextInt() & ((16 * 16 * 16) - 1);
+ 
+-                if (index >= tickingBlocks) {
++                if (index >= tickList.size()) {
+                     // most of the time we fall here
+                     continue;
+                 }
+ 
+-                final int location = (int)tickList.getRaw(index) & 0xFFFF;
++                final int location = tickList.getRaw(index);
+                 final BlockState state = states.get(location);
+ 
+                 // do not use a mutable pos, as some random tick implementations store the input without calling immutable()!
+-                final BlockPos pos = new BlockPos((location & 15) | offsetX, ((location >>> (4 + 4)) & 15) | offsetY, ((location >>> 4) & 15) | offsetZ);
++                final BlockPos pos = new BlockPos((location & 15) | offsetX, (location >>> (4 + 4)) | offsetY, ((location >>> 4) & 15) | offsetZ);
+ 
+-                state.randomTick((ServerLevel)(Object)this, pos, simpleRandom);
++                state.randomTick(this, pos, simpleRandom);
+                 if (doubleTickFluids) {
+                     final FluidState fluidState = state.getFluidState();
+                     if (fluidState.isRandomlyTicking()) {
+-                        fluidState.randomTick((ServerLevel)(Object)this, pos, simpleRandom);
++                        fluidState.randomTick(this, pos, simpleRandom);
+                     }
+                 }
+             }
+         }
+-
+-        return;
+     }
++    // DivineMC end - Optimize level ticking
+     // Paper end - optimise random ticking
+ 
+     public void tickChunk(LevelChunk chunk, int randomTickSpeed) {
+diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
+index 24f13e2b0b694ff4dd01aeea876ef874f1828304..404ed7c6ebe2364b9404df6e29d07a0aed83ed08 100644
+--- a/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -75,7 +75,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+             return "<null>";
+         }
+     };
+-    private final Map<BlockPos, LevelChunk.RebindableTickingBlockEntityWrapper> tickersInLevel = Maps.newHashMap();
++    private final Map<BlockPos, LevelChunk.RebindableTickingBlockEntityWrapper> tickersInLevel = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(); // DivineMC - Optimize level ticking
+     public boolean loaded;
+     public final ServerLevel level; // CraftBukkit - type
+     @Nullable
+diff --git a/net/minecraft/world/ticks/LevelChunkTicks.java b/net/minecraft/world/ticks/LevelChunkTicks.java
+index 66d0a6390febe929ef774b0a7813329015bc8cc2..c17549c4f8a877852c4b86453b1db7b17aab4665 100644
+--- a/net/minecraft/world/ticks/LevelChunkTicks.java
++++ b/net/minecraft/world/ticks/LevelChunkTicks.java
+@@ -14,10 +14,10 @@ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+ 
+ public class LevelChunkTicks<T> implements SerializableTickContainer<T>, TickContainerAccess<T>, ca.spottedleaf.moonrise.patches.chunk_system.ticks.ChunkSystemLevelChunkTicks { // Paper - rewrite chunk system
+-    private final Queue<ScheduledTick<T>> tickQueue = new PriorityQueue<>(ScheduledTick.DRAIN_ORDER);
++    private final Queue<ScheduledTick<T>> tickQueue = new java.util.concurrent.PriorityBlockingQueue<>(11, ScheduledTick.DRAIN_ORDER); // DivineMC - Optimize level ticking
+     @Nullable
+     private List<SavedTick<T>> pendingTicks;
+-    private final Set<ScheduledTick<?>> ticksPerPosition = new ObjectOpenCustomHashSet<>(ScheduledTick.UNIQUE_TICK_HASH);
++    private final Set<ScheduledTick<?>> ticksPerPosition = it.unimi.dsi.fastutil.objects.ObjectSets.synchronize(new ObjectOpenCustomHashSet<>(ScheduledTick.UNIQUE_TICK_HASH)); // DivineMC - Optimize level ticking
+     @Nullable
+     private BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> onTickAdded;
+ 
+@@ -67,10 +67,18 @@ public class LevelChunkTicks<T> implements SerializableTickContainer<T>, TickCon
+ 
+     @Nullable
+     public ScheduledTick<T> poll() {
+-        ScheduledTick<T> scheduledTick = this.tickQueue.poll();
+-        if (scheduledTick != null) {
+-            this.ticksPerPosition.remove(scheduledTick); this.dirty = true; // Paper - rewrite chunk system
++        // DivineMC start - Optimize collections
++        ScheduledTick<T> scheduledTick = null;
++        try {
++            scheduledTick = this.tickQueue.poll();
++            if (scheduledTick != null) {
++                this.ticksPerPosition.remove(scheduledTick); this.dirty = true; // Paper - rewrite chunk system
++            }
++        } catch (Exception e) {
++            net.minecraft.server.MinecraftServer.LOGGER.error("Encountered caught exception when polling chunk ticks, blocking and returning null.", e);
++            return null;
+         }
++        // DivineMC end - Optimize collections
+ 
+         return scheduledTick;
+     }
+@@ -83,6 +91,7 @@ public class LevelChunkTicks<T> implements SerializableTickContainer<T>, TickCon
+     }
+ 
+     private void scheduleUnchecked(ScheduledTick<T> tick) {
++        if (tick == null) return; // DivineMC - Optimize level ticking
+         this.tickQueue.add(tick);
+         if (this.onTickAdded != null) {
+             this.onTickAdded.accept(this, tick);
+@@ -124,6 +133,7 @@ public class LevelChunkTicks<T> implements SerializableTickContainer<T>, TickCon
+         }
+ 
+         for (ScheduledTick<T> scheduledTick : this.tickQueue) {
++            if (scheduledTick == null) continue; // DivineMC - Optimize level ticking
+             list.add(scheduledTick.toSavedTick(gametime));
+         }
+ 
+diff --git a/net/minecraft/world/ticks/LevelTicks.java b/net/minecraft/world/ticks/LevelTicks.java
+index c7f9485191dc797de78e6524c5c2c737581ed838..14f2d0088cd9e6d4a2eb084439bab18bd365c41f 100644
+--- a/net/minecraft/world/ticks/LevelTicks.java
++++ b/net/minecraft/world/ticks/LevelTicks.java
+@@ -30,17 +30,20 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     private static final Comparator<LevelChunkTicks<?>> CONTAINER_DRAIN_ORDER = (levelChunkTicks, levelChunkTicks1) -> ScheduledTick.INTRA_TICK_DRAIN_ORDER
+         .compare(levelChunkTicks.peek(), levelChunkTicks1.peek());
+     private final LongPredicate tickCheck;
+-    private final Long2ObjectMap<LevelChunkTicks<T>> allContainers = new Long2ObjectOpenHashMap<>();
+-    private final Long2LongMap nextTickForContainer = Util.make(new Long2LongOpenHashMap(), map -> map.defaultReturnValue(Long.MAX_VALUE));
+-    private final Queue<LevelChunkTicks<T>> containersToTick = new PriorityQueue<>(CONTAINER_DRAIN_ORDER);
+-    private final Queue<ScheduledTick<T>> toRunThisTick = new ArrayDeque<>();
++    // DivineMC start - Optimize collections
++    private final Long2ObjectMap<LevelChunkTicks<T>> allContainers = it.unimi.dsi.fastutil.longs.Long2ObjectMaps.synchronize(new Long2ObjectOpenHashMap<>());
++    private final java.util.Map<Long, Long> nextTickForContainer = new java.util.concurrent.ConcurrentHashMap<>();
++    private final Queue<LevelChunkTicks<T>> containersToTick = new java.util.concurrent.PriorityBlockingQueue<>(11, CONTAINER_DRAIN_ORDER);
++    private final Queue<ScheduledTick<T>> toRunThisTick = new java.util.concurrent.ConcurrentLinkedQueue<>();
++    // DivineMC end - Optimize collections
+     private final List<ScheduledTick<T>> alreadyRunThisTick = new ArrayList<>();
+-    private final Set<ScheduledTick<?>> toRunThisTickSet = new ObjectOpenCustomHashSet<>(ScheduledTick.UNIQUE_TICK_HASH);
++    private final Set<ScheduledTick<?>> toRunThisTickSet = com.google.common.collect.Sets.newConcurrentHashSet(); // DivineMC - Optimize level ticking
+     private final BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> chunkScheduleUpdater = (levelChunkTicks, scheduledTick) -> {
+         if (scheduledTick.equals(levelChunkTicks.peek())) {
+             this.updateContainerScheduling(scheduledTick);
+         }
+     };
++    private final java.util.concurrent.atomic.AtomicInteger toRunThisTickCount = new java.util.concurrent.atomic.AtomicInteger(0); // DivineMC - Optimize level ticking
+ 
+     public LevelTicks(LongPredicate tickCheck) {
+         this.tickCheck = tickCheck;
+@@ -90,12 +93,14 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     }
+ 
+     private void sortContainersToTick(long gameTime) {
+-        ObjectIterator<Entry> objectIterator = Long2LongMaps.fastIterator(this.nextTickForContainer);
++        java.util.Iterator<java.util.Map.Entry<Long, Long>> objectIterator = this.nextTickForContainer.entrySet().iterator(); // DivineMC - Optimize level ticking
+ 
+         while (objectIterator.hasNext()) {
+-            Entry entry = objectIterator.next();
+-            long longKey = entry.getLongKey();
+-            long longValue = entry.getLongValue();
++            // DivineMC start - Optimize collections
++            java.util.Map.Entry<Long, Long> entry = objectIterator.next();
++            long longKey = entry.getKey();
++            long longValue = entry.getValue();
++            // DivineMC end - Optimize collections
+             if (longValue <= gameTime) {
+                 LevelChunkTicks<T> levelChunkTicks = this.allContainers.get(longKey);
+                 if (levelChunkTicks == null) {
+@@ -162,16 +167,19 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     }
+ 
+     private void scheduleForThisTick(ScheduledTick<T> tick) {
++        if (tick == null) return; // DivineMC - Optimize level ticking
+         this.toRunThisTick.add(tick);
++        this.toRunThisTickCount.incrementAndGet(); // DivineMC - Optimize level ticking
+     }
+ 
+     private boolean canScheduleMoreTicks(int maxAllowedTicks) {
+-        return this.toRunThisTick.size() < maxAllowedTicks;
++        return this.toRunThisTickCount.get() < maxAllowedTicks; // DivineMC - Optimize level ticking
+     }
+ 
+     private void runCollectedTicks(BiConsumer<BlockPos, T> ticker) {
+         while (!this.toRunThisTick.isEmpty()) {
+             ScheduledTick<T> scheduledTick = this.toRunThisTick.poll();
++            this.toRunThisTickCount.decrementAndGet(); // DivineMC - Optimize level ticking
+             if (!this.toRunThisTickSet.isEmpty()) {
+                 this.toRunThisTickSet.remove(scheduledTick);
+             }
+@@ -182,7 +190,7 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     }
+ 
+     private void cleanupAfterTick() {
+-        this.toRunThisTick.clear();
++        this.toRunThisTickCount.set(0); // DivineMC - Optimize level ticking
+         this.containersToTick.clear();
+         this.alreadyRunThisTick.clear();
+         this.toRunThisTickSet.clear();
