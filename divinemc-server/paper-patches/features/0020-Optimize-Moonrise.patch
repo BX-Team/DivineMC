@@ -1,0 +1,508 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Wed, 9 Jul 2025 03:37:51 +0300
+Subject: [PATCH] Optimize Moonrise
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
+index 7fed43a1e7bcf35c4d7fd3224837a47fedd59860..6c002ba690a8cc7335276e039f49c4251076cc92 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
+@@ -1,5 +1,7 @@
+ package ca.spottedleaf.moonrise.common.list;
+ 
++import it.unimi.dsi.fastutil.ints.Int2IntMap;
++import it.unimi.dsi.fastutil.ints.Int2IntMaps;
+ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+ import net.minecraft.world.entity.Entity;
+ import java.util.Arrays;
+@@ -13,7 +15,7 @@ import java.util.NoSuchElementException;
+  */
+ public final class EntityList implements Iterable<Entity> {
+ 
+-    private final Int2IntOpenHashMap entityToIndex = new Int2IntOpenHashMap(2, 0.8f);
++    private final Int2IntMap entityToIndex = Int2IntMaps.synchronize(new Int2IntOpenHashMap(2, 0.8f)); // DivineMC - Optimize Moonrise
+     {
+         this.entityToIndex.defaultReturnValue(Integer.MIN_VALUE);
+     }
+@@ -27,11 +29,11 @@ public final class EntityList implements Iterable<Entity> {
+         return this.count;
+     }
+ 
+-    public boolean contains(final Entity entity) {
++    public synchronized boolean contains(final Entity entity) { // DivineMC - Optimize Moonrise
+         return this.entityToIndex.containsKey(entity.getId());
+     }
+ 
+-    public boolean remove(final Entity entity) {
++    public synchronized boolean remove(final Entity entity) { // DivineMC - Optimize Moonrise
+         final int index = this.entityToIndex.remove(entity.getId());
+         if (index == Integer.MIN_VALUE) {
+             return false;
+@@ -50,7 +52,7 @@ public final class EntityList implements Iterable<Entity> {
+         return true;
+     }
+ 
+-    public boolean add(final Entity entity) {
++    public synchronized boolean add(final Entity entity) { // DivineMC - Optimize Moonrise
+         final int count = this.count;
+         final int currIndex = this.entityToIndex.putIfAbsent(entity.getId(), count);
+ 
+@@ -82,18 +84,18 @@ public final class EntityList implements Iterable<Entity> {
+         return this.entities[index];
+     }
+ 
+-    public Entity[] getRawData() {
++    public synchronized Entity[] getRawData() { // DivineMC - Optimize Moonrise
+         return this.entities;
+     }
+ 
+-    public void clear() {
++    public synchronized void clear() { // DivineMC - Optimize Moonrise
+         this.entityToIndex.clear();
+         Arrays.fill(this.entities, 0, this.count, null);
+         this.count = 0;
+     }
+ 
+     @Override
+-    public Iterator<Entity> iterator() {
++    public synchronized Iterator<Entity> iterator() { // DivineMC - Optimize Moonrise
+         return new Iterator<>() {
+             private Entity lastRet;
+             private int current;
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
+index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..c93a9d2de61c9aa789c0758de0bdafaa4af2c93f 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
+@@ -1,142 +1,26 @@
+ package ca.spottedleaf.moonrise.common.list;
+ 
+-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+-import java.util.Arrays;
+-import java.util.Iterator;
+-import java.util.NoSuchElementException;
++// DivineMC start - Optimize Moonrise
++import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
++import it.unimi.dsi.fastutil.objects.ReferenceLists;
+ 
+-public final class ReferenceList<E> implements Iterable<E> {
+-
+-    private static final Object[] EMPTY_LIST = new Object[0];
+-
+-    private final Reference2IntOpenHashMap<E> referenceToIndex;
+-    private E[] references;
+-    private int count;
+-
+-    public ReferenceList() {
+-        this((E[])EMPTY_LIST);
+-    }
+-
+-    public ReferenceList(final E[] referenceArray) {
+-        this.references = referenceArray;
+-        this.referenceToIndex = new Reference2IntOpenHashMap<>(2, 0.8f);
+-        this.referenceToIndex.defaultReturnValue(Integer.MIN_VALUE);
+-    }
+-
+-    private ReferenceList(final E[] references, final int count, final Reference2IntOpenHashMap<E> referenceToIndex) {
+-        this.references = references;
+-        this.count = count;
+-        this.referenceToIndex = referenceToIndex;
+-    }
+-
+-    public ReferenceList<E> copy() {
+-        return new ReferenceList<>(this.references.clone(), this.count, this.referenceToIndex.clone());
+-    }
+-
+-    public int size() {
+-        return this.count;
+-    }
+-
+-    public boolean contains(final E obj) {
+-        return this.referenceToIndex.containsKey(obj);
++public class ReferenceList<E> extends ReferenceLists.SynchronizedList<E> {
++    public ReferenceList(E[] elements) {
++        super(new RefListInner<>(elements));
+     }
+ 
+-    public boolean remove(final E obj) {
+-        final int index = this.referenceToIndex.removeInt(obj);
+-        if (index == Integer.MIN_VALUE) {
+-            return false;
+-        }
+-
+-        // move the object at the end to this index
+-        final int endIndex = --this.count;
+-        final E end = (E)this.references[endIndex];
+-        if (index != endIndex) {
+-            // not empty after this call
+-            this.referenceToIndex.put(end, index); // update index
+-        }
+-        this.references[index] = end;
+-        this.references[endIndex] = null;
+-
+-        return true;
++    public synchronized E[] getRawDataUnchecked() {
++        return ((RefListInner<E>) this.list).getRawDataUnchecked();
+     }
+ 
+-    public boolean add(final E obj) {
+-        final int count = this.count;
+-        final int currIndex = this.referenceToIndex.putIfAbsent(obj, count);
+-
+-        if (currIndex != Integer.MIN_VALUE) {
+-            return false; // already in this list
++    public static class RefListInner<A> extends ReferenceArrayList<A> {
++        public RefListInner(A[] elements) {
++            super(elements, true);
+         }
+ 
+-        E[] list = this.references;
+-
+-        if (list.length == count) {
+-            // resize required
+-            list = this.references = Arrays.copyOf(list, (int)Math.max(4L, count * 2L)); // overflow results in negative
++        public A[] getRawDataUnchecked() {
++            return this.a;
+         }
+-
+-        list[count] = obj;
+-        this.count = count + 1;
+-
+-        return true;
+-    }
+-
+-    public E getChecked(final int index) {
+-        if (index < 0 || index >= this.count) {
+-            throw new IndexOutOfBoundsException("Index: " + index + " is out of bounds, size: " + this.count);
+-        }
+-        return this.references[index];
+-    }
+-
+-    public E getUnchecked(final int index) {
+-        return this.references[index];
+-    }
+-
+-    public Object[] getRawData() {
+-        return this.references;
+-    }
+-
+-    public E[] getRawDataUnchecked() {
+-        return this.references;
+-    }
+-
+-    public void clear() {
+-        this.referenceToIndex.clear();
+-        Arrays.fill(this.references, 0, this.count, null);
+-        this.count = 0;
+-    }
+-
+-    @Override
+-    public Iterator<E> iterator() {
+-        return new Iterator<>() {
+-            private E lastRet;
+-            private int current;
+-
+-            @Override
+-            public boolean hasNext() {
+-                return this.current < ReferenceList.this.count;
+-            }
+-
+-            @Override
+-            public E next() {
+-                if (this.current >= ReferenceList.this.count) {
+-                    throw new NoSuchElementException();
+-                }
+-                return this.lastRet = ReferenceList.this.references[this.current++];
+-            }
+-
+-            @Override
+-            public void remove() {
+-                final E lastRet = this.lastRet;
+-
+-                if (lastRet == null) {
+-                    throw new IllegalStateException();
+-                }
+-                this.lastRet = null;
+-
+-                ReferenceList.this.remove(lastRet);
+-                --this.current;
+-            }
+-        };
+     }
+ }
++// DivineMC end - Optimize Moonrise
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
+index 2bae9949ef325d0001aa638150fbbdf968367e75..f946e625dcfec5c6ee9bf90bb79ac1c2f84ec048 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
+@@ -1,11 +1,13 @@
+ package ca.spottedleaf.moonrise.common.list;
+ 
++import it.unimi.dsi.fastutil.shorts.Short2ShortMap;
++import it.unimi.dsi.fastutil.shorts.Short2ShortMaps;
+ import it.unimi.dsi.fastutil.shorts.Short2ShortOpenHashMap;
+ import java.util.Arrays;
+ 
+ public final class ShortList {
+ 
+-    private final Short2ShortOpenHashMap map = new Short2ShortOpenHashMap();
++    private final Short2ShortMap map = Short2ShortMaps.synchronize(new Short2ShortOpenHashMap()); // DivineMC - Optimize Moonrise
+     {
+         this.map.defaultReturnValue(Short.MIN_VALUE);
+     }
+@@ -13,13 +15,13 @@ public final class ShortList {
+     private static final short[] EMPTY_LIST = new short[0];
+ 
+     private short[] byIndex = EMPTY_LIST;
+-    private short count;
++    private volatile short count; // DivineMC - Optimize Moonrise
+ 
+     public int size() {
+-        return (int)this.count;
++        return this.count; // DivineMC - Optimize Moonrise
+     }
+ 
+-    public short getRaw(final int index) {
++    public synchronized short getRaw(final int index) { // DivineMC - Optimize Moonrise
+         return this.byIndex[index];
+     }
+ 
+@@ -30,8 +32,8 @@ public final class ShortList {
+         }
+     }
+ 
+-    public boolean add(final short value) {
+-        final int count = (int)this.count;
++    public synchronized boolean add(final short value) { // DivineMC - Optimize Moonrise
++        final int count = this.count; // DivineMC - Optimize Moonrise
+         final short currIndex = this.map.putIfAbsent(value, (short)count);
+ 
+         if (currIndex != Short.MIN_VALUE) {
+@@ -51,7 +53,7 @@ public final class ShortList {
+         return true;
+     }
+ 
+-    public boolean remove(final short value) {
++    public synchronized boolean remove(final short value) { // DivineMC - Optimize Moonrise
+         final short index = this.map.remove(value);
+         if (index == Short.MIN_VALUE) {
+             return false;
+@@ -70,7 +72,7 @@ public final class ShortList {
+         return true;
+     }
+ 
+-    public void clear() {
++    public synchronized void clear() { // DivineMC - Optimize Moonrise
+         this.count = (short)0;
+         this.map.clear();
+     }
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
+index 460e27ab0506c83a28934800ee74ee886d4b025e..59e80748de2b0b35ecf25739e1876ebcbce7eca5 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
+@@ -15,7 +15,7 @@ public final class Delayed26WayDistancePropagator3D {
+ 
+     // Generally updates to positions are made close to other updates, so we link to decrease cache misses when
+     // propagating updates
+-    protected final LongLinkedOpenHashSet updatedSources = new LongLinkedOpenHashSet();
++    protected final it.unimi.dsi.fastutil.longs.LongSet updatedSources = it.unimi.dsi.fastutil.longs.LongSets.synchronize(new LongLinkedOpenHashSet()); // DivineMC -  Optimize Moonrise
+ 
+     @FunctionalInterface
+     public static interface LevelChangeCallback {
+@@ -94,29 +94,29 @@ public final class Delayed26WayDistancePropagator3D {
+ 
+     protected final void addToIncreaseWorkQueue(final long coordinate, final byte level) {
+         final Delayed8WayDistancePropagator2D.WorkQueue queue = this.levelIncreaseWorkQueues[level];
+-        queue.queuedCoordinates.enqueue(coordinate);
+-        queue.queuedLevels.enqueue(level);
++        queue.queuedCoordinates.add(coordinate); // DivineMC - Optimize Moonrise
++        queue.queuedLevels.add(level); // DivineMC - Optimize Moonrise
+ 
+         this.levelIncreaseWorkQueueBitset |= (1L << level);
+     }
+ 
+     protected final void addToIncreaseWorkQueue(final long coordinate, final byte index, final byte level) {
+         final Delayed8WayDistancePropagator2D.WorkQueue queue = this.levelIncreaseWorkQueues[index];
+-        queue.queuedCoordinates.enqueue(coordinate);
+-        queue.queuedLevels.enqueue(level);
++        queue.queuedCoordinates.add(coordinate); // DivineMC - Optimize Moonrise
++        queue.queuedLevels.add(level); // DivineMC - Optimize Moonrise
+ 
+         this.levelIncreaseWorkQueueBitset |= (1L << index);
+     }
+ 
+     protected final void addToRemoveWorkQueue(final long coordinate, final byte level) {
+         final Delayed8WayDistancePropagator2D.WorkQueue queue = this.levelRemoveWorkQueues[level];
+-        queue.queuedCoordinates.enqueue(coordinate);
+-        queue.queuedLevels.enqueue(level);
++        queue.queuedCoordinates.add(coordinate); // DivineMC - Optimize Moonrise
++        queue.queuedLevels.add(level); // DivineMC - Optimize Moonrise
+ 
+         this.levelRemoveWorkQueueBitset |= (1L << level);
+     }
+ 
+-    public boolean propagateUpdates() {
++    public synchronized boolean propagateUpdates() { // DivineMC - Optimize Moonrise
+         if (this.updatedSources.isEmpty()) {
+             return false;
+         }
+@@ -157,15 +157,15 @@ public final class Delayed26WayDistancePropagator3D {
+         return ret;
+     }
+ 
+-    protected void propagateIncreases() {
++    protected synchronized void propagateIncreases() { // DivineMC - Optimize Moonrise
+         for (int queueIndex = 63 ^ Long.numberOfLeadingZeros(this.levelIncreaseWorkQueueBitset);
+              this.levelIncreaseWorkQueueBitset != 0L;
+              this.levelIncreaseWorkQueueBitset ^= (1L << queueIndex), queueIndex = 63 ^ Long.numberOfLeadingZeros(this.levelIncreaseWorkQueueBitset)) {
+ 
+             final Delayed8WayDistancePropagator2D.WorkQueue queue = this.levelIncreaseWorkQueues[queueIndex];
+             while (!queue.queuedLevels.isEmpty()) {
+-                final long coordinate = queue.queuedCoordinates.removeFirstLong();
+-                byte level = queue.queuedLevels.removeFirstByte();
++                final long coordinate = queue.queuedCoordinates.removeFirst(); // DivineMC - Optimize Moonrise
++                byte level = queue.queuedLevels.removeFirst(); // DivineMC - Optimize Moonrise
+ 
+                 final boolean neighbourCheck = level < 0;
+ 
+@@ -226,15 +226,15 @@ public final class Delayed26WayDistancePropagator3D {
+         }
+     }
+ 
+-    protected void propagateDecreases() {
++    protected synchronized void propagateDecreases() { // DivineMC - Optimize Moonrise
+         for (int queueIndex = 63 ^ Long.numberOfLeadingZeros(this.levelRemoveWorkQueueBitset);
+              this.levelRemoveWorkQueueBitset != 0L;
+              this.levelRemoveWorkQueueBitset ^= (1L << queueIndex), queueIndex = 63 ^ Long.numberOfLeadingZeros(this.levelRemoveWorkQueueBitset)) {
+ 
+             final Delayed8WayDistancePropagator2D.WorkQueue queue = this.levelRemoveWorkQueues[queueIndex];
+             while (!queue.queuedLevels.isEmpty()) {
+-                final long coordinate = queue.queuedCoordinates.removeFirstLong();
+-                final byte level = queue.queuedLevels.removeFirstByte();
++                final long coordinate = queue.queuedCoordinates.removeFirst(); // DivineMC - Optimize Moonrise
++                final byte level = queue.queuedLevels.removeFirst(); // DivineMC - Optimize Moonrise
+ 
+                 final byte currentLevel = this.levels.removeIfGreaterOrEqual(coordinate, level);
+                 if (currentLevel == 0) {
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed8WayDistancePropagator2D.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed8WayDistancePropagator2D.java
+index ab2fa1563d5e32a5313dfcc1da411cab45fb5ca0..f568fcf85667cd3fe53f59e08451096de5fa3492 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed8WayDistancePropagator2D.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed8WayDistancePropagator2D.java
+@@ -356,24 +356,24 @@ public final class Delayed8WayDistancePropagator2D {
+ 
+     protected final void addToIncreaseWorkQueue(final long coordinate, final byte level) {
+         final WorkQueue queue = this.levelIncreaseWorkQueues[level];
+-        queue.queuedCoordinates.enqueue(coordinate);
+-        queue.queuedLevels.enqueue(level);
++        queue.queuedCoordinates.add(coordinate); // DivineMC -  Optimize Moonrise
++        queue.queuedLevels.add(level); // DivineMC -  Optimize Moonrise
+ 
+         this.levelIncreaseWorkQueueBitset |= (1L << level);
+     }
+ 
+     protected final void addToIncreaseWorkQueue(final long coordinate, final byte index, final byte level) {
+         final WorkQueue queue = this.levelIncreaseWorkQueues[index];
+-        queue.queuedCoordinates.enqueue(coordinate);
+-        queue.queuedLevels.enqueue(level);
++        queue.queuedCoordinates.add(coordinate); // DivineMC -  Optimize Moonrise
++        queue.queuedLevels.add(level); // DivineMC -  Optimize Moonrise
+ 
+         this.levelIncreaseWorkQueueBitset |= (1L << index);
+     }
+ 
+     protected final void addToRemoveWorkQueue(final long coordinate, final byte level) {
+         final WorkQueue queue = this.levelRemoveWorkQueues[level];
+-        queue.queuedCoordinates.enqueue(coordinate);
+-        queue.queuedLevels.enqueue(level);
++        queue.queuedCoordinates.add(coordinate); // DivineMC -  Optimize Moonrise
++        queue.queuedLevels.add(level); // DivineMC -  Optimize Moonrise
+ 
+         this.levelRemoveWorkQueueBitset |= (1L << level);
+     }
+@@ -426,8 +426,8 @@ public final class Delayed8WayDistancePropagator2D {
+ 
+             final WorkQueue queue = this.levelIncreaseWorkQueues[queueIndex];
+             while (!queue.queuedLevels.isEmpty()) {
+-                final long coordinate = queue.queuedCoordinates.removeFirstLong();
+-                byte level = queue.queuedLevels.removeFirstByte();
++                final long coordinate = queue.queuedCoordinates.removeFirst(); // DivineMC -  Optimize Moonrise
++                byte level = queue.queuedLevels.removeFirst(); // DivineMC -  Optimize Moonrise
+ 
+                 final boolean neighbourCheck = level < 0;
+ 
+@@ -492,8 +492,8 @@ public final class Delayed8WayDistancePropagator2D {
+ 
+             final WorkQueue queue = this.levelRemoveWorkQueues[queueIndex];
+             while (!queue.queuedLevels.isEmpty()) {
+-                final long coordinate = queue.queuedCoordinates.removeFirstLong();
+-                final byte level = queue.queuedLevels.removeFirstByte();
++                final long coordinate = queue.queuedCoordinates.removeFirst(); // DivineMC -  Optimize Moonrise
++                final byte level = queue.queuedLevels.removeFirst(); // DivineMC -  Optimize Moonrise
+ 
+                 final byte currentLevel = this.levels.removeIfGreaterOrEqual(coordinate, level);
+                 if (currentLevel == 0) {
+@@ -561,7 +561,7 @@ public final class Delayed8WayDistancePropagator2D {
+         }
+ 
+         // copied from superclass
+-        private int find(final long k) {
++        private synchronized int find(final long k) { // DivineMC -  Optimize Moonrise
+             if (k == 0L) {
+                 return this.containsNullKey ? this.n : -(this.n + 1);
+             } else {
+@@ -585,7 +585,7 @@ public final class Delayed8WayDistancePropagator2D {
+         }
+ 
+         // copied from superclass
+-        private void insert(final int pos, final long k, final byte v) {
++        private synchronized void insert(final int pos, final long k, final byte v) { // DivineMC -  Optimize Moonrise
+             if (pos == this.n) {
+                 this.containsNullKey = true;
+             }
+@@ -598,7 +598,7 @@ public final class Delayed8WayDistancePropagator2D {
+         }
+ 
+         // copied from superclass
+-        public byte putIfGreater(final long key, final byte value) {
++        public synchronized byte putIfGreater(final long key, final byte value) { // DivineMC -  Optimize Moonrise
+             final int pos = this.find(key);
+             if (pos < 0) {
+                 if (this.defRetValue < value) {
+@@ -616,7 +616,7 @@ public final class Delayed8WayDistancePropagator2D {
+         }
+ 
+         // copied from superclass
+-        private void removeEntry(final int pos) {
++        private synchronized void removeEntry(final int pos) { // DivineMC -  Optimize Moonrise
+             --this.size;
+             this.shiftKeys(pos);
+             if (this.n > this.minN && this.size < this.maxFill / 4 && this.n > 16) {
+@@ -625,7 +625,7 @@ public final class Delayed8WayDistancePropagator2D {
+         }
+ 
+         // copied from superclass
+-        private void removeNullEntry() {
++        private synchronized void removeNullEntry() { // DivineMC -  Optimize Moonrise
+             this.containsNullKey = false;
+             --this.size;
+             if (this.n > this.minN && this.size < this.maxFill / 4 && this.n > 16) {
+@@ -634,7 +634,7 @@ public final class Delayed8WayDistancePropagator2D {
+         }
+ 
+         // copied from superclass
+-        public byte removeIfGreaterOrEqual(final long key, final byte value) {
++        public synchronized byte removeIfGreaterOrEqual(final long key, final byte value) { // DivineMC -  Optimize Moonrise
+             if (key == 0L) {
+                 if (!this.containsNullKey) {
+                     return this.defRetValue;
+@@ -679,8 +679,8 @@ public final class Delayed8WayDistancePropagator2D {
+ 
+     protected static final class WorkQueue {
+ 
+-        public final NoResizeLongArrayFIFODeque queuedCoordinates = new NoResizeLongArrayFIFODeque();
+-        public final NoResizeByteArrayFIFODeque queuedLevels = new NoResizeByteArrayFIFODeque();
++        public final java.util.concurrent.ConcurrentLinkedDeque<Long> queuedCoordinates = new java.util.concurrent.ConcurrentLinkedDeque<>();
++        public final java.util.concurrent.ConcurrentLinkedDeque<Byte> queuedLevels = new java.util.concurrent.ConcurrentLinkedDeque<>();
+ 
+     }
+ 
