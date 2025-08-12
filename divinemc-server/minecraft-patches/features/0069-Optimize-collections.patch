@@ -53,6 +53,19 @@ index de7800b46f7e8c68f24de8476032f2179edc4797..3ca2f56cb31d41e88eb2a3e59c3749fb
      // Paper - rewrite chunk system
      public int serverViewDistance;
      public final WorldGenContext worldGenContext; // Paper - public
+diff --git a/net/minecraft/stats/StatType.java b/net/minecraft/stats/StatType.java
+index e42b894f0bdecd9417c3d53bfc172cd0726340bc..0865554f79536dc324766346223413c670348600 100644
+--- a/net/minecraft/stats/StatType.java
++++ b/net/minecraft/stats/StatType.java
+@@ -11,7 +11,7 @@ import net.minecraft.network.codec.StreamCodec;
+ 
+ public class StatType<T> implements Iterable<Stat<T>> {
+     private final Registry<T> registry;
+-    private final Map<T, Stat<T>> map = new IdentityHashMap<>();
++    private final Map<T, Stat<T>> map = new it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap<>(); // DivineMC - Optimize collections
+     private final Component displayName;
+     private final StreamCodec<RegistryFriendlyByteBuf, Stat<T>> streamCodec;
+ 
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
 index 66ba223dacefb3531c46b144c4499b2b2285eafe..0b7f9af0c4e43115878769043ebd06a09ccdf059 100644
 --- a/net/minecraft/world/level/Level.java

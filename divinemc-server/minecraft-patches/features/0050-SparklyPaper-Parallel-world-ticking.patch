@@ -333,7 +333,7 @@ index 3836d60ce84fb26f30a609486a5755d3fd1c94f1..1aab02441e4dfa7703963855d77bb918
                      }
                  } else if (this.visible.remove(advancementHolder)) {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 46adbe6ccf1e4291e33a52a6612f624558c18f96..374abd7e1502edefb78cd6451a36c3b8ad6d8f8f 100644
+index d90341ff814bb2b14867b7d9a401ae9672076f5b..f61470206e2c689187f37b44eda0d1942ac3bbc4 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -218,6 +218,13 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -633,10 +633,10 @@ index f9e7532f86122a379692561a639a209a126e8bba..839f6b7696ef85314da185bedba7cfc5
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 461abfac4749ca06b613cfee9e1ad9e6961299df..137b786bf15bbbe52f22bd9e25c1ef3c0d04e642 100644
+index 6963be899ac218bd091e73b72c9ccef82e33de36..85da5aec677d84aea005449d97c1ee3ca616e2e4 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3461,14 +3461,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3480,14 +3480,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              if (this.portalProcess != null) {
                  if (this.portalProcess.processPortalTeleportation(serverLevel, this, this.canUsePortal(false))) {
                      this.setPortalCooldown();
@@ -677,7 +677,7 @@ index 461abfac4749ca06b613cfee9e1ad9e6961299df..137b786bf15bbbe52f22bd9e25c1ef3c
                  } else if (this.portalProcess.hasExpired()) {
                      this.portalProcess = null;
                  }
-@@ -4045,6 +4065,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4064,6 +4084,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      private Entity teleportCrossDimension(ServerLevel oldLevel, ServerLevel newLevel, TeleportTransition teleportTransition) {
