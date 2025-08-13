@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -379,7 +380,13 @@ public class DivineConfig {
         public static int dabMaximumActivationFrequency = 20;
         public static int dabActivationDistanceMod = 8;
         public static boolean dabDontEnableIfInWater = false;
-        public static List<String> dabBlackedEntities = new ArrayList<>();
+        public static List<String> dabBlackedEntities = new ArrayList<>(Arrays.asList(
+            "villager",
+            "axolotl",
+            "hoglin",
+            "zombified_piglin",
+            "goat"
+        ));
 
         // Virtual threads
         public static boolean virtualThreadsEnabled = false;
