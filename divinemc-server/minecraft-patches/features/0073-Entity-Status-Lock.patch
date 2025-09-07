@@ -1,0 +1,180 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Mon, 8 Sep 2025 00:53:55 +0300
+Subject: [PATCH] Entity Status Lock
+
+
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+index b2bcfb3557a0326fd7ec1059f95d6da4568dfd80..5b3e8951c619cc2af023d13c2067b8d3df9e76e3 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+@@ -225,8 +225,10 @@ public final class ChunkEntitySlices {
+         }
+     }
+ 
++    private final java.util.concurrent.locks.ReentrantLock statusLock = new java.util.concurrent.locks.ReentrantLock(); // DivineMC - Entity Status Lock
+     private boolean preventStatusUpdates;
+     public boolean startPreventingStatusUpdates() {
++        this.statusLock.lock(); // DivineMC - Entity Status Lock
+         final boolean ret = this.preventStatusUpdates;
+         this.preventStatusUpdates = true;
+         return ret;
+@@ -238,85 +240,107 @@ public final class ChunkEntitySlices {
+ 
+     public void stopPreventingStatusUpdates(final boolean prev) {
+         this.preventStatusUpdates = prev;
++        this.statusLock.unlock(); // DivineMC - Entity Status Lock
+     }
+ 
+     public void updateStatus(final FullChunkStatus status, final EntityLookup lookup) {
+-        this.status = status;
++        // DivineMC start - Entity Status Lock
++        this.statusLock.lock();
++        try {
++            this.status = status;
+ 
+-        final Entity[] entities = this.entities.getRawData();
++            final Entity[] entities = this.entities.getRawData();
+ 
+-        for (int i = 0, size = this.entities.size(); i < size; ++i) {
+-            final Entity entity = entities[i];
++            for (int i = 0, size = this.entities.size(); i < size; ++i) {
++                final Entity entity = entities[i];
+ 
+-            final Visibility oldVisibility = EntityLookup.getEntityStatus(entity);
+-            ((ChunkSystemEntity)entity).moonrise$setChunkStatus(status);
+-            final Visibility newVisibility = EntityLookup.getEntityStatus(entity);
++                final Visibility oldVisibility = EntityLookup.getEntityStatus(entity);
++                ((ChunkSystemEntity) entity).moonrise$setChunkStatus(status);
++                final Visibility newVisibility = EntityLookup.getEntityStatus(entity);
+ 
+-            lookup.entityStatusChange(entity, this, oldVisibility, newVisibility, false, false, false);
++                lookup.entityStatusChange(entity, this, oldVisibility, newVisibility, false, false, false);
++            }
++        } finally {
++            this.statusLock.unlock();
+         }
++        // DivineMC end - Entity Status Lock
+     }
+ 
+     public boolean addEntity(final Entity entity, final int chunkSection) {
+-        if (!this.entities.add(entity)) {
+-            return false;
+-        }
+-        ((ChunkSystemEntity)entity).moonrise$setChunkStatus(this.status);
+-        ((ChunkSystemEntity)entity).moonrise$setChunkData(this.chunkData);
+-        final int sectionIndex = chunkSection - this.minSection;
++        // DivineMC start - Entity Status Lock
++        this.statusLock.lock();
++        try {
++            if (!this.entities.add(entity)) {
++                return false;
++            }
++            ((ChunkSystemEntity) entity).moonrise$setChunkStatus(this.status);
++            ((ChunkSystemEntity) entity).moonrise$setChunkData(this.chunkData);
++            final int sectionIndex = chunkSection - this.minSection;
+ 
+-        this.allEntities.addEntity(entity, sectionIndex);
++            this.allEntities.addEntity(entity, sectionIndex);
+ 
+-        if (((ChunkSystemEntity)entity).moonrise$isHardColliding()) {
+-            this.hardCollidingEntities.addEntity(entity, sectionIndex);
+-        }
++            if (((ChunkSystemEntity) entity).moonrise$isHardColliding()) {
++                this.hardCollidingEntities.addEntity(entity, sectionIndex);
++            }
+ 
+-        for (final Iterator<Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection>> iterator =
+-             this.entitiesByClass.reference2ObjectEntrySet().fastIterator(); iterator.hasNext();) {
+-            final Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection> entry = iterator.next();
++            for (final Iterator<Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection>> iterator =
++                 this.entitiesByClass.reference2ObjectEntrySet().fastIterator(); iterator.hasNext(); ) {
++                final Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection> entry = iterator.next();
+ 
+-            if (entry.getKey().isInstance(entity)) {
+-                entry.getValue().addEntity(entity, sectionIndex);
++                if (entry.getKey().isInstance(entity)) {
++                    entry.getValue().addEntity(entity, sectionIndex);
++                }
+             }
+-        }
+ 
+-        EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
+-        if (byType != null) {
+-            byType.addEntity(entity, sectionIndex);
+-        } else {
+-            this.entitiesByType.put(entity.getType(), byType = new EntityCollectionBySection(this));
+-            byType.addEntity(entity, sectionIndex);
+-        }
++            EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
++            if (byType != null) {
++                byType.addEntity(entity, sectionIndex);
++            } else {
++                this.entitiesByType.put(entity.getType(), byType = new EntityCollectionBySection(this));
++                byType.addEntity(entity, sectionIndex);
++            }
+ 
+-        return true;
++            return true;
++        } finally {
++            this.statusLock.unlock();
++        }
++        // DivineMC end - Entity Status Lock
+     }
+ 
+     public boolean removeEntity(final Entity entity, final int chunkSection) {
+-        if (!this.entities.remove(entity)) {
+-            return false;
+-        }
+-        ((ChunkSystemEntity)entity).moonrise$setChunkStatus(null);
+-        ((ChunkSystemEntity)entity).moonrise$setChunkData(null);
+-        final int sectionIndex = chunkSection - this.minSection;
++        // DivineMC start - Entity Status Lock
++        this.statusLock.lock();
++        try {
++            if (!this.entities.remove(entity)) {
++                return false;
++            }
++            ((ChunkSystemEntity) entity).moonrise$setChunkStatus(null);
++            ((ChunkSystemEntity) entity).moonrise$setChunkData(null);
++            final int sectionIndex = chunkSection - this.minSection;
+ 
+-        this.allEntities.removeEntity(entity, sectionIndex);
++            this.allEntities.removeEntity(entity, sectionIndex);
+ 
+-        if (((ChunkSystemEntity)entity).moonrise$isHardColliding()) {
+-            this.hardCollidingEntities.removeEntity(entity, sectionIndex);
+-        }
++            if (((ChunkSystemEntity) entity).moonrise$isHardColliding()) {
++                this.hardCollidingEntities.removeEntity(entity, sectionIndex);
++            }
+ 
+-        for (final Iterator<Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection>> iterator =
+-             this.entitiesByClass.reference2ObjectEntrySet().fastIterator(); iterator.hasNext();) {
+-            final Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection> entry = iterator.next();
++            for (final Iterator<Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection>> iterator =
++                 this.entitiesByClass.reference2ObjectEntrySet().fastIterator(); iterator.hasNext(); ) {
++                final Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection> entry = iterator.next();
+ 
+-            if (entry.getKey().isInstance(entity)) {
+-                entry.getValue().removeEntity(entity, sectionIndex);
++                if (entry.getKey().isInstance(entity)) {
++                    entry.getValue().removeEntity(entity, sectionIndex);
++                }
+             }
+-        }
+ 
+-        final EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
+-        byType.removeEntity(entity, sectionIndex);
++            final EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
++            byType.removeEntity(entity, sectionIndex);
+ 
+-        return true;
++            return true;
++        } finally {
++            this.statusLock.unlock();
++        }
++        // DivineMC end - Entity Status Lock
+     }
+ 
+     public void getHardCollidingEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {

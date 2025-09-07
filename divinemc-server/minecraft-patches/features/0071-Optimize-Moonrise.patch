@@ -30,6 +30,43 @@ index 93272808d94e81d31af728ebe85df9a2bc7aedab..b47be4b838f4c7f6c3fb62e4e18105c6
          }
      }
  
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
+index 2d24d03bbdb5ee0d862cbfff2219f58afffafe12..b4c55b8fee8dbab278e096580702a05282da2d51 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
+@@ -93,8 +93,14 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
+         if (entity == null) {
+             return null;
+         }
+-        final Visibility visibility = EntityLookup.getEntityStatus(entity);
+-        return visibility.isAccessible() ? entity : null;
++        // DivineMC start - Optimize Moonrise
++        final FullChunkStatus entityStatus = ((ChunkSystemEntity) entity).moonrise$getChunkStatus();
++        return switch (entityStatus) {
++            case INACCESSIBLE -> null;
++            case FULL, BLOCK_TICKING, ENTITY_TICKING -> entity;
++            case null -> null;
++        };
++        // DivineMC end - Optimize Moonrise
+     }
+ 
+     @Override
+@@ -398,7 +404,14 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
+             return Visibility.TICKING;
+         }
+         final FullChunkStatus entityStatus = ((ChunkSystemEntity)entity).moonrise$getChunkStatus();
+-        return Visibility.fromFullChunkStatus(entityStatus == null ? FullChunkStatus.INACCESSIBLE : entityStatus);
++        // DivineMC start - Optimize Moonrise
++        return switch (entityStatus) {
++            case INACCESSIBLE -> Visibility.HIDDEN;
++            case FULL, BLOCK_TICKING -> Visibility.TRACKED;
++            case ENTITY_TICKING -> Visibility.TICKING;
++            case null -> Visibility.HIDDEN;
++        };
++        // DivineMC end - Optimize Moonrise
+     }
+ 
+     protected boolean addEntity(final Entity entity, final boolean fromDisk, final boolean event) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 index 57fec1f9a210d2ecb74ff7b05cec790ae77f9178..4d0e904d7d7659b24a883893cef167f3e80dfa36 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
