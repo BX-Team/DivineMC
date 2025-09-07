@@ -11,7 +11,6 @@ import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.region.EnumRegionFileExtension;
 import org.bxteam.divinemc.region.type.LinearRegionFile;
-import org.bxteam.divinemc.async.AsyncJoinHandler;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlFile;
@@ -333,7 +332,21 @@ public class DivineConfig {
             asyncJoinUseVirtualThreads = getBoolean(ConfigCategory.ASYNC.key("join-thread.use-virtual-threads"), asyncJoinUseVirtualThreads,
                 "Whether to use virtual threads for async join operations (requires Java 21+)");
 
-            AsyncJoinHandler.init(asyncJoinEnabled, asyncJoinThreadCount);
+            if (asyncJoinThreadCount < 0) {
+                asyncJoinThreadCount = Math.max(Runtime.getRuntime().availableProcessors() + asyncJoinThreadCount, 1);
+            } else if (asyncJoinThreadCount == 0) {
+                asyncJoinThreadCount = Math.max(Runtime.getRuntime().availableProcessors() / 4, 1);
+            }
+
+            if (!asyncJoinEnabled) {
+                asyncJoinThreadCount = 0;
+            } else {
+                if (asyncJoinUseVirtualThreads) {
+                    LOGGER.info("Using virtual threads for Async Join Handler");
+                } else {
+                    LOGGER.info("Using {} threads for Async Join Handler", asyncJoinThreadCount);
+                }
+            }
         }
 
         private static void asyncChunkSending() {
