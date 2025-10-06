@@ -5,7 +5,7 @@ Subject: [PATCH] MSPT Tracking for each world
 
 
 diff --git a/src/main/java/org/purpurmc/purpur/task/TPSBarTask.java b/src/main/java/org/purpurmc/purpur/task/TPSBarTask.java
-index 8769993e7ca59da309087051a3cd38fc562c15d1..2eda6de8df6f8eb90bb84d12c3a88ca303664df4 100644
+index 8769993e7ca59da309087051a3cd38fc562c15d1..b6ecadfb23bb4f694a3b0a138f927936267a02df 100644
 --- a/src/main/java/org/purpurmc/purpur/task/TPSBarTask.java
 +++ b/src/main/java/org/purpurmc/purpur/task/TPSBarTask.java
 @@ -4,6 +4,8 @@ import net.kyori.adventure.bossbar.BossBar;
@@ -17,7 +17,7 @@ index 8769993e7ca59da309087051a3cd38fc562c15d1..2eda6de8df6f8eb90bb84d12c3a88ca3
  import org.purpurmc.purpur.PurpurConfig;
  import org.bukkit.Bukkit;
  import org.bukkit.entity.Player;
-@@ -28,14 +30,64 @@ public class TPSBarTask extends BossBarTask {
+@@ -28,14 +30,68 @@ public class TPSBarTask extends BossBarTask {
  
      @Override
      void updateBossBar(BossBar bossbar, Player player) {
@@ -29,7 +29,11 @@ index 8769993e7ca59da309087051a3cd38fc562c15d1..2eda6de8df6f8eb90bb84d12c3a88ca3
 +            ServerLevel serverLevel = ((CraftWorld)player.getWorld()).getHandle();
 +
 +            double worldMspt = calculateWorldMSPT(serverLevel);
-+            double worldTps = Math.min(20.0, 1000.0 / Math.max(worldMspt, 0.001));
++            double worldTps = this.tps;
++
++            if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.showTPSOfServerInsteadOfWorld) {
++                worldTps = Math.min(20.0, 1000.0 / Math.max(worldMspt, 0.001));
++            }
 +
 +            double originalTps = this.tps;
 +            double originalMspt = this.mspt;
