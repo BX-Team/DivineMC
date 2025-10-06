@@ -194,6 +194,7 @@ public class DivineConfig {
         public static boolean disableHardThrow = false;
         public static boolean pwtCompatabilityMode = false;
         public static boolean usePerWorldTpsBar = true;
+        public static boolean showTPSOfServerInsteadOfWorld = true;
 
         // Regionized chunk ticking
         @Experimental("Regionized Chunk Ticking")
@@ -250,6 +251,8 @@ public class DivineConfig {
                 "Enables compatibility mode for plugins that are not compatible with Parallel World Ticking. This makes all async tasks run synchronously.");
             usePerWorldTpsBar = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.use-per-world-tps-bar"), usePerWorldTpsBar,
                 "Enables per-world TPS bar, which shows the TPS of the world the player is currently in. TPS bar can be turned on/off with /tpsbar command.");
+            showTPSOfServerInsteadOfWorld = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.show-tps-of-server-instead-of-world"), showTPSOfServerInsteadOfWorld,
+                "Enables showing the TPS of the entire server instead of the world in the TPS bar.");
         }
 
         private static void regionizedChunkTicking() {
