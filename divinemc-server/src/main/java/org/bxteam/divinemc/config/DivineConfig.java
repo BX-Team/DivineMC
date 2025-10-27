@@ -268,13 +268,7 @@ public class DivineConfig {
                 "Configures the thread priority of the executor");
 
             asyncTickingOfSpawners = getBoolean(ConfigCategory.ASYNC.key("async-ticking-of-spawners"), asyncTickingOfSpawners,
-                "Enables offloading of ticking spawners to region executor."/*,
-                "Only works when Regionized chunk ticking is enabled."*/);
-
-            // if (!enableRegionizedChunkTicking && asyncTickingOfSpawners) {
-            //     LOGGER.warn("Regionized chunk ticking is enabled, but async ticking is enabled.");
-            //     asyncTickingOfSpawners = false;
-            // }
+                "Enables offloading of ticking spawners to region executor.");
 
             if (regionizedChunkTickingExecutorThreadCount < 1 || regionizedChunkTickingExecutorThreadCount > 10) {
                 LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (4)", regionizedChunkTickingExecutorThreadCount);
