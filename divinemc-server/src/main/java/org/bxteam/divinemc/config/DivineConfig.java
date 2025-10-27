@@ -201,7 +201,6 @@ public class DivineConfig {
         public static boolean enableRegionizedChunkTicking = false;
         public static int regionizedChunkTickingExecutorThreadCount = 4;
         public static int regionizedChunkTickingExecutorThreadPriority = Thread.NORM_PRIORITY + 2;
-        public static boolean asyncTickingOfSpawners = false;
 
         // Async pathfinding settings
         public static boolean asyncPathfinding = true;
@@ -228,6 +227,7 @@ public class DivineConfig {
 
         // Async mob spawning settings
         public static boolean enableAsyncSpawning = true;
+        public static boolean asyncNaturalSpawn = true;
 
         public static void load() {
             parallelWorldTicking();
@@ -266,9 +266,6 @@ public class DivineConfig {
                 "The amount of threads to allocate to regionized chunk ticking.");
             regionizedChunkTickingExecutorThreadPriority = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-priority"), regionizedChunkTickingExecutorThreadPriority,
                 "Configures the thread priority of the executor");
-
-            asyncTickingOfSpawners = getBoolean(ConfigCategory.ASYNC.key("async-ticking-of-spawners"), asyncTickingOfSpawners,
-                "Enables offloading of ticking spawners to region executor.");
 
             if (regionizedChunkTickingExecutorThreadCount < 1 || regionizedChunkTickingExecutorThreadCount > 10) {
                 LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (4)", regionizedChunkTickingExecutorThreadCount);
@@ -358,6 +355,8 @@ public class DivineConfig {
         private static void asyncMobSpawning() {
             enableAsyncSpawning = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.enable"), enableAsyncSpawning,
                 "Enables optimization that will offload much of the computational effort involved with spawning new mobs to a different thread.");
+            asyncNaturalSpawn = getBoolean(ConfigCategory.ASYNC.key("async-ticking-of-natural-spawns"), asyncNaturalSpawn,
+                "Enables offloading of natural spawning to a different thread");
         }
     }
 

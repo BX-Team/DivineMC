@@ -34,7 +34,7 @@ index 7ca147cf9da67c399806056e5092841f7ca32321..b77f702398d7c04258974cc7cd25ed04
  
          Objects.checkFromToIndex(0, size, raw.length);
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 2039e636b1a52aff5403621e7281d618e4b87864..df84bd2a2e306776ba92da74168b7c6c06c94beb 100644
+index 2039e636b1a52aff5403621e7281d618e4b87864..6c0398a8118463ef7c606229cc0078324ebba3f5 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -56,7 +56,7 @@ import org.slf4j.Logger;
@@ -115,7 +115,7 @@ index 2039e636b1a52aff5403621e7281d618e4b87864..df84bd2a2e306776ba92da74168b7c6c
 -                // DivineMC end - Parallel world ticking
 +            }
 +
-+            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncTickingOfSpawners) {
++            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncNaturalSpawn) {
 +                spawns.join();
              }
          }
@@ -180,10 +180,10 @@ index 2039e636b1a52aff5403621e7281d618e4b87864..df84bd2a2e306776ba92da74168b7c6c
  
 +        // DivineMC start - Regionized Chunk Ticking
 +        final CompletableFuture<Void> spawns;
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncTickingOfSpawners) {
-+            spawns = CompletableFuture.runAsync(() -> tickSpawners(filteredSpawningCategories, timeInhabited), org.bxteam.divinemc.async.rct.RegionizedChunkTicking.REGION_EXECUTOR);
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncNaturalSpawn) {
++            spawns = CompletableFuture.runAsync(() -> naturalSpawn(filteredSpawningCategories, timeInhabited), org.bxteam.divinemc.async.rct.RegionizedChunkTicking.REGION_EXECUTOR);
 +        } else {
-+            tickSpawners(filteredSpawningCategories, timeInhabited);
++            naturalSpawn(filteredSpawningCategories, timeInhabited);
 +            spawns = new CompletableFuture<>();
 +        }
 +        // DivineMC end - Regionized Chunk Ticking
@@ -195,7 +195,7 @@ index 2039e636b1a52aff5403621e7281d618e4b87864..df84bd2a2e306776ba92da74168b7c6c
 +    }
 +
 +    // DivineMC start - Regionized Chunk Ticking
-+    private void tickSpawners(List<MobCategory> filteredSpawningCategories, long timeInhabited) {
++    private void naturalSpawn(List<MobCategory> filteredSpawningCategories, long timeInhabited) {
          List<LevelChunk> list = this.spawningChunks;
  
          try {
