@@ -73,10 +73,10 @@ index aa4dd7517e8be167aef1eaf7aa907e3ce7cc0e62..e3d3b062e273fee4a9d3ba3cadc21278
 -    // Paper end - detailed watchdog information
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 0ad18866c323308ad9b87322932e03a283f740b1..386fdc23b35675a7db66d16bf2a8a6dd5b44059a 100644
+index 6c59d11107958f835ebe09317ed0d129f64d4583..ab14baf5a8a0fd7090702390197366b5a118cc6f 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1349,13 +1349,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1366,13 +1366,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      // Paper end - log detailed entity tick information
  
      public void tickNonPassenger(Entity entity) {
@@ -90,7 +90,7 @@ index 0ad18866c323308ad9b87322932e03a283f740b1..386fdc23b35675a7db66d16bf2a8a6dd
          entity.setOldPosAndRot();
          entity.tickCount++;
          entity.totalEntityAge++; // Paper - age-like counter for all entities
-@@ -1368,13 +1362,6 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1385,13 +1379,6 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          for (Entity entity1 : entity.getPassengers()) {
              this.tickPassenger(entity, entity1, isActive); // Paper - EAR 2
          }
@@ -105,7 +105,7 @@ index 0ad18866c323308ad9b87322932e03a283f740b1..386fdc23b35675a7db66d16bf2a8a6dd
  
      private void tickPassenger(Entity ridingEntity, Entity passengerEntity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index fa48496222ea922204163d48988246c44e09851f..2c7c5dab268625e1328f57ac3ec2a735a82fea42 100644
+index a5f6b4827019d2041d2b4bad5eab34e1bb1cbe23..d82ed6dcd49b4f0bd040d2bd3a6f0f54cd87758f 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1111,29 +1111,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

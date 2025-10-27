@@ -201,6 +201,7 @@ public class DivineConfig {
         public static boolean enableRegionizedChunkTicking = false;
         public static int regionizedChunkTickingExecutorThreadCount = 4;
         public static int regionizedChunkTickingExecutorThreadPriority = Thread.NORM_PRIORITY + 2;
+        public static boolean asyncTickingOfSpawners = false;
 
         // Async pathfinding settings
         public static boolean asyncPathfinding = true;
@@ -265,6 +266,15 @@ public class DivineConfig {
                 "The amount of threads to allocate to regionized chunk ticking.");
             regionizedChunkTickingExecutorThreadPriority = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-priority"), regionizedChunkTickingExecutorThreadPriority,
                 "Configures the thread priority of the executor");
+
+            asyncTickingOfSpawners = getBoolean(ConfigCategory.ASYNC.key("async-ticking-of-spawners"), asyncTickingOfSpawners,
+                "Enables offloading of ticking spawners to region executor."/*,
+                "Only works when Regionized chunk ticking is enabled."*/);
+
+            // if (!enableRegionizedChunkTicking && asyncTickingOfSpawners) {
+            //     LOGGER.warn("Regionized chunk ticking is enabled, but async ticking is enabled.");
+            //     asyncTickingOfSpawners = false;
+            // }
 
             if (regionizedChunkTickingExecutorThreadCount < 1 || regionizedChunkTickingExecutorThreadCount > 10) {
                 LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (4)", regionizedChunkTickingExecutorThreadCount);
