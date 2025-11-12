@@ -781,6 +781,7 @@ public class DivineConfig {
         public static boolean sendSpectatorChangePacket = true;
         public static boolean playerProfileResultCachingEnabled = true;
         public static int playerProfileResultCachingTimeout = 1440;
+        public static boolean removeBungeeCordCheckEnabled = false;
 
         // No chat reports
         public static boolean noChatReportsEnabled = false;
@@ -822,6 +823,8 @@ public class DivineConfig {
                 "Enables caching of player profile results on first join.");
             playerProfileResultCachingTimeout = getInt(ConfigCategory.NETWORK.key("player-profile-result-caching.timeout"), playerProfileResultCachingTimeout,
                 "The amount of time in minutes to cache player profile results.");
+            removeBungeeCordCheckEnabled = getBoolean(ConfigCategory.NETWORK.key("remove-bungeecord-check"), removeBungeeCordCheckEnabled,
+                "Disables the BungeeCord check added by Spigot. This allows for the use of Velocity/BungeeCord proxies. If this is enabled, you must ensure that the proper security configurations are in place.");
         }
 
         private static void noChatReports() {
