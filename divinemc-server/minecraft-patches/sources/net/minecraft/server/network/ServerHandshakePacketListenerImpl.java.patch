@@ -1,0 +1,11 @@
+--- a/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
+@@ -168,7 +_,7 @@
+                 if (split.length == 4) {
+                     this.connection.spoofedProfile = ServerHandshakePacketListenerImpl.gson.fromJson(split[3], com.mojang.authlib.properties.Property[].class);
+                 }
+-            } else if ((split.length == 3 || split.length == 4) && (ServerHandshakePacketListenerImpl.HOST_PATTERN.matcher(split[1]).matches())) {
++            } else if (!org.bxteam.divinemc.config.DivineConfig.config.getBoolean("remove-bungeecord-check") && (split.length == 3 || split.length == 4) && (ServerHandshakePacketListenerImpl.HOST_PATTERN.matcher(split[1]).matches())) {
+                 Component message = Component.literal("Unknown data in login hostname, did you forget to enable BungeeCord in spigot.yml?");
+                 this.connection.send(new ClientboundLoginDisconnectPacket(message));
+                 this.connection.disconnect(message);
