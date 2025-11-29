@@ -1367,7 +1367,7 @@ index 2d4807134e071254ce882e0bc4988242894c5d2f..40500e24156049e09a9970b120556f8a
          LevelChunkSection section = this.getSection(this.getSectionIndex(y));
          boolean hasOnlyAir = section.hasOnlyAir();
 diff --git a/net/minecraft/world/level/entity/EntityTickList.java b/net/minecraft/world/level/entity/EntityTickList.java
-index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0aedd925f7 100644
+index c89701d7bdc9b889038d3c52f2232fb17624b113..42cb7885a0073d872676e32cf6b1253a7166a561 100644
 --- a/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/net/minecraft/world/level/entity/EntityTickList.java
 @@ -11,25 +11,67 @@ import net.minecraft.world.entity.Entity;
@@ -1396,7 +1396,7 @@ index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0a
          this.ensureActiveIsNotIterated();
 -        this.entities.add(entity); // Paper - rewrite chunk system
 +        // DivineMC start - Parallel world ticking
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.RCTorPWT) {
 +            synchronized (this.entities) {
 +                this.entities.add(entity);
 +            }
@@ -1411,7 +1411,7 @@ index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0a
          this.ensureActiveIsNotIterated();
 -        this.entities.remove(entity); // Paper - rewrite chunk system
 +        // DivineMC start - Parallel world ticking
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.RCTorPWT) {
 +            synchronized (this.entities) {
 +                if (this.entities.contains(entity)) {
 +                    this.entities.remove(entity);
@@ -1426,7 +1426,7 @@ index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0a
      public boolean contains(Entity entity) {
 -        return this.entities.contains(entity); // Paper - rewrite chunk system
 +        // DivineMC start - Parallel world ticking
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.RCTorPWT) {
 +            synchronized (this.entities) {
 +                return this.entities.contains(entity);
 +            }
