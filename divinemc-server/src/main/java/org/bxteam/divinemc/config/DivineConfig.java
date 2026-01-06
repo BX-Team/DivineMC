@@ -229,6 +229,9 @@ public class DivineConfig {
         public static boolean enableAsyncSpawning = true;
         public static boolean asyncNaturalSpawn = true;
 
+        // Internal use only
+        public static boolean RCTorPWT = false;
+
         public static void load() {
             parallelWorldTicking();
             regionizedChunkTicking();
@@ -237,6 +240,7 @@ public class DivineConfig {
             asyncJoinSettings();
             asyncChunkSending();
             asyncMobSpawning();
+            RCTorPWT = enableRegionizedChunkTicking || enableParallelWorldTicking;
         }
 
         private static void parallelWorldTicking() {
@@ -355,7 +359,7 @@ public class DivineConfig {
         private static void asyncMobSpawning() {
             enableAsyncSpawning = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.enable"), enableAsyncSpawning,
                 "Enables optimization that will offload much of the computational effort involved with spawning new mobs to a different thread.");
-            asyncNaturalSpawn = getBoolean(ConfigCategory.ASYNC.key("async-ticking-of-natural-spawns"), asyncNaturalSpawn,
+            asyncNaturalSpawn = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.async-natural-spawn"), asyncNaturalSpawn,
                 "Enables offloading of natural spawning to a different thread");
         }
     }

@@ -1157,7 +1157,7 @@ index 6c648f2395b2f00180a71a4f6b50a6be51970d39..c0d996fb99f053863ce623889add3feb
  
      public boolean hasWork() {
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 2882cd829d4d8e1f8615f085f6908efcdf68ac62..25150731bb3f3d04b248ebc47fc9b453e49a705e 100644
+index 249dd04bb49d7cdd2e4f5d6fef0e2b62a1e3028c..b8e51989859e4073ff1c735c373093be41b7aa9a 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -26,8 +26,6 @@ import net.minecraft.network.protocol.Packet;
@@ -1254,7 +1254,7 @@ index 2882cd829d4d8e1f8615f085f6908efcdf68ac62..25150731bb3f3d04b248ebc47fc9b453
          boolean _boolean = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !this.level.players().isEmpty(); // CraftBukkit
          int _int = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
          List<MobCategory> filteredSpawningCategories;
-@@ -586,14 +565,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -586,16 +565,13 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          List<LevelChunk> list = this.spawningChunks;
  
          try {
@@ -1262,14 +1262,16 @@ index 2882cd829d4d8e1f8615f085f6908efcdf68ac62..25150731bb3f3d04b248ebc47fc9b453
              this.chunkMap.collectSpawningChunks(list);
 -            profiler.popPush("shuffleSpawningChunks");
              // Paper start - chunk tick iteration optimisation
-             this.shuffleRandom.setSeed(this.level.random.nextLong());
-             if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
+             if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
+                 this.shuffleRandom.setSeed(this.level.random.nextLong());
+                 Util.shuffle(list, this.shuffleRandom); // Paper - Optional per player mob spawns; do not need this when per-player is enabled
+             }
              // Paper end - chunk tick iteration optimisation
 -            profiler.popPush("tickSpawningChunks");
  
              for (LevelChunk levelChunk : list) {
                  this.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, spawnState);
-@@ -602,10 +578,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -604,10 +580,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              list.clear();
          }
  
@@ -1280,7 +1282,7 @@ index 2882cd829d4d8e1f8615f085f6908efcdf68ac62..25150731bb3f3d04b248ebc47fc9b453
          if (_boolean) {
              this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
          }
-@@ -817,7 +790,6 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -819,7 +792,6 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
  
          @Override
          protected void doRunTask(Runnable task) {
@@ -4006,7 +4008,7 @@ index 39a604c9a53930b53d959b1d2eb504aa964e9a58..0d0380e3955836ce125f777841477503
  
      @Override
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 8941f45781839de877cc742251d48cf24043966c..eb2f896a8f1b92ace8c7d48eecca386b8a750334 100644
+index 02ae385144a1fb7cb32f31199468a32c1e1a3361..6196ec5d34e12f0e8bb034215445a0af8e3aad2d 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -80,8 +80,6 @@ import net.minecraft.tags.TagKey;
@@ -5044,7 +5046,7 @@ index b80924fbe054b00fe5117df896358e330f41e993..1669c21534a453c9cf16b992df7a6bf2
  
          if (this.fire) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 8345405116202b59055f5343fc26b82f48008050..dbb4142ea38cdf484e74c81103cebb024ae8813d 100644
+index ceeeed2be85c2eac8f6b367d16797d8ddfc1464f..6d9274f0da9507d0152611d6b7785e0524dedb2d 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -24,8 +24,6 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;

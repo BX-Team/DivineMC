@@ -351,7 +351,7 @@ index d90341ff814bb2b14867b7d9a401ae9672076f5b..f61470206e2c689187f37b44eda0d194
          this.setFlightAllowed(properties.allowFlight);
          this.setMotd(properties.motd);
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index bf680624bc6c618dfa0eeeb74c103ff6716fd27e..2039e636b1a52aff5403621e7281d618e4b87864 100644
+index 50e4e08f4c3bbc17ced94f7ccccd3c4ac73d1e5f..eb796b8c5bfec8742483515b64f6202c67b4a036 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -175,8 +175,12 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -640,7 +640,7 @@ index f9e7532f86122a379692561a639a209a126e8bba..839f6b7696ef85314da185bedba7cfc5
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 9e53b4297fa786ee863d0cf1855aa0ebd9afc221..cb77b3ab59542bc4e8b50aecb23d98186206a0ad 100644
+index dda6dafa69b3e667a52ef51f50cd4cfedd67bdb3..0619e2425736cba62ad7f07d94b5ca8982fa44b0 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -3480,14 +3480,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -1368,7 +1368,7 @@ index 1ffd82f8459525c73ea2f4a57568eb5966b312dd..306590a29f8b6db6c0c68814f3fa28f3
          LevelChunkSection section = this.getSection(this.getSectionIndex(y));
          boolean hasOnlyAir = section.hasOnlyAir();
 diff --git a/net/minecraft/world/level/entity/EntityTickList.java b/net/minecraft/world/level/entity/EntityTickList.java
-index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0aedd925f7 100644
+index c89701d7bdc9b889038d3c52f2232fb17624b113..42cb7885a0073d872676e32cf6b1253a7166a561 100644
 --- a/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/net/minecraft/world/level/entity/EntityTickList.java
 @@ -11,25 +11,67 @@ import net.minecraft.world.entity.Entity;
@@ -1397,7 +1397,7 @@ index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0a
          this.ensureActiveIsNotIterated();
 -        this.entities.add(entity); // Paper - rewrite chunk system
 +        // DivineMC start - Parallel world ticking
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.RCTorPWT) {
 +            synchronized (this.entities) {
 +                this.entities.add(entity);
 +            }
@@ -1412,7 +1412,7 @@ index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0a
          this.ensureActiveIsNotIterated();
 -        this.entities.remove(entity); // Paper - rewrite chunk system
 +        // DivineMC start - Parallel world ticking
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.RCTorPWT) {
 +            synchronized (this.entities) {
 +                if (this.entities.contains(entity)) {
 +                    this.entities.remove(entity);
@@ -1427,7 +1427,7 @@ index c89701d7bdc9b889038d3c52f2232fb17624b113..cc47fbb5b95370aadcd43ea296e46a0a
      public boolean contains(Entity entity) {
 -        return this.entities.contains(entity); // Paper - rewrite chunk system
 +        // DivineMC start - Parallel world ticking
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.RCTorPWT) {
 +            synchronized (this.entities) {
 +                return this.entities.contains(entity);
 +            }

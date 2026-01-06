@@ -10,10 +10,10 @@ Original project: https://github.com/LogisticsCraft/OcclusionCulling
 Original license: MIT
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 7ca147cf9da67c399806056e5092841f7ca32321..a6bf257ca93e4b3819b65b4ef4ba71d9e2b40933 100644
+index 14fe5a27dad5676bd778eaaa878e175a909d1db4..69b7c7527e8f1781ebafa7a65c9fd0fea04d5309 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1421,7 +1421,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1425,7 +1425,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  double d1 = vec3_dx * vec3_dx + vec3_dz * vec3_dz; // Paper
                  double d2 = d * d;
                  // Paper start - Configurable entity tracking range by Y
@@ -23,7 +23,7 @@ index 7ca147cf9da67c399806056e5092841f7ca32321..a6bf257ca93e4b3819b65b4ef4ba71d9
                      double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
                      if (rangeY != -1) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index cb77b3ab59542bc4e8b50aecb23d98186206a0ad..fa48496222ea922204163d48988246c44e09851f 100644
+index 0619e2425736cba62ad7f07d94b5ca8982fa44b0..a5f6b4827019d2041d2b4bad5eab34e1bb1cbe23 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -145,7 +145,7 @@ import net.minecraft.world.waypoints.WaypointTransmitter;

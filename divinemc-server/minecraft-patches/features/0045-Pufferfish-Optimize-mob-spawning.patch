@@ -33,7 +33,7 @@ index 46adbe6ccf1e4291e33a52a6612f624558c18f96..d90341ff814bb2b14867b7d9a401ae96
          }
      }
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 75c8ce32e68f92e20201e9c243f46f2be716eac8..bf680624bc6c618dfa0eeeb74c103ff6716fd27e 100644
+index 36602e49ed2b35d446de4ea4ba9bed7ce4b0558a..50e4e08f4c3bbc17ced94f7ccccd3c4ac73d1e5f 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -182,6 +182,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -150,7 +150,7 @@ index 75c8ce32e68f92e20201e9c243f46f2be716eac8..bf680624bc6c618dfa0eeeb74c103ff6
          } else {
              filteredSpawningCategories = List.of();
          }
-@@ -572,7 +621,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -574,7 +623,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              // Paper end - chunk tick iteration optimisation
  
              for (LevelChunk levelChunk : list) {
@@ -159,7 +159,7 @@ index 75c8ce32e68f92e20201e9c243f46f2be716eac8..bf680624bc6c618dfa0eeeb74c103ff6
              }
          } finally {
              list.clear();
-@@ -591,11 +640,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -593,11 +642,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              this.level.tickThunder(chunk);
          }
  

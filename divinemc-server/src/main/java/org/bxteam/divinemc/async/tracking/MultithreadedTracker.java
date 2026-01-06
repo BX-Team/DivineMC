@@ -29,14 +29,14 @@ public class MultithreadedTracker {
     private static final Logger LOGGER = LogManager.getLogger(THREAD_PREFIX);
 
     private static long lastWarnMillis = System.currentTimeMillis();
-    public static final ThreadPoolExecutor TRACKER_EXECUTOR = new ThreadPoolExecutor(
+    public static final ThreadPoolExecutor TRACKER_EXECUTOR = DivineConfig.AsyncCategory.multithreadedEnabled ? new ThreadPoolExecutor(
         getCorePoolSize(),
         getMaxPoolSize(),
         getKeepAliveTime(), TimeUnit.SECONDS,
         getQueueImpl(),
         getThreadFactory(),
         getRejectedPolicy()
-    );
+    ) : null;
 
     public static void tick(ServerLevel level) {
         try {

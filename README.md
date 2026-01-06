@@ -3,7 +3,7 @@
 # DivineMC
 DivineMC is a multi-functional fork of [Purpur](https://github.com/PurpurMC/Purpur), which focuses on the flexibility of your server and its optimization
 
-[![github](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/github_vector.svg)](https://github.com/BX-Team/DivineMC/releases/latest)
+[![website](https://raw.githubusercontent.com/NONPLAYT/badges/refs/heads/master/available-on-our-website.svg)](https://bxteam.org/downloads/divinemc)
 [![mcjars](https://raw.githubusercontent.com/NONPLAYT/badges/refs/heads/master/available-on-mcjars.svg)](https://mcjars.app/DIVINEMC/versions)
 
 [![Chat on Discord](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/social/discord-plural_vector.svg)](https://discord.gg/qNyybSSPm5)

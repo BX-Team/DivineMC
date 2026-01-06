@@ -24,14 +24,14 @@ public class AsyncPathProcessor {
     private static final Logger LOGGER = LogManager.getLogger(THREAD_PREFIX);
 
     private static long lastWarnMillis = System.currentTimeMillis();
-    public static final ThreadPoolExecutor PATH_PROCESSING_EXECUTOR = new ThreadPoolExecutor(
+    public static final ThreadPoolExecutor PATH_PROCESSING_EXECUTOR = DivineConfig.AsyncCategory.asyncPathfinding ? new ThreadPoolExecutor(
         1,
         DivineConfig.AsyncCategory.asyncPathfindingMaxThreads,
         DivineConfig.AsyncCategory.asyncPathfindingKeepalive, TimeUnit.SECONDS,
         getQueueImpl(),
         new NamedAgnosticThreadFactory<>(THREAD_PREFIX, TickThread::new, Thread.NORM_PRIORITY - 2),
         new RejectedTaskHandler()
-    );
+    ) : null;
 
     private static class RejectedTaskHandler implements RejectedExecutionHandler {
         @Override
