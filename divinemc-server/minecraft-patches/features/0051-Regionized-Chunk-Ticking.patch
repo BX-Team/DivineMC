@@ -58,7 +58,7 @@ index 04dd1bec1aff470e67a21fb0b25932685992ec82..d22088a2648f1394206131302d10708c
      }
  
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 6ea62fbffda38e477ef8e119608fc93793db95c3..66072f0851be5ca75f9fbef88297625272e7a597 100644
+index 6ea62fbffda38e477ef8e119608fc93793db95c3..2861466115edf65d79921cc1848e642e1f2fe554 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -57,7 +57,7 @@ import org.slf4j.Logger;
@@ -176,7 +176,7 @@ index 6ea62fbffda38e477ef8e119608fc93793db95c3..66072f0851be5ca75f9fbef882976252
 +            spawns = CompletableFuture.runAsync(() -> naturalSpawn(filteredSpawningCategories, timeInhabited), org.bxteam.divinemc.async.rct.RegionizedChunkTicking.REGION_EXECUTOR);
 +        } else {
 +            naturalSpawn(filteredSpawningCategories, timeInhabited);
-+            spawns = new CompletableFuture<>();
++            spawns = CompletableFuture.completedFuture(null);
 +        }
 +        // DivineMC end - Regionized Chunk Ticking
 +
