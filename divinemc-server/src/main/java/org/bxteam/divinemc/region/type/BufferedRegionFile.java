@@ -2,18 +2,21 @@ package org.bxteam.divinemc.region.type;
 
 import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
 import ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO;
+import com.github.luben.zstd.ZstdInputStream;
+import com.github.luben.zstd.ZstdOutputStream;
+import net.jpountz.lz4.LZ4Compressor;
+import net.jpountz.lz4.LZ4Factory;
+import net.jpountz.lz4.LZ4FastDecompressor;
 import net.jpountz.xxhash.XXHash32;
 import net.jpountz.xxhash.XXHashFactory;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
-import org.bxteam.divinemc.region.EnumRegionFileExtension;
+import org.apache.commons.lang3.Validate;
 import org.bxteam.divinemc.region.IRegionFile;
-import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
+import org.bxteam.divinemc.region.flusher.BufferedRegionFileFlusher;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 
 import java.io.*;
 import java.lang.invoke.VarHandle;
@@ -21,14 +24,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
 
 /**
  * A buffered region file implementation that provides efficient chunk storage and retrieval
@@ -39,245 +38,172 @@ import java.util.Set;
  */
 @SuppressWarnings({"unused", "FieldMayBeFinal"})
 public class BufferedRegionFile implements IRegionFile {
-    private static final double AUTO_COMPACT_PERCENT = 3.0 / 5.0; // 60%
-    private static final long AUTO_COMPACT_SIZE = 1024 * 1024; // 1 MiB
-    private static final long SUPER_BLOCK = 0x1145141919810L;
-    private static final int HASH_SEED = 0x0721;
-    private static final byte VERSION = 0x01; // Version 1
+    private static final double SWAP_FILE_AUTO_COMPACT_PERCENT = 3.0 / 5.0; // 60 %
+    private static final long SWAP_FILE_AUTO_COMPACT_SIZE = 1024 * 1024; // 1 MiB
 
-    private final Path filePath;
-    private final ReadWriteLock fileAccessLock = new ReentrantReadWriteLock();
+    private static final long SWAP_FILE_SUPER_BLOCK = 0x1145141919810L;
+    private static final int SWAP_FILE_HASH_SEED = 0x0721;
+    private static final byte SWAP_FILE_VERSION = 0x02; // Version 2
+
+    private static final long MASTER_FILE_SUPER_BLOCK = -0x200812250269L;
+    private static final byte MASTER_FILE_VERSION = 0x02; // Version 2
+
+    private static final long LINEAR_FILE_SUPER_BLOCK = 0xc3ff13183cca9d9aL;
+
+    private static final StandardOpenOption[] SWAP_FILE_CHANNEL_OPTIONS = new StandardOpenOption[]{
+        StandardOpenOption.CREATE,
+        StandardOpenOption.WRITE,
+        StandardOpenOption.READ,
+        StandardOpenOption.DELETE_ON_CLOSE
+    };
+    private static final StandardOpenOption[] TMP_FILE_CHANNEL_OPTIONS = new StandardOpenOption[]{
+        StandardOpenOption.CREATE,
+        StandardOpenOption.WRITE
+    };
+
+    private final Path masterFilePath;
+    private final Path swapFilePath;
+
+    private final ReadWriteLock regionObjectLock = new ReentrantReadWriteLock();
     private final XXHash32 xxHash32 = XXHashFactory.fastestInstance().hash32();
-    private final Sector[] sectors = new Sector[1024];
-    private final AtomicInteger recalculateCount = new AtomicInteger(0);
+    private Sector[] sectors = new Sector[1024];
     private long currentAcquiredIndex = this.headerSize();
-    private byte compressionLevel = 6;
-    private int xxHash32Seed = HASH_SEED;
-    private FileChannel channel;
+    private int xxHash32Seed = SWAP_FILE_HASH_SEED;
+    private FileChannel swapFileChannel;
+
+    private final byte compressionLevel;
+    private final LinearMasterFileParser masterFileParser = new LinearMasterFileParser();
+    private final CompressingOps compressingOps = new CompressingOps();
+
+    // managed by VarHandles following
     private boolean closed = false;
+    private boolean beingSynced = false;
+    private boolean synced = false;
+    private long lastWritten = System.nanoTime();
 
-    private volatile boolean synced = true;
-    private volatile boolean beingSynced = false;
-    private volatile long lastWritten = 0L;
-
-    private static final Set<BufferedRegionFile> MANAGED_FILES = new ObjectLinkedOpenHashSet<>();
-    private static volatile ScheduledFuture<?> flusherChecker;
-    private static volatile Executor ioWorkerPool;
-    private static final Object FLUSHER_LOCK = new Object();
-    public static volatile boolean flusherInitialized = false;
-
+    private static final VarHandle CLOSED_HANDLE = ConcurrentUtil.getVarHandle(BufferedRegionFile.class, "closed", boolean.class);
     private static final VarHandle SYNCED_HANDLE = ConcurrentUtil.getVarHandle(BufferedRegionFile.class, "synced", boolean.class);
     private static final VarHandle BEING_SYNCED_HANDLE = ConcurrentUtil.getVarHandle(BufferedRegionFile.class, "beingSynced", boolean.class);
     private static final VarHandle LAST_WRITTEN_HANDLE = ConcurrentUtil.getVarHandle(BufferedRegionFile.class, "lastWritten", long.class);
 
-    public BufferedRegionFile(Path filePath, int compressionLevel) throws IOException {
-        this(filePath);
+    private final BufferedRegionFileFlusher flusher;
+
+    public BufferedRegionFile(Path masterFilePath, int compressionLevel, @NotNull BufferedRegionFileFlusher flusher) throws IOException {
+        this.masterFilePath = masterFilePath;
+        this.swapFilePath = Path.of(this.masterFilePath.toString() + ".swp");
+
+        Validate.inclusiveBetween(1, 22, compressionLevel);
         this.compressionLevel = (byte) compressionLevel;
-    }
 
-    public BufferedRegionFile(Path filePath) throws IOException {
-        this.channel = FileChannel.open(
-            filePath,
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE,
-            StandardOpenOption.READ
-        );
-        this.filePath = filePath;
+        this.initSwapFile();
+        this.loadSwapDataFromMasterFile();
 
-        for (int i = 0; i < 1024; i++) {
-            this.sectors[i] = new Sector(i, this.headerSize(), 0);
-        }
-
-        this.readHeaders();
-
-        if (DivineConfig.MiscCategory.regionFileType == EnumRegionFileExtension.B_LINEAR) initializeFlusherIfNeeded();
-        addToFlusherManagement();
-    }
-
-    private static void initializeFlusherIfNeeded() {
-        if (flusherInitialized) return;
-
-        synchronized (FLUSHER_LOCK) {
-            if (flusherInitialized) {
-                return;
-            }
-
-            final int nIoThreads = DivineConfig.MiscCategory.linearIoThreadCount;
-            final long checkIntervalMs = 20;
-
-            ioWorkerPool = Executors.newFixedThreadPool(nIoThreads,
-                new NamedAgnosticThreadFactory<>(
-                    "BufferedRegionFile I/O Worker",
-                    (group, runnable, name) -> {
-                        Thread thread = new Thread(group, runnable, name);
-                        thread.setDaemon(true);
-                        return thread;
-                    },
-                    Thread.NORM_PRIORITY
-                )
-            );
-
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
-                new NamedAgnosticThreadFactory<>(
-                    "BufferedRegionFile Flusher Checker",
-                    (group, runnable, name) -> {
-                        Thread thread = new Thread(group, runnable, name);
-                        thread.setDaemon(true);
-                        return thread;
-                    },
-                    Thread.NORM_PRIORITY
-                )
-            );
-
-            flusherChecker = scheduler.scheduleWithFixedDelay(
-                BufferedRegionFile::runFlusherCheck,
-                checkIntervalMs,
-                checkIntervalMs,
-                TimeUnit.MILLISECONDS
-            );
-
-            flusherInitialized = true;
-        }
-    }
-
-    private static void runFlusherCheck() {
-        final long currentNanos = System.nanoTime();
-        final BufferedRegionFile[] copied;
-
-        synchronized (MANAGED_FILES) {
-            copied = Arrays.copyOf(
-                    MANAGED_FILES.toArray(new BufferedRegionFile[0]),
-                    MANAGED_FILES.size(),
-                    BufferedRegionFile[].class
-            );
-        }
-
-        final List<BufferedRegionFile> toRemove = new ObjectArrayList<>();
-        for (BufferedRegionFile file : copied) {
-            if (!file.softReadLock()) {
-                continue;
-            }
-
-            boolean closed;
-
-            try {
-                closed = file.isClosedRaw();
-            } finally {
-                file.releaseReadLock();
-            }
-
-            if (closed) {
-                toRemove.add(file);
-                continue;
-            }
-
-            if (!file.shouldSync()) {
-                continue;
-            }
-
-            final long lastWriteNanos = file.getLastWritten();
-            final long timeElapsed = (currentNanos - lastWriteNanos) / 1_000_000;
-            final long flushTimeoutMs = DivineConfig.MiscCategory.linearIoFlushDelayMs;
-
-            if (timeElapsed >= flushTimeoutMs) {
-                if (!file.markAsBeingSynced()) {
-                    continue;
-                }
-
-                ioWorkerPool.execute(() -> {
-                    try {
-                        file.flush();
-                        file.syncIfNeeded();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-            }
-        }
-
-        synchronized (MANAGED_FILES) {
-            for (BufferedRegionFile file : toRemove) {
-                MANAGED_FILES.remove(file);
-            }
-        }
-    }
-
-    public static void shutdown() throws InterruptedException {
-        synchronized (FLUSHER_LOCK) {
-            if (!flusherInitialized) {
-                return;
-            }
-
-            if (flusherChecker != null) {
-                flusherChecker.cancel(false);
-            }
-
-            if (ioWorkerPool instanceof ExecutorService) {
-                ((ExecutorService) ioWorkerPool).shutdown();
-                //noinspection StatementWithEmptyBody
-                while (!((ExecutorService) ioWorkerPool).awaitTermination(100, TimeUnit.MILLISECONDS));
-            }
-
-            flusherInitialized = false;
-        }
-    }
-
-    private void addToFlusherManagement() {
-        synchronized (MANAGED_FILES) {
-            MANAGED_FILES.add(this);
-        }
-    }
-
-    private void removeFromFlusherManagement() {
-        synchronized (MANAGED_FILES) {
-            MANAGED_FILES.remove(this);
-        }
-    }
-
-    public boolean softReadLock() {
-        return this.fileAccessLock.readLock().tryLock();
-    }
-
-    public void releaseReadLock() {
-        this.fileAccessLock.readLock().unlock();
-    }
-
-    public boolean isClosedRaw() {
-        return this.closed;
-    }
-
-    public boolean shouldSync() {
-        return !(boolean) SYNCED_HANDLE.get(this);
-    }
-
-    public long getLastWritten() {
-        return (long) LAST_WRITTEN_HANDLE.get(this);
+        this.flusher = flusher;
+        this.flusher.addFile(this);
     }
 
     public boolean markAsBeingSynced() {
         return BEING_SYNCED_HANDLE.compareAndSet(this, false, true);
     }
 
-    public void syncIfNeeded() throws IOException {
-        if (this.channel != null && this.channel.isOpen()) {
-            this.channel.force(true);
+    public long getLastWritten() {
+        return (long) LAST_WRITTEN_HANDLE.getVolatile(this);
+    }
+
+    public boolean shouldSync() {
+        return !((boolean) SYNCED_HANDLE.getVolatile(this));
+    }
+
+    public boolean softReadLock() {
+        // not done close logic yet
+        return this.regionObjectLock.readLock().tryLock();
+    }
+
+    public void releaseReadLock() {
+        this.regionObjectLock.readLock().unlock();
+    }
+
+    public boolean isClosedRaw() {
+        return (boolean) CLOSED_HANDLE.getVolatile(this);
+    }
+
+    public boolean isClosed() {
+        this.regionObjectLock.readLock().lock();
+        try {
+            return (boolean) CLOSED_HANDLE.getVolatile(this);
+        } finally {
+            this.regionObjectLock.readLock().unlock();
         }
     }
 
-    private void readHeaders() throws IOException {
-        if (this.channel.size() < this.headerSize()) {
+    public void syncIfNeeded() throws IOException {
+        if (!this.regionObjectLock.readLock().tryLock()) {
+            BEING_SYNCED_HANDLE.setVolatile(this, false); // mark as not being synced
             return;
         }
 
-        final ByteBuffer buffer = ByteBuffer.allocateDirect(this.headerSize());
-        this.channel.read(buffer, 0);
+        try {
+            // skip if closed already
+            if (this.isClosedRaw()) {
+                return;
+            }
+
+            this.syncToMasterFile();
+        } finally {
+            BEING_SYNCED_HANDLE.setVolatile(this, false); // mark as not being synced
+
+            this.regionObjectLock.readLock().unlock();
+        }
+    }
+
+    private void syncToMasterFile() throws IOException {
+        // prevent multiple syncs in the same time
+        if (!SYNCED_HANDLE.compareAndSet(this, false, true)) {
+            return;
+        }
+
+        try {
+            this.masterFileParser.writeMainFile(this.masterFilePath);
+        } catch (Exception e) {
+            // set back
+            SYNCED_HANDLE.setVolatile(this, false);
+
+            throw new IOException("Failed to sync to master file!", e);
+        }
+    }
+
+    private void loadSwapDataFromMasterFile() throws IOException {
+        this.masterFileParser.parseMainFile(this.masterFilePath);
+    }
+
+    private void initSwapFile() throws IOException {
+        this.swapFileChannel = FileChannel.open(
+            this.swapFilePath,
+            SWAP_FILE_CHANNEL_OPTIONS
+        );
+
+        // fill default sectors
+        for (int i = 0; i < 1024; i++) {
+            this.sectors[i] = new Sector(i, this.headerSize(), 0);
+        }
+
+        // load sectors
+        this.readSwapFileHeaders();
+    }
+
+    private void readSwapFileHeaders() throws IOException {
+        if (this.swapFileChannel.size() < this.headerSize()) {
+            return;
+        }
+
+        final ByteBuffer buffer = ByteBuffer.allocate(this.headerSize());
+        this.swapFileChannel.read(buffer, 0);
         buffer.flip();
 
-        if (buffer.getLong() != SUPER_BLOCK || buffer.get() != VERSION) {
+        if (buffer.getLong() != SWAP_FILE_SUPER_BLOCK || buffer.get() != SWAP_FILE_VERSION) {
             throw new IOException("Invalid file format or version mismatch");
         }
 
-        this.compressionLevel = buffer.get(); // Compression level
         this.xxHash32Seed = buffer.getInt(); // XXHash32 seed
         this.currentAcquiredIndex = buffer.getLong(); // Acquired index
 
@@ -289,12 +215,23 @@ public class BufferedRegionFile implements IRegionFile {
         }
     }
 
-    private void writeHeaders() throws IOException {
-        final ByteBuffer buffer = ByteBuffer.allocateDirect(this.headerSize());
+    private void recalculateAcquiredIndex() {
+        long newValue = this.headerSize();
 
-        buffer.putLong(SUPER_BLOCK); // Magic
-        buffer.put(VERSION); // Version
-        buffer.put(this.compressionLevel); // Compression level
+        for (Sector sector : this.sectors) {
+            if (sector.hasData()) {
+                newValue = Math.max(newValue, sector.offset + sector.length);
+            }
+        }
+
+        this.currentAcquiredIndex = newValue;
+    }
+
+    private void writeSwapFileHeaders(boolean forceFile, boolean forceMeta) throws IOException {
+        final ByteBuffer buffer = ByteBuffer.allocate(this.headerSize());
+
+        buffer.putLong(SWAP_FILE_SUPER_BLOCK); // Magic
+        buffer.put(SWAP_FILE_VERSION); // Version
         buffer.putInt(this.xxHash32Seed); // XXHash32 seed
         buffer.putLong(this.currentAcquiredIndex); // Acquired index
 
@@ -306,7 +243,11 @@ public class BufferedRegionFile implements IRegionFile {
 
         long offset = 0;
         while (buffer.hasRemaining()) {
-            offset += this.channel.write(buffer, offset);
+            offset += this.swapFileChannel.write(buffer, offset);
+        }
+
+        if (forceFile) {
+            this.swapFileChannel.force(forceMeta);
         }
     }
 
@@ -319,7 +260,6 @@ public class BufferedRegionFile implements IRegionFile {
 
         result += Long.BYTES; // Magic
         result += Byte.BYTES; // Version
-        result += Byte.BYTES; // Compression level
         result += Integer.BYTES; // XXHash32 seed
         result += Long.BYTES; // Acquired index
         result += this.sectorSize(); // Sectors
@@ -328,143 +268,244 @@ public class BufferedRegionFile implements IRegionFile {
     }
 
     private void flushInternal() throws IOException {
-        if (this.closed) {
-            return;
-        }
-
-        this.writeHeaders();
-
-        long spareSize = this.channel.size();
-
-        spareSize -= this.headerSize();
-        for (Sector sector : this.sectors) {
-            spareSize -= sector.length;
-        }
-
-        long sectorSize = 0;
-        for (Sector sector : this.sectors) {
-            sectorSize += sector.length;
-        }
-
-        if (spareSize > AUTO_COMPACT_SIZE && (double)spareSize > ((double)sectorSize) * AUTO_COMPACT_PERCENT) {
-            this.compact();
-        }
-    }
-
-    private void closeInternal() throws IOException {
-        this.closed = true;
-        this.writeHeaders();
-        this.channel.force(true);
-        this.compact();
-        this.channel.close();
-    }
-
-    private void compact() throws IOException {
-        this.writeHeaders();
-        this.channel.force(true);
-        try (FileChannel tempChannel = FileChannel.open(
-            new File(this.filePath.toString() + ".tmp").toPath(),
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE,
-            StandardOpenOption.READ
-        )){
-            final ByteBuffer headerBuffer = ByteBuffer.allocateDirect(this.headerSize());
-            this.channel.read(headerBuffer, 0);
-            headerBuffer.flip();
-
-            long offsetHeader = 0;
-            while (headerBuffer.hasRemaining()) {
-                offsetHeader += tempChannel.write(headerBuffer, offsetHeader);
+        this.regionObjectLock.writeLock().lock();
+        try {
+            if (this.isClosedRaw()) {
+                return;
             }
 
-            long offsetPointer = this.headerSize();
-            tempChannel.position(offsetPointer);
+            this.writeSwapFileHeaders(true, false);
 
+            long spareSize = this.swapFileChannel.size();
+
+            spareSize -= this.headerSize();
             for (Sector sector : this.sectors) {
                 if (!sector.hasData()) {
                     continue;
                 }
 
-                long transferred = 0;
-                while (transferred < sector.length) {
-                    transferred += this.channel.transferTo(
-                        sector.offset + transferred,
-                        sector.length - transferred,
-                        tempChannel);
+                spareSize -= sector.length;
+            }
+
+            long sectorSize = 0;
+            for (Sector sector : this.sectors) {
+                if (!sector.hasData()) {
+                    continue;
                 }
+
+                sectorSize += sector.length;
+            }
+
+            boolean compacted = false;
+            if (spareSize > SWAP_FILE_AUTO_COMPACT_SIZE && (double) spareSize > ((double) sectorSize) * SWAP_FILE_AUTO_COMPACT_PERCENT) {
+                compacted = true;
+                this.compactSwapFile();
+            }
+
+            if (!Files.exists(this.masterFilePath) && !compacted) {
+                this.syncToMasterFile();
+            }
+        } finally {
+            this.regionObjectLock.writeLock().unlock();
+        }
+    }
+
+    private void closeInternal() throws IOException {
+        this.regionObjectLock.writeLock().lock();
+        try {
+            this.markClosed();
+
+            try {
+                this.writeSwapFileHeaders(true, true);
+                this.syncToMasterFile();
+            } finally {
+                this.swapFileChannel.close();
+            }
+        } finally {
+            this.regionObjectLock.writeLock().unlock();
+        }
+    }
+
+    private void markClosed() throws IOException {
+        if (!CLOSED_HANDLE.compareAndSet(this, false, true)) {
+            throw new IOException("Already closed!");
+        }
+
+        this.flusher.removeFile(this);
+    }
+
+    private void compactSwapFile() throws IOException {
+        this.writeSwapFileHeaders(true, true); // save headers for compact
+
+        final Sector[] newSectorsToBeReplaced = new Sector[this.sectors.length];
+
+        for (int i = 0; i < this.sectors.length; i++) {
+            final Sector old = this.sectors[i];
+
+            if (old.hasData()) {
+                newSectorsToBeReplaced[i] = old;
+                continue;
+            }
+
+            // note:
+            // we reset length to 0 and this would make length <= newLength(which is >= 0) is always true.
+            // so that the following write operation wouldn't override the data of other sectors
+            // see the write method in Sector class
+            newSectorsToBeReplaced[i] = new Sector(i, 0, 0);
+        }
+
+        long newAcquiredIndex;
+
+        final Path targetTemp = new File(this.swapFilePath.toString() + ".tmp").toPath();
+        try (FileChannel tempChannel = FileChannel.open(
+            targetTemp,
+            StandardOpenOption.CREATE_NEW,
+            StandardOpenOption.WRITE,
+            StandardOpenOption.READ
+        )) {
+            long offsetPointer = this.headerSize();
+            tempChannel.position(offsetPointer);
+
+            for (Sector sector : newSectorsToBeReplaced) {
+                if (!sector.hasData()) {
+                    continue;
+                }
+
+                sector.transferTo(this.swapFileChannel, tempChannel);
 
                 final Sector newRecalculated = new Sector(sector.index, offsetPointer, sector.length);
                 newRecalculated.hasData = true;
 
                 offsetPointer += sector.length;
-                this.sectors[sector.index] = newRecalculated;
+                newSectorsToBeReplaced[sector.index] = newRecalculated; // update sector infos
             }
 
             tempChannel.force(true);
-            this.currentAcquiredIndex = offsetPointer;
+
+            newAcquiredIndex = offsetPointer;
+        } catch (Exception ex) {
+            this.recalculateAcquiredIndex();
+            Files.deleteIfExists(targetTemp);
+            this.markClosed(); // prevent new writing & sync operations
+            throw new IOException("Failed to compact swap file!", ex);
         }
 
-        this.channel.close();
+        this.swapFileChannel.close();
 
-        Files.move(
-            new File(this.filePath.toString() + ".tmp").toPath(),
-            this.filePath,
-            java.nio.file.StandardCopyOption.REPLACE_EXISTING
-        );
+        final Path target = new File(this.swapFilePath + ".tmp").toPath();
+        try {
+            Files.move(
+                target,
+                this.swapFilePath,
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE
+            );
+        } catch (Exception e) {
+            try {
+                Files.move(
+                    target,
+                    this.swapFilePath,
+                    StandardCopyOption.REPLACE_EXISTING
+                );
+            } catch (Exception ex) {
+                e.addSuppressed(ex);
 
-        this.reopenChannel();
-        this.writeHeaders();
-    }
-
-    private void reopenChannel() throws IOException {
-        if (this.channel.isOpen()) {
-            this.channel.close();
+                Files.deleteIfExists(target);
+                this.recalculateAcquiredIndex();
+                this.reopenSwapFileChannel();
+                this.markClosed(); // prevent new writing & sync opeartions
+                throw new IOException("Failed to replace original swap file!", e);
+            }
         }
 
-        this.channel = FileChannel.open(
-            filePath,
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE,
-            StandardOpenOption.READ
+        this.reopenSwapFileChannel();
+
+        this.sectors = newSectorsToBeReplaced;
+        this.currentAcquiredIndex = newAcquiredIndex;
+
+        this.writeSwapFileHeaders(true, true);
+    }
+
+    private void reopenSwapFileChannel() throws IOException {
+        if (this.swapFileChannel.isOpen()) {
+            this.swapFileChannel.close();
+        }
+
+        this.swapFileChannel = FileChannel.open(
+            this.swapFilePath,
+            SWAP_FILE_CHANNEL_OPTIONS
         );
     }
 
-    private void writeChunkDataRaw(int chunkOrdinal, ByteBuffer chunkData) throws IOException {
-        final Sector sector = this.sectors[chunkOrdinal];
+    private void writeChunkDataRaw(int chunkOrdinal, ByteBuffer chunkData, boolean skipSync) throws IOException {
+        final ByteBuffer committed = this.compressingOps.commitSectionData(chunkData); // run compression out of lock
 
-        sector.store(chunkData, this.channel);
+        this.regionObjectLock.writeLock().lock();
+        try {
+            final Sector sector = this.sectors[chunkOrdinal];
 
-        SYNCED_HANDLE.set(this, false);
-        LAST_WRITTEN_HANDLE.set(this, System.nanoTime());
+            sector.store(committed, this.swapFileChannel);
+        } finally {
+            this.regionObjectLock.writeLock().unlock();
+        }
+
+        if (skipSync) {
+            return;
+        }
+
+        this.markAsToSync();
     }
 
     private @Nullable ByteBuffer readChunkDataRaw(int chunkOrdinal) throws IOException {
-        final Sector sector = this.sectors[chunkOrdinal];
+        final ByteBuffer raw;
 
-        if (!sector.hasData()) {
-            return null;
+        this.regionObjectLock.readLock().lock();
+        try {
+            final Sector sector = this.sectors[chunkOrdinal];
+
+            if (!sector.hasData()) {
+                return null;
+            }
+
+            raw = sector.read(this.swapFileChannel);
+        } finally {
+            this.regionObjectLock.readLock().unlock();
         }
 
-        return sector.read(this.channel);
+        return this.compressingOps.fromCommitedSection(raw);
     }
 
     private void clearChunkData(int chunkOrdinal) throws IOException {
-        final Sector sector = this.sectors[chunkOrdinal];
+        this.regionObjectLock.writeLock().lock();
+        try {
+            final Sector sector = this.sectors[chunkOrdinal];
 
-        sector.clear();
+            sector.clear();
 
-        this.writeHeaders();
+            this.writeSwapFileHeaders(true, false);
+        } finally {
+            this.regionObjectLock.writeLock().unlock();
+        }
 
-        SYNCED_HANDLE.set(this, false);
-        LAST_WRITTEN_HANDLE.set(this, System.nanoTime());
+        this.markAsToSync();
+    }
+
+    private void markAsToSync() {
+        SYNCED_HANDLE.setVolatile(this, false);
+        LAST_WRITTEN_HANDLE.setVolatile(this, System.nanoTime());
     }
 
     private static int getChunkIndex(int x, int z) {
         return (x & 31) + ((z & 31) << 5);
     }
 
-    private boolean hasData(int chunkOriginal) {
-        return this.sectors[chunkOriginal].hasData();
+    private boolean hasData(int chunkOrdinal) {
+        this.regionObjectLock.readLock().lock();
+        try {
+            return this.sectors[chunkOrdinal].hasData();
+        } finally {
+            this.regionObjectLock.readLock().unlock();
+        }
     }
 
     private void writeChunk(int x, int z, @NotNull ByteBuffer data) throws IOException {
@@ -474,131 +515,35 @@ public class BufferedRegionFile implements IRegionFile {
         final int xxHash32OfData = this.xxHash32.hash(data, this.xxHash32Seed);
         data.position(oldPositionOfData);
 
-        final ByteBuffer compressedData = this.compress(this.ensureDirectBuffer(data));
-        final ByteBuffer chunkSectionBuilder = ByteBuffer.allocateDirect(compressedData.remaining() + 4 + 8 + 4);
+        // uncompressed length(int) + timestamp(long) + xxhash32(int)
+        final ByteBuffer chunkSectionBuilder = ByteBuffer.allocate(data.remaining() + 4 + 8 + 4);
 
-        chunkSectionBuilder.putInt(data.remaining()); // Uncompressed length
-        chunkSectionBuilder.putLong(System.currentTimeMillis()); // Timestamp
-        chunkSectionBuilder.putInt(xxHash32OfData); // xxHash32 of the original data
-        chunkSectionBuilder.put(compressedData); // Compressed data
+        chunkSectionBuilder.putInt(data.remaining()); // Length(int)
+        chunkSectionBuilder.putLong(System.currentTimeMillis()); // Timestamp(long)
+        chunkSectionBuilder.putInt(xxHash32OfData); // xxHash32 of the original data(int)
+        chunkSectionBuilder.put(data); // Data(bytes)
         chunkSectionBuilder.flip();
 
-        this.writeChunkDataRaw(chunkIndex, chunkSectionBuilder);
+        this.writeChunkDataRaw(chunkIndex, chunkSectionBuilder, false);
     }
 
     private @Nullable ByteBuffer readChunk(int x, int z) throws IOException {
-        final ByteBuffer compressed = this.readChunkDataRaw(getChunkIndex(x, z));
+        final ByteBuffer data = this.readChunkDataRaw(getChunkIndex(x, z));
 
-        if (compressed == null) {
+        if (data == null) {
             return null;
         }
 
-        final int uncompressedLength = compressed.getInt();
-        final long timestamp = compressed.getLong(); // TODO use this timestamp for something?
-        final int dataXXHash32 = compressed.getInt();
+        final int length = data.getInt(); // compressed length(int)
+        final long timestamp = data.getLong(); // TODO use this timestamp(long) for something?
+        final int dataXXHash32 = data.getInt(); // XXHash32 for validation(int)
 
-        final ByteBuffer decompressed = this.decompress(this.ensureDirectBuffer(compressed), uncompressedLength);
-
-        final IOException xxHash32CheckFailedEx = this.checkXXHash32(dataXXHash32, decompressed);
+        final IOException xxHash32CheckFailedEx = this.checkXXHash32(dataXXHash32, data);
         if (xxHash32CheckFailedEx != null) {
-            throw xxHash32CheckFailedEx;
+            throw xxHash32CheckFailedEx; // prevent from loading
         }
 
-        return decompressed;
-    }
-
-    private @NotNull ByteBuffer ensureDirectBuffer(@NotNull ByteBuffer buffer) {
-        if (buffer.isDirect()) {
-            return buffer;
-        }
-
-        ByteBuffer direct = ByteBuffer.allocateDirect(buffer.remaining());
-        int originalPosition = buffer.position();
-        direct.put(buffer);
-        direct.flip();
-        buffer.position(originalPosition);
-
-        return direct;
-    }
-
-    private @NotNull ByteBuffer compress(@NotNull ByteBuffer input) throws IOException {
-        final int originalPosition = input.position();
-        final int originalLimit = input.limit();
-
-        try {
-            byte[] inputArray;
-            int inputLength = input.remaining();
-            if (input.hasArray()) {
-                inputArray = input.array();
-                int arrayOffset = input.arrayOffset() + input.position();
-                if (arrayOffset != 0 || inputLength != inputArray.length) {
-                    byte[] temp = new byte[inputLength];
-                    System.arraycopy(inputArray, arrayOffset, temp, 0, inputLength);
-                    inputArray = temp;
-                }
-            } else {
-                inputArray = new byte[inputLength];
-                input.get(inputArray);
-                input.position(originalPosition);
-            }
-
-            byte[] compressed = com.github.luben.zstd.Zstd.compress(inputArray, this.compressionLevel);
-
-            ByteBuffer result = ByteBuffer.allocateDirect(compressed.length);
-            result.put(compressed);
-            result.flip();
-
-            return result;
-
-        } catch (Exception e) {
-            throw new IOException("Compression failed for input size: " + input.remaining(), e);
-        } finally {
-            input.position(originalPosition);
-            input.limit(originalLimit);
-        }
-    }
-
-    private @NotNull ByteBuffer decompress(@NotNull ByteBuffer input, int originalSize) throws IOException {
-        final int originalPosition = input.position();
-        final int originalLimit = input.limit();
-
-        try {
-            byte[] inputArray;
-            int inputLength = input.remaining();
-
-            if (input.hasArray()) {
-                inputArray = input.array();
-                int arrayOffset = input.arrayOffset() + input.position();
-                if (arrayOffset != 0 || inputLength != inputArray.length) {
-                    byte[] temp = new byte[inputLength];
-                    System.arraycopy(inputArray, arrayOffset, temp, 0, inputLength);
-                    inputArray = temp;
-                }
-            } else {
-                inputArray = new byte[inputLength];
-                input.get(inputArray);
-                input.position(originalPosition);
-            }
-
-            byte[] decompressed = com.github.luben.zstd.Zstd.decompress(inputArray, originalSize);
-
-            if (decompressed.length != originalSize) {
-                throw new IOException("Decompression size mismatch: expected " +
-                    originalSize + ", got " + decompressed.length);
-            }
-
-            ByteBuffer result = ByteBuffer.allocateDirect(originalSize);
-            result.put(decompressed);
-            result.flip();
-
-            return result;
-
-        } catch (Exception e) {
-            throw new IOException("Decompression failed", e);
-        } finally {
-            input.position(originalPosition);
-            input.limit(originalLimit);
-        }
+        return data;
     }
 
     private @Nullable IOException checkXXHash32(long originalXXHash32, @NotNull ByteBuffer input) {
@@ -615,36 +560,23 @@ public class BufferedRegionFile implements IRegionFile {
 
     @Override
     public Path getPath() {
-        return this.filePath;
+        return this.masterFilePath;
     }
 
     @Override
     public DataInputStream getChunkDataInputStream(@NotNull ChunkPos pos) throws IOException {
-        this.fileAccessLock.readLock().lock();
-        try {
-            final ByteBuffer data = this.readChunk(pos.x, pos.z);
+        final ByteBuffer data = this.readChunk(pos.x, pos.z);
 
-            if (data == null) {
-                return null;
-            }
-
-            final byte[] dataBytes = new byte[data.remaining()];
-            data.get(dataBytes);
-
-            return new DataInputStream(new ByteArrayInputStream(dataBytes));
-        } finally {
-            this.fileAccessLock.readLock().unlock();
+        if (data == null) {
+            return null;
         }
+
+        return new DataInputStream(new ByteBufferInputStream(data));
     }
 
     @Override
     public boolean doesChunkExist(@NotNull ChunkPos pos) {
-        this.fileAccessLock.readLock().lock();
-        try {
-            return this.hasData(getChunkIndex(pos.x, pos.z));
-        } finally {
-            this.fileAccessLock.readLock().unlock();
-        }
+        return this.hasData(getChunkIndex(pos.x, pos.z));
     }
 
     @Override
@@ -654,34 +586,20 @@ public class BufferedRegionFile implements IRegionFile {
 
     @Override
     public void clear(@NotNull ChunkPos pos) throws IOException {
-        this.fileAccessLock.writeLock().lock();
-        try {
-            this.clearChunkData(getChunkIndex(pos.x, pos.z));
-        } finally {
-            this.fileAccessLock.writeLock().unlock();
-        }
+        this.clearChunkData(getChunkIndex(pos.x, pos.z));
     }
 
     @Override
     public boolean hasChunk(@NotNull ChunkPos pos) {
-        this.fileAccessLock.readLock().lock();
-        try {
-            return this.hasData(getChunkIndex(pos.x, pos.z));
-        }finally {
-            this.fileAccessLock.readLock().unlock();
-        }
+        return this.hasData(getChunkIndex(pos.x, pos.z));
     }
 
     @Override
     public void write(@NotNull ChunkPos pos, ByteBuffer buf) throws IOException {
-        this.fileAccessLock.writeLock().lock();
-        try {
-            this.writeChunk(pos.x, pos.z, buf);
-        }finally {
-            this.fileAccessLock.writeLock().unlock();
-        }
+        this.writeChunk(pos.x, pos.z, buf);
     }
 
+    // MCC 的玩意,这东西也用不上给Linear了()
     @Override
     public CompoundTag getOversizedData(int x, int z) {
         return null;
@@ -694,7 +612,6 @@ public class BufferedRegionFile implements IRegionFile {
 
     @Override
     public boolean recalculateHeader() {
-        this.recalculateCount.incrementAndGet();
         return false;
     }
 
@@ -702,57 +619,81 @@ public class BufferedRegionFile implements IRegionFile {
     public void setOversized(int x, int z, boolean oversized) {
 
     }
-
-    @Override
-    public int getRecalculateCount() {
-        return this.recalculateCount.get();
-    }
+    // MCC end
 
     @Override
     public MoonriseRegionFileIO.RegionDataController.WriteData moonrise$startWrite(CompoundTag data, ChunkPos pos) {
         final DataOutputStream out = this.getChunkDataOutputStream(pos);
 
-        return new ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.WriteData(
-            data, ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.WriteData.WriteResult.WRITE,
+        return new MoonriseRegionFileIO.RegionDataController.WriteData(
+            data, MoonriseRegionFileIO.RegionDataController.WriteData.WriteResult.WRITE,
             out, regionFile -> out.close()
         );
     }
 
     @Override
     public void flush() throws IOException {
-        this.fileAccessLock.writeLock().lock();
-        try {
-            if ((boolean) SYNCED_HANDLE.get(this)) {
-                return;
-            }
-
-            if (!BEING_SYNCED_HANDLE.compareAndSet(this, false, true)) {
-                return;
-            }
-
-            try {
-                this.flushInternal();
-                SYNCED_HANDLE.set(this, true);
-            } finally {
-                BEING_SYNCED_HANDLE.set(this, false);
-            }
-        } finally {
-            this.fileAccessLock.writeLock().unlock();
-        }
+        this.flushInternal();
     }
 
     @Override
     public void close() throws IOException {
-        this.fileAccessLock.writeLock().lock();
-        try {
-            removeFromFlusherManagement();
-            this.closeInternal();
-        } finally {
-            this.fileAccessLock.writeLock().unlock();
+        this.closeInternal();
+    }
+
+    public static class ByteBufferInputStream extends InputStream {
+        protected final ByteBuffer internal;
+
+        public ByteBufferInputStream(ByteBuffer buf) {
+            this.internal = buf;
+        }
+
+        @Override
+        public int available() {
+            return this.internal.remaining();
+        }
+
+        @Override
+        public int read() throws IOException {
+            return this.internal.hasRemaining() ? (this.internal.get() & 0xFF) : -1;
+        }
+
+        @Override
+        public int read(byte @NotNull [] bytes, int off, int len) throws IOException {
+            if (!this.internal.hasRemaining()) return -1;
+            len = Math.min(len, this.internal.remaining());
+            this.internal.get(bytes, off, len);
+            return len;
         }
     }
 
-    private class Sector {
+    private static class CompressingOps {
+        private final LZ4Compressor lz4Compressor = LZ4Factory.fastestInstance().fastCompressor();
+        private final LZ4FastDecompressor lz4Decompressor = LZ4Factory.fastestInstance().fastDecompressor();
+
+        public @NotNull ByteBuffer commitSectionData(@NotNull ByteBuffer in) {
+            final int bufferLenToAllocate = this.lz4Compressor.maxCompressedLength(in.remaining());
+            final ByteBuffer result = ByteBuffer.allocate(bufferLenToAllocate + 4);
+
+            result.putInt(in.remaining());
+            this.lz4Compressor.compress(in, result);
+
+            return result.flip();
+        }
+
+        public @NotNull ByteBuffer fromCommitedSection(@NotNull ByteBuffer flippedIn) {
+            final int originalLen = flippedIn.getInt();
+            final byte[] raw = new byte[flippedIn.remaining()];
+            flippedIn.get(raw);
+
+            final byte[] decompressed = new byte[originalLen];
+            this.lz4Decompressor.decompress(raw, decompressed);
+
+            return ByteBuffer.wrap(decompressed);
+        }
+    }
+
+    public class Sector {
         private final int index;
         private long offset;
         private long length;
@@ -764,30 +705,61 @@ public class BufferedRegionFile implements IRegionFile {
             this.length = length;
         }
 
+        public void transferTo(@NotNull FileChannel source, @NotNull FileChannel target) throws IOException {
+            long transferred = 0;
+            while (transferred < this.length) {
+                transferred += source.transferTo(
+                    this.offset + transferred,
+                    this.length - transferred,
+                    target);
+            }
+        }
+
         public @NotNull ByteBuffer read(@NotNull FileChannel channel) throws IOException {
-            final ByteBuffer result = ByteBuffer.allocateDirect((int) this.length);
+            final ByteBuffer result = ByteBuffer.allocate((int) this.length);
 
-            channel.read(result, this.offset);
+            int totalRead = 0;
+            while (totalRead < this.length) {
+                int read = channel.read(result, this.offset + totalRead);
+                if (read == -1) {
+                    throw new IOException("Unexpected EOF while reading sector " + this.index +
+                        ", expected " + this.length + " bytes, got " + totalRead);
+                }
+                totalRead += read;
+            }
+
             result.flip();
-
             return result;
         }
 
         public void store(@NotNull ByteBuffer newData, @NotNull FileChannel channel) throws IOException {
+            final long oldLength = this.length;
+            final long newDataLength = newData.remaining();
+
             this.hasData = true;
-            this.length = newData.remaining();
-            this.offset = currentAcquiredIndex;
+            this.length = newDataLength;
+
+            if (newDataLength <= oldLength) {
+                long localOffset = this.offset;
+                while (newData.hasRemaining()) {
+                    localOffset += channel.write(newData, localOffset);
+                }
+
+                return;
+            }
+
+            this.offset = BufferedRegionFile.this.currentAcquiredIndex;
 
             BufferedRegionFile.this.currentAcquiredIndex += this.length;
 
-            long offset = this.offset;
+            long localOffset = this.offset;
             while (newData.hasRemaining()) {
-                offset += channel.write(newData, offset);
+                localOffset += channel.write(newData, localOffset);
             }
         }
 
         private @NotNull ByteBuffer getEncoded() {
-            final ByteBuffer buffer = ByteBuffer.allocateDirect(sizeOfSingle());
+            final ByteBuffer buffer = ByteBuffer.allocate(sizeOfSingle());
 
             buffer.putLong(this.offset);
             buffer.putLong(this.length);
@@ -829,13 +801,194 @@ public class BufferedRegionFile implements IRegionFile {
 
         @Override
         public void close() throws IOException {
-            BufferedRegionFile.this.fileAccessLock.writeLock().lock();
-            try {
-                ByteBuffer bytebuffer = ByteBuffer.wrap(this.buf, 0, this.count);
+            ByteBuffer bytebuffer = ByteBuffer.wrap(this.buf, 0, this.count);
 
-                BufferedRegionFile.this.writeChunk(this.pos.x, this.pos.z, bytebuffer);
-            } finally {
-                BufferedRegionFile.this.fileAccessLock.writeLock().unlock();
+            BufferedRegionFile.this.writeChunk(this.pos.x, this.pos.z, bytebuffer);
+            BufferedRegionFile.this.flushInternal();
+        }
+    }
+
+    private class LinearMasterFileParser {
+        private void parseBufferedLinear(@NotNull DataInputStream ioStream, Path file) throws IOException {
+            final byte version = ioStream.readByte();
+            if (version != MASTER_FILE_VERSION)
+                throw new RuntimeException("Invalid version: " + version + " in " + file);
+
+            // Skip newestTimestamp (Long) + Compression level (Byte): Unused.
+            ioStream.skipBytes(9);
+
+            try (final ZstdInputStream decompressStream = new ZstdInputStream(ioStream)) {
+                // only used as a helper stream
+                // the parent stream will be closed in the try-catch block upper
+                final DataInputStream decompressedStreamHelper = new DataInputStream(decompressStream);
+
+                for (int index = 0; index < 1024; index++) {
+                    int size = decompressedStreamHelper.readInt(); // len
+
+                    if (size > 0) {
+                        byte[] sectorData = new byte[size];
+                        decompressedStreamHelper.readFully(sectorData, 0, size); // data
+
+                        final ByteBuffer sectorDataNioBuffer = ByteBuffer.wrap(sectorData);
+
+                        BufferedRegionFile.this.writeChunkDataRaw(index, sectorDataNioBuffer, true);
+                    }
+                }
+            }
+        }
+
+        @Contract(value = "_ -> new", pure = true)
+        public static int @NotNull [] coordinatesFromOrdinal(int chunkIndex) {
+            int x = chunkIndex & 31;
+            int z = (chunkIndex >> 5) & 31;
+            return new int[]{x, z};
+        }
+
+        private void parseLinear(@NotNull DataInputStream ioStream, Path file) throws IOException {
+            final byte version = ioStream.readByte();
+
+            if (version != 1 && version != 2) {
+                throw new IOException("Unsupported version for linear format : " + version);
+            }
+
+            // Skip newestTimestamp (Long) + Compression level (Byte) + Chunk count (Short): Unused.
+            ioStream.skipBytes(11);
+            // Skip chunk data len(Int)(Unused).
+            ioStream.skipBytes(4);
+            // Skip data hash (Long): Unused.
+            ioStream.skipBytes(8);
+
+            try (final ZstdInputStream decompressedStream = new ZstdInputStream(ioStream)) {
+                // only used as a helper stream
+                // the parent stream will be closed in the try-catch block upper
+                final DataInputStream bufferHelper = new DataInputStream(decompressedStream);
+
+                final int[] chunkStarts = new int[1024];
+                for (int i = 0; i < 1024; i++) {
+                    chunkStarts[i] = bufferHelper.readInt();
+                    bufferHelper.skipBytes(4); // Skip timestamps (Int): Unused.
+                }
+
+                for (int i = 0; i < 1024; i++) {
+                    if (chunkStarts[i] > 0) {
+                        int size = chunkStarts[i];
+                        byte[] chunkData = new byte[size];
+                        bufferHelper.readFully(chunkData);
+
+                        final ByteBuffer chunkDataNioBuffer = ByteBuffer.wrap(chunkData);
+
+                        final int[] posByAxis = coordinatesFromOrdinal(i);
+
+                        final int x = posByAxis[0];
+                        final int z = posByAxis[1];
+
+                        BufferedRegionFile.this.writeChunk(x, z, chunkDataNioBuffer);
+                    }
+                }
+            }
+        }
+
+        public void parseMainFile(@NotNull Path mainFilePath) throws IOException {
+            final File file = mainFilePath.toFile();
+
+            if (!file.exists() || !file.canRead()) {
+                return;
+            }
+
+            // those streams will be closed in the parse logic, or we will close it manually
+            final FileInputStream fileStream = new FileInputStream(file);
+            final DataInputStream rawDataStream = new DataInputStream(fileStream);
+
+            final long superBlock;
+            try {
+                superBlock = rawDataStream.readLong();
+
+                if (superBlock == MASTER_FILE_SUPER_BLOCK) {
+                    this.parseBufferedLinear(rawDataStream, mainFilePath);
+                    return;
+                }
+
+                if (superBlock == LINEAR_FILE_SUPER_BLOCK) {
+                    this.parseLinear(rawDataStream, mainFilePath);
+                    return;
+                }
+
+            } catch (Exception ex) {
+                // error caught during other reading logics, close directly
+                try {
+                    rawDataStream.close();
+                } catch (IOException ex2) {
+                    ex.addSuppressed(ex2);
+                }
+
+                throw new IOException("Failed to parse master file: " + mainFilePath, ex);
+            }
+
+            // anyone non-matched, close stream and throw the error
+            rawDataStream.close();
+
+            throw new IOException("Unknown or unsupported super block : " + superBlock);
+        }
+
+        public void writeMainFile(@NotNull Path mainFile) throws IOException {
+            final Path tmpFilePath = Path.of(mainFile + ".tmp");
+
+            long timestamp = System.currentTimeMillis();
+
+            File tempFile = tmpFilePath.toFile();
+
+            try (final OutputStream fileStream = Files.newOutputStream(tmpFilePath, TMP_FILE_CHANNEL_OPTIONS);
+                 final ZstdOutputStream zstdStream = new ZstdOutputStream(fileStream, BufferedRegionFile.this.compressionLevel)
+            ) {
+
+                // only used as a helper stream
+                // the parent stream will be closed in the try-catch block upper
+                final DataOutputStream fileDataStreamHelper = new DataOutputStream(fileStream);
+
+                fileDataStreamHelper.writeLong(MASTER_FILE_SUPER_BLOCK); // super block
+                fileDataStreamHelper.writeByte(MASTER_FILE_VERSION); // version
+                fileDataStreamHelper.writeLong(timestamp); // timestamp
+                fileDataStreamHelper.write(BufferedRegionFile.this.compressionLevel); // compression level
+                fileDataStreamHelper.flush();
+
+                // only used as a helper stream
+                // the parent stream will be closed in the try-catch block upper
+                final DataOutputStream zstdDataStreamHelper = new DataOutputStream(zstdStream);
+
+                for (int i = 0; i < 1024; i++) {
+                    // read from swap file
+                    final ByteBuffer chunkData = BufferedRegionFile.this.readChunkDataRaw(i);
+
+                    // not found
+                    if (chunkData == null) {
+                        zstdDataStreamHelper.writeInt(0);
+                        continue;
+                    }
+
+                    final byte[] buffer = new byte[chunkData.remaining()];
+                    chunkData.get(buffer);
+
+                    // store
+                    zstdDataStreamHelper.writeInt(buffer.length); // len
+                    zstdDataStreamHelper.write(buffer); // data
+                }
+
+                zstdDataStreamHelper.flush();
+            }
+
+            try {
+                Files.move(tempFile.toPath(), masterFilePath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (Exception e) {
+                // retry with non-atomic move
+                try {
+                    Files.move(tempFile.toPath(), masterFilePath, StandardCopyOption.REPLACE_EXISTING);
+                } catch (Exception ex) {
+                    // now we are totally failed
+
+                    // fast-fail
+                    Files.deleteIfExists(masterFilePath);
+                    throw new IOException("Failed to replace original master file!", e);
+                }
             }
         }
     }

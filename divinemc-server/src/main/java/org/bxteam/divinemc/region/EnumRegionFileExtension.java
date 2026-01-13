@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 public enum EnumRegionFileExtension {
     MCA("mca", "mca", (info) -> new RegionFile(info.info(), info.filePath(), info.folder(), info.sync())),
     LINEAR("linear", "linear", (info) -> new LinearRegionFile(info.info(), info.filePath(), info.folder(), info.sync(), DivineConfig.MiscCategory.linearCompressionLevel)),
-    B_LINEAR("b_linear", "b_linear", (info) -> new BufferedRegionFile(info.filePath(), DivineConfig.MiscCategory.linearCompressionLevel));
+    B_LINEAR("b_linear", "b_linear", (info) -> new BufferedRegionFile(info.filePath(), DivineConfig.MiscCategory.linearCompressionLevel, DivineConfig.MiscCategory.bLinearFlusher));
 
     private final String name;
     private final String argument;

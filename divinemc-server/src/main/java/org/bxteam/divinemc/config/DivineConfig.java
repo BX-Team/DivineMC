@@ -11,6 +11,7 @@ import org.bxteam.divinemc.chunk.ChunkSystemAlgorithm;
 import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.region.EnumRegionFileExtension;
+import org.bxteam.divinemc.region.flusher.BufferedRegionFileFlusher;
 import org.bxteam.divinemc.region.type.LinearRegionFile;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
@@ -628,6 +629,7 @@ public class DivineConfig {
         public static int linearIoThreadCount = 6;
         public static int linearIoFlushDelayMs = 100;
         public static boolean linearUseVirtualThreads = true;
+        public static BufferedRegionFileFlusher bLinearFlusher = null;
 
         // Sentry
         public static String sentryDsn = "";
@@ -692,7 +694,7 @@ public class DivineConfig {
             linearUseVirtualThreads = getBoolean(ConfigCategory.MISC.key("region-format.linear-use-virtual-threads"), linearUseVirtualThreads,
                 "Whether to use virtual threads for IO operations that was introduced in Java 21.");
 
-            if (linearCompressionLevel > 22 || linearCompressionLevel < 1) {
+            if (linearCompressionLevel > 23 || linearCompressionLevel < 1) {
                 LOGGER.warn("Invalid linear compression level: {}, resetting to default (1)", linearCompressionLevel);
                 linearCompressionLevel = 1;
             }
@@ -701,6 +703,11 @@ public class DivineConfig {
                 LinearRegionFile.SAVE_DELAY_MS = linearIoFlushDelayMs;
                 LinearRegionFile.SAVE_THREAD_MAX_COUNT = linearIoThreadCount;
                 LinearRegionFile.USE_VIRTUAL_THREAD = linearUseVirtualThreads;
+            }
+
+            if (regionFileType == EnumRegionFileExtension.B_LINEAR) {
+                bLinearFlusher = new BufferedRegionFileFlusher(6, 20, 3000); // TODO: Make configurable, sort settings
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> bLinearFlusher.shutdown()));
             }
         }
 

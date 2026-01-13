@@ -60,7 +60,6 @@ public class LinearRegionFile implements IRegionFile {
     private final LZ4FastDecompressor decompressor;
     private final int compressionLevel;
     private final Thread bindThread;
-    private final java.util.concurrent.atomic.AtomicInteger recalculateCount = new java.util.concurrent.atomic.AtomicInteger();
 
     private byte[][] bucketBuffers;
     private boolean markedToSave = false;
@@ -119,10 +118,6 @@ public class LinearRegionFile implements IRegionFile {
 
     public Path getPath() {
         return this.regionFile;
-    }
-
-    public int getRecalculateCount() {
-        return this.recalculateCount.get();
     }
 
     public boolean recalculateHeader() {
