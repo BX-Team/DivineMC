@@ -75,19 +75,15 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
 
     private CompletableFuture<LongOpenHashSet> tick(RegionData region, int randomTickSpeed) {
         return CompletableFuture.supplyAsync(() -> {
-            ObjectArrayList<LevelChunk> regionChunks = new ObjectArrayList<>(region.chunks().size());
             LongOpenHashSet regionChunksIDs = new LongOpenHashSet(region.chunks().size());
             for (long key : region.chunks()) {
                 LevelChunk chunk = fullChunks.get(key);
                 if (chunk != null) {
-                    regionChunks.add(chunk);
+                    level.tickChunk(chunk, randomTickSpeed);
                     regionChunksIDs.add(key);
                 }
             }
 
-            for (LevelChunk chunk : regionChunks) {
-                level.tickChunk(chunk, randomTickSpeed);
-            }
             for (Entity entity : region.entities()) {
                 tickEntity(entity);
             }
