@@ -671,16 +671,14 @@ public class DivineConfig {
         }
 
         private static void regionFileExtension() {
-            EnumRegionFileExtension configuredType = EnumRegionFileExtension.fromString(getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString(),
-                "The type of region file format to use for storing chunk data.",
-                "Valid values:",
-                " - MCA: Default Minecraft region file format",
-                " - LINEAR: Linear region file format V2",
-                " - B_LINEAR: Buffered region file format (just uses Zstd)"));
-
-            if (configuredType != null) {
-                regionFileType = configuredType;
-            } else {
+            try {
+                regionFileType = EnumRegionFileExtension.fromString(getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString(),
+                    "The type of region file format to use for storing chunk data.",
+                    "Valid values:",
+                    " - MCA: Default Minecraft region file format",
+                    " - LINEAR: Linear region file format V2",
+                    " - B_LINEAR: Buffered region file format (just uses Zstd)"));
+            } catch (IllegalArgumentException ignore) {
                 LOGGER.warn("Invalid region file type: {}, resetting to default (MCA)", getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString()));
                 regionFileType = EnumRegionFileExtension.MCA;
             }
