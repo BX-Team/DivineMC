@@ -21,42 +21,50 @@ index 21e891ecdb90a1828428441aef9c2593253751f8..dedc8d51fc62ac87997c5fa1dedcc933
              if (var2 instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 3c4ea183236b93b049cb5520020b0eadb46ca6c7..a74d29f1ba01627e9e2b761ca70821e61b0c9763 100644
+index 3c4ea183236b93b049cb5520020b0eadb46ca6c7..eac3c0fa9c5dd26d3579f28476a975aea16bd7c0 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -758,19 +758,23 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -753,26 +753,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+         return false;
+     }
+     // Paper end - optimise chunk tick iteration
+-
+-    void collectSpawningChunks(List<LevelChunk> output) {
++    // DivineMC start - Regionized Chunk Ticking
++    synchronized void collectSpawningChunks(List<LevelChunk> output) {
          // Paper start - optimise chunk tick iteration
-         final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks();
+-        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks();
++        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks;
++        synchronized (tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks()) {
++            final LevelChunk[] raw = tickingChunks.toArray(new LevelChunk[0]);
++            final int size = tickingChunks.size();
  
 -        final LevelChunk[] raw = tickingChunks.getRawDataUnchecked();
 -        final int size = tickingChunks.size();
-+        // DivineMC start - Regionized Chunk Ticking
-+        synchronized (tickingChunks) {
-+            final LevelChunk[] raw = tickingChunks.toArray(new LevelChunk[0]); // DivineMC - Regionized Chunk Ticking - sync fix
-+            final int size = tickingChunks.size();
- 
--        Objects.checkFromToIndex(0, size, raw.length);
--        for (int i = 0; i < size; ++i) {
--            final LevelChunk levelChunk = raw[i];
 +            Objects.checkFromToIndex(0, size, raw.length);
 +            for (int i = 0; i < size; ++i) {
 +                final LevelChunk levelChunk = raw[i];
  
--            if (!this.isChunkNearPlayer((ChunkMap)(Object)this, levelChunk.getPos(), levelChunk)) {
--                continue;
--            }
+-        Objects.checkFromToIndex(0, size, raw.length);
+-        for (int i = 0; i < size; ++i) {
+-            final LevelChunk levelChunk = raw[i];
 +                if (!this.isChunkNearPlayer((ChunkMap) (Object) this, levelChunk.getPos(), levelChunk)) {
 +                    continue;
 +                }
  
--            output.add(levelChunk);
+-            if (!this.isChunkNearPlayer((ChunkMap)(Object)this, levelChunk.getPos(), levelChunk)) {
+-                continue;
 +                output.add(levelChunk);
-+            }
+             }
+-
+-            output.add(levelChunk);
          }
-+        // DivineMC end - Regionized Chunk Ticking
          // Paper end - optimise chunk tick iteration
      }
++    // DivineMC end - Regionized Chunk Ticking
  
+     void forEachBlockTickingChunk(Consumer<LevelChunk> action) {
+         this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
 index 36c9c4b0f6f29a5d06d086a7e463411402af7d4a..4526ec04f19f91445a4e1a178c4640c2bc0b7827 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
@@ -228,7 +236,7 @@ index 36c9c4b0f6f29a5d06d086a7e463411402af7d4a..4526ec04f19f91445a4e1a178c4640c2
      private void tickSpawningChunk(LevelChunk chunk, long timeInhabited, List<MobCategory> spawnCategories, NaturalSpawner.SpawnState spawnState) {
          ChunkPos pos = chunk.getPos();
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..1a369ba1993c3c02fd4a66aa296fe8df58de5d00 100644
+index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..4857c4529fe17e496b98e42bd2f297b0f3dc6a0e 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -206,7 +206,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -240,7 +248,134 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..1a369ba1993c3c02fd4a66aa296fe8df
      volatile boolean isUpdatingNavigations;
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
-@@ -674,19 +674,37 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -533,74 +533,86 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+    }
+     // Paper end - rewrite chunk system
+     // Paper start - chunk tick iteration
++    // DivineMC start - RCT sync fix
++    private final Object lock = new Object();
+     private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> playerTickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
+     private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap playerTickingRequests = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
+ 
+     @Override
+-    public final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> moonrise$getPlayerTickingChunks() {
+-        return this.playerTickingChunks;
++    public synchronized final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> moonrise$getPlayerTickingChunks() {
++        synchronized (lock) {
++            return this.playerTickingChunks;
++        }
+     }
+ 
+     @Override
+-    public final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
+-        final ChunkPos pos = chunk.getPos();
+-        if (!this.playerTickingRequests.containsKey(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(pos))) {
+-            return;
+-        }
++    public synchronized final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
++        synchronized (lock) {
++            final ChunkPos pos = chunk.getPos();
++            if (!this.playerTickingRequests.containsKey(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(pos))) {
++                return;
++            }
+ 
+-        this.playerTickingChunks.add(chunk);
++            this.playerTickingChunks.add(chunk);
++        }
+     }
+ 
+     @Override
+-    public final void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk) {
+-        this.playerTickingChunks.remove(chunk);
++    public synchronized final void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk) {
++        synchronized (lock) {
++            this.playerTickingChunks.remove(chunk);
++        }
+     }
+ 
+     @Override
+-    public final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
+-        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot add ticking request async");
++    public synchronized final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
++        synchronized (lock) {
++            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) (Object) this, chunkX, chunkZ, "Cannot add ticking request async");
+ 
+-        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
++            final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
+ 
+-        if (this.playerTickingRequests.addTo(chunkKey, 1) != 0) {
+-            // already added
+-            return;
+-        }
++            if (this.playerTickingRequests.addTo(chunkKey, 1) != 0) {
++                // already added
++                return;
++            }
+ 
+-        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)(ServerLevel)(Object)this).moonrise$getChunkTaskScheduler()
+-            .chunkHolderManager.getChunkHolder(chunkKey);
++            final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel) (ServerLevel) (Object) this).moonrise$getChunkTaskScheduler()
++                .chunkHolderManager.getChunkHolder(chunkKey);
+ 
+-        if (chunkHolder == null || !chunkHolder.isTickingReady()) {
+-            return;
+-        }
++            if (chunkHolder == null || !chunkHolder.isTickingReady()) {
++                return;
++            }
+ 
+-        this.playerTickingChunks.add((LevelChunk)chunkHolder.getCurrentChunk());
++            this.playerTickingChunks.add((LevelChunk) chunkHolder.getCurrentChunk());
++        }
+     }
+ 
+     @Override
+-    public final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
+-        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot remove ticking request async");
++    public synchronized final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
++        synchronized (lock) {
++            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) (Object) this, chunkX, chunkZ, "Cannot remove ticking request async");
+ 
+-        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
+-        final int val = this.playerTickingRequests.addTo(chunkKey, -1);
++            final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
++            final int val = this.playerTickingRequests.addTo(chunkKey, -1);
+ 
+-        if (val <= 0) {
+-            throw new IllegalStateException("Negative counter");
+-        }
++            if (val <= 0) {
++                throw new IllegalStateException("Negative counter");
++            }
+ 
+-        if (val != 1) {
+-            // still has at least one request
+-            return;
+-        }
++            if (val != 1) {
++                // still has at least one request
++                return;
++            }
+ 
+-        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)(ServerLevel)(Object)this).moonrise$getChunkTaskScheduler()
+-            .chunkHolderManager.getChunkHolder(chunkKey);
++            final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel) (ServerLevel) (Object) this).moonrise$getChunkTaskScheduler()
++                .chunkHolderManager.getChunkHolder(chunkKey);
+ 
+-        if (chunkHolder == null || !chunkHolder.isTickingReady()) {
+-            return;
+-        }
++            if (chunkHolder == null || !chunkHolder.isTickingReady()) {
++                return;
++            }
+ 
+-        this.playerTickingChunks.remove((LevelChunk)chunkHolder.getCurrentChunk());
++            this.playerTickingChunks.remove((LevelChunk) chunkHolder.getCurrentChunk());
++        }
+     }
+     // Paper end - chunk tick iteration
+ 
+@@ -674,19 +686,37 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          boolean flag = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          // Paper - rewrite chunk system
@@ -291,7 +426,7 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..1a369ba1993c3c02fd4a66aa296fe8df
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
          this.portalForcer = new PortalForcer(this);
          if (this.canHaveWeather()) {
-@@ -878,6 +896,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -878,6 +908,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                  profilerFiller.pop();
              }
  
@@ -304,7 +439,7 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..1a369ba1993c3c02fd4a66aa296fe8df
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
              this.entityTickList
                  .forEach(
-@@ -909,6 +933,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -909,6 +945,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              profilerFiller.popPush("blockEntities");
              this.tickBlockEntities();
              profilerFiller.pop();
@@ -312,7 +447,16 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..1a369ba1993c3c02fd4a66aa296fe8df
          }
  
          profilerFiller.push("entityManagement");
-@@ -1957,22 +1982,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1943,7 +1980,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     }
+ 
+     @Override
+-    public void sendBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, int flags) {
++    public synchronized void sendBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, int flags) {
+         if (this.isUpdatingNavigations) {
+             String string = "recursive call to sendBlockUpdated";
+             Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
+@@ -1957,22 +1994,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (Shapes.joinIsNotEmpty(collisionShape, collisionShape1, BooleanOp.NOT_SAME)) {
              List<PathNavigation> list = new ObjectArrayList<>();
  
