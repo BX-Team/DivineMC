@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize level ticking
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index ccff055e5d55ace73336cb47620845c50e29b5ad..6306ba0c2c2645a0ca7b4aaa5a5ea76e4ee56a51 100644
+index 2aa4916b4cea24d14e053c781b10f300fd7aff68..6cf5819ad6a29fe62bbcb6b258fce5671c66fc50 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1007,9 +1007,10 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1023,9 +1023,10 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      // Paper start - optimise random ticking
      private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
  
@@ -20,7 +20,7 @@ index ccff055e5d55ace73336cb47620845c50e29b5ad..6306ba0c2c2645a0ca7b4aaa5a5ea76e
          final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
          final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
  
-@@ -1018,42 +1019,38 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1034,42 +1035,38 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          final int offsetZ = cpos.z << 4;
  
          for (int sectionIndex = 0, sectionsLen = sections.length; sectionIndex < sectionsLen; sectionIndex++) {
@@ -73,10 +73,10 @@ index ccff055e5d55ace73336cb47620845c50e29b5ad..6306ba0c2c2645a0ca7b4aaa5a5ea76e
  
      public void tickChunk(LevelChunk chunk, int randomTickSpeed) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index d9c9cad394b7210b3c6ac4022b9ac52f0fb10c65..fbe4aa76f101a2bfb8496ef69e137336417463d1 100644
+index 565a732f8f7c58e986a33eea3ae023db5202f170..a1035c3338bf5a7f1e82021b808eb143ad6a3085 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -83,7 +83,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -85,7 +85,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
              return "<null>";
          }
      };
@@ -140,10 +140,10 @@ index 0b13971259f58876b778c0d28ad20c3510ed46ad..93b709d20ea26bca730c78a814f0ddfe
          }
  
 diff --git a/net/minecraft/world/ticks/LevelTicks.java b/net/minecraft/world/ticks/LevelTicks.java
-index a1e2b0c4dca30b32e5bae6f99d38084128127325..dbea4faabebf4c71692c654cd9fb07bda2f31e95 100644
+index b932f32d08ad663cd05910140c861045a9b1f922..9beeb57380acf65594797ef3b328771c508afaa1 100644
 --- a/net/minecraft/world/ticks/LevelTicks.java
 +++ b/net/minecraft/world/ticks/LevelTicks.java
-@@ -30,17 +30,20 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+@@ -32,17 +32,20 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
      private static final Comparator<LevelChunkTicks<?>> CONTAINER_DRAIN_ORDER = (levelChunkTicks, levelChunkTicks1) -> ScheduledTick.INTRA_TICK_DRAIN_ORDER
          .compare(levelChunkTicks.peek(), levelChunkTicks1.peek());
      private final LongPredicate tickCheck;
@@ -169,7 +169,7 @@ index a1e2b0c4dca30b32e5bae6f99d38084128127325..dbea4faabebf4c71692c654cd9fb07bd
  
      public LevelTicks(LongPredicate tickCheck) {
          this.tickCheck = tickCheck;
-@@ -90,12 +93,14 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+@@ -99,12 +102,14 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
      }
  
      private void sortContainersToTick(long gameTime) {
@@ -188,7 +188,7 @@ index a1e2b0c4dca30b32e5bae6f99d38084128127325..dbea4faabebf4c71692c654cd9fb07bd
              if (longValue <= gameTime) {
                  LevelChunkTicks<T> levelChunkTicks = this.allContainers.get(longKey);
                  if (levelChunkTicks == null) {
-@@ -162,16 +167,19 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+@@ -171,16 +176,19 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
      }
  
      private void scheduleForThisTick(ScheduledTick<T> tick) {
@@ -209,7 +209,7 @@ index a1e2b0c4dca30b32e5bae6f99d38084128127325..dbea4faabebf4c71692c654cd9fb07bd
              if (!this.toRunThisTickSet.isEmpty()) {
                  this.toRunThisTickSet.remove(scheduledTick);
              }
-@@ -182,7 +190,7 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+@@ -191,7 +199,7 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
      }
  
      private void cleanupAfterTick() {

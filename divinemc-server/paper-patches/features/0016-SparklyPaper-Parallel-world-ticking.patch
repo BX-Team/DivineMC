@@ -5,6 +5,33 @@ Subject: [PATCH] SparklyPaper: Parallel world ticking
 
 Original project: https://github.com/SparklyPower/SparklyPaper
 
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
+index 41a725e9926767fbbf2a3e3558f850f0d57c5945..39d22b9b4e8a48b7b42a9cd7f94680ec185e7dda 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
+@@ -127,7 +127,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
+         }
+     }
+ 
+-    public boolean remove(final E element) {
++    public synchronized boolean remove(final E element) { // DivineMC - Parallel world ticking
+         final int index = this.indexMap.removeInt(element);
+         if (index >= 0) {
+             if (this.firstInvalidIndex < 0 || index < this.firstInvalidIndex) {
+@@ -146,11 +146,11 @@ public final class IteratorSafeOrderedReferenceSet<E> {
+         return false;
+     }
+ 
+-    public boolean contains(final E element) {
++    public synchronized boolean contains(final E element) { // DivineMC - Parallel world ticking
+         return this.indexMap.containsKey(element);
+     }
+ 
+-    public boolean add(final E element) {
++    public synchronized boolean add(final E element) { // DivineMC - Parallel world ticking
+         final int listSize = this.listSize;
+ 
+         final int previous = this.indexMap.putIfAbsent(element, listSize);
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
 index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acde8aeb09c 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java

@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 2 Feb 2025 14:43:32 +0300
+Subject: [PATCH] Option to disable method profiler
+
+
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index 234f78867480afd1f90a7ac8832afdd49a02e564..e593293605b8fcdcafefa1dfe49376fa0e3313d7 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -2756,6 +2756,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     // CraftBukkit end
+ 
+     private ProfilerFiller createProfiler() {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.disableMethodProfiler) return net.minecraft.util.profiling.InactiveProfiler.INSTANCE; // DivineMC - Option to disable method profiler
+         if (this.willStartRecordingMetrics) {
+             this.metricsRecorder = ActiveMetricsRecorder.createStarted(
+                 new ServerMetricsSamplersProvider(Util.timeSource, this.isDedicatedServer()),
+diff --git a/net/minecraft/util/profiling/Profiler.java b/net/minecraft/util/profiling/Profiler.java
+index 9567003a8ed1a3783b743553ce8f690756da868d..3b00abec57e6f83b9bf47b07e8e2283e15a26ecd 100644
+--- a/net/minecraft/util/profiling/Profiler.java
++++ b/net/minecraft/util/profiling/Profiler.java
+@@ -45,6 +45,7 @@ public final class Profiler {
+     }
+ 
+     public static ProfilerFiller get() {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.disableMethodProfiler) return net.minecraft.util.profiling.InactiveProfiler.INSTANCE; // DivineMC - Option to disable method profiler
+         return ACTIVE_COUNT.get() == 0 ? getDefaultFiller() : Objects.requireNonNullElseGet(ACTIVE.get(), Profiler::getDefaultFiller);
+     }
+ 

@@ -206,7 +206,7 @@ index 88447fc2108126ccfad2fb7eb79ac94537f132d3..571cbe6844ebb330801dd893a45c1f73
          private static final String PREFIX = "data:image/png;base64,";
          public static final Codec<ServerStatus.Favicon> CODEC = Codec.STRING.comapFlatMap(string -> {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 684ce31d079a6669028eb7d87628d823066e3da4..f333e09da89ee7b8e1dff2e0f62aec4696715359 100644
+index 76133bca70e871d562816a7551ff91d199feb61c..7605801ac298089ee893cfde3c871f08abca3fed 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -832,6 +832,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -218,10 +218,10 @@ index 684ce31d079a6669028eb7d87628d823066e3da4..f333e09da89ee7b8e1dff2e0f62aec46
          // Paper start - Add setting for proxy online mode status
          return properties.enforceSecureProfile
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 9b7dc6b3b1037fb2aa285c33537e9b5c342cdb39..28c61ccce5a71b8a3c3e87617907ced1fc45b68c 100644
+index 02c6733ce1de543dab3bf558148879039e501257..174955b6e6d827c8ab05865692f2727e61df0192 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -344,10 +344,64 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -348,10 +348,64 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
      }
  
      public void send(Packet<?> packet) {
@@ -287,7 +287,7 @@ index 9b7dc6b3b1037fb2aa285c33537e9b5c342cdb39..28c61ccce5a71b8a3c3e87617907ced1
          if (packet == null || this.processedDisconnect) { // Spigot
              return;
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 0313586d4f5f8c21aa9e8367dc9ca072f3271d9e..6a5f955fda51bc607a81deeba97e7a489bd31fee 100644
+index f6dfcaddbc491ee032424b55a0f29174c64e367f..286825c549fb25b0a0a357abef8bf69b0a88b2e1 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -187,7 +187,7 @@ public abstract class PlayerList {

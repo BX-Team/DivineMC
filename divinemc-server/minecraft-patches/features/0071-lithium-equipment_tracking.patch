@@ -187,10 +187,10 @@ index 1e00a7bd89d885cabb4b9ca3c86fbd8cd93cebf5..4fb31f578c2a4a5dc137c38de8f64159
 +    // DivineMC end - lithium: equipment_tracking
  }
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 2dc6a0df89a88ed1b811bd5ea8fe31ac44b33cd2..4412d8f67c0521bf0ce87cacf249a1f8384552ad 100644
+index 18b3b24d1afca04748b3c37399cdc33c67b233d1..35f490997573c2d00c375a0ff17ae5df38ecfb22 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -440,9 +440,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -442,9 +442,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              this.getSleepingPos().ifPresent(this::setPosToBed);
          }
  
@@ -209,8 +209,8 @@ index 2dc6a0df89a88ed1b811bd5ea8fe31ac44b33cd2..4412d8f67c0521bf0ce87cacf249a1f8
 +        // DivineMC end - lithium: equipment_tracking
  
          super.baseTick();
-         if (this.isAlive() && this.level() instanceof ServerLevel serverLevel1) {
-@@ -3597,6 +3605,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         ProfilerFiller profilerFiller = Profiler.get();
+@@ -3607,6 +3615,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      public void detectEquipmentUpdates() {
          Map<EquipmentSlot, ItemStack> map = this.collectEquipmentChanges();
          if (map != null) {
@@ -218,7 +218,7 @@ index 2dc6a0df89a88ed1b811bd5ea8fe31ac44b33cd2..4412d8f67c0521bf0ce87cacf249a1f8
              this.handleHandSwap(map);
              if (!map.isEmpty()) {
                  this.handleEquipmentChanges(map);
-@@ -3605,6 +3614,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3615,6 +3624,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      }
  
      private @Nullable Map<EquipmentSlot, ItemStack> collectEquipmentChanges() {

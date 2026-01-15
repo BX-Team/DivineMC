@@ -5,10 +5,10 @@ Subject: [PATCH] Virtual Threads
 
 
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index ace1dc38dac79298141bca666b188a4258183df7..e93294cbe2e5637257cdd189c800275588fb08ea 100644
+index 83148f756ecc77ae45abffbd1d7cbfacf6c99e7f..54e3cd267b3a5c3e4d86d57890f64e4c08c0cb54 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
-@@ -493,7 +493,7 @@ public class Commands {
+@@ -499,7 +499,7 @@ public class Commands {
      }
  
      // Fixed pool, but with discard policy
@@ -18,10 +18,10 @@ index ace1dc38dac79298141bca666b188a4258183df7..e93294cbe2e5637257cdd189c8002755
          new java.util.concurrent.LinkedBlockingQueue<>(),
          new com.google.common.util.concurrent.ThreadFactoryBuilder()
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 1bbd88a474c8695dfc6ac31ebf44793c2cf7aa4c..157f8b3570286f712c06065f5bef0b35bf6bf946 100644
+index 91e923f0c6f46c659a4c99a99e6c57aae50e2556..e5b8d28e99b196a67b4e3aec411e1bd187b0330f 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -2733,8 +2733,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2888,8 +2888,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
  

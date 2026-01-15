@@ -31,22 +31,22 @@ index bc62da127a01b33ce8fc0f958bc232d6287d57ec..9687a31e83d2d5be833cdd127ccef141
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 07e3871381d3bbea2be908aad7666cfaa1f7cf0c..d8e108ca9cdd14373ee4689652f60cf8c89cc385 100644
+index c87ebe4c3d69c2d3df527f9a6803d0aeb483872b..9e726a2cfb7bcf0a9a5f18e41df2ed579eae5e1b 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -845,6 +845,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -862,6 +862,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              this.entityTickList
                  .forEach(
                      entity -> {
 +                        entity.activatedPriorityReset = false; // DivineMC - Dynamic Activation of Brain
                          if (!entity.isRemoved()) {
                              if (!tickRateManager.isEntityFrozen(entity)) {
-                                 entity.checkDespawn();
+                                 profilerFiller.push("checkDespawn");
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index d8e7a5179e7dd738d5f96751ccef3702de0a891d..0bb2e807523bac4b12fe82811efec9e495d66859 100644
+index 427de0ac0164bf60d3e477cb87a9255275c7aa65..6a9498766856a7c4f0fa209bcaadac70849ad11b 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -367,6 +367,8 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -369,6 +369,8 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      public boolean fixedPose = false; // Paper - Expand Pose API
      private final int despawnTime; // Paper - entity despawn time limit
      public int totalEntityAge; // Paper - age-like counter for all entities
@@ -68,10 +68,10 @@ index f0731609fbfb06ea23baba2a8b3694003a470b7d..1ccab891e10f2a79435c12a9e58f5f3a
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index 7b8066f677734937f71a6582fcf84435d41591fa..c01c9cb4fee636d56ec5f87e8f0eea5b8ff7f947 100644
+index 09016282c0c6850d19e48966426d480310726a73..137c58d407e2a1f3923b674d5724685a3f4a697f 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -220,10 +220,10 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
+@@ -222,10 +222,10 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
      @Override
      public void inactiveTick() {
          super.inactiveTick();
@@ -84,30 +84,28 @@ index 7b8066f677734937f71a6582fcf84435d41591fa..c01c9cb4fee636d56ec5f87e8f0eea5b
              this.targetSelector.tick();
          }
      }
-@@ -818,13 +818,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
-         // Paper end - Allow nerfed mobs to jump and float
-         this.sensing.tick();
+@@ -832,17 +832,17 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
          int i = this.tickCount + this.getId();
-+        // DivineMC start - Dynamic Activation of Brain
          if (i % 2 != 0 && this.tickCount > 1) {
+             profilerFiller.push("targetSelector");
 -            this.targetSelector.tickRunningGoals(false);
++            if (this.targetSelector.inactiveTick(this.activatedPriority, false)) this.targetSelector.tickRunningGoals(false); // DivineMC - Dynamic Activation of Brain
+             profilerFiller.pop();
+             profilerFiller.push("goalSelector");
 -            this.goalSelector.tickRunningGoals(false);
-+            if (this.targetSelector.inactiveTick(this.activatedPriority, false))
-+                this.targetSelector.tickRunningGoals(false);
-+            if (this.goalSelector.inactiveTick(this.activatedPriority, false))
-+                this.goalSelector.tickRunningGoals(false);
++            if (this.goalSelector.inactiveTick(this.activatedPriority, false)) this.goalSelector.tickRunningGoals(false); // DivineMC - Dynamic Activation of Brain
+             profilerFiller.pop();
          } else {
+             profilerFiller.push("targetSelector");
 -            this.targetSelector.tick();
++            if (this.targetSelector.inactiveTick(this.activatedPriority, false)) this.targetSelector.tick(); // DivineMC - Dynamic Activation of Brain
+             profilerFiller.pop();
+             profilerFiller.push("goalSelector");
 -            this.goalSelector.tick();
-+            if (this.targetSelector.inactiveTick(this.activatedPriority, false))
-+                this.targetSelector.tick();
-+            if (this.goalSelector.inactiveTick(this.activatedPriority, false))
-+                this.goalSelector.tick();
++            if (this.goalSelector.inactiveTick(this.activatedPriority, false)) this.goalSelector.tick(); // DivineMC - Dynamic Activation of Brain
+             profilerFiller.pop();
          }
-+        // DivineMC end - Dynamic Activation of Brain
  
-         this.navigation.tick();
-         this.customServerAiStep((ServerLevel)this.level());
 diff --git a/net/minecraft/world/entity/ai/behavior/VillagerPanicTrigger.java b/net/minecraft/world/entity/ai/behavior/VillagerPanicTrigger.java
 index 389f773e22872778fc434ad47f3a983b490a0284..4d0d7ac936307e399fccb3e6815248bb9345ff86 100644
 --- a/net/minecraft/world/entity/ai/behavior/VillagerPanicTrigger.java
@@ -126,10 +124,10 @@ index 389f773e22872778fc434ad47f3a983b490a0284..4d0d7ac936307e399fccb3e6815248bb
          }
      }
 diff --git a/net/minecraft/world/entity/ai/goal/GoalSelector.java b/net/minecraft/world/entity/ai/goal/GoalSelector.java
-index 653c58c7637c46c8b46a5082f671324a2221d431..a4328a427636aa845d6627ecb75a9efe7320bb15 100644
+index 859b859d29b637200cf7c9a0bd52d9f712413e3d..f2ad27034919add0b73822844c4650a67bcc40ee 100644
 --- a/net/minecraft/world/entity/ai/goal/GoalSelector.java
 +++ b/net/minecraft/world/entity/ai/goal/GoalSelector.java
-@@ -34,10 +34,14 @@ public class GoalSelector {
+@@ -36,10 +36,14 @@ public class GoalSelector {
      }
  
      // Paper start - EAR 2
@@ -147,10 +145,10 @@ index 653c58c7637c46c8b46a5082f671324a2221d431..a4328a427636aa845d6627ecb75a9efe
      public boolean hasTasks() {
          for (WrappedGoal task : this.availableGoals) {
 diff --git a/net/minecraft/world/entity/animal/allay/Allay.java b/net/minecraft/world/entity/animal/allay/Allay.java
-index c9e7c17b0e9cc27606b86373db406c9561e07574..949ba0016ddd7249c7a2854d5d38094fe904be6a 100644
+index 8635ecfa49e2504c981dd48acbfbca5303a37611..d054c507673cf0f3077d1775b7f509cab05263d5 100644
 --- a/net/minecraft/world/entity/animal/allay/Allay.java
 +++ b/net/minecraft/world/entity/animal/allay/Allay.java
-@@ -112,6 +112,7 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS
+@@ -114,6 +114,7 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS
      private float spinningAnimationTicks0;
      public boolean forceDancing = false; // CraftBukkit
      private org.purpurmc.purpur.controller.FlyingMoveControllerWASD purpurController; // Purpur - Ridables
@@ -158,18 +156,24 @@ index c9e7c17b0e9cc27606b86373db406c9561e07574..949ba0016ddd7249c7a2854d5d38094f
  
      public Allay(EntityType<? extends Allay> type, Level level) {
          super(type, level);
-@@ -273,10 +274,13 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS
- 
-     @Override
+@@ -277,13 +278,16 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS
      protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerFiller = Profiler.get();
+         profilerFiller.push("allayBrain");
 -        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
 -        this.getBrain().tick(level, this);
+-        profilerFiller.pop();
+-        profilerFiller.push("allayActivityUpdate");
 -        AllayAi.updateActivity(this);
+-        profilerFiller.pop();
 -        super.customServerAiStep(level);
 +        // DivineMC start - Dynamic Activation of Brain
 +        if ((getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
 +            this.getBrain().tick(level, this);
++            profilerFiller.pop();
++            profilerFiller.push("allayActivityUpdate");
 +            AllayAi.updateActivity(this);
++            profilerFiller.pop();
 +            super.customServerAiStep(level);
 +        }
 +        // DivineMC end - Dynamic Activation of Brain
@@ -177,7 +181,7 @@ index c9e7c17b0e9cc27606b86373db406c9561e07574..949ba0016ddd7249c7a2854d5d38094f
  
      @Override
 diff --git a/net/minecraft/world/entity/animal/axolotl/Axolotl.java b/net/minecraft/world/entity/animal/axolotl/Axolotl.java
-index 73ff138007002a6203b6a0df88d34d26f025a827..ec2442d74ff59181f3429818a8d4dc836eef96e6 100644
+index e5ac43bf5631254c31d91abb1c5de408807429dd..d781e6039bd0c5bda84e01137a1a028a6c58b6d9 100644
 --- a/net/minecraft/world/entity/animal/axolotl/Axolotl.java
 +++ b/net/minecraft/world/entity/animal/axolotl/Axolotl.java
 @@ -113,6 +113,7 @@ public class Axolotl extends Animal implements Bucketable {
@@ -188,20 +192,26 @@ index 73ff138007002a6203b6a0df88d34d26f025a827..ec2442d74ff59181f3429818a8d4dc83
  
      public Axolotl(EntityType<? extends Axolotl> type, Level level) {
          super(type, level);
-@@ -372,13 +373,16 @@ public class Axolotl extends Animal implements Bucketable {
- 
-     @Override
+@@ -374,16 +375,19 @@ public class Axolotl extends Animal implements Bucketable {
      protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerFiller = Profiler.get();
+         profilerFiller.push("axolotlBrain");
 -        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
 -        this.getBrain().tick(level, this);
+-        profilerFiller.pop();
+-        profilerFiller.push("axolotlActivityUpdate");
 -        AxolotlAi.updateActivity(this);
+-        profilerFiller.pop();
 -        if (!this.isNoAi()) {
 -            Optional<Integer> memory = this.getBrain().getMemory(MemoryModuleType.PLAY_DEAD_TICKS);
 -            this.setPlayingDead(memory.isPresent() && memory.get() > 0);
 +        // DivineMC start - Dynamic Activation of Brain
 +        if ((getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
 +            this.getBrain().tick(level, this);
++            profilerFiller.pop();
++            profilerFiller.push("axolotlActivityUpdate");
 +            AxolotlAi.updateActivity(this);
++            profilerFiller.pop();
 +            if (!this.isNoAi()) {
 +                Optional<Integer> memory = this.getBrain().getMemory(MemoryModuleType.PLAY_DEAD_TICKS);
 +                this.setPlayingDead(memory.isPresent() && memory.get() > 0);
@@ -212,10 +222,10 @@ index 73ff138007002a6203b6a0df88d34d26f025a827..ec2442d74ff59181f3429818a8d4dc83
  
      public static AttributeSupplier.Builder createAttributes() {
 diff --git a/net/minecraft/world/entity/animal/frog/Frog.java b/net/minecraft/world/entity/animal/frog/Frog.java
-index 62de0bd9fce5c6abc168df34f9eda357b789d049..16c23712e80d01dba375106e9770736de3650861 100644
+index 7d6dbdef68b25e774b5a83bb8aeb2535246459aa..f87a7fbcca28b28369f5425e7ff5876aae0f3514 100644
 --- a/net/minecraft/world/entity/animal/frog/Frog.java
 +++ b/net/minecraft/world/entity/animal/frog/Frog.java
-@@ -105,6 +105,7 @@ public class Frog extends Animal {
+@@ -107,6 +107,7 @@ public class Frog extends Animal {
      public final AnimationState swimIdleAnimationState = new AnimationState();
      private org.purpurmc.purpur.controller.MoveControllerWASD purpurLandController; // Purpur - Ridables
      private org.purpurmc.purpur.controller.WaterMoveControllerWASD purpurWaterController; // Purpur - Ridables
@@ -223,18 +233,24 @@ index 62de0bd9fce5c6abc168df34f9eda357b789d049..16c23712e80d01dba375106e9770736d
  
      public Frog(EntityType<? extends Animal> type, Level level) {
          super(type, level);
-@@ -257,10 +258,13 @@ public class Frog extends Animal {
- 
-     @Override
+@@ -261,13 +262,16 @@ public class Frog extends Animal {
      protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerFiller = Profiler.get();
+         profilerFiller.push("frogBrain");
 -        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
 -        this.getBrain().tick(level, this);
+-        profilerFiller.pop();
+-        profilerFiller.push("frogActivityUpdate");
 -        FrogAi.updateActivity(this);
+-        profilerFiller.pop();
 -        super.customServerAiStep(level);
 +        // DivineMC start - Dynamic Activation of Brain
 +        if ((getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
 +            this.getBrain().tick(level, this);
++            profilerFiller.pop();
++            profilerFiller.push("frogActivityUpdate");
 +            FrogAi.updateActivity(this);
++            profilerFiller.pop();
 +            super.customServerAiStep(level);
 +        }
 +        // DivineMC end - Dynamic Activation of Brain
@@ -242,10 +258,10 @@ index 62de0bd9fce5c6abc168df34f9eda357b789d049..16c23712e80d01dba375106e9770736d
  
      @Override
 diff --git a/net/minecraft/world/entity/animal/frog/Tadpole.java b/net/minecraft/world/entity/animal/frog/Tadpole.java
-index f712a189107c1bcde82126f96c087b3520cf2dd3..03028270885027e4ac45578cd35b0e6c14cd18db 100644
+index ae65292c9be65894532f11833c68e68970dbb257..946738a16dc510e055904b8d6b033801c882d003 100644
 --- a/net/minecraft/world/entity/animal/frog/Tadpole.java
 +++ b/net/minecraft/world/entity/animal/frog/Tadpole.java
-@@ -64,6 +64,7 @@ public class Tadpole extends AbstractFish {
+@@ -66,6 +66,7 @@ public class Tadpole extends AbstractFish {
      );
      public boolean ageLocked; // Paper
      private org.purpurmc.purpur.controller.WaterMoveControllerWASD purpurController; // Purpur - Ridables
@@ -253,18 +269,24 @@ index f712a189107c1bcde82126f96c087b3520cf2dd3..03028270885027e4ac45578cd35b0e6c
  
      public Tadpole(EntityType<? extends AbstractFish> type, Level level) {
          super(type, level);
-@@ -134,10 +135,13 @@ public class Tadpole extends AbstractFish {
- 
-     @Override
+@@ -138,13 +139,16 @@ public class Tadpole extends AbstractFish {
      protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerFiller = Profiler.get();
+         profilerFiller.push("tadpoleBrain");
 -        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
 -        this.getBrain().tick(level, this);
+-        profilerFiller.pop();
+-        profilerFiller.push("tadpoleActivityUpdate");
 -        TadpoleAi.updateActivity(this);
+-        profilerFiller.pop();
 -        super.customServerAiStep(level);
 +        // DivineMC start - Dynamic Activation of Brain
 +        if ((getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
 +            this.getBrain().tick(level, this);
++            profilerFiller.pop();
++            profilerFiller.push("tadpoleActivityUpdate");
 +            TadpoleAi.updateActivity(this);
++            profilerFiller.pop();
 +            super.customServerAiStep(level);
 +        }
 +        // DivineMC end - Dynamic Activation of Brain
@@ -272,10 +294,10 @@ index f712a189107c1bcde82126f96c087b3520cf2dd3..03028270885027e4ac45578cd35b0e6c
  
      public static AttributeSupplier.Builder createAttributes() {
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
-index 1cd5d8e09f22b32ff9ca30c07f45a5248e887cb4..6197f96a27fe03fa93bf12aab9d8e51665047fe4 100644
+index f4ad672f7cb33bd95ca2dab9ac8637b43eacf0f6..1453bcf553a5c1ffaef21d8ed1e4ece156527868 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
-@@ -94,6 +94,7 @@ public class Goat extends Animal {
+@@ -96,6 +96,7 @@ public class Goat extends Animal {
      private static final boolean DEFAULT_HAS_RIGHT_HORN = true;
      private boolean isLoweringHead;
      private int lowerHeadTick;
@@ -283,18 +305,24 @@ index 1cd5d8e09f22b32ff9ca30c07f45a5248e887cb4..6197f96a27fe03fa93bf12aab9d8e516
  
      public Goat(EntityType<? extends Goat> type, Level level) {
          super(type, level);
-@@ -232,10 +233,13 @@ public class Goat extends Animal {
- 
-     @Override
+@@ -236,13 +237,16 @@ public class Goat extends Animal {
      protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerFiller = Profiler.get();
+         profilerFiller.push("goatBrain");
 -        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
 -        this.getBrain().tick(level, this);
+-        profilerFiller.pop();
+-        profilerFiller.push("goatActivityUpdate");
 -        GoatAi.updateActivity(this);
+-        profilerFiller.pop();
 -        super.customServerAiStep(level);
 +        // DivineMC start - Dynamic Activation of Brain
 +        if ((getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
 +            this.getBrain().tick(level, this);
++            profilerFiller.pop();
++            profilerFiller.push("goatActivityUpdate");
 +            GoatAi.updateActivity(this);
++            profilerFiller.pop();
 +            super.customServerAiStep(level);
 +        }
 +        // DivineMC end - Dynamic Activation of Brain
@@ -302,10 +330,10 @@ index 1cd5d8e09f22b32ff9ca30c07f45a5248e887cb4..6197f96a27fe03fa93bf12aab9d8e516
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/hoglin/Hoglin.java b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
-index 81cca68abdf5fa2e176d0121785bbdeed44377a7..a59f0391f58537f9056e87e4d0dcde720b6a3c69 100644
+index 460640f5512be6553f1ec69e20e27c7cc797068b..1c9805eac0ab6f3c13490cc7b8a992c2bb6028d0 100644
 --- a/net/minecraft/world/entity/monster/hoglin/Hoglin.java
 +++ b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
-@@ -89,6 +89,7 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
+@@ -91,6 +91,7 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
          MemoryModuleType.PACIFIED,
          MemoryModuleType.IS_PANICKING
      );
@@ -313,12 +341,13 @@ index 81cca68abdf5fa2e176d0121785bbdeed44377a7..a59f0391f58537f9056e87e4d0dcde72
  
      public Hoglin(EntityType<? extends Hoglin> type, Level level) {
          super(type, level);
-@@ -207,18 +208,21 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
- 
-     @Override
+@@ -211,19 +212,22 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
      protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerFiller = Profiler.get();
+         profilerFiller.push("hoglinBrain");
 -        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
 -        this.getBrain().tick(level, this);
+-        profilerFiller.pop();
 -        HoglinAi.updateActivity(this);
 -        if (this.isConverting()) {
 -            this.timeInOverworld++;
@@ -328,6 +357,7 @@ index 81cca68abdf5fa2e176d0121785bbdeed44377a7..a59f0391f58537f9056e87e4d0dcde72
 +        // DivineMC start - Dynamic Activation of Brain
 +        if ((getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
 +            this.getBrain().tick(level, this);
++            profilerFiller.pop();
 +            HoglinAi.updateActivity(this);
 +            if (this.isConverting()) {
 +                this.timeInOverworld++;
@@ -346,10 +376,10 @@ index 81cca68abdf5fa2e176d0121785bbdeed44377a7..a59f0391f58537f9056e87e4d0dcde72
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/piglin/Piglin.java b/net/minecraft/world/entity/monster/piglin/Piglin.java
-index fd19c64fa3a1f048f5c14da9613000b9b4055e2d..69da9ef7ac794a7e165db2a64d3992627b358a94 100644
+index 6f1c3d423b7a37aa261c78a0c8f5e1cb02eee320..effdcdb629579104ad48b85438dd50e6dc34e401 100644
 --- a/net/minecraft/world/entity/monster/piglin/Piglin.java
 +++ b/net/minecraft/world/entity/monster/piglin/Piglin.java
-@@ -133,6 +133,7 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
+@@ -135,6 +135,7 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
      private static final com.mojang.serialization.Codec<java.util.Set<net.minecraft.world.item.Item>> ITEM_SET_CODEC = net.minecraft.core.registries.BuiltInRegistries.ITEM
          .byNameCodec().listOf().xmap(java.util.HashSet::new, List::copyOf);
      // CraftBukkit end
@@ -357,17 +387,19 @@ index fd19c64fa3a1f048f5c14da9613000b9b4055e2d..69da9ef7ac794a7e165db2a64d399262
  
      public Piglin(EntityType<? extends AbstractPiglin> type, Level level) {
          super(type, level);
-@@ -361,10 +362,13 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
- 
-     @Override
+@@ -365,11 +366,14 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
      protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerFiller = Profiler.get();
+         profilerFiller.push("piglinBrain");
 -        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
 -        this.getBrain().tick(level, this);
+-        profilerFiller.pop();
 -        PiglinAi.updateActivity(this);
 -        super.customServerAiStep(level);
 +        // DivineMC start - Dynamic Activation of Brain
 +        if ((getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
 +            this.getBrain().tick(level, this);
++            profilerFiller.pop();
 +            PiglinAi.updateActivity(this);
 +            super.customServerAiStep(level);
 +        }
@@ -376,10 +408,10 @@ index fd19c64fa3a1f048f5c14da9613000b9b4055e2d..69da9ef7ac794a7e165db2a64d399262
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/warden/Warden.java b/net/minecraft/world/entity/monster/warden/Warden.java
-index 96db45d6885831c290ea6e29400633a502961f01..2bb51cf48c55cf9a00eb497c987842c17a1fb9fd 100644
+index 4f4bf16cfa1390f19a7e8745d86e42e24ffb3bbc..42535a9dd42e705c9d33d21038bbdbbf27272319 100644
 --- a/net/minecraft/world/entity/monster/warden/Warden.java
 +++ b/net/minecraft/world/entity/monster/warden/Warden.java
-@@ -108,6 +108,7 @@ public class Warden extends Monster implements VibrationSystem {
+@@ -110,6 +110,7 @@ public class Warden extends Monster implements VibrationSystem {
      private final VibrationSystem.User vibrationUser;
      private VibrationSystem.Data vibrationData;
      AngerManagement angerManagement = new AngerManagement(this::canTargetEntity, Collections.emptyList());
@@ -387,12 +419,13 @@ index 96db45d6885831c290ea6e29400633a502961f01..2bb51cf48c55cf9a00eb497c987842c1
  
      public Warden(EntityType<? extends Monster> type, Level level) {
          super(type, level);
-@@ -300,19 +301,22 @@ public class Warden extends Monster implements VibrationSystem {
- 
-     @Override
+@@ -304,20 +305,23 @@ public class Warden extends Monster implements VibrationSystem {
      protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerFiller = Profiler.get();
+         profilerFiller.push("wardenBrain");
 -        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
 -        this.getBrain().tick(level, this);
+-        profilerFiller.pop();
 -        super.customServerAiStep(level);
 -        if ((this.tickCount + this.getId()) % 120 == 0) {
 -            applyDarknessAround(level, this.position(), this, 20);
@@ -400,6 +433,7 @@ index 96db45d6885831c290ea6e29400633a502961f01..2bb51cf48c55cf9a00eb497c987842c1
 +        // DivineMC start - Dynamic Activation of Brain
 +        if ((getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
 +            this.getBrain().tick(level, this);
++            profilerFiller.pop();
 +            super.customServerAiStep(level);
 +            if ((this.tickCount + this.getId()) % 120 == 0) {
 +                applyDarknessAround(level, this.position(), this, 20);
@@ -422,10 +456,10 @@ index 96db45d6885831c290ea6e29400633a502961f01..2bb51cf48c55cf9a00eb497c987842c1
  
      @Override
 diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
-index 2d721ba4480fd571f7b60f30ac3a44b32e4abb17..62f043484d57b7ae4a7734829c1d940678cfa32b 100644
+index 0c110421074d57e7283168c1133cd4ee314b57f6..47d5affe3c903318a4279f57807388446a74654e 100644
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
-@@ -179,6 +179,8 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
+@@ -181,6 +181,8 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
      );
      private boolean isLobotomized = false; public boolean isLobotomized() { return this.isLobotomized; } // Purpur - Lobotomize stuck villagers
      private int notLobotomizedCount = 0; // Purpur - Lobotomize stuck villagers
@@ -434,7 +468,7 @@ index 2d721ba4480fd571f7b60f30ac3a44b32e4abb17..62f043484d57b7ae4a7734829c1d9406
  
      public Villager(EntityType<? extends Villager> type, Level level) {
          this(type, level, VillagerType.PLAINS);
-@@ -406,7 +408,7 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
+@@ -410,7 +412,7 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
          } else {
              this.isLobotomized = false;
          }

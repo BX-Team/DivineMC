@@ -35,12 +35,12 @@ index 1da034752064312962a4144f91be5265a9a08997..e583baf264e066238804a76e7ce7219a
          };
      }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index b00281f456f8c04e384a351c42db54cf18c96a5f..6c0626d879a15cf2ccf21f3fd88ce90b2ed34354 100644
+index b07ee78417b746050261564979cd6210361e8d35..b6335aee65e4d173dfcfed3060f602262c844539 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1869,6 +1869,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-             GameTestTicker.SINGLETON.tick();
-         }
+@@ -1945,6 +1945,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+ 
+         profilerFiller.popPush("server gui refresh");
  
 +        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(tickCount); // DivineMC - Leaves Protocol Core
 +
@@ -48,10 +48,10 @@ index b00281f456f8c04e384a351c42db54cf18c96a5f..6c0626d879a15cf2ccf21f3fd88ce90b
              runnable.run();
          }
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 28c61ccce5a71b8a3c3e87617907ced1fc45b68c..add49a402be6a1989506bc25bf0a4e7660a3f17a 100644
+index 174955b6e6d827c8ab05865692f2727e61df0192..a3df591ee183fbfda727a771eb14921fe7c6f4bb 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -62,6 +62,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -63,6 +63,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
      public @Nullable String playerBrand;
      public final java.util.Set<String> pluginMessagerChannels;
      // Paper end - retain certain values
@@ -59,7 +59,7 @@ index 28c61ccce5a71b8a3c3e87617907ced1fc45b68c..add49a402be6a1989506bc25bf0a4e76
  
      public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie) {
          this.server = server;
-@@ -75,6 +76,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -76,6 +77,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          this.pluginMessagerChannels = cookie.channels();
          this.keepAlive = cookie.keepAlive();
          // Paper end
@@ -67,7 +67,7 @@ index 28c61ccce5a71b8a3c3e87617907ced1fc45b68c..add49a402be6a1989506bc25bf0a4e76
      }
  
      // Paper start - configuration phase API
-@@ -166,6 +168,18 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -167,6 +169,18 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {
@@ -86,7 +86,7 @@ index 28c61ccce5a71b8a3c3e87617907ced1fc45b68c..add49a402be6a1989506bc25bf0a4e76
          // Paper start
          if (!(packet.payload() instanceof final net.minecraft.network.protocol.common.custom.DiscardedPayload discardedPayload)) {
              return;
-@@ -231,6 +245,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -232,6 +246,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          final String channel = new String(data, from, length, java.nio.charset.StandardCharsets.US_ASCII);
          if (register) {
              bridge.addChannel(channel);

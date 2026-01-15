@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
+import su.plo.matter.HashingVersion;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
-@SuppressWarnings({"SameParameterValue", "ConstantValue", "DataFlowIssue"})
+@SuppressWarnings({"SameParameterValue", "DataFlowIssue"})
 public class DivineConfig {
     private static final String HEADER = """
         This is the main configuration file for DivineMC.
@@ -76,7 +77,8 @@ public class DivineConfig {
         for (Method method : clazz.getDeclaredMethods()) {
             if (Modifier.isPrivate(method.getModifiers()) && 
                 method.getParameterTypes().length == 0 && 
-                method.getReturnType() == Void.TYPE) {
+                method.getReturnType() == Void.TYPE &&
+                !method.getName().equals("checkExperimentalFeatures")) {
                 try {
                     method.setAccessible(true);
                     method.invoke(instance);
@@ -223,9 +225,6 @@ public class DivineConfig {
         public static boolean enableAsyncSpawning = true;
         public static boolean asyncNaturalSpawn = true;
 
-        // Internal use only
-        public static boolean RCTorPWT = false;
-
         public static void load() {
             parallelWorldTicking();
             regionizedChunkTicking();
@@ -233,7 +232,6 @@ public class DivineConfig {
             multithreadedTracker();
             asyncChunkSending();
             asyncMobSpawning();
-            RCTorPWT = enableRegionizedChunkTicking || enableParallelWorldTicking;
         }
 
         private static void parallelWorldTicking() {
@@ -359,6 +357,7 @@ public class DivineConfig {
         public static boolean deduplicateShuffledTemplatePoolElementList = false;
 
         // General optimizations
+        public static boolean disableMethodProfiler = true;
         public static boolean skipUselessSecondaryPoiSensor = true;
         public static boolean clumpOrbs = true;
         public static boolean enableSuffocationOptimization = true;
@@ -461,6 +460,8 @@ public class DivineConfig {
         }
 
         private static void optimizationSettings() {
+            disableMethodProfiler = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.disable-method-profiler"), disableMethodProfiler,
+                "Disables the method profiler to save some performance. Mainly used for debugging purposes.");
             skipUselessSecondaryPoiSensor = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.skip-useless-secondary-poi-sensor"), skipUselessSecondaryPoiSensor);
             clumpOrbs = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.clump-orbs"), clumpOrbs,
                 "Clumps experience orbs together to reduce entity count");
@@ -609,6 +610,7 @@ public class DivineConfig {
     public static class MiscCategory {
         // Secure seed
         public static boolean enableSecureSeed = false;
+        public static HashingVersion secureSeedHashingVersion = HashingVersion.BLAKE2B;
 
         // Lag compensation
         public static boolean lagCompensationEnabled = true;
@@ -652,6 +654,17 @@ public class DivineConfig {
                 "",
                 "Terrain and biome generation remains the same, but all the ores and structures are generated with 1024-bit seed, instead of the usual 64-bit seed.",
                 "This seed is almost impossible to crack, and there are no weird links between structures.");
+
+            try {
+                secureSeedHashingVersion = HashingVersion.valueOf(getString(ConfigCategory.MISC.key("secure-seed.hashing-version"), secureSeedHashingVersion.toString(),
+                    "Type of hashing algorithm to use for secure seed.",
+                    "Valid values:",
+                    " - BLAKE2B: Cryptographically secure, well-tested, and reliable (default)",
+                    " - BLAKE3: Faster than BLAKE2b with better security guarantees. Requires jdk.incubator.vector module"));
+            } catch (IllegalArgumentException ignore) {
+                LOGGER.warn("Invalid secure seed hashing version: {}, resetting to default (BLAKE2B)", getString(ConfigCategory.MISC.key("secure-seed.hashing-version"), secureSeedHashingVersion.toString()));
+                secureSeedHashingVersion = HashingVersion.BLAKE2B;
+            }
         }
 
         private static void lagCompensation() {

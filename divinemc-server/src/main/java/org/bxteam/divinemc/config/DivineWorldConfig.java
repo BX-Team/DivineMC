@@ -58,6 +58,21 @@ public class DivineWorldConfig {
         disableFireworkSaving = getBoolean("gameplay-mechanics.projectiles.firework.disable-saving", disableFireworkSaving);
     }
 
+    public int projectilePerTick = 10;
+    public int projectileMax = 10;
+    public boolean resetMovementAfterReachLimit = false;
+    public boolean removeFromWorldAfterReachLimit = false;
+    private void reduceProjectileChunkLoading() {
+        projectilePerTick = getInt("gameplay-mechanics.reduce-projectile-chunk-loading.per-tick", projectilePerTick,
+            "The maximum number of chunks that can be synchronously loaded by all projectiles in one world in a tick");
+        projectileMax = getInt("gameplay-mechanics.reduce-projectile-chunk-loading.per-projectile.max", projectileMax,
+            "The maximum number of chunks that can be synchronously loaded by a projectile throughout its lifetime. If a value < 0, the feature is disabled.");
+        resetMovementAfterReachLimit = getBoolean("gameplay-mechanics.reduce-projectile-chunk-loading.per-projectile.reset-movement-after-reach-limit", resetMovementAfterReachLimit,
+            "Whether to set the planar velocity of projectiles that cross the projectileMax threshold to 0, so that they stop attempting to cross chunk boundaries");
+        removeFromWorldAfterReachLimit = getBoolean("gameplay-mechanics.reduce-projectile-chunk-loading.per-projectile.remove-from-world-after-reach-limit", removeFromWorldAfterReachLimit,
+            "Whether to remove projectiles that cross the projectileMax threshold from the world entirely");
+    }
+
     public boolean allowEntityPortalWithPassenger = true;
     public boolean allowTripwireDupe = false;
     private void unsupportedFeatures() {
@@ -66,5 +81,11 @@ public class DivineWorldConfig {
             "Entities with passengers cannot travel through portals");
         allowTripwireDupe = getBoolean("unsupported-features.allow-tripwire-dupe", allowTripwireDupe,
             "Bring back MC-59471, MC-129055 on 1.21.2+, which fixed in 1.21.2 snapshots 24w33a and 24w36a");
+    }
+
+    public boolean spectatorDontGetAdvancement = false;
+    private void worldFeatures() {
+        spectatorDontGetAdvancement = getBoolean("features.spectator-dont-get-advancement", spectatorDontGetAdvancement,
+            "Prevents spectators from getting advancements");
     }
 }

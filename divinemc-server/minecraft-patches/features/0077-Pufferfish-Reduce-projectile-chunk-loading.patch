@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Thu, 15 Jan 2026 00:35:03 +0300
+Subject: [PATCH] Pufferfish: Reduce projectile chunk loading
+
+This patch is based on the following patch:
+"Reduce projectile chunk loading"
+By: Paul Sauve <paul@technove.co>
+As part of: Airplane (https://github.com/TECHNOVE/Airplane)
+Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
+
+diff --git a/net/minecraft/world/entity/projectile/Projectile.java b/net/minecraft/world/entity/projectile/Projectile.java
+index 36479ed544ce812113c9a9c982a74a950cb9b26a..c3e6a30931389b14004fa8cb58c63b1755e9ccae 100644
+--- a/net/minecraft/world/entity/projectile/Projectile.java
++++ b/net/minecraft/world/entity/projectile/Projectile.java
+@@ -50,6 +50,54 @@ public abstract class Projectile extends Entity implements TraceableEntity {
+         super(type, level);
+     }
+ 
++    // DivineMC start - Pufferfish: Reduce projectile chunk loading
++    private static int chunksLoadedThisTick = 0;
++    private static int chunksLoadedInTick;
++    private int chunksLoadedByProjectile = 0;
++
++    @Override
++    public void setPos(double x, double y, double z) {
++        int currentTick = net.minecraft.server.MinecraftServer.currentTick;
++
++        if (chunksLoadedInTick != currentTick) {
++            chunksLoadedInTick = currentTick;
++            chunksLoadedThisTick = 0;
++        }
++
++        int previousX = Mth.floor(this.getX()) >> 4, previousZ = Mth.floor(this.getZ()) >> 4;
++        int newX = Mth.floor(x) >> 4, newZ = Mth.floor(z) >> 4;
++
++        if (previousX != newX || previousZ != newZ) {
++            boolean isLoaded = ((net.minecraft.server.level.ServerChunkCache) this.level().getChunkSource()).getChunkAtIfLoadedImmediately(newX, newZ) != null;
++
++            if (!isLoaded) {
++                int maxChunkLoadsPerTick = this.level().divineConfig.projectilePerTick;
++
++                if (maxChunkLoadsPerTick >= 0 && chunksLoadedThisTick > maxChunkLoadsPerTick) {
++                    return;
++                }
++
++                int maxChunkLoadsPerProjectile = this.level().divineConfig.projectileMax;
++
++                if (maxChunkLoadsPerProjectile >= 0 && this.chunksLoadedByProjectile >= maxChunkLoadsPerProjectile) {
++                    if (this.level().divineConfig.removeFromWorldAfterReachLimit) {
++                        this.discard();
++                    } else if (this.level().divineConfig.resetMovementAfterReachLimit) {
++                        this.setDeltaMovement(0, this.getDeltaMovement().y, 0);
++                    }
++
++                    return;
++                }
++
++                chunksLoadedThisTick++;
++                this.chunksLoadedByProjectile++;
++            }
++        }
++
++        super.setPos(x, y, z);
++    }
++    // DivineMC end - Pufferfish: Reduce projectile chunk loading
++
+     protected void setOwner(@Nullable EntityReference<Entity> owner) {
+         this.owner = owner;
+         this.refreshProjectileSource(false); // Paper
