@@ -10,10 +10,10 @@ Original project: https://github.com/LogisticsCraft/OcclusionCulling
 Original license: MIT
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 14fe5a27dad5676bd778eaaa878e175a909d1db4..69b7c7527e8f1781ebafa7a65c9fd0fea04d5309 100644
+index dcb580bdeb7c065ee8471c46be328b77d62c820e..8f0d5a8e87094646183388bafcdac704bf436bb9 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1425,7 +1425,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1423,7 +1423,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  double d1 = vec3_dx * vec3_dx + vec3_dz * vec3_dz; // Paper
                  double d2 = d * d;
                  // Paper start - Configurable entity tracking range by Y
