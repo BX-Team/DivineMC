@@ -12,6 +12,10 @@ public net.minecraft.world.entity.Entity levelCallback
 public net.minecraft.world.entity.ai.Brain sensors
 public net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities lineOfSightTest
 public net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities nearbyEntities
+public net.minecraft.world.entity.ai.navigation.PathNavigation path
+public net.minecraft.world.entity.ai.navigation.PathNavigation reachRange
+public net.minecraft.world.entity.ai.navigation.PathNavigation resetStuckTimeout()V
+public net.minecraft.world.entity.ai.navigation.PathNavigation targetPos
 public net.minecraft.world.entity.ai.sensing.Sensor scanRate
 public net.minecraft.world.entity.ai.sensing.Sensor timeToTick
 public net.minecraft.world.entity.animal.armadillo.Armadillo scuteTime
@@ -55,6 +59,7 @@ public net.minecraft.world.level.levelgen.Xoroshiro128PlusPlus seedHi
 public net.minecraft.world.level.levelgen.Xoroshiro128PlusPlus seedLo
 public net.minecraft.world.level.levelgen.XoroshiroRandomSource randomNumberGenerator
 public net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool rawTemplates
+public net.minecraft.world.level.pathfinder.NodeEvaluator nodes
 public net.minecraft.world.level.pathfinder.SwimNodeEvaluator allowBreaching
 public net.minecraft.world.level.storage.loot.LootPool entries
 public net.minecraft.world.level.storage.loot.LootTable pools
@@ -63,3 +68,4 @@ public net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer con
 public net.minecraft.world.level.storage.loot.entries.NestedLootTable contents
 public net.minecraft.world.level.storage.loot.predicates.CompositeLootItemCondition terms
 public-f ca.spottedleaf.moonrise.paper.PaperHooks
+public-f net.minecraft.world.level.pathfinder.PathfindingContext cache

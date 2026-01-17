@@ -1,284 +1,202 @@
 package org.bxteam.divinemc.async.pathfinding;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.pathfinder.Node;
+import ca.spottedleaf.moonrise.common.util.TickThread;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.level.pathfinder.Path;
-import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.NotNull;
+import org.bxteam.divinemc.config.DivineConfig;
+import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class AsyncPath extends Path {
-    /**
-     * marks whether this async path has been processed
-     */
-    private volatile PathProcessState processState = PathProcessState.WAITING;
+public final class AsyncPath {
+    private static final Path SENTINEL_NULL_PATH = new Path();
+    private static final CallbackChain EMPTY_CALLBACK_CHAIN = new CallbackChain(path -> {}, null);
 
-    /**
-     * runnables waiting for this to be processed
-     */
-    private final List<Runnable> postProcessing = new ArrayList<>(0);
+    private final int navigationAccuracy;
+    @Nullable private volatile Path computedPath;
+    @Nullable private PathNavigation navigationListener;
+    private volatile boolean isCompleted;
+    private CallbackChain callbackChain;
 
-    /**
-     * a list of positions that this path could path towards
-     */
-    private final Set<BlockPos> positions;
+    public static final ThreadPoolExecutor PATH_PROCESSING_EXECUTOR = DivineConfig.AsyncCategory.asyncPathfinding ? new ThreadPoolExecutor(
+        1, 1,
+        0L, TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<>(),
+        new NamedAgnosticThreadFactory<>("Async Path Processing", TickThread::new, Thread.NORM_PRIORITY),
+        new ThreadPoolExecutor.CallerRunsPolicy()
+    ) : null;
 
-    /**
-     * the supplier of the real processed path
-     */
-    private final Supplier<Path> pathSupplier;
+    public AsyncPath(int accuracy, Supplier<@Nullable Path> pathSupplier) {
+        this.navigationAccuracy = accuracy;
+        this.computedPath = null;
+        this.isCompleted = false;
+        this.navigationListener = null;
+        this.callbackChain = EMPTY_CALLBACK_CHAIN;
 
-    /*
-     * Processed values
-     */
-
-    /**
-     * this is a reference to the nodes list in the parent `Path` object
-     */
-    private final List<Node> nodes;
-    /**
-     * the block we're trying to path to
-     * <p>
-     * while processing, we have no idea where this is so consumers of `Path` should check that the path is processed before checking the target block
-     */
-    private @Nullable BlockPos target;
-    /**
-     * how far we are to the target
-     * <p>
-     * while processing, the target could be anywhere but theoretically we're always "close" to a theoretical target so default is 0
-     */
-    private float distToTarget = 0;
-    /**
-     * whether we can reach the target
-     * <p>
-     * while processing, we can always theoretically reach the target so default is true
-     */
-    private boolean canReach = true;
-
-    public AsyncPath(@NotNull List<Node> emptyNodeList, @NotNull Set<BlockPos> positions, @NotNull Supplier<Path> pathSupplier) {
-        //noinspection ConstantConditions
-        super(emptyNodeList, null, false);
-
-        this.nodes = emptyNodeList;
-        this.positions = positions;
-        this.pathSupplier = pathSupplier;
-
-        AsyncPathProcessor.queue(this);
+        executePathComputation(pathSupplier);
     }
 
-    @Override
-    public boolean isProcessed() {
-        return this.processState == PathProcessState.COMPLETED;
-    }
+    private void executePathComputation(Supplier<@Nullable Path> pathSupplier) {
+        Runnable computationTask = () -> {
+            Path result = pathSupplier.get();
+            this.computedPath = (result != null) ? result : SENTINEL_NULL_PATH;
+        };
 
-    /**
-     * returns the future representing the processing state of this path
-     */
-    public synchronized void postProcessing(@NotNull Runnable runnable) {
-        if (isProcessed()) {
-            runnable.run();
+        if (PATH_PROCESSING_EXECUTOR != null) {
+            PATH_PROCESSING_EXECUTOR.execute(computationTask);
         } else {
-            this.postProcessing.add(runnable);
+            computationTask.run();
         }
     }
 
-    /**
-     * an easy way to check if this processing path is the same as an attempted new path
-     *
-     * @param positions - the positions to compare against
-     * @return true if we are processing the same positions
-     */
-    public boolean hasSameProcessingPositions(final Set<BlockPos> positions) {
-        if (this.positions.size() != positions.size()) {
-            return false;
-        }
+    public static void awaitProcessing(@Nullable Path path, Consumer<@Nullable Path> afterProcessing) {
+        AsyncPath asyncTask = extractAsyncTask(path);
 
-        return this.positions.containsAll(positions);
+        if (asyncTask != null) {
+            asyncTask.addCallback(afterProcessing);
+        } else {
+            afterProcessing.accept(path);
+        }
     }
 
-    /**
-     * starts processing this path
-     */
-    public synchronized void process() {
-        if (this.processState == PathProcessState.COMPLETED ||
-            this.processState == PathProcessState.PROCESSING) {
+    @Nullable
+    private static AsyncPath extractAsyncTask(@Nullable Path path) {
+        return (path != null) ? path.task : null;
+    }
+
+    private void addCallback(Consumer<@Nullable Path> callback) {
+        if (isTaskComplete()) {
+            invokeCallbackWithResult(callback);
+        } else {
+            chainCallback(callback);
+        }
+    }
+
+    private void invokeCallbackWithResult(Consumer<@Nullable Path> callback) {
+        Path result = unwrapComputedPath();
+        callback.accept(result);
+    }
+
+    private void chainCallback(Consumer<@Nullable Path> newCallback) {
+        if (callbackChain == EMPTY_CALLBACK_CHAIN) {
+            callbackChain = new CallbackChain(newCallback, null);
+        } else {
+            callbackChain = new CallbackChain(newCallback, callbackChain);
+        }
+    }
+
+    public boolean complete() {
+        if (isTaskComplete()) {
+            notifyCompletion();
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isTaskComplete() {
+        return isCompleted || computedPath != null;
+    }
+
+    private void notifyCompletion() {
+        Path finalPath = unwrapComputedPath();
+        processListenerIfPresent(finalPath);
+        executeCallbackChain(finalPath);
+    }
+
+    @Nullable
+    private Path unwrapComputedPath() {
+        Path result = computedPath;
+
+        return (result != SENTINEL_NULL_PATH) ? result : null;
+    }
+
+    private void processListenerIfPresent(@Nullable Path path) {
+        if (navigationListener == null) {
             return;
         }
 
-        processState = PathProcessState.PROCESSING;
+        PathNavigation navigation = navigationListener;
+        navigationListener = null;
 
-        final Path bestPath = this.pathSupplier.get();
-
-        this.nodes.addAll(bestPath.nodes); // we mutate this list to reuse the logic in Path
-        this.target = bestPath.getTarget();
-        this.distToTarget = bestPath.getDistToTarget();
-        this.canReach = bestPath.canReach();
-
-        processState = PathProcessState.COMPLETED;
-
-        for (Runnable runnable : this.postProcessing) {
-            runnable.run();
-        } // Run tasks after processing
-    }
-
-    /**
-     * if this path is accessed while it hasn't processed, just process it in-place
-     */
-    private void checkProcessed() {
-        if (this.processState == PathProcessState.WAITING ||
-            this.processState == PathProcessState.PROCESSING) { // Block if we are on processing
-            this.process();
+        if (path != null) {
+            updateNavigationWithPath(navigation, path);
         }
     }
 
-    /*
-     * overrides we need for final fields that we cannot modify after processing
-     */
-
-    @Override
-    public @NotNull BlockPos getTarget() {
-        this.checkProcessed();
-
-        return this.target;
+    private void updateNavigationWithPath(PathNavigation navigation, Path path) {
+        navigation.path = path;
+        navigation.targetPos = path.getTarget();
+        navigation.reachRange = navigationAccuracy;
+        navigation.resetStuckTimeout();
     }
 
-    @Override
-    public float getDistToTarget() {
-        this.checkProcessed();
+    private void executeCallbackChain(@Nullable Path result) {
+        if (isCompleted) {
+            return;
+        }
 
-        return this.distToTarget;
+        isCompleted = true;
+        invokeAllCallbacks(result);
+        resetCallbackChain();
     }
 
-    @Override
-    public boolean canReach() {
-        this.checkProcessed();
+    private void invokeAllCallbacks(@Nullable Path result) {
+        callbackChain.callback.accept(result);
 
-        return this.canReach;
+        CallbackChain current = callbackChain.next;
+        while (current != null) {
+            current.callback().accept(result);
+            current = current.next;
+        }
     }
 
-    /*
-     * overrides to ensure we're processed first
-     */
-
-    @Override
-    public boolean isDone() {
-        return this.processState == PathProcessState.COMPLETED && super.isDone();
+    private void resetCallbackChain() {
+        callbackChain = EMPTY_CALLBACK_CHAIN;
     }
 
-    @Override
-    public void advance() {
-        this.checkProcessed();
+    public static void moveTo(PathNavigation navigation, @Nullable Path path) {
+        if (path == null) {
+            clearNavigationPath(navigation);
+            return;
+        }
 
-        super.advance();
+        AsyncPath asyncTask = extractAsyncTask(path);
+
+        if (asyncTask == null || asyncTask.isTaskComplete()) {
+            setNavigationPathDirectly(navigation, path, asyncTask);
+        } else {
+            attachNavigationListener(navigation, path, asyncTask);
+        }
     }
 
-    @Override
-    public boolean notStarted() {
-        this.checkProcessed();
-
-        return super.notStarted();
+    private static void clearNavigationPath(PathNavigation navigation) {
+        navigation.path = null;
     }
 
-    @Nullable
-    @Override
-    public Node getEndNode() {
-        this.checkProcessed();
-
-        return super.getEndNode();
+    private static void setNavigationPathDirectly(PathNavigation navigation, Path path, @Nullable AsyncPath asyncTask) {
+        navigation.path = (asyncTask != null) ? asyncTask.computedPath : path;
     }
 
-    @Override
-    public Node getNode(int index) {
-        this.checkProcessed();
+    private static void attachNavigationListener(PathNavigation navigation, Path path, AsyncPath asyncTask) {
+        asyncTask.navigationListener = navigation;
 
-        return super.getNode(index);
+        if (navigation.path != null) {
+            navigation.path.task = asyncTask;
+        } else {
+            navigation.path = path;
+        }
     }
 
-    @Override
-    public void truncateNodes(int length) {
-        this.checkProcessed();
-
-        super.truncateNodes(length);
+    public void stop() {
+        navigationListener = null;
+        complete();
     }
 
-    @Override
-    public void replaceNode(int index, Node node) {
-        this.checkProcessed();
-
-        super.replaceNode(index, node);
-    }
-
-    @Override
-    public int getNodeCount() {
-        this.checkProcessed();
-
-        return super.getNodeCount();
-    }
-
-    @Override
-    public int getNextNodeIndex() {
-        this.checkProcessed();
-
-        return super.getNextNodeIndex();
-    }
-
-    @Override
-    public void setNextNodeIndex(int nodeIndex) {
-        this.checkProcessed();
-
-        super.setNextNodeIndex(nodeIndex);
-    }
-
-    @Override
-    public Vec3 getEntityPosAtNode(Entity entity, int index) {
-        this.checkProcessed();
-
-        return super.getEntityPosAtNode(entity, index);
-    }
-
-    @Override
-    public BlockPos getNodePos(int index) {
-        this.checkProcessed();
-
-        return super.getNodePos(index);
-    }
-
-    @Override
-    public Vec3 getNextEntityPos(Entity entity) {
-        this.checkProcessed();
-
-        return super.getNextEntityPos(entity);
-    }
-
-    @Override
-    public BlockPos getNextNodePos() {
-        this.checkProcessed();
-
-        return super.getNextNodePos();
-    }
-
-    @Override
-    public Node getNextNode() {
-        this.checkProcessed();
-
-        return super.getNextNode();
-    }
-
-    @Nullable
-    @Override
-    public Node getPreviousNode() {
-        this.checkProcessed();
-
-        return super.getPreviousNode();
-    }
-
-    public PathProcessState getProcessState() {
-        return processState;
-    }
+    record CallbackChain(Consumer<@Nullable Path> callback, @Nullable AsyncPath.CallbackChain next) { }
 }
