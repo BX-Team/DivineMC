@@ -236,7 +236,7 @@ index 36c9c4b0f6f29a5d06d086a7e463411402af7d4a..4526ec04f19f91445a4e1a178c4640c2
      private void tickSpawningChunk(LevelChunk chunk, long timeInhabited, List<MobCategory> spawnCategories, NaturalSpawner.SpawnState spawnState) {
          ChunkPos pos = chunk.getPos();
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..4857c4529fe17e496b98e42bd2f297b0f3dc6a0e 100644
+index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..4c09d75b824293728ccc6367cdcd6b8423b72382 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -206,7 +206,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -248,7 +248,7 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..4857c4529fe17e496b98e42bd2f297b0
      volatile boolean isUpdatingNavigations;
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
-@@ -533,74 +533,86 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -533,75 +533,88 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
     }
      // Paper end - rewrite chunk system
      // Paper start - chunk tick iteration
@@ -373,9 +373,11 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..4857c4529fe17e496b98e42bd2f297b0
 +            this.playerTickingChunks.remove((LevelChunk) chunkHolder.getCurrentChunk());
 +        }
      }
++    // DivineMC end - RCT sync fix
      // Paper end - chunk tick iteration
  
-@@ -674,19 +686,37 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     // DivineMC start - MSPT Tracking for each world
+@@ -674,19 +687,37 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          boolean flag = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          // Paper - rewrite chunk system
@@ -426,7 +428,7 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..4857c4529fe17e496b98e42bd2f297b0
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
          this.portalForcer = new PortalForcer(this);
          if (this.canHaveWeather()) {
-@@ -878,6 +908,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -878,6 +909,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                  profilerFiller.pop();
              }
  
@@ -439,7 +441,7 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..4857c4529fe17e496b98e42bd2f297b0
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
              this.entityTickList
                  .forEach(
-@@ -909,6 +945,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -909,6 +946,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              profilerFiller.popPush("blockEntities");
              this.tickBlockEntities();
              profilerFiller.pop();
@@ -447,16 +449,16 @@ index fcc172a2aeee3fe6bfd526411e1e123d0f80c3e3..4857c4529fe17e496b98e42bd2f297b0
          }
  
          profilerFiller.push("entityManagement");
-@@ -1943,7 +1980,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1943,7 +1981,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      }
  
      @Override
 -    public void sendBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, int flags) {
-+    public synchronized void sendBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, int flags) {
++    public synchronized void sendBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, int flags) { // DivineMC - Regionized Chunk Ticking - synchronized
          if (this.isUpdatingNavigations) {
              String string = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
-@@ -1957,22 +1994,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1957,22 +1995,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          if (Shapes.joinIsNotEmpty(collisionShape, collisionShape1, BooleanOp.NOT_SAME)) {
              List<PathNavigation> list = new ObjectArrayList<>();
  
