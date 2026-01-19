@@ -5,6 +5,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.async.pathfinding.AsyncPathProcessor;
 import org.bxteam.divinemc.async.tracking.MultithreadedTracker;
+import org.bxteam.divinemc.config.DivineConfig;
+import org.bxteam.divinemc.region.Flusher;
 
 import java.util.concurrent.TimeUnit;
 
@@ -46,6 +48,12 @@ public class ExecutorShutdown {
             try {
                 AsyncPathProcessor.PATH_PROCESSING_EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
             } catch (InterruptedException ignored) { }
+        }
+
+        final Flusher<?> flusher = DivineConfig.RegionSettingsCategory.flusher;
+        if (flusher != null) {
+            LOGGER.info("Shutting down region flusher executor...");
+            flusher.shutdown();
         }
     }
 }

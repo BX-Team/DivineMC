@@ -1,67 +1,28 @@
-package org.bxteam.divinemc.region.flusher;
+package org.bxteam.divinemc.region.buffered;
 
-import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArraySet;
-import org.apache.commons.lang3.Validate;
-import org.bxteam.divinemc.region.type.BufferedRegionFile;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
-import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.Validate;
+import org.bxteam.divinemc.region.Flusher;
 
-public class BufferedRegionFileFlusher implements Runnable {
-    private static final Logger logger = LogUtils.getLogger();
-
+public class BufferedRegionFileFlusher extends Flusher<BufferedRegionFile> {
     private final Set<BufferedRegionFile> inManagement = new ObjectArraySet<>();
-    private final ScheduledFuture<?> flusherChecker;
-    private final Executor ioWorkerPool;
-    private final long flushOfWriteTimeoutMs;
 
     public BufferedRegionFileFlusher(int nIoThreads, long checkIntervalMs, long flushOfWriteTimeoutMs) {
+        super(nIoThreads, checkIntervalMs, flushOfWriteTimeoutMs);
         Validate.isTrue(nIoThreads > 0, "Number of I/O threads must > 0!");
         Validate.isTrue(checkIntervalMs > 0, "Check interval must > 0");
         Validate.isTrue(flushOfWriteTimeoutMs > 0, "Flush of write timeout must > 0");
 
-        this.ioWorkerPool = Executors.newFixedThreadPool(nIoThreads, new NamedAgnosticThreadFactory<>(
-                "BufferedRegionFile I/O Worker",
-                (group, runnable, name) -> {
-                    Thread thread = new Thread(group, runnable, name);
-                    thread.setDaemon(true);
-                    return thread;
-                },
-                Thread.NORM_PRIORITY
-            )
-        );
-        this.flusherChecker = Executors.newSingleThreadScheduledExecutor(new NamedAgnosticThreadFactory<>(
-                "BufferedRegionFile Flusher Checker",
-                (group, runnable, name) -> {
-                    Thread thread = new Thread(group, runnable, name);
-                    thread.setDaemon(true);
-                    return thread;
-                },
-                Thread.NORM_PRIORITY
-            )
-        ).scheduleWithFixedDelay(this, checkIntervalMs, checkIntervalMs, TimeUnit.MILLISECONDS);
-        this.flushOfWriteTimeoutMs = flushOfWriteTimeoutMs;
     }
 
     public void shutdown() {
-        this.flusherChecker.cancel(false);
-
-        ((ExecutorService) this.ioWorkerPool).shutdown();
-        for (; ; ) {
-            try {
-                if (((ExecutorService) this.ioWorkerPool).awaitTermination(100, TimeUnit.MILLISECONDS)) {
-                    break;
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
+        shutdownExecutor(scheduler);
+        shutdownExecutor(executor);
     }
 
     @Override
@@ -104,7 +65,7 @@ public class BufferedRegionFileFlusher implements Runnable {
                     continue;
                 }
 
-                this.ioWorkerPool.execute(() -> {
+                executor.execute(() -> {
                     try {
                         file.syncIfNeeded();
                     } catch (IOException e) {
