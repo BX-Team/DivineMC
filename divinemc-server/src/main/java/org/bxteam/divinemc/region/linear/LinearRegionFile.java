@@ -288,31 +288,6 @@ public class LinearRegionFile implements IRegionFile {
         );
     }
 
-    @Override
-    public boolean recalculateHeader() {
-        return false;
-    }
-
-    @Override
-    public int getRecalculateCount() {
-        return 0;
-    }
-
-    @Override
-    public void setOversized(int x, int z, boolean something) {
-        // stub
-    }
-
-    @Override
-    public CompoundTag getOversizedData(int x, int z) throws IOException {
-        throw new IOException("getOversizedData is a stub " + regionFilePath);
-    }
-
-    @Override
-    public boolean isOversized(int x, int z) {
-        return false;
-    }
-
     private class ChunkBuffer extends ByteArrayOutputStream {
         private final ChunkPos pos;
 

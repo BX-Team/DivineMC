@@ -598,26 +598,6 @@ public class BufferedRegionFile implements IRegionFile {
         this.writeChunk(pos.x, pos.z, buf);
     }
 
-    // MCC 的玩意,这东西也用不上给Linear了()
-    @Override
-    public CompoundTag getOversizedData(int x, int z) {
-        return null;
-    }
-
-    @Override
-    public boolean isOversized(int x, int z) {
-        return false;
-    }
-
-    @Override
-    public boolean recalculateHeader() {
-        return false;
-    }
-
-    @Override
-    public void setOversized(int x, int z, boolean oversized) {
-
-    }
     // MCC end
 
     @Override
