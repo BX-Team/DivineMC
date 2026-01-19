@@ -1,4 +1,4 @@
-package org.bxteam.divinemc.region.type;
+package org.bxteam.divinemc.region.buffered;
 
 import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
 import ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO;
@@ -13,7 +13,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import org.apache.commons.lang3.Validate;
 import org.bxteam.divinemc.region.IRegionFile;
-import org.bxteam.divinemc.region.flusher.BufferedRegionFileFlusher;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -599,26 +598,6 @@ public class BufferedRegionFile implements IRegionFile {
         this.writeChunk(pos.x, pos.z, buf);
     }
 
-    // MCC 的玩意,这东西也用不上给Linear了()
-    @Override
-    public CompoundTag getOversizedData(int x, int z) {
-        return null;
-    }
-
-    @Override
-    public boolean isOversized(int x, int z) {
-        return false;
-    }
-
-    @Override
-    public boolean recalculateHeader() {
-        return false;
-    }
-
-    @Override
-    public void setOversized(int x, int z, boolean oversized) {
-
-    }
     // MCC end
 
     @Override
