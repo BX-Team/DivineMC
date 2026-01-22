@@ -3,32 +3,44 @@ package org.bxteam.divinemc.async.pathfinding;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.level.pathfinder.Path;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.config.DivineConfig;
 import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class AsyncPath {
+    private static final String THREAD_PREFIX = "Async Pathfinding";
+    private static final Logger LOGGER = LogManager.getLogger(THREAD_PREFIX);
     private static final Path SENTINEL_NULL_PATH = new Path();
     private static final CallbackChain EMPTY_CALLBACK_CHAIN = new CallbackChain(path -> {}, null);
 
     private final int navigationAccuracy;
-    @Nullable private volatile Path computedPath;
-    @Nullable private PathNavigation navigationListener;
+    @Nullable
+    private volatile Path computedPath;
+    @Nullable
+    private PathNavigation navigationListener;
     private volatile boolean isCompleted;
     private CallbackChain callbackChain;
+    private static long lastWarnMillis = System.currentTimeMillis();
 
     public static final ThreadPoolExecutor PATH_PROCESSING_EXECUTOR = DivineConfig.AsyncCategory.asyncPathfinding ? new ThreadPoolExecutor(
-        1, 1,
-        0L, TimeUnit.MILLISECONDS,
-        new LinkedBlockingQueue<>(),
-        new NamedAgnosticThreadFactory<>("Async Path Processing", TickThread::new, Thread.NORM_PRIORITY),
-        new ThreadPoolExecutor.CallerRunsPolicy()
+        1,
+        DivineConfig.AsyncCategory.asyncPathfindingMaxThreads,
+        DivineConfig.AsyncCategory.asyncPathfindingKeepalive, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<>(DivineConfig.AsyncCategory.asyncPathfindingQueueSize),
+        new NamedAgnosticThreadFactory<>(THREAD_PREFIX, TickThread::new, Thread.NORM_PRIORITY),
+        new RejectedTaskHandler()
     ) : null;
 
     public AsyncPath(int accuracy, Supplier<@Nullable Path> pathSupplier) {
@@ -199,4 +211,34 @@ public final class AsyncPath {
     }
 
     record CallbackChain(Consumer<@Nullable Path> callback, @Nullable AsyncPath.CallbackChain next) { }
+
+    private static class RejectedTaskHandler implements RejectedExecutionHandler {
+        @Override
+        public void rejectedExecution(Runnable rejectedTask, ThreadPoolExecutor executor) {
+            BlockingQueue<Runnable> workQueue = executor.getQueue();
+            if (!executor.isShutdown()) {
+                switch (DivineConfig.AsyncCategory.asyncPathfindingRejectPolicy) {
+                    case FLUSH_ALL -> {
+                        if (!workQueue.isEmpty()) {
+                            List<Runnable> pendingTasks = new ArrayList<>(workQueue.size());
+
+                            workQueue.drainTo(pendingTasks);
+
+                            for (Runnable pendingTask : pendingTasks) {
+                                pendingTask.run();
+                            }
+                        }
+                        rejectedTask.run();
+                    }
+
+                    case CALLER_RUNS -> rejectedTask.run();
+                }
+            }
+
+            if (System.currentTimeMillis() - lastWarnMillis > 30000L) {
+                LOGGER.warn("Async pathfinding processor is busy! Pathfinding tasks will be treated as policy defined in config. Increasing max-threads in DivineMC config may help.");
+                lastWarnMillis = System.currentTimeMillis();
+            }
+        }
+    }
 }

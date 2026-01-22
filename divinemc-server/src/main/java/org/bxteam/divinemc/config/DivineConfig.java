@@ -7,6 +7,7 @@ import net.minecraft.world.entity.EntityType;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.chunk.ChunkSystemAlgorithm;
 import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.region.EnumRegionFileExtension;
@@ -204,6 +205,10 @@ public class DivineConfig {
 
         // Async pathfinding settings
         public static boolean asyncPathfinding = true;
+        public static int asyncPathfindingMaxThreads = 1;
+        public static int asyncPathfindingKeepalive = 60;
+        public static int asyncPathfindingQueueSize = 0;
+        public static PathfindTaskRejectPolicy asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.CALLER_RUNS;
 
         // Multithreaded tracker settings
         public static boolean multithreadedEnabled = true;
@@ -262,8 +267,38 @@ public class DivineConfig {
         }
 
         private static void asyncPathfinding() {
-            asyncPathfinding = getBoolean(ConfigCategory.ASYNC.key("pathfinding.enable"), asyncPathfinding,
-            "Enables asynchronous pathfinding, which offloads pathfinding calculations to separate thread to reduce main thread load.");
+            asyncPathfinding = getBoolean(ConfigCategory.ASYNC.key("pathfinding.enable"), asyncPathfinding);
+            asyncPathfindingMaxThreads = getInt(ConfigCategory.ASYNC.key("pathfinding.max-threads"), asyncPathfindingMaxThreads);
+            asyncPathfindingKeepalive = getInt(ConfigCategory.ASYNC.key("pathfinding.keepalive"), asyncPathfindingKeepalive);
+            asyncPathfindingQueueSize = getInt(ConfigCategory.ASYNC.key("pathfinding.queue-size"), asyncPathfindingQueueSize);
+
+            final int maxThreads = Runtime.getRuntime().availableProcessors();
+            if (asyncPathfindingMaxThreads < 0) {
+                asyncPathfindingMaxThreads = Math.max(maxThreads + asyncPathfindingMaxThreads, 1);
+            } else if (asyncPathfindingMaxThreads == 0) {
+                asyncPathfindingMaxThreads = Math.max(maxThreads / 4, 1);
+            }
+
+            if (!asyncPathfinding) {
+                asyncPathfindingMaxThreads = 0;
+            } else {
+                LOGGER.info("Using {} threads for Async Pathfinding", asyncPathfindingMaxThreads);
+            }
+
+            if (asyncPathfindingQueueSize <= 0) asyncPathfindingQueueSize = asyncPathfindingMaxThreads * 256;
+
+            try {
+                asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.valueOf(getString(ConfigCategory.ASYNC.key("pathfinding.reject-policy"),
+                    maxThreads >= 12 && asyncPathfindingQueueSize < 512
+                        ? PathfindTaskRejectPolicy.FLUSH_ALL.toString()
+                        : PathfindTaskRejectPolicy.CALLER_RUNS.toString(),
+                    "The policy to use when the queue is full and a new task is submitted.",
+                    "FLUSH_ALL: All pending tasks will be run on server thread.",
+                    "CALLER_RUNS: Newly submitted task will be run on server thread."));
+            } catch (IllegalArgumentException ignore) {
+                LOGGER.warn("Invalid async pathfinding reject policy, using default CALLER_RUNS");
+                asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.CALLER_RUNS;
+            }
         }
 
         private static void multithreadedTracker() {
