@@ -23,7 +23,7 @@ index dcb580bdeb7c065ee8471c46be328b77d62c820e..8f0d5a8e87094646183388bafcdac704
                      double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
                      if (rangeY != -1) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 0619e2425736cba62ad7f07d94b5ca8982fa44b0..a5f6b4827019d2041d2b4bad5eab34e1bb1cbe23 100644
+index 97f75bb67785376a23068c4af675977dea484770..6d6ec33bc4d3d2edf86c5ef38c4a641a627ca36f 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -145,7 +145,7 @@ import net.minecraft.world.waypoints.WaypointTransmitter;
@@ -35,7 +35,7 @@ index 0619e2425736cba62ad7f07d94b5ca8982fa44b0..a5f6b4827019d2041d2b4bad5eab34e1
      public static javax.script.ScriptEngine scriptEngine = new javax.script.ScriptEngineManager().getEngineByName("rhino"); // Purpur - Configurable entity base attributes
      // CraftBukkit start
      private static final int CURRENT_LEVEL = 2;
-@@ -5495,4 +5495,47 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5496,4 +5496,47 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return false;
      }
      // Purpur end - Ridables

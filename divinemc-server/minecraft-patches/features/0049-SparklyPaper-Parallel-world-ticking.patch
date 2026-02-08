@@ -640,10 +640,10 @@ index f9e7532f86122a379692561a639a209a126e8bba..839f6b7696ef85314da185bedba7cfc5
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index dda6dafa69b3e667a52ef51f50cd4cfedd67bdb3..0619e2425736cba62ad7f07d94b5ca8982fa44b0 100644
+index dda6dafa69b3e667a52ef51f50cd4cfedd67bdb3..97f75bb67785376a23068c4af675977dea484770 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3480,14 +3480,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3480,14 +3480,35 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              if (this.portalProcess != null) {
                  if (this.portalProcess.processPortalTeleportation(serverLevel, this, this.canUsePortal(false))) {
                      this.setPortalCooldown();
@@ -656,11 +656,12 @@ index dda6dafa69b3e667a52ef51f50cd4cfedd67bdb3..0619e2425736cba62ad7f07d94b5ca89
 +                    // DivineMC start - Parallel world ticking
 +                    java.util.function.Consumer<Entity> portalEntityTask = entity -> {
 +                        assert entity.portalProcess != null;
++                        if (entity.portalProcess == null) return; // Fixes NPE
 +
 +                        if (entity.portalProcess.isParallelCancelledByPlugin()) {
 +                            entity.portalProcess = null;
 +                            return;
-+                        }
+                         }
 +
 +                        TeleportTransition portalDestination = entity.portalProcess.getPortalDestination(serverLevel, entity);
 +                        if (portalDestination != null) {
@@ -669,7 +670,7 @@ index dda6dafa69b3e667a52ef51f50cd4cfedd67bdb3..0619e2425736cba62ad7f07d94b5ca89
 +                                || (level != null && (level.dimension() == serverLevel.dimension() || entity.canTeleport(serverLevel, level)))) { // CraftBukkit
 +                                entity.teleport(portalDestination);
 +                            }
-                         }
++                        }
 +                        if (this.portalProcess != null)
 +                            entity.portalProcess.confirmParallelAsHandled();
 +                    };
@@ -684,7 +685,7 @@ index dda6dafa69b3e667a52ef51f50cd4cfedd67bdb3..0619e2425736cba62ad7f07d94b5ca89
                  } else if (this.portalProcess.hasExpired()) {
                      this.portalProcess = null;
                  }
-@@ -4064,6 +4084,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4064,6 +4085,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      private Entity teleportCrossDimension(ServerLevel oldLevel, ServerLevel newLevel, TeleportTransition teleportTransition) {
@@ -692,6 +693,19 @@ index dda6dafa69b3e667a52ef51f50cd4cfedd67bdb3..0619e2425736cba62ad7f07d94b5ca89
          List<Entity> passengers = this.getPassengers();
          List<Entity> list = new ArrayList<>(passengers.size());
          this.ejectPassengers();
+diff --git a/net/minecraft/world/entity/EntitySelector.java b/net/minecraft/world/entity/EntitySelector.java
+index 1842cbe25cc0f9be937caf0a78e915bd3d6ea1e5..d3f85e51b8f931036db407c4692d4b265bf59f46 100644
+--- a/net/minecraft/world/entity/EntitySelector.java
++++ b/net/minecraft/world/entity/EntitySelector.java
+@@ -32,7 +32,7 @@ public final class EntitySelector {
+ 
+     // Paper start - Affects Spawning API
+     public static final Predicate<Entity> PLAYER_AFFECTS_SPAWNING = (entity) -> {
+-        return !entity.isSpectator() && entity.isAlive() && entity instanceof Player player && player.affectsSpawning;
++        return entity instanceof Player player && !player.isSpectator() && player.isAlive() && player.affectsSpawning; // DivineMC - Parallel world ticking - fix NPE
+     };
+     // Paper end - Affects Spawning API
+ 
 diff --git a/net/minecraft/world/entity/PortalProcessor.java b/net/minecraft/world/entity/PortalProcessor.java
 index 91f6d43b3785ddad7db8eb529ba3293c45f3588d..7fd5f40ee928330769bbe0c5e8da17fa65b30db6 100644
 --- a/net/minecraft/world/entity/PortalProcessor.java

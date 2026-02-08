@@ -96,10 +96,10 @@ index b382665cc125b8b5c0938e5e55984e4bf91d37ff..c112b58996494d97fcd226fc490fe271
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index d82ed6dcd49b4f0bd040d2bd3a6f0f54cd87758f..bae2cf89e9bc71a360fe471f7d3e703705488f3a 100644
+index 81763a1f0d50295236b20347e56dd2401bed60aa..047b4942ba76ec574c285a1769c31d6192f3e65e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5075,6 +5075,18 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5076,6 +5076,18 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box
