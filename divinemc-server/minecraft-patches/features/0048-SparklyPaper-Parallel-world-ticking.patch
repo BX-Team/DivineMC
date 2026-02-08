@@ -683,6 +683,19 @@ index 5d5e125e55daf55764846c0d7ce2c3150847aeb8..56483d9e770e29526a36d4c8c5565092
          List<Entity> passengers = this.getPassengers();
          List<Entity> list = new ArrayList<>(passengers.size());
          this.ejectPassengers();
+diff --git a/net/minecraft/world/entity/EntitySelector.java b/net/minecraft/world/entity/EntitySelector.java
+index b94b3a5aabd44b0158d535c7a4dc006e6f6f4689..1e3418b976486082ef2521b4a62bd7c877e2ed3a 100644
+--- a/net/minecraft/world/entity/EntitySelector.java
++++ b/net/minecraft/world/entity/EntitySelector.java
+@@ -32,7 +32,7 @@ public final class EntitySelector {
+ 
+     // Paper start - Affects Spawning API
+     public static final Predicate<Entity> PLAYER_AFFECTS_SPAWNING = (entity) -> {
+-        return !entity.isSpectator() && entity.isAlive() && entity instanceof Player player && player.affectsSpawning;
++        return entity instanceof Player player && !player.isSpectator() && player.isAlive() && player.affectsSpawning; // DivineMC - Parallel world ticking - fix NPE
+     };
+     // Paper end - Affects Spawning API
+ 
 diff --git a/net/minecraft/world/entity/PortalProcessor.java b/net/minecraft/world/entity/PortalProcessor.java
 index 91f6d43b3785ddad7db8eb529ba3293c45f3588d..7fd5f40ee928330769bbe0c5e8da17fa65b30db6 100644
 --- a/net/minecraft/world/entity/PortalProcessor.java
