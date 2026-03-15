@@ -6,7 +6,7 @@ Subject: [PATCH] SparklyPaper: Parallel world ticking
 Original project: https://github.com/SparklyPower/SparklyPaper
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 467065e3b40df17f38716499259b46663c174fd0..18822bed7986348bbbed1712db7dac65884d39a9 100644
+index 41b4c5a87b5153f845421a7df8df04c9231253a8..f93f4584994a6a2188cf609153c4834023e4876f 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -1129,7 +1129,7 @@ public final class ChunkHolderManager {
@@ -33,7 +33,7 @@ index 467065e3b40df17f38716499259b46663c174fd0..18822bed7986348bbbed1712db7dac65
  
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot unload chunks recursively");
-@@ -1416,7 +1422,11 @@ public final class ChunkHolderManager {
+@@ -1419,7 +1425,11 @@ public final class ChunkHolderManager {
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot update ticket level while unloading chunks or updating entity manager");
          }
@@ -111,7 +111,7 @@ index fc618f97cee829dbd4b0c167c5fe515a58189c37..1e4eeb81fe7ef7356d398bb898278699
                      List<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(level.capturedBlockStates.values());
                      level.capturedBlockStates.clear();
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 252aaf6dbabd79d1690f23fc23894f5acf33a362..8bfc5eb4f4c7e2cb21bdb024dd31caff10551ffe 100644
+index bc5813fef18beb5529489af4ca441d2abce768ce..1b7f94ea60d3fe81b4eb52fb67d2949a7e3bd2c2 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -311,6 +311,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -172,7 +172,7 @@ index 252aaf6dbabd79d1690f23fc23894f5acf33a362..8bfc5eb4f4c7e2cb21bdb024dd31caff
      }
  
      @Override
-@@ -1803,6 +1816,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1798,6 +1811,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList(); // Paper - optimise Folia entity scheduler
  
@@ -191,7 +191,7 @@ index 252aaf6dbabd79d1690f23fc23894f5acf33a362..8bfc5eb4f4c7e2cb21bdb024dd31caff
      protected void tickChildren(BooleanSupplier hasTimeLeft) {
          ProfilerFiller profilerFiller = Profiler.get();
          this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
-@@ -1852,35 +1877,47 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1847,35 +1872,47 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
@@ -263,7 +263,7 @@ index 252aaf6dbabd79d1690f23fc23894f5acf33a362..8bfc5eb4f4c7e2cb21bdb024dd31caff
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
          profilerFiller.popPush("connection");
-@@ -1978,6 +2015,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1973,6 +2010,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
          Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
          newLevels.remove(level.dimension());
@@ -322,7 +322,7 @@ index 23d79d02c0e814364c24fd5d8e61a6ecb8b210a2..01838bc18b53c74b5be54579cf4dc9ab
                  player.connection.send(new ClientboundUpdateAdvancementsPacket(this.isFirstPacket, set, set1, map, showAdvancements));
              }
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 74b17811f735c475127e427cd9b23cfe1dfded1c..4e6feb6dc23224a4c6554285edb7e7f06ac418e0 100644
+index 9b3e1da029bd0a72151bcbd8ba32a88b1a5be4ef..f4fd36cb6f2a5e20e03212c9964b5059ee0edcbb 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -317,6 +317,13 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -475,7 +475,7 @@ index 7661fb52c81d2f5ac01e2f6347f84e0bac85ad27..0dce7fa411479794d1586c4049c3d92a
          // Paper start - extra debug info
          if (entity.valid) {
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 1a6da393cf83c86d24085ecf6aa4c523fde1c3b7..582118a024b84b6d4f56e881249c5cf811612a89 100644
+index b7e56ad61366859c31012b191b14ebe47d777566..32a2819db5a929f0a8cde7f77f371bcd7890fd9c 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -436,6 +436,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -694,6 +694,19 @@ index 6a9498766856a7c4f0fa209bcaadac70849ad11b..05aa4a972f70e939f76b2eddefeb6850
          List<Entity> passengers = this.getPassengers();
          List<Entity> list = new ArrayList<>(passengers.size());
          this.ejectPassengers();
+diff --git a/net/minecraft/world/entity/EntitySelector.java b/net/minecraft/world/entity/EntitySelector.java
+index cd8e22171449049b23823da9b5be6ede2c3f38d0..5f8f82128d195858fb81d21f39b554f2c0f04d1b 100644
+--- a/net/minecraft/world/entity/EntitySelector.java
++++ b/net/minecraft/world/entity/EntitySelector.java
+@@ -32,7 +32,7 @@ public final class EntitySelector {
+ 
+     // Paper start - Affects Spawning API
+     public static final Predicate<Entity> PLAYER_AFFECTS_SPAWNING = (entity) -> {
+-        return !entity.isSpectator() && entity.isAlive() && entity instanceof Player player && player.affectsSpawning;
++        return entity instanceof Player player && !player.isSpectator() && player.isAlive() && player.affectsSpawning; // DivineMC - Parallel world ticking - fix NPE
+     };
+     // Paper end - Affects Spawning API
+ 
 diff --git a/net/minecraft/world/entity/PortalProcessor.java b/net/minecraft/world/entity/PortalProcessor.java
 index 54ab44c223465a8111afd98e5d135595902a6a27..9b06d760c768787968066b754671520a178e0035 100644
 --- a/net/minecraft/world/entity/PortalProcessor.java

@@ -250,7 +250,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index f759432c0f15396d4f6d60944a5524d1d1cc477f..a46095588b6a20b22c7d98a744ef3e3b3080c210 100644
+index 993baae195708b8f2c9c6e2ab5d6a2171fd56a71..4bb272ef9ac56b2673a6e0738c5ed72ba1f4e16b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -3068,4 +3068,11 @@ public final class CraftServer implements Server {
@@ -627,7 +627,7 @@ index 03418a9d7cca79a6fa682b64f9d901a4af3e1d58..f0af6319089b477c5d63aec521aee4cc
      }
  
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index 0e5b10153821fda6056791e1c216d05a9ac8e5bc..89e12d30d0815d93842b59642178b4558ee9aae3 100644
+index dc02a769cd66a3b4a34172d5774e8c56d969acca..9090a52df78132f1b6a4b54c63dab1093d38dd2e 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
 @@ -112,6 +112,18 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre

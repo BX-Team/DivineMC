@@ -7,9 +7,9 @@ import net.minecraft.world.entity.EntityType;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.chunk.ChunkSystemAlgorithm;
 import org.bxteam.divinemc.config.annotations.Experimental;
-import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.region.EnumRegionFileExtension;
 import org.bxteam.divinemc.region.type.LinearRegionFile;
 import org.jetbrains.annotations.Nullable;
@@ -208,7 +208,7 @@ public class DivineConfig {
         public static int asyncPathfindingMaxThreads = 1;
         public static int asyncPathfindingKeepalive = 60;
         public static int asyncPathfindingQueueSize = 0;
-        public static PathfindTaskRejectPolicy asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.FLUSH_ALL;
+        public static PathfindTaskRejectPolicy asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.CALLER_RUNS;
 
         // Multithreaded tracker settings
         public static boolean multithreadedEnabled = true;
@@ -287,10 +287,18 @@ public class DivineConfig {
 
             if (asyncPathfindingQueueSize <= 0) asyncPathfindingQueueSize = asyncPathfindingMaxThreads * 256;
 
-            asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.fromString(getString(ConfigCategory.ASYNC.key("pathfinding.reject-policy"), maxThreads >= 12 && asyncPathfindingQueueSize < 512 ? PathfindTaskRejectPolicy.FLUSH_ALL.toString() : PathfindTaskRejectPolicy.CALLER_RUNS.toString(),
-                "The policy to use when the queue is full and a new task is submitted.",
-                "FLUSH_ALL: All pending tasks will be run on server thread.",
-                "CALLER_RUNS: Newly submitted task will be run on server thread."));
+            try {
+                asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.valueOf(getString(ConfigCategory.ASYNC.key("pathfinding.reject-policy"),
+                    maxThreads >= 12 && asyncPathfindingQueueSize < 512
+                        ? PathfindTaskRejectPolicy.FLUSH_ALL.toString()
+                        : PathfindTaskRejectPolicy.CALLER_RUNS.toString(),
+                    "The policy to use when the queue is full and a new task is submitted.",
+                    "FLUSH_ALL: All pending tasks will be run on server thread.",
+                    "CALLER_RUNS: Newly submitted task will be run on server thread."));
+            } catch (IllegalArgumentException ignore) {
+                LOGGER.warn("Invalid async pathfinding reject policy, using default CALLER_RUNS");
+                asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.CALLER_RUNS;
+            }
         }
 
         private static void multithreadedTracker() {
@@ -373,7 +381,7 @@ public class DivineConfig {
         public static int hopperThrottleSkipTicks = 0;
 
         // DAB settings
-        public static boolean dabEnabled = true;
+        public static boolean dabEnabled = false;
         public static int dabStartDistance = 12;
         public static int dabStartDistanceSquared;
         public static int dabMaximumActivationFrequency = 20;
@@ -564,6 +572,8 @@ public class DivineConfig {
         public static boolean fixMc2025 = false;
         public static boolean fixMc94054 = false;
         public static boolean fixMc183990 = false;
+        public static boolean fixMc118740 = false;
+        public static boolean fixMc28289 = false;
 
         public static void load() {
             gameplayFixes();
@@ -604,6 +614,12 @@ public class DivineConfig {
             fixMc183990 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-183990"), fixMc183990,
                 "Fixes MC-183990: https://bugs.mojang.com/browse/MC-183990",
                 "AI of some mobs breaks when their target dies.");
+            fixMc118740 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-118740"), fixMc118740,
+                "Fixes MC-118740: https://bugs.mojang.com/browse/MC-118740",
+                "Any right click resets attack cooldown.");
+            fixMc28289 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-28289"), fixMc28289,
+                "Fixes MC-28289: https://bugs.mojang.com/browse/MC-28289",
+                "Switching items at the same time as attacking carries over the attributes and enchantments of the previously held item.");
         }
     }
 

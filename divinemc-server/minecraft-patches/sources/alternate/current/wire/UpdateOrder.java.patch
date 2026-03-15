@@ -1,0 +1,11 @@
+--- a/alternate/current/wire/UpdateOrder.java
++++ b/alternate/current/wire/UpdateOrder.java
+@@ -351,6 +_,8 @@
+         }
+     };
+ 
++    public static final UpdateOrder[] VALUES = values(); // DivineMC - cache UpdateOrder values()
++
+     private final int[][] directNeighbors;
+     private final int[][] cardinalNeighbors;
+ 

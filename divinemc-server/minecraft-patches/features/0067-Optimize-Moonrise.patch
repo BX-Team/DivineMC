@@ -68,7 +68,7 @@ index 2d24d03bbdb5ee0d862cbfff2219f58afffafe12..b4c55b8fee8dbab278e096580702a052
  
      protected boolean addEntity(final Entity entity, final boolean fromDisk, final boolean event) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 18822bed7986348bbbed1712db7dac65884d39a9..906c0019cae2529962d1221939ce276f2c28dae9 100644
+index f93f4584994a6a2188cf609153c4834023e4876f..c0007266deec7ab889805b8af9aafb9d636c9b12 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -75,37 +75,49 @@ public final class ChunkHolderManager {
@@ -255,7 +255,7 @@ index 18822bed7986348bbbed1712db7dac65884d39a9..906c0019cae2529962d1221939ce276f
          PlatformHooks.get().onChunkHolderDelete(this.world, holder.vanillaChunkHolder);
          this.chunkHolders.remove(CoordinateUtils.getChunkKey(holder.chunkX, holder.chunkZ));
      }
-@@ -1307,6 +1323,27 @@ public final class ChunkHolderManager {
+@@ -1310,6 +1326,27 @@ public final class ChunkHolderManager {
          }
      }
  
@@ -283,7 +283,7 @@ index 18822bed7986348bbbed1712db7dac65884d39a9..906c0019cae2529962d1221939ce276f
      public enum TicketOperationType {
          ADD, REMOVE, ADD_IF_REMOVED, ADD_AND_REMOVE
      }
-@@ -1470,8 +1507,10 @@ public final class ChunkHolderManager {
+@@ -1473,8 +1510,10 @@ public final class ChunkHolderManager {
  
      // only call on tick thread
      private void processOffThreadFullUpdates() {
@@ -296,7 +296,7 @@ index 18822bed7986348bbbed1712db7dac65884d39a9..906c0019cae2529962d1221939ce276f
  
          NewChunkHolder toUpdate;
          while ((toUpdate = offThreadPendingFullLoadUpdate.poll()) != null) {
-@@ -1483,7 +1522,7 @@ public final class ChunkHolderManager {
+@@ -1486,7 +1525,7 @@ public final class ChunkHolderManager {
      private boolean processPendingFullUpdate() {
          this.processOffThreadFullUpdates();
  

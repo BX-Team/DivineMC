@@ -19,6 +19,6 @@
          // Paper start - Improved watchdog support - move final shutdown items here
          Util.shutdownExecutors();
 +        org.bxteam.divinemc.async.ExecutorShutdown.shutdown(this); // DivineMC - Shutdown executors
-         try {
-             net.minecrell.terminalconsole.TerminalConsoleAppender.close(); // Paper - Use TerminalConsoleAppender
-         } catch (final Exception ignored) {
+         this.onServerExit();
+         // Paper end - Improved watchdog support - move final shutdown items here
+     }

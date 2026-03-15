@@ -24,7 +24,7 @@ index 02502d50f0255f5bbcc0ecb965abb48cc1a112da..89c65b8e4b99b78ec847f0ef958166a6
 +    <T> void compact(net.minecraft.world.level.chunk.Palette<T> srcPalette, net.minecraft.world.level.chunk.Palette<T> dstPalette, short[] out, net.minecraft.world.level.chunk.PalettedContainer<T> resizeHandler); // DivineMC - lithium: faster chunk serialization
  }
 diff --git a/net/minecraft/util/SimpleBitStorage.java b/net/minecraft/util/SimpleBitStorage.java
-index e6306a68c8652d4c5d22d5ecb1416f5f931f76ee..536cf90d2c4bccabe67bffde6bc4fa644a9e7d63 100644
+index 08af7687cdbf395116c2ae0c40befa518b796846..3c754d6d012ce2f1530e5bccbc27b02cb7c41ca3 100644
 --- a/net/minecraft/util/SimpleBitStorage.java
 +++ b/net/minecraft/util/SimpleBitStorage.java
 @@ -465,4 +465,44 @@ public class SimpleBitStorage implements BitStorage {
@@ -84,7 +84,7 @@ index 09fd99c9cbd23b5f3c899bfb00c9b89651948ed8..6fdd51c767399bce29dce1ecea2e1307
 +    @Override public <T> void compact(net.minecraft.world.level.chunk.Palette<T> srcPalette, net.minecraft.world.level.chunk.Palette<T> dstPalette, short[] out, net.minecraft.world.level.chunk.PalettedContainer<T> resizeHandler) { } // DivineMC - lithium: faster chunk serialization
  }
 diff --git a/net/minecraft/world/level/chunk/PalettedContainer.java b/net/minecraft/world/level/chunk/PalettedContainer.java
-index 54d71bd666a946bdf6eece520e080c3f96003452..51ece91c956fd4d55eaef34a534fdb38c6d24446 100644
+index 7c8f8772a6fba04dbafdb5dbf8098b6ebce6d6f2..862db0785a7246d4001f3063246a795bdb5cd4d4 100644
 --- a/net/minecraft/world/level/chunk/PalettedContainer.java
 +++ b/net/minecraft/world/level/chunk/PalettedContainer.java
 @@ -29,6 +29,23 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer

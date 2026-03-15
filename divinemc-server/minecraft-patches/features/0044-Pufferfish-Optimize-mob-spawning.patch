@@ -9,7 +9,7 @@ Original project: https://github.com/pufferfish-gg/Pufferfish
 This patch reduces the main-thread impact of mob spawning by moving spawning work to other threads
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 0660b062b3253c86287b94a761e4b069f9352aad..252aaf6dbabd79d1690f23fc23894f5acf33a362 100644
+index d6b48fa5a49e589e5742027f31659437bc957486..f2522a7b7e905bc218052ac369d55b944effeb11 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -310,6 +310,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -21,10 +21,10 @@ index 0660b062b3253c86287b94a761e4b069f9352aad..252aaf6dbabd79d1690f23fc23894f5a
      public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
      public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 7605801ac298089ee893cfde3c871f08abca3fed..74b17811f735c475127e427cd9b23cfe1dfded1c 100644
+index eef701bcb37696583739fbafc3635513270a5e43..9b3e1da029bd0a72151bcbd8ba32a88b1a5be4ef 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -458,7 +458,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -462,7 +462,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
  
              org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur - Implement TPSBar
              if (org.purpurmc.purpur.PurpurConfig.beeCountPayload) org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur - Give bee counts in beehives to Purpur clients

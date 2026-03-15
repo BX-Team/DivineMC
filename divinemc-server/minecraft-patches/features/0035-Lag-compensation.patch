@@ -6,7 +6,7 @@ Subject: [PATCH] Lag compensation
 TODO: recheck GameRules
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index b5200493b9889dc05fab6bee7c69faba819320b9..316f6dba88fa1d2a0659401defdaa9f90267c9e1 100644
+index 11e33c556670ac8cf3c59500c05dc1f2197c9c3f..5293b00e4377022fb404706db3b464e74ea93e00 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -309,6 +309,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -17,7 +17,7 @@ index b5200493b9889dc05fab6bee7c69faba819320b9..316f6dba88fa1d2a0659401defdaa9f9
      // Paper start - improve tick loop
      public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
      public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
-@@ -1655,6 +1656,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1650,6 +1651,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
  
          this.server.spark.tickStart(); // Paper - spark

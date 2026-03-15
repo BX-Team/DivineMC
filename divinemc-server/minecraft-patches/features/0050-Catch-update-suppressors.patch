@@ -5,7 +5,7 @@ Subject: [PATCH] Catch update suppressors
 
 
 diff --git a/net/minecraft/network/PacketProcessor.java b/net/minecraft/network/PacketProcessor.java
-index 3e4241976fdfe65bc0aae90a9097770745c0ddf1..98b101fde04fbf5507f021bb8d8e6bed334de5b6 100644
+index d501168e40f951ee37efcbc464c3ab1307051060..1b98de4bdf459646529c984b083e9988d1b2f3f5 100644
 --- a/net/minecraft/network/PacketProcessor.java
 +++ b/net/minecraft/network/PacketProcessor.java
 @@ -97,6 +97,10 @@ public class PacketProcessor implements AutoCloseable {
@@ -20,10 +20,10 @@ index 3e4241976fdfe65bc0aae90a9097770745c0ddf1..98b101fde04fbf5507f021bb8d8e6bed
                      if (var3 instanceof ReportedException reportedException && reportedException.getCause() instanceof OutOfMemoryError) {
                          throw PacketUtils.makeReportedException(var3, this.packet, this.listener);
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 7971e982006d56c7c5dc60ce36206bf05ecb3be9..b07ee78417b746050261564979cd6210361e8d35 100644
+index c5a1bf215aa91c2dc67926385fcb93f5e0cc3549..e6289059b20645c92b3e6b6b7d6da280e2f65fa5 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1828,6 +1828,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1823,6 +1823,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              serverLevel.tickTimes10s.add(this.tickCount, j);
              serverLevel.tickTimes60s.add(this.tickCount, j);
              // DivineMC end - MSPT Tracking for each world
