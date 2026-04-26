@@ -32,7 +32,19 @@
          String proxyLink = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "https://docs.papermc.io/velocity/security" : "http://www.spigotmc.org/wiki/firewall-guide/";
          // Paper end - Add Velocity IP Forwarding Support
 -        if (!this.usesAuthentication()) {
-+        if (!io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode()) { // DivineMC - Disable offline warn if using proxy
++        if (!this.usesAuthentication() && (!io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled || !io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.onlineMode)) { // DivineMC - Disable offline warn if using proxy and proxy online mode
              LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
              LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
              // Spigot start
+@@ -383,7 +_,11 @@
+             }
+             // Spigot end
+             LOGGER.warn("To change this, set \"online-mode\" to \"true\" in the server.properties file.");
++        // DivineMC start - Disable offline warn if using proxy and proxy online mode
++        } else if (!this.usesAuthentication()) {
++            LOGGER.info("Server is configured to use a proxy (online mode will be handled by the proxy).");
+         }
++        // DivineMC end - Disable offline warn if using proxy and proxy online mode
+ 
+         // CraftBukkit start
+         /*

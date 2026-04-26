@@ -4,13 +4,16 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import net.minecraft.world.level.levelgen.WorldgenRandom;
+import org.bxteam.divinemc.config.DivineConfig;
 import org.jetbrains.annotations.NotNull;
+import su.plo.matter.hashing.HashingBlake2b;
+import su.plo.matter.hashing.HashingBlake3;
 
 import java.util.Arrays;
 
 public class WorldgenCryptoRandom extends WorldgenRandom {
     // hash the world seed to guard against badly chosen world seeds
-    private static final long[] HASHED_ZERO_SEED = Hashing.hashWorldSeed(new long[Globals.WORLD_SEED_LONGS]);
+    private static final long[] HASHED_ZERO_SEED = initializeHashedZeroSeed();
     private static final ThreadLocal<long[]> LAST_SEEN_WORLD_SEED = ThreadLocal.withInitial(() -> new long[Globals.WORLD_SEED_LONGS]);
     private static final ThreadLocal<long[]> HASHED_WORLD_SEED = ThreadLocal.withInitial(() -> HASHED_ZERO_SEED);
 
@@ -30,6 +33,17 @@ public class WorldgenCryptoRandom extends WorldgenRandom {
         }
     }
 
+    private static long[] initializeHashedZeroSeed() {
+        long[] zeroSeed = new long[Globals.WORLD_SEED_LONGS];
+        if (DivineConfig.MiscCategory.secureSeedHashingVersion == HashingVersion.BLAKE2B) {
+            return HashingBlake2b.hashWorldSeed(zeroSeed);
+        } else if (DivineConfig.MiscCategory.secureSeedHashingVersion == HashingVersion.BLAKE3) {
+            return HashingBlake3.hashWorldSeed(zeroSeed);
+        } else {
+            throw new IllegalStateException("Unsupported hashing type: " + DivineConfig.MiscCategory.secureSeedHashingVersion);
+        }
+    }
+
     public void setSecureSeed(int x, int z, Globals.Salt typeSalt, long salt) {
         System.arraycopy(Globals.worldSeed, 0, this.worldSeed, 0, Globals.WORLD_SEED_LONGS);
         message[0] = ((long) x << 32) | ((long) z & 0xffffffffL);
@@ -41,7 +55,15 @@ public class WorldgenCryptoRandom extends WorldgenRandom {
 
     private long[] getHashedWorldSeed() {
         if (!Arrays.equals(worldSeed, LAST_SEEN_WORLD_SEED.get())) {
-            HASHED_WORLD_SEED.set(Hashing.hashWorldSeed(worldSeed));
+            long[] hashedSeed;
+            if (DivineConfig.MiscCategory.secureSeedHashingVersion == HashingVersion.BLAKE2B) {
+                hashedSeed = HashingBlake2b.hashWorldSeed(worldSeed);
+            } else if (DivineConfig.MiscCategory.secureSeedHashingVersion == HashingVersion.BLAKE3) {
+                hashedSeed = HashingBlake3.hashWorldSeed(worldSeed);
+            } else {
+                throw new IllegalStateException("Unsupported hashing type: " + DivineConfig.MiscCategory.secureSeedHashingVersion);
+            }
+            HASHED_WORLD_SEED.set(hashedSeed);
             System.arraycopy(worldSeed, 0, LAST_SEEN_WORLD_SEED.get(), 0, Globals.WORLD_SEED_LONGS);
         }
         return HASHED_WORLD_SEED.get();
@@ -50,7 +72,13 @@ public class WorldgenCryptoRandom extends WorldgenRandom {
     private void moreRandomBits() {
         message[3] = counter++;
         System.arraycopy(getHashedWorldSeed(), 0, randomBits, 0, 8);
-        Hashing.hash(message, randomBits, cachedInternalState, 64, true);
+        if (DivineConfig.MiscCategory.secureSeedHashingVersion == HashingVersion.BLAKE2B) {
+            HashingBlake2b.hash(message, randomBits, cachedInternalState, 64, true);
+        } else if (DivineConfig.MiscCategory.secureSeedHashingVersion == HashingVersion.BLAKE3) {
+            HashingBlake3.hash(message, randomBits, cachedInternalState, 64, true);
+        } else {
+            throw new IllegalStateException("Unsupported hashing type: " + DivineConfig.MiscCategory.secureSeedHashingVersion);
+        }
     }
 
     private long getBits(int count) {

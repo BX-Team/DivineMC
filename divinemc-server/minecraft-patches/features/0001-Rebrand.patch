@@ -5,7 +5,7 @@ Subject: [PATCH] Rebrand
 
 
 diff --git a/net/minecraft/CrashReport.java b/net/minecraft/CrashReport.java
-index 704ede68e582f19ab3d1fca142a942da283f332e..a863868fd002b02b7f397c20dde5a923b9d7a818 100644
+index 2c60f1d955b17cbc79b5372c536e5463f6c0a186..0adf7f65412f70d45401b8f626cf82acf0b7176a 100644
 --- a/net/minecraft/CrashReport.java
 +++ b/net/minecraft/CrashReport.java
 @@ -30,7 +30,7 @@ public class CrashReport {
@@ -16,7 +16,7 @@ index 704ede68e582f19ab3d1fca142a942da283f332e..a863868fd002b02b7f397c20dde5a923
 +    private List<String> extraInfo = List.of("", "DO NOT REPORT THIS TO PAPER! REPORT TO DIVINEMC INSTEAD!", ""); // DivineMC - Rebrand
  
      public CrashReport(String title, Throwable exception) {
-         io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(exception); // Paper
+         this.title = title;
 diff --git a/net/minecraft/network/protocol/common/custom/BrandPayload.java b/net/minecraft/network/protocol/common/custom/BrandPayload.java
 index 97844ec1ccc986eb3d3a185d78a03ceeca49fc1a..5e40ec3fbe6e6d5f98ad98df7d4c27d6de615778 100644
 --- a/net/minecraft/network/protocol/common/custom/BrandPayload.java
@@ -31,10 +31,10 @@ index 97844ec1ccc986eb3d3a185d78a03ceeca49fc1a..5e40ec3fbe6e6d5f98ad98df7d4c27d6
  
      @Override
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 272e2871aca8d283229cc5618e3051146db56681..e5d78f6a8a2ef2a197b3d327ca48679feb012601 100644
+index 31ce71305260f082729780d4e8fb4dba557f9883..19748ba488fdfd7b94905afdc7067afc2f43d1c5 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -65,36 +65,29 @@ public class Main {
+@@ -65,36 +65,30 @@ public class Main {
      @SuppressForbidden(reason = "System.out needed before bootstrap")
      @DontObfuscate
      public static void main(final OptionSet optionSet) { // CraftBukkit - replaces main(String[] args)
@@ -57,7 +57,8 @@ index 272e2871aca8d283229cc5618e3051146db56681..e5d78f6a8a2ef2a197b3d327ca48679f
 +            return;
 +        }
 +        // DivineMC end - Rebrand
-         io.papermc.paper.util.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
++
+         io.papermc.paper.log.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
          SharedConstants.tryDetectVersion();
 -        /* CraftBukkit start - Replace everything
 -        OptionParser optionParser = new OptionParser();
@@ -90,7 +91,7 @@ index 272e2871aca8d283229cc5618e3051146db56681..e5d78f6a8a2ef2a197b3d327ca48679f
              Path path = (Path) optionSet.valueOf("pidFile"); // CraftBukkit
              if (path != null) {
                  writePidFile(path);
-@@ -120,8 +113,6 @@ public class Main {
+@@ -120,8 +114,6 @@ public class Main {
              DedicatedServerSettings dedicatedServerSettings = new DedicatedServerSettings(optionSet); // CraftBukkit - CLI argument support
              dedicatedServerSettings.forceSave();
              RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
@@ -99,7 +100,7 @@ index 272e2871aca8d283229cc5618e3051146db56681..e5d78f6a8a2ef2a197b3d327ca48679f
              // Paper start - load config files early for access below if needed
              org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
              org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("spigot-settings"));
-@@ -144,19 +135,6 @@ public class Main {
+@@ -144,19 +136,6 @@ public class Main {
                  return;
              }
  
@@ -120,14 +121,14 @@ index 272e2871aca8d283229cc5618e3051146db56681..e5d78f6a8a2ef2a197b3d327ca48679f
              String awtException = io.papermc.paper.util.ServerEnvironment.awtDependencyCheck();
              if (awtException != null) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 145d9992106818fa1b642426d85b5bf2f3e3b6a7..234f78867480afd1f90a7ac8832afdd49a02e564 100644
+index 51fa66ebd64c09ded0c19ed4acb74fb3c368dc97..f74b1585f7af8b57b53c4c8e27e7d8285324b571 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1278,6 +1278,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1273,6 +1273,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      protected void runServer() {
          try {
-+            org.bxteam.divinemc.spark.ThreadDumperRegistry.REGISTRY.add(Thread.currentThread().getName()); // DivineMC
++            org.bxteam.divinemc.spark.ThreadDumperRegistry.REGISTRY.add(Thread.currentThread().getName()); // DivineMC - Rebrand
              if (!this.initServer()) {
                  throw new IllegalStateException("Failed to initialize server");
              }

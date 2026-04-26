@@ -80,7 +80,7 @@
 +    implementation(project(":divinemc-api")) // DivineMC - Rebrand
 +
 +    // DivineMC start - Dependencies
-+    implementation ("me.carleslc.Simple-YAML:Simple-Yaml:1.8.4") {
++    implementation ("com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4") {
 +        exclude(group="org.yaml", module="snakeyaml")
 +    }
 +    implementation("com.github.luben:zstd-jni:1.5.7-3")

@@ -1,0 +1,11 @@
+--- a/alternate/current/wire/WireHandler.java
++++ b/alternate/current/wire/WireHandler.java
+@@ -489,7 +_,7 @@
+             }
+         }
+ 
+-        updateOrder = UpdateOrder.values()[level.paperConfig().misc.alternateCurrentUpdateOrder.ordinal()];
++        updateOrder = UpdateOrder.VALUES[level.paperConfig().misc.alternateCurrentUpdateOrder.ordinal()]; // DivineMC - use cached VALUES
+     }
+ 
+     /**

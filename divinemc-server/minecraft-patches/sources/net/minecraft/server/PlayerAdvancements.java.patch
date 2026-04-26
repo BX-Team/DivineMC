@@ -9,3 +9,15 @@
  
      public PlayerAdvancements(DataFixer dataFixer, PlayerList playerList, ServerAdvancementManager manager, Path playerSavePath, ServerPlayer player) {
          this.playerList = playerList;
+@@ -167,6 +_,11 @@
+     }
+ 
+     public boolean award(AdvancementHolder advancement, String criterionKey) {
++        // DivineMC start - Spectator don't get advancements
++        if (this.player.level().divineConfig.spectatorDontGetAdvancement && player.gameMode.getGameModeForPlayer() == net.minecraft.world.level.GameType.SPECTATOR) {
++            return false;
++        }
++        // DivineMC end - Spectator don't get advancements
+         boolean flag = false;
+         AdvancementProgress orStartProgress = this.getOrStartProgress(advancement);
+         boolean isDone = orStartProgress.isDone();

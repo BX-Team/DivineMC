@@ -26,10 +26,10 @@ index ffe7b73dafa81ab96c24198d83474fd9af542476..36397d3346d85394e1778e1e129cca98
  
          super.onSyncedDataUpdated(key);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 8a9a77a2f97907e0c440258038edc8b7982a604c..0e5ac05b26d83ea17751a9ca22af83561beeac0f 100644
+index d137cc6db12f7a7032aa4ae33da7bd192bb250de..427de0ac0164bf60d3e477cb87a9255275c7aa65 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1731,6 +1731,10 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1744,6 +1744,10 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
  
      private int checkInsideBlocks(Vec3 from, Vec3 to, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector, LongSet visited, int maxSteps) {
          AABB aabb = this.makeBoundingBox(to).deflate(1.0E-5F);
@@ -40,7 +40,7 @@ index 8a9a77a2f97907e0c440258038edc8b7982a604c..0e5ac05b26d83ea17751a9ca22af8356
          boolean flag = from.distanceToSqr(to) > Mth.square(0.9999900000002526);
          boolean flag1 = this.level instanceof ServerLevel serverLevel
              && serverLevel.getServer().debugSubscribers().hasAnySubscriberFor(DebugSubscriptions.ENTITY_BLOCK_INTERSECTIONS);
-@@ -1746,7 +1750,21 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1759,7 +1763,21 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
                      return false;
                  } else {
                      atomicInteger.set(index);
@@ -605,10 +605,10 @@ index 24d1928445b5571e040a2b12d5c82e77a880d9bd..dac0a23aebf2dea1972c07d5c82079da
      private boolean isVillagerBaby(LivingEntity livingEntity) {
          return livingEntity.getType() == EntityType.VILLAGER && livingEntity.isBaby();
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
-index 95ea226cde95155ddfdc87763af368ac11a644e6..1cd5d8e09f22b32ff9ca30c07f45a5248e887cb4 100644
+index 64916356de4b9981e04c5befef15b067914f6d75..f4ad672f7cb33bd95ca2dab9ac8637b43eacf0f6 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
-@@ -100,6 +100,13 @@ public class Goat extends Animal {
+@@ -102,6 +102,13 @@ public class Goat extends Animal {
          this.getNavigation().setCanFloat(true);
          this.setPathfindingMalus(PathType.POWDER_SNOW, -1.0F);
          this.setPathfindingMalus(PathType.DANGER_POWDER_SNOW, -1.0F);

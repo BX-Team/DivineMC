@@ -16,3 +16,11 @@
      }
  
      // Paper start - configuration phase API
+@@ -1120,6 +_,7 @@
+ 
+             this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
+             this.player.inventoryMenu.broadcastChanges();
++            if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc28289) this.player.resetAttackStrengthTicker(); // DivineMC - Fix MC-28289
+             if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.updateEquipmentOnPlayerActions) this.player.detectEquipmentUpdates(); // Paper - Force update attributes.
+         }
+     }

@@ -25,10 +25,10 @@ index 9b9cdb23a55b82efbeea3ba68b8144c15791dff0..e9c58fc9bb16f8605410fe85971a7d4b
      }
  
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b75e658a0dcdbc1d350f5a1f98651c19e3db5426..cb6f9727519bc53c5307147fa8999d7336706abc 100644
+index 3411190aace37f6ce39675828563d15c4a0695e2..1ebbe789656b80fb7651503511f5efec100af3d6 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1132,6 +1132,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1135,6 +1135,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
                  snapshot.setFlags(flags); // Paper - always set the flag of the most recent call to mitigate issues with multiple update at the same pos with different flags
              }
              BlockState blockState = chunkAt.setBlockState(pos, state, flags);

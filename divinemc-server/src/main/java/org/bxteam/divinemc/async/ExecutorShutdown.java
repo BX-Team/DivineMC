@@ -3,7 +3,7 @@ package org.bxteam.divinemc.async;
 import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bxteam.divinemc.async.pathfinding.AsyncPathProcessor;
+import org.bxteam.divinemc.async.pathfinding.AsyncPath;
 import org.bxteam.divinemc.async.tracking.MultithreadedTracker;
 import org.bxteam.divinemc.config.DivineConfig;
 import org.bxteam.divinemc.region.Flusher;
@@ -41,12 +41,12 @@ public class ExecutorShutdown {
             } catch (InterruptedException ignored) { }
         }
 
-        if (AsyncPathProcessor.PATH_PROCESSING_EXECUTOR != null) {
+        if (AsyncPath.EXECUTOR != null) {
             LOGGER.info("Shutting down mob pathfinding processing executor...");
-            AsyncPathProcessor.PATH_PROCESSING_EXECUTOR.shutdown();
+            AsyncPath.EXECUTOR.shutdown();
 
             try {
-                AsyncPathProcessor.PATH_PROCESSING_EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
+                AsyncPath.EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
             } catch (InterruptedException ignored) { }
         }
 

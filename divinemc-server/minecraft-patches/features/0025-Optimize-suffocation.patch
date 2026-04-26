@@ -7,10 +7,10 @@ Original license: GPL v3
 Original project: https://github.com/pufferfish-gg/Pufferfish
 
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 09987dac80cd031f7af0b63db50f5e719e05665a..288d23e443f495d7fbfd0bbbe1bca7a2ff9da64a 100644
+index 805c97bdb86e2fd1a431c63451cee78b8ce67ea3..78dd48fd723de021aa9f07b513e367363d3757c1 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -427,6 +427,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -429,6 +429,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          return this.getDeltaMovement().y() < 1.0E-5F && this.isInLiquid();
      }
  
@@ -23,8 +23,8 @@ index 09987dac80cd031f7af0b63db50f5e719e05665a..288d23e443f495d7fbfd0bbbe1bca7a2
      @Override
      public void baseTick() {
          this.oAttackAnim = this.attackAnim;
-@@ -441,7 +447,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
-         super.baseTick();
+@@ -445,7 +451,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         profilerFiller.push("livingEntityBaseTick");
          if (this.isAlive() && this.level() instanceof ServerLevel serverLevel1) {
              boolean flag = this instanceof Player;
 -            if (this.isInWall()) {

@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize Raids
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index a06f31dc3eeb9cba437e9e917f2e036aac9f88af..3c8282fca40b9484ccb310276c06054552b724bc 100644
+index 853bb92c034b6361ff8c55daf52f38a226fdae2c..1aaa8be699a5240ed6497e38a35593d7adeef03b 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -229,6 +229,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -231,6 +231,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
      private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
      public boolean hasRidableMoveEvent = false; // Purpur - Ridables
@@ -16,7 +16,7 @@ index a06f31dc3eeb9cba437e9e917f2e036aac9f88af..3c8282fca40b9484ccb310276c060545
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -728,6 +729,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -730,6 +731,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.preciseTime = this.serverLevelData.getDayTime(); // Purpur - Configurable daylight cycle

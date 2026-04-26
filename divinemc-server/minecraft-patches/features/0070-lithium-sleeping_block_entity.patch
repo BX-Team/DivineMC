@@ -71,10 +71,10 @@ index 6f01763c178324dd1741b996cd21cb9c23795b71..49c13be0c199f7544bb99e94f8c96d9e
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 4460165a327b7f26d8461246523df6a4afbe59f0..41c0ab083c56ecfc5c2c7929924af614b392c5f6 100644
+index bc88abf46953569552bbbd1a9b83d3792662ebc6..ce4be62c1d4f23ab4f443f2e6ec2cb721eff48b0 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2550,6 +2550,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2609,6 +2609,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
  
          for (TickingBlockEntity tickingBlockEntity : this.blockEntityTickers) {
              BlockPos pos = tickingBlockEntity.getPos();
@@ -96,10 +96,10 @@ index 6489b47810b0431c350098d574469bbe0adcd726..9e67466397fe5cd903154e89e00e9a8a
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 234dd43e9f027e5a9a933ef3f4fc993d2540de58..a09ab8d903cddf0cd690c9819dd737b87528af39 100644
+index cc452b51fa09e61dc38e4ac647cc2a4e5a8719c5..b0398d474fc8cfa6ce603a815b1e2c3cace33783 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5128,6 +5128,18 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -5151,6 +5151,18 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box
@@ -417,10 +417,10 @@ index 378e58bb6aa52fb682b862f285a7c115c297245d..b91f1146bd38e9b65832c8295c08ce64
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b4338407a658e61df1a4df702f501124b6c5cb14..e70de847993e7138e6cdeaeabaa007d4be6b6a00 100644
+index 23122ef70a42092dc7acb7829db95a73b57ce6ca..bcd1e6613ea0a049e726cad82eae5949a16a032e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1471,7 +1471,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1474,7 +1474,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              // Spigot end
              if (tickingBlockEntity.isRemoved()) {
                  this.blockEntityTickers.markAsRemoved(this.tileTickPosition); // DivineMC - optimize block entity removals - Fix MC-117075
@@ -429,7 +429,7 @@ index b4338407a658e61df1a4df702f501124b6c5cb14..e70de847993e7138e6cdeaeabaa007d4
                  tickingBlockEntity.tick();
                  // DivineMC start - Parallel world ticking
                  ++tickedEntities;
-@@ -2174,4 +2174,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2181,4 +2181,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option
@@ -2365,10 +2365,10 @@ index 5ce545304d1ba80efaeb63367dbd34b2e17d64ed..00ecb0560b1224a5fcb528534b35648f
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index d50579e7d41d17d0a9c6b84fd687224760078014..00befcf5c9bc012ea14325d886f3b74900bc45b9 100644
+index d72a03887f91e6e824b0882bfbba8a6a1ea6bc46..9cd7973132785696d04558af4d1d30fff2bc5ebf 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -921,12 +921,14 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -927,12 +927,14 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
                      (pos, ticker1) -> {
                          TickingBlockEntity tickingBlockEntity = this.createTicker(blockEntity, ticker);
                          if (ticker1 != null) {

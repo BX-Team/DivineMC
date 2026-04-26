@@ -70,10 +70,10 @@ index 98b101fde04fbf5507f021bb8d8e6bed334de5b6..e76530da9641acc482aa0f030c4dc267
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 1d58c0d02f1164cfc842b7b234fc2c09ab07c335..d3f285c0a490ddeca8288f0ead188902f18ece01 100644
+index 4c09d75b824293728ccc6367cdcd6b8423b72382..a35d86b853f2df86049d01c9481db9976f6eece2 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1453,13 +1453,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1504,13 +1504,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
      // Paper end - log detailed entity tick information
  
      public void tickNonPassenger(Entity entity) {
@@ -85,9 +85,9 @@ index 1d58c0d02f1164cfc842b7b234fc2c09ab07c335..d3f285c0a490ddeca8288f0ead188902
 -            }
 -            // Paper end - log detailed entity tick information
          entity.setOldPosAndRot();
+         ProfilerFiller profilerFiller = Profiler.get();
          entity.tickCount++;
-         entity.totalEntityAge++; // Paper - age-like counter for all entities
-@@ -1472,13 +1466,6 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1527,13 +1521,6 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          for (Entity entity1 : entity.getPassengers()) {
              this.tickPassenger(entity, entity1, isActive); // Paper - EAR 2
          }
@@ -102,10 +102,10 @@ index 1d58c0d02f1164cfc842b7b234fc2c09ab07c335..d3f285c0a490ddeca8288f0ead188902
  
      private void tickPassenger(Entity ridingEntity, Entity passengerEntity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index c66492176b8c98ec698cd5cacfb4d100d217408b..234dd43e9f027e5a9a933ef3f4fc993d2540de58 100644
+index 05aa4a972f70e939f76b2eddefeb68505ae26c0e..cc452b51fa09e61dc38e4ac647cc2a4e5a8719c5 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1132,29 +1132,10 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1138,29 +1138,10 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          return this.onGround;
      }
  
@@ -135,8 +135,8 @@ index c66492176b8c98ec698cd5cacfb4d100d217408b..234dd43e9f027e5a9a933ef3f4fc993d
          if (this.noPhysics) {
              this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
              this.horizontalCollision = false;
-@@ -1275,13 +1256,6 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
-                 this.setDeltaMovement(this.getDeltaMovement().multiply(blockSpeedFactor, 1.0, blockSpeedFactor));
+@@ -1288,13 +1269,6 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+                 profilerFiller.pop();
              }
          }
 -        // Paper start - detailed watchdog information
@@ -149,7 +149,7 @@ index c66492176b8c98ec698cd5cacfb4d100d217408b..234dd43e9f027e5a9a933ef3f4fc993d
      }
  
      private void applyMovementEmissionAndPlaySound(Entity.MovementEmission movementEmission, Vec3 movement, BlockPos pos, BlockState state) {
-@@ -5019,9 +4993,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -5042,9 +5016,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
  
      public void setDeltaMovement(Vec3 deltaMovement) {
          if (deltaMovement.isFinite()) {
@@ -159,7 +159,7 @@ index c66492176b8c98ec698cd5cacfb4d100d217408b..234dd43e9f027e5a9a933ef3f4fc993d
          }
      }
  
-@@ -5122,9 +5094,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -5145,9 +5117,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          }
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {
