@@ -5,7 +5,8 @@ public enum ConfigCategory {
     PERFORMANCE("performance"),
     FIXES("fixes"),
     NETWORK("network"),
-    MISC("misc");
+    MISC("misc"),
+    REGION("region-settings");
 
     private final String name;
 

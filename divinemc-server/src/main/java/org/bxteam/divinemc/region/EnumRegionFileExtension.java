@@ -2,14 +2,16 @@ package org.bxteam.divinemc.region;
 
 import net.minecraft.world.level.chunk.storage.RegionFile;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.region.type.BufferedRegionFile;
-import org.bxteam.divinemc.region.type.LinearRegionFile;
+import org.bxteam.divinemc.region.buffered.BufferedRegionFile;
+import org.bxteam.divinemc.region.buffered.BufferedRegionFileFlusher;
+import org.bxteam.divinemc.region.linear.LinearRegionFile;
 import org.jetbrains.annotations.Nullable;
+import java.util.Arrays;
 
 public enum EnumRegionFileExtension {
     MCA("mca", "mca", (info) -> new RegionFile(info.info(), info.filePath(), info.folder(), info.sync())),
-    LINEAR("linear", "linear", (info) -> new LinearRegionFile(info.info(), info.filePath(), info.folder(), info.sync(), DivineConfig.MiscCategory.linearCompressionLevel)),
-    B_LINEAR("b_linear", "b_linear", (info) -> new BufferedRegionFile(info.filePath(), DivineConfig.MiscCategory.linearCompressionLevel));
+    LINEAR("linear", "linear", (info) -> new LinearRegionFile(info.filePath(), DivineConfig.RegionSettingsCategory.compressionLevel, DivineConfig.RegionSettingsCategory.linearImplementation)),
+    B_LINEAR("b_linear", "b_linear", (info) -> new BufferedRegionFile(info.filePath(), DivineConfig.RegionSettingsCategory.compressionLevel, (BufferedRegionFileFlusher) DivineConfig.RegionSettingsCategory.flusher));
 
     private final String name;
     private final String argument;
@@ -23,13 +25,7 @@ public enum EnumRegionFileExtension {
 
     @Nullable
     public static EnumRegionFileExtension fromString(String string) {
-        for (EnumRegionFileExtension format : values()) {
-            if (format.name.equalsIgnoreCase(string)) {
-                return format;
-            }
-        }
-
-        return null;
+        return Arrays.stream(values()).filter(format -> format.name.equalsIgnoreCase(string)).findFirst().orElse(null);
     }
 
     public IRegionCreateFunction getCreator() {

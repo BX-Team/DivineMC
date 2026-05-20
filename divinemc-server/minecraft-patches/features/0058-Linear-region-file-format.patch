@@ -148,7 +148,7 @@ index e4cbe8d6176c2174ed5fffb9ea28f69c12dc9f1e..70e9c7a649a7c5145ecdb679f5fe54f3
          }
          // Paper end - rewrite chunk system
 diff --git a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-index dbea0449cebd448f5b165097aee8633e4d8bac67..9d73b706167d5d997b1af018c7ceaf0d200c7ff1 100644
+index dbea0449cebd448f5b165097aee8633e4d8bac67..e9e98d45e10a740d72842b85b09fbfd923f79966 100644
 --- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 @@ -15,11 +15,13 @@ import net.minecraft.util.FileUtil;
@@ -176,7 +176,7 @@ index dbea0449cebd448f5b165097aee8633e4d8bac67..9d73b706167d5d997b1af018c7ceaf0d
 +
 +    // DivineMC start - Buffered Linear region format
 +    public static org.bxteam.divinemc.region.IRegionFile createNew(RegionStorageInfo info, Path filePath, Path folder, boolean sync) throws IOException{
-+        final org.bxteam.divinemc.region.EnumRegionFileExtension regionFormat = org.bxteam.divinemc.config.DivineConfig.MiscCategory.regionFileType;
++        final org.bxteam.divinemc.region.EnumRegionFileExtension regionFormat = org.bxteam.divinemc.config.DivineConfig.RegionSettingsCategory.regionFileType;
 +        final String fullFileName = filePath.getFileName().toString();
 +        final String[] fullNameSplit = fullFileName.split("\\.");
 +        final String extensionName = fullNameSplit[fullNameSplit.length - 1];
@@ -190,7 +190,7 @@ index dbea0449cebd448f5b165097aee8633e4d8bac67..9d73b706167d5d997b1af018c7ceaf0d
 +    }
 +
 +    public static String getExtensionName() {
-+        return "." + org.bxteam.divinemc.config.DivineConfig.MiscCategory.regionFileType.getArgument();
++        return "." + org.bxteam.divinemc.config.DivineConfig.RegionSettingsCategory.regionFileType.getArgument();
      }
 +    // DivineMC end - Buffered Linear region format
  

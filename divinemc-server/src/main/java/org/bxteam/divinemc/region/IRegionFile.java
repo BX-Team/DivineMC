@@ -29,13 +29,23 @@ public interface IRegionFile extends ChunkSystemRegionFile, AutoCloseable {
 
     void write(ChunkPos pos, ByteBuffer buf) throws IOException;
 
-    CompoundTag getOversizedData(int x, int z) throws IOException;
+    default CompoundTag getOversizedData(int x, int z) throws IOException {
+        return null;
+    }
 
-    boolean isOversized(int x, int z);
+    default boolean isOversized(int x, int z) {
+        return false;
+    }
 
-    boolean recalculateHeader() throws IOException;
+    default boolean recalculateHeader() throws IOException {
+        return false;
+    }
 
-    void setOversized(int x, int z, boolean oversized) throws IOException;
+    default void setOversized(int x, int z, boolean oversized) throws IOException {
 
-    int getRecalculateCount();
+    }
+
+    default int getRecalculateCount() {
+        return 0;
+    };
 }

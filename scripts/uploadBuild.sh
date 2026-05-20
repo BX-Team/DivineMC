@@ -64,7 +64,7 @@ echo "   Channel: $channel"
 echo "   Commits: $number"
 
 response=$(curl -X POST "$API_URL" \
-  -H "x-api-key: $API_KEY" \
+  -H "Authorization: Bearer $API_KEY" \
   -F "file=@$jarName" \
   -F "metadata=$metadata_json" \
   -w "\n%{http_code}" \

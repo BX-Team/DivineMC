@@ -11,14 +11,39 @@ Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 Makes most pathfinding-related work happen asynchronously
 
 diff --git a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
-index 3e0fd09a0c0047cfe100e878186471090f8909a0..bf07b10d9b8419f9bffc0f434936b6478da270b1 100644
+index 3e0fd09a0c0047cfe100e878186471090f8909a0..3c21b135989ef9151c87ea03fa2e675ab3da1929 100644
 --- a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
 +++ b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
-@@ -93,21 +93,26 @@ public class AcquirePoi {
+@@ -55,11 +55,23 @@ public class AcquirePoi {
+         int i1 = 20;
+         MutableLong mutableLong = new MutableLong(0L);
+         Long2ObjectMap<AcquirePoi.JitteredLinearRetry> map = new Long2ObjectOpenHashMap<>();
++        // DivineMC start - Async Pathfinding - per-instance pending state for polling
++        final PendingPath[] pending = new PendingPath[1];
++        // DivineMC end - Async Pathfinding
+         OneShot<PathfinderMob> oneShot = BehaviorBuilder.create(
+             instance -> instance.group(instance.absent(acquiringMemory))
+                 .apply(
+                     instance,
+                     memoryAccessor -> (level, mob, time) -> {
++                        // DivineMC start - Async Pathfinding - drain pending async path on main thread before doing anything else
++                        PendingPath p = pending[0];
++                        if (p != null) {
++                            if (!p.path.isProcessed()) return false;
++                            pending[0] = null;
++                            applyPathResult(acquirablePois, entityEventId, map, memoryAccessor, level, mob, time, level.getPoiManager(), p.set, p.path);
++                            return true;
++                        }
++                        // DivineMC end - Async Pathfinding
+                         if (onlyIfAdult && mob.isBaby()) {
+                             return false;
+                         } else if (mutableLong.longValue() == 0L) {
+@@ -93,21 +105,14 @@ public class AcquirePoi {
                                  }
                              }
                              // Paper end - optimise POI access
--                            Path path = findPathToPois(mob, set);
++                            // DivineMC start - Async Pathfinding - defer instead of using callback so memory is set on main thread
+                             Path path = findPathToPois(mob, set);
 -                            if (path != null && path.canReach()) {
 -                                BlockPos target = path.getTarget();
 -                                poiManager.getType(target).ifPresent(holder -> {
@@ -27,47 +52,37 @@ index 3e0fd09a0c0047cfe100e878186471090f8909a0..bf07b10d9b8419f9bffc0f434936b647
 -                                    entityEventId.ifPresent(id -> level.broadcastEntityEvent(mob, id));
 -                                    map.clear();
 -                                    level.debugSynchronizers().updatePoi(target);
-+                            // DivineMC start - Async Pathfinding
-+                            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
-+                                Path possiblePath = findPathToPois(mob, set);
-+
-+                                org.bxteam.divinemc.async.pathfinding.AsyncPath.applyAfterProcessing(possiblePath, path -> {
-+                                    if (path == null || !path.canReach()) {
-+                                        for (Pair<Holder<PoiType>, BlockPos> pair : set) {
-+                                            AcquirePoi.JitteredLinearRetry retry = map.get(pair.getSecond().asLong());
-+                                            if (retry != null) {
-+                                                retry.markAttempt(time - 200L);
-+                                            }
-+                                        }
-+                                    }
-+                                    processPath(acquirablePois, entityEventId, (Long2ObjectMap<JitteredLinearRetry>) map, memoryAccessor, level, mob, time, poiManager, set, path);
-                                 });
-                             } else {
+-                                });
+-                            } else {
 -                                for (Pair<Holder<PoiType>, BlockPos> pair : set) {
 -                                    map.computeIfAbsent(pair.getSecond().asLong(), l -> new AcquirePoi.JitteredLinearRetry(level.random, time));
 -                                }
-+                                Path path = findPathToPois(mob, set);
-+                                processPath(acquirablePois, entityEventId, (Long2ObjectMap<JitteredLinearRetry>) map, memoryAccessor, level, mob, time, poiManager, set, path);
++                            if (path instanceof org.bxteam.divinemc.async.pathfinding.AsyncPath asyncPath && !asyncPath.isProcessed()) {
++                                pending[0] = new PendingPath(path, set);
++                                return false;
                              }
++                            applyPathResult(acquirablePois, entityEventId, map, memoryAccessor, level, mob, time, poiManager, set, path);
 +                            // DivineMC end - Async Pathfinding
  
                              return true;
                          }
-@@ -119,6 +124,34 @@ public class AcquirePoi {
+@@ -119,6 +124,36 @@ public class AcquirePoi {
              : BehaviorBuilder.create(instance -> instance.group(instance.absent(existingAbsentMemory)).apply(instance, memoryAccessor -> oneShot));
      }
  
 +    // DivineMC start - Async Pathfinding
-+    private static void processPath(Predicate<Holder<PoiType>> acquirablePois,
-+                                    Optional<Byte> entityEventId,
-+                                    Long2ObjectMap<JitteredLinearRetry> map,
-+                                    net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor<com.mojang.datafixers.kinds.Const.Mu<com.mojang.datafixers.util.Unit>, GlobalPos> memoryAccessor,
-+                                    ServerLevel level,
-+                                    PathfinderMob mob,
-+                                    long time,
-+                                    PoiManager poiManager,
-+                                    Set<Pair<Holder<PoiType>, BlockPos>> set,
-+                                    Path path) {
++    private record PendingPath(Path path, Set<Pair<Holder<PoiType>, BlockPos>> set) {}
++
++    private static void applyPathResult(Predicate<Holder<PoiType>> acquirablePois,
++                                        Optional<Byte> entityEventId,
++                                        Long2ObjectMap<JitteredLinearRetry> map,
++                                        net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor<com.mojang.datafixers.kinds.Const.Mu<com.mojang.datafixers.util.Unit>, GlobalPos> memoryAccessor,
++                                        ServerLevel level,
++                                        PathfinderMob mob,
++                                        long time,
++                                        PoiManager poiManager,
++                                        Set<Pair<Holder<PoiType>, BlockPos>> set,
++                                        @Nullable Path path) {
 +        if (path != null && path.canReach()) {
 +            BlockPos target = path.getTarget();
 +            poiManager.getType(target).ifPresent(holder -> {
@@ -231,14 +246,39 @@ index a0df7e116872858efa02c9c80e9812dcd97ffbf2..c4bbf41b82898b9c725a2475421b8ea5
      private boolean tryComputePath(Mob mob, WalkTarget target, long time) {
          BlockPos blockPos = target.getTarget().currentBlockPosition();
 diff --git a/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java b/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
-index 7b6e9047f88370ca445ca2a62b57df98e1d6fbc6..3c13e9eafb7fef9a1e0d05faff89a20924fea499 100644
+index 7b6e9047f88370ca445ca2a62b57df98e1d6fbc6..41d00a1b51e5d5dc1b125e5bb97814199e6b0584 100644
 --- a/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
 +++ b/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
-@@ -59,17 +59,18 @@ public class SetClosestHomeAsWalkTarget {
+@@ -29,11 +29,23 @@ public class SetClosestHomeAsWalkTarget {
+     public static BehaviorControl<PathfinderMob> create(float speedModifier) {
+         Long2LongMap map = new Long2LongOpenHashMap();
+         MutableLong mutableLong = new MutableLong(0L);
++        // DivineMC start - Async Pathfinding - per-instance pending state for polling
++        final Pending[] pending = new Pending[1];
++        // DivineMC end - Async Pathfinding
+         return BehaviorBuilder.create(
+             instance -> instance.group(instance.absent(MemoryModuleType.WALK_TARGET), instance.absent(MemoryModuleType.HOME))
+                 .apply(
+                     instance,
+                     (walkTarget, home) -> (level, mob, gameTime) -> {
++                        // DivineMC start - Async Pathfinding - drain pending async path on main thread before doing anything else
++                        Pending p = pending[0];
++                        if (p != null) {
++                            if (!p.path.isProcessed()) return false;
++                            pending[0] = null;
++                            applyPathResult(speedModifier, map, mutableLong, walkTarget, level, level.getPoiManager(), p.tried, p.path);
++                            return true;
++                        }
++                        // DivineMC end - Async Pathfinding
+                         if (level.getGameTime() - mutableLong.longValue() < 20L) {
+                             return false;
+                         } else {
+@@ -59,17 +71,14 @@ public class SetClosestHomeAsWalkTarget {
                                          poi -> poi.is(PoiTypes.HOME), predicate, mob.blockPosition(), 48, PoiManager.Occupancy.ANY
                                      )
                                      .collect(Collectors.toSet());
--                                Path path = AcquirePoi.findPathToPois(mob, set);
++                                // DivineMC start - Async Pathfinding - defer instead of using callback so memory is set on main thread
+                                 Path path = AcquirePoi.findPathToPois(mob, set);
 -                                if (path != null && path.canReach()) {
 -                                    BlockPos target = path.getTarget();
 -                                    Optional<Holder<PoiType>> type = poiManager.getType(target);
@@ -248,35 +288,31 @@ index 7b6e9047f88370ca445ca2a62b57df98e1d6fbc6..3c13e9eafb7fef9a1e0d05faff89a209
 -                                    }
 -                                } else if (mutableInt.intValue() < 5) {
 -                                    map.long2LongEntrySet().removeIf(entry -> entry.getLongValue() < mutableLong.longValue());
-+                                // DivineMC start - Async Pathfinding
-+                                if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
-+                                    Path possiblePath = AcquirePoi.findPathToPois(mob, set);
-+
-+                                    org.bxteam.divinemc.async.pathfinding.AsyncPath.applyAfterProcessing(possiblePath, path -> {
-+                                        processPath(speedModifier, map, mutableLong, walkTarget, level, poiManager, mutableInt, path);
-+                                    });
-+                                } else {
-+                                    Path path = AcquirePoi.findPathToPois(mob, set);
-+                                        processPath(speedModifier, map, mutableLong, walkTarget, level, poiManager, mutableInt, path);
++                                if (path instanceof org.bxteam.divinemc.async.pathfinding.AsyncPath asyncPath && !asyncPath.isProcessed()) {
++                                    pending[0] = new Pending(path, mutableInt.intValue());
++                                    return false;
                                  }
++                                applyPathResult(speedModifier, map, mutableLong, walkTarget, level, poiManager, mutableInt.intValue(), path);
 +                                // DivineMC end - Async Pathfinding
  
                                  return true;
                              } else {
-@@ -80,4 +81,26 @@ public class SetClosestHomeAsWalkTarget {
+@@ -80,4 +89,28 @@ public class SetClosestHomeAsWalkTarget {
                  )
          );
      }
 +
 +    // DivineMC start - Async Pathfinding
-+    private static void processPath(float speedModifier,
-+                                    Long2LongMap map,
-+                                    MutableLong mutableLong,
-+                                    net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor<com.mojang.datafixers.kinds.Const.Mu<com.mojang.datafixers.util.Unit>, WalkTarget> walkTarget,
-+                                    net.minecraft.server.level.ServerLevel level,
-+                                    PoiManager poiManager,
-+                                    MutableInt mutableInt,
-+                                    @org.jetbrains.annotations.Nullable Path path) {
++    private record Pending(Path path, int tried) {}
++
++    private static void applyPathResult(float speedModifier,
++                                        Long2LongMap map,
++                                        MutableLong mutableLong,
++                                        net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor<com.mojang.datafixers.kinds.Const.Mu<com.mojang.datafixers.util.Unit>, WalkTarget> walkTarget,
++                                        net.minecraft.server.level.ServerLevel level,
++                                        PoiManager poiManager,
++                                        int tried,
++                                        @org.jetbrains.annotations.Nullable Path path) {
 +        if (path != null && path.canReach()) {
 +            BlockPos target = path.getTarget();
 +            Optional<Holder<PoiType>> type = poiManager.getType(target);
@@ -284,7 +320,7 @@ index 7b6e9047f88370ca445ca2a62b57df98e1d6fbc6..3c13e9eafb7fef9a1e0d05faff89a209
 +                walkTarget.set(new WalkTarget(target, speedModifier, 1));
 +                level.debugSynchronizers().updatePoi(target);
 +            }
-+        } else if (mutableInt.intValue() < 5) {
++        } else if (tried < 5) {
 +            map.long2LongEntrySet().removeIf(entry -> entry.getLongValue() < mutableLong.longValue());
 +        }
 +    }
@@ -521,15 +557,39 @@ index a0b7caf807602ee1f62bf05764cc16478f981da7..fd7f7b34f6d0118b97eaedb79f06d308
      }
  
 diff --git a/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java b/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
-index 1f96fd5085bacb4c584576c7cb9f51e7898e9b03..4a19fe15e05676b4018fb368a770b269c0f1abae 100644
+index 1f96fd5085bacb4c584576c7cb9f51e7898e9b03..90c9607311f4d6e14b984521e7f28e3c1cd142c0 100644
 --- a/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
-@@ -57,17 +57,32 @@ public class NearestBedSensor extends Sensor<Mob> {
+@@ -26,6 +26,7 @@ public class NearestBedSensor extends Sensor<Mob> {
+     private final Long2LongMap batchCache = new Long2LongOpenHashMap();
+     private int triedCount;
+     private long lastUpdate;
++    private @org.jetbrains.annotations.Nullable Path pending; // DivineMC - Async Pathfinding
+ 
+     public NearestBedSensor() {
+         super(20);
+@@ -38,6 +39,15 @@ public class NearestBedSensor extends Sensor<Mob> {
+ 
+     @Override
+     protected void doTick(ServerLevel level, Mob entity) {
++        // DivineMC start - Async Pathfinding - drain pending async path on main thread
++        if (this.pending != null) {
++            if (!this.pending.isProcessed()) return;
++            Path done = this.pending;
++            this.pending = null;
++            applyPathResult(entity, level.getPoiManager(), done);
++            return;
++        }
++        // DivineMC end - Async Pathfinding
+         if (entity.isBaby()) {
+             this.triedCount = 0;
+             this.lastUpdate = level.getGameTime() + level.getRandom().nextInt(20);
+@@ -57,17 +67,29 @@ public class NearestBedSensor extends Sensor<Mob> {
              java.util.List<Pair<Holder<PoiType>, BlockPos>> poiposes = new java.util.ArrayList<>();
              // don't ask me why it's unbounded. ask mojang.
              io.papermc.paper.util.PoiAccess.findAnyPoiPositions(poiManager, type -> type.is(PoiTypes.HOME), predicate, entity.blockPosition(), level.purpurConfig.villagerNearestBedSensorSearchRadius, PoiManager.Occupancy.ANY, false, Integer.MAX_VALUE, poiposes); // Purpur - Configurable villager search radius
 -            Path path = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(poiposes));
--            // Paper end - optimise POI access
+             // Paper end - optimise POI access
 -            if (path != null && path.canReach()) {
 -                BlockPos target = path.getTarget();
 -                Optional<Holder<PoiType>> type = poiManager.getType(target);
@@ -538,23 +598,19 @@ index 1f96fd5085bacb4c584576c7cb9f51e7898e9b03..4a19fe15e05676b4018fb368a770b269
 -                }
 -            } else if (this.triedCount < 5) {
 -                this.batchCache.long2LongEntrySet().removeIf(entry -> entry.getLongValue() < this.lastUpdate);
-+            // DivineMC start - Async Pathfinding
-+            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
-+                Path possiblePath = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(poiposes));
-+                org.bxteam.divinemc.async.pathfinding.AsyncPath.applyAfterProcessing(possiblePath, path -> {
-+                    processPath(entity, poiManager, path);
-+                });
-+            } else {
-+                Path path = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(poiposes));
-+                // Paper end - optimise POI access
-+                processPath(entity, poiManager, path);
++            // DivineMC start - Async Pathfinding - defer instead of using callback so memory is set on main thread
++            Path path = AcquirePoi.findPathToPois(entity, new java.util.HashSet<>(poiposes));
++            if (path instanceof org.bxteam.divinemc.async.pathfinding.AsyncPath asyncPath && !asyncPath.isProcessed()) {
++                this.pending = path;
++                return;
 +            }
++            applyPathResult(entity, poiManager, path);
 +            // DivineMC end - Async Pathfinding
 +        }
 +    }
 +
 +    // DivineMC start - Async Pathfinding
-+    private void processPath(Mob entity, PoiManager poiManager, @org.jetbrains.annotations.Nullable Path path) {
++    private void applyPathResult(Mob entity, PoiManager poiManager, @org.jetbrains.annotations.Nullable Path path) {
 +        if (path != null && path.canReach()) {
 +            BlockPos target = path.getTarget();
 +            Optional<Holder<PoiType>> type = poiManager.getType(target);

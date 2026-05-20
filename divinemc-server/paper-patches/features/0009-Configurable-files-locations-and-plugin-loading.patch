@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: dan28000 <pirkldan28@gmail.com>
 Date: Thu, 12 Jun 2025 10:08:25 +0200
-Subject: [PATCH] Configurable files locations
+Subject: [PATCH] Configurable files locations and plugin loading
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
@@ -17,14 +17,61 @@ index 6567ff18cb1c21230565c2d92caf3a7f7f915c17..f5bc0eff886e9e3386467f40d4f32945
                  .completer(new ConsoleCommandCompleter(this.server))
                  .option(LineReader.Option.COMPLETE_IN_WORD, true);
          if (io.papermc.paper.configuration.GlobalConfiguration.get().console.enableBrigadierHighlighting) {
+diff --git a/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java b/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
+index 3200aef1ba5d079fc3790841c826b4cf3951f2cf..ab3e51aaf532514901548b9a152a40a7d6c854d8 100644
+--- a/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
++++ b/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
+@@ -117,9 +117,19 @@ public class PluginInitializerManager {
+         java.util.List<Path> files = ((java.util.List<File>) optionSet.valuesOf("add-plugin")).stream().map(File::toPath).toList();
+         io.papermc.paper.plugin.util.EntrypointUtil.registerProvidersFromSource(io.papermc.paper.plugin.provider.source.PluginFlagProviderSource.INSTANCE, files);
+ 
++        // DivineMC start - Register the plugin directory from flags
+         @SuppressWarnings("unchecked")
+-        java.util.List<Path> dirs = ((java.util.List<File>) optionSet.valuesOf("add-plugin-dir")).stream().map(File::toPath).toList();
+-        dirs.forEach(pluginDir -> io.papermc.paper.plugin.util.EntrypointUtil.registerProvidersFromSource(io.papermc.paper.plugin.provider.source.DirectoryProviderSource.INSTANCE_NO_CREATE, pluginDir));
++        java.util.List<Path> pluginList = ((java.util.List<File>) optionSet.valuesOf("add-plugin-dir")).stream()
++            .filter(java.util.Objects::nonNull)
++            .map(f -> f.listFiles(file -> file.getName().endsWith(".jar")))
++            .filter(java.util.Objects::nonNull)
++            .flatMap(java.util.Arrays::stream)
++            .filter(File::isFile)
++            .map(File::toPath)
++            .toList();
++
++        io.papermc.paper.plugin.util.EntrypointUtil.registerProvidersFromSource(io.papermc.paper.plugin.provider.source.PluginFlagProviderSource.INSTANCE, pluginList);
++        // DivineMC end - Register the plugin directory from flags
+ 
+         final Set<String> paperPluginNames = new TreeSet<>();
+         final Set<String> legacyPluginNames = new TreeSet<>();
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 533f389762da7e049d1ec078f486089398621543..83905d0ccf0ed2d55076b5edbfd4e8c4bebac1f5 100644
+index 533f389762da7e049d1ec078f486089398621543..7024e1f77c36423c935bc08d22203fd59cd817ce 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -155,6 +155,44 @@ public class Main {
+@@ -133,12 +133,6 @@ public class Main {
+                         .defaultsTo(new File[] {})
+                         .describedAs("Jar file");
+ 
+-                this.acceptsAll(asList("add-plugin-dir", "add-extra-plugin-dir"), "Specify paths to extra plugin directories to be loaded in addition to the plugins folder. This argument can be specified multiple times, once for each extra plugin dir path.")
+-                        .withRequiredArg()
+-                        .ofType(File.class)
+-                        .defaultsTo(new File[] {})
+-                        .describedAs("Plugin directory");
+-
+                 // Purpur start - Purpur config files
+                 this.acceptsAll(asList("purpur", "purpur-settings"), "File for purpur settings")
+                     .withRequiredArg()
+@@ -155,6 +149,52 @@ public class Main {
                      .describedAs("Yml file");
                  // DivineMC end - Configuration
  
++                // DivineMC start - Implement loading plugins from external folder
++                this.acceptsAll(asList("add-plugin-dir", "add-extra-plugin-dir"), "Specify paths to directories containing extra plugin jars to be loaded in addition to those in the plugins folder. This argument can be specified multiple times, once for each extra plugin directory path.")
++                    .withRequiredArg()
++                    .ofType(File.class)
++                    .defaultsTo(new File("extra"))
++                    .describedAs("Directory");
++                // DivineMC end - Implement loading plugins from external folder
++
 +                // DivineMC start - make configurable location of files start
 +                accepts("help-location", "Location of the help file")
 +                    .withRequiredArg()

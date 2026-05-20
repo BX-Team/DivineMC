@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Sun, 6 Jul 2025 02:23:03 +0300
+Subject: [PATCH] lithium: faster hash palette
+
+This patch is based on the following mixins and classes:
+* "net/caffeinemc/mods/lithium/mixin/chunk/palette/StrategyMixin.java"
+By: 2No2Name <2No2Name@web.de>
+As part of: Lithium (https://github.com/CaffeineMC/lithium)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
+
+Replaces the vanilla hash palette with an optimized variant
+
+diff --git a/net/minecraft/world/level/chunk/HashMapPalette.java b/net/minecraft/world/level/chunk/HashMapPalette.java
+index 651abb333e54cf075ca521a1e52746975159a960..a8b8b7c7c8185e621ea654212c4c9ef45e8eeb9f 100644
+--- a/net/minecraft/world/level/chunk/HashMapPalette.java
++++ b/net/minecraft/world/level/chunk/HashMapPalette.java
+@@ -33,6 +33,14 @@ public class HashMapPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.pa
+         this.values = values;
+     }
+ 
++    // DivineMC start - lithium: faster hash palette
++    @SuppressWarnings("DataFlowIssue")
++    protected HashMapPalette(int bits, boolean dummy) {
++        this.bits = bits;
++        this.values = dummy ? null : CrudeIncrementalIntIdentityHashBiMap.create((1 << bits) + 1);
++    }
++    // DivineMC end - lithium: faster hash palette
++
+     public static <A> Palette<A> create(int bits, List<A> values) {
+         return new HashMapPalette<>(bits, values);
+     }
+diff --git a/net/minecraft/world/level/chunk/Strategy.java b/net/minecraft/world/level/chunk/Strategy.java
+index 787f5173425f617a89033e5b76256688be36b31d..c3443e027df70dc0b62b1821fff53b642a07881c 100644
+--- a/net/minecraft/world/level/chunk/Strategy.java
++++ b/net/minecraft/world/level/chunk/Strategy.java
+@@ -4,6 +4,14 @@ import net.minecraft.core.IdMap;
+ import net.minecraft.util.Mth;
+ 
+ public abstract class Strategy<T> {
++    // DivineMC start - lithium: faster hash palette
++    private static final Palette.Factory HASH = net.caffeinemc.mods.lithium.common.world.chunk.LithiumHashPalette::create;
++    private static final Configuration HASH_4BIT = new Configuration.Simple(HASH, 4);
++    private static final Configuration HASH_5BIT = new Configuration.Simple(HASH, 5);
++    private static final Configuration HASH_6BIT = new Configuration.Simple(HASH, 6);
++    private static final Configuration HASH_7BIT = new Configuration.Simple(HASH, 7);
++    private static final Configuration HASH_8BIT = new Configuration.Simple(HASH, 8);
++    // DivineMC end - lithium: faster hash palette
+     public static final Palette.Factory SINGLE_VALUE_PALETTE_FACTORY = SingleValuePalette::create; // Paper - Anti-Xray
+     private static final Palette.Factory LINEAR_PALETTE_FACTORY = LinearPalette::create;
+     private static final Palette.Factory HASHMAP_PALETTE_FACTORY = HashMapPalette::create;
+@@ -36,11 +44,14 @@ public abstract class Strategy<T> {
+             public Configuration getConfigurationForBitCount(int bits) {
+                 return (Configuration)(switch (bits) {
+                     case 0 -> Strategy.ZERO_BITS;
+-                    case 1, 2, 3, 4 -> Strategy.FOUR_BITS_LINEAR;
+-                    case 5 -> Strategy.FIVE_BITS_HASHMAP;
+-                    case 6 -> Strategy.SIX_BITS_HASHMAP;
+-                    case 7 -> Strategy.SEVEN_BITS_HASHMAP;
+-                    case 8 -> Strategy.EIGHT_BITS_HASHMAP;
++                    // DivineMC start - lithium: faster hash palette
++                    case 1, 2 -> Strategy.FOUR_BITS_LINEAR;
++                    case 3, 4 -> Strategy.HASH_4BIT;
++                    case 5 -> Strategy.HASH_5BIT;
++                    case 6 -> Strategy.HASH_6BIT;
++                    case 7 -> Strategy.HASH_7BIT;
++                    case 8 -> Strategy.HASH_8BIT;
++                    // DivineMC end - lithium: faster hash palette
+                     default -> new Configuration.Global(this.globalPaletteBitsInMemory, bits);
+                 });
+             }

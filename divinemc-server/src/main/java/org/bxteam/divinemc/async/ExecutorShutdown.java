@@ -6,8 +6,7 @@ import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.async.pathfinding.AsyncPath;
 import org.bxteam.divinemc.async.tracking.MultithreadedTracker;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.region.EnumRegionFileExtension;
-import org.bxteam.divinemc.region.type.BufferedRegionFile;
+import org.bxteam.divinemc.region.Flusher;
 
 import java.util.concurrent.TimeUnit;
 
@@ -16,14 +15,6 @@ public class ExecutorShutdown {
     public static final Logger LOGGER = LogManager.getLogger(ExecutorShutdown.class.getSimpleName());
 
     public static void shutdown(MinecraftServer server) {
-        if (BufferedRegionFile.flusherInitialized && DivineConfig.MiscCategory.regionFileType == EnumRegionFileExtension.B_LINEAR) {
-            LOGGER.info("Shutting down buffered region executors...");
-
-            try {
-                BufferedRegionFile.shutdown();
-            } catch (InterruptedException ignored) { }
-        }
-
         if (server.mobSpawnExecutor != null && server.mobSpawnExecutor.thread.isAlive()) {
             LOGGER.info("Shutting down mob spawn executor...");
 
@@ -57,6 +48,12 @@ public class ExecutorShutdown {
             try {
                 AsyncPath.EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
             } catch (InterruptedException ignored) { }
+        }
+
+        final Flusher<?> flusher = DivineConfig.RegionSettingsCategory.flusher;
+        if (flusher != null) {
+            LOGGER.info("Shutting down region flusher executor...");
+            flusher.shutdown();
         }
     }
 }

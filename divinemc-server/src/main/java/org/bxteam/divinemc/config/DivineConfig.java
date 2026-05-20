@@ -11,7 +11,10 @@ import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.chunk.ChunkSystemAlgorithm;
 import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.region.EnumRegionFileExtension;
-import org.bxteam.divinemc.region.type.LinearRegionFile;
+import org.bxteam.divinemc.region.Flusher;
+import org.bxteam.divinemc.region.buffered.BufferedRegionFileFlusher;
+import org.bxteam.divinemc.region.linear.LinearImplementation;
+import org.bxteam.divinemc.region.linear.LinearRegionFileFlusher;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlFile;
@@ -36,7 +39,7 @@ public class DivineConfig {
         This is the main configuration file for DivineMC.
         If you need help with the configuration or have any questions related to DivineMC,
         join us in our Discord server.
-
+        
         Discord: https://discord.gg/qNyybSSPm5
         Docs: https://bxteam.org/docs/divinemc
         Downloads: https://github.com/BX-Team/DivineMC/releases""";
@@ -47,7 +50,7 @@ public class DivineConfig {
     private static File configFile;
     public static final YamlFile config = new YamlFile();
 
-	public static void init(File configFile) {
+    public static void init(File configFile) {
         try {
             long begin = System.nanoTime();
             LOGGER.info("Loading config...");
@@ -71,7 +74,7 @@ public class DivineConfig {
         } catch (Exception e) {
             LOGGER.error("Failed to load config", e);
         }
-	}
+    }
 
     static void readConfig(Class<?> clazz, Object instance) throws IOException {
         for (Method method : clazz.getDeclaredMethods()) {
@@ -94,7 +97,7 @@ public class DivineConfig {
             if (Modifier.isStatic(innerClass.getModifiers())) {
                 try {
                     Object innerInstance = null;
-                    
+
                     Method loadMethod = null;
                     try {
                         loadMethod = innerClass.getDeclaredMethod("load");
@@ -109,7 +112,7 @@ public class DivineConfig {
                         } catch (NoSuchMethodException e) {
                             innerInstance = null;
                         }
-                        
+
                         loadMethod.setAccessible(true);
                         loadMethod.invoke(innerInstance);
                     }
@@ -122,43 +125,43 @@ public class DivineConfig {
         config.save(configFile);
     }
 
-	private static void setComment(String key, String... comment) {
-		if (config.contains(key)) {
-			config.setComment(key, String.join("\n", comment), CommentType.BLOCK);
-		}
-	}
+    private static void setComment(String key, String... comment) {
+        if (config.contains(key)) {
+            config.setComment(key, String.join("\n", comment), CommentType.BLOCK);
+        }
+    }
 
     private static void ensureDefault(String key, Object defaultValue, String... comment) {
         if (!config.contains(key)) config.set(key, defaultValue);
         if (comment.length > 0) config.setComment(key, String.join("\n", comment), CommentType.BLOCK);
     }
 
-	private static boolean getBoolean(String key, boolean defaultValue, String... comment) {
-		return getBoolean(key, null, defaultValue, comment);
-	}
+    private static boolean getBoolean(String key, boolean defaultValue, String... comment) {
+        return getBoolean(key, null, defaultValue, comment);
+    }
 
-	private static boolean getBoolean(String key, @Nullable String oldKey, boolean defaultValue, String... comment) {
-		ensureDefault(key, defaultValue, comment);
-		return config.getBoolean(key, defaultValue);
-	}
+    private static boolean getBoolean(String key, @Nullable String oldKey, boolean defaultValue, String... comment) {
+        ensureDefault(key, defaultValue, comment);
+        return config.getBoolean(key, defaultValue);
+    }
 
-	private static int getInt(String key, int defaultValue, String... comment) {
-		return getInt(key, null, defaultValue, comment);
-	}
+    private static int getInt(String key, int defaultValue, String... comment) {
+        return getInt(key, null, defaultValue, comment);
+    }
 
-	private static int getInt(String key, @Nullable String oldKey, int defaultValue, String... comment) {
-		ensureDefault(key, defaultValue, comment);
-		return config.getInt(key, defaultValue);
-	}
+    private static int getInt(String key, @Nullable String oldKey, int defaultValue, String... comment) {
+        ensureDefault(key, defaultValue, comment);
+        return config.getInt(key, defaultValue);
+    }
 
-	private static double getDouble(String key, double defaultValue, String... comment) {
-		return getDouble(key, null, defaultValue, comment);
-	}
+    private static double getDouble(String key, double defaultValue, String... comment) {
+        return getDouble(key, null, defaultValue, comment);
+    }
 
-	private static double getDouble(String key, @Nullable String oldKey, double defaultValue, String... comment) {
-		ensureDefault(key, defaultValue, comment);
-		return config.getDouble(key, defaultValue);
-	}
+    private static double getDouble(String key, @Nullable String oldKey, double defaultValue, String... comment) {
+        ensureDefault(key, defaultValue, comment);
+        return config.getDouble(key, defaultValue);
+    }
 
     private static long getLong(String key, long defaultValue, String... comment) {
         return getLong(key, null, defaultValue, comment);
@@ -169,23 +172,23 @@ public class DivineConfig {
         return config.getLong(key, defaultValue);
     }
 
-	private static String getString(String key, String defaultValue, String... comment) {
-		return getOldString(key, null, defaultValue, comment);
-	}
+    private static String getString(String key, String defaultValue, String... comment) {
+        return getOldString(key, null, defaultValue, comment);
+    }
 
-	private static String getOldString(String key, @Nullable String oldKey, String defaultValue, String... comment) {
-		ensureDefault(key, defaultValue, comment);
-		return config.getString(key, defaultValue);
-	}
+    private static String getOldString(String key, @Nullable String oldKey, String defaultValue, String... comment) {
+        ensureDefault(key, defaultValue, comment);
+        return config.getString(key, defaultValue);
+    }
 
-	private static List<String> getStringList(String key, List<String> defaultValue, String... comment) {
-		return getStringList(key, null, defaultValue, comment);
-	}
+    private static List<String> getStringList(String key, List<String> defaultValue, String... comment) {
+        return getStringList(key, null, defaultValue, comment);
+    }
 
-	private static List<String> getStringList(String key, @Nullable String oldKey, List<String> defaultValue, String... comment) {
-		ensureDefault(key, defaultValue, comment);
-		return config.getStringList(key);
-	}
+    private static List<String> getStringList(String key, @Nullable String oldKey, List<String> defaultValue, String... comment) {
+        ensureDefault(key, defaultValue, comment);
+        return config.getStringList(key);
+    }
 
     public static class AsyncCategory {
         // Parallel world ticking settings
@@ -640,13 +643,6 @@ public class DivineConfig {
         public static boolean timeAcceleration = true;
         public static boolean randomTickSpeedAcceleration = true;
 
-        // Region Format
-        public static EnumRegionFileExtension regionFileType = EnumRegionFileExtension.MCA;
-        public static int linearCompressionLevel = 1;
-        public static int linearIoThreadCount = 6;
-        public static int linearIoFlushDelayMs = 100;
-        public static boolean linearUseVirtualThreads = true;
-
         // Sentry
         public static String sentryDsn = "";
         public static String logLevel = "WARN";
@@ -659,7 +655,6 @@ public class DivineConfig {
         public static void load() {
             secureSeed();
             lagCompensation();
-            regionFileExtension();
             sentrySettings();
             oldFeatures();
         }
@@ -684,7 +679,7 @@ public class DivineConfig {
         }
 
         private static void lagCompensation() {
-            lagCompensationEnabled = getBoolean(ConfigCategory.MISC.key("lag-compensation.enabled"), lagCompensationEnabled, 
+            lagCompensationEnabled = getBoolean(ConfigCategory.MISC.key("lag-compensation.enabled"), lagCompensationEnabled,
                 "Improves the player experience when TPS is low");
             blockEntityAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.block-entity-acceleration"), blockEntityAcceleration);
             blockBreakingAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.block-breaking-acceleration"), blockBreakingAcceleration);
@@ -697,42 +692,6 @@ public class DivineConfig {
             randomTickSpeedAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration"), randomTickSpeedAcceleration);
         }
 
-        private static void regionFileExtension() {
-            EnumRegionFileExtension configuredType = EnumRegionFileExtension.fromString(getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString(),
-                "The type of region file format to use for storing chunk data.",
-                "Valid values:",
-                " - MCA: Default Minecraft region file format",
-                " - LINEAR: Linear region file format V2",
-                " - B_LINEAR: Buffered region file format (just uses Zstd)"));
-
-            if (configuredType != null) {
-                regionFileType = configuredType;
-            } else {
-                LOGGER.warn("Invalid region file type: {}, resetting to default (MCA)", getString(ConfigCategory.MISC.key("region-format.type"), regionFileType.toString()));
-                regionFileType = EnumRegionFileExtension.MCA;
-            }
-
-            linearCompressionLevel = getInt(ConfigCategory.MISC.key("region-format.compression-level"), linearCompressionLevel,
-                "The compression level to use for the linear region file format.");
-            linearIoThreadCount = getInt(ConfigCategory.MISC.key("region-format.linear-io-thread-count"), linearIoThreadCount,
-                "The number of threads to use for IO operations.");
-            linearIoFlushDelayMs = getInt(ConfigCategory.MISC.key("region-format.linear-io-flush-delay-ms"), linearIoFlushDelayMs,
-                "The delay in milliseconds to wait before flushing IO operations.");
-            linearUseVirtualThreads = getBoolean(ConfigCategory.MISC.key("region-format.linear-use-virtual-threads"), linearUseVirtualThreads,
-                "Whether to use virtual threads for IO operations that was introduced in Java 21.");
-
-            if (linearCompressionLevel > 22 || linearCompressionLevel < 1) {
-                LOGGER.warn("Invalid linear compression level: {}, resetting to default (1)", linearCompressionLevel);
-                linearCompressionLevel = 1;
-            }
-
-            if (regionFileType == EnumRegionFileExtension.LINEAR) {
-                LinearRegionFile.SAVE_DELAY_MS = linearIoFlushDelayMs;
-                LinearRegionFile.SAVE_THREAD_MAX_COUNT = linearIoThreadCount;
-                LinearRegionFile.USE_VIRTUAL_THREAD = linearUseVirtualThreads;
-            }
-        }
-
         private static void sentrySettings() {
             sentryDsn = getString(ConfigCategory.MISC.key("sentry.dsn"), sentryDsn,
                 "The DSN for Sentry, a service that provides real-time crash reporting that helps you monitor and fix crashes in real time. Leave blank to disable. Obtain link at https://sentry.io");
@@ -741,7 +700,8 @@ public class DivineConfig {
             onlyLogThrown = getBoolean(ConfigCategory.MISC.key("sentry.only-log-thrown"), onlyLogThrown,
                 "Only log Throwable exceptions to Sentry.");
 
-            if (sentryDsn != null && !sentryDsn.isBlank()) gg.pufferfish.pufferfish.sentry.SentryManager.init(Level.getLevel(logLevel));
+            if (sentryDsn != null && !sentryDsn.isBlank())
+                gg.pufferfish.pufferfish.sentry.SentryManager.init(Level.getLevel(logLevel));
         }
 
         private static void oldFeatures() {
@@ -841,6 +801,86 @@ public class DivineConfig {
                 "Enables quota system for SyncMatica");
             protocolsSyncMaticaQuotaLimit = getInt(ConfigCategory.NETWORK.key("protocols.syncmatica.quota-limit"), protocolsSyncMaticaQuotaLimit,
                 "Quota limit for SyncMatica protocol");
+        }
+    }
+
+    public static class RegionSettingsCategory {
+        // Region Format
+        public static EnumRegionFileExtension regionFileType = EnumRegionFileExtension.MCA;
+        public static int compressionLevel = 4;
+        public static int threadCount = 4;
+        public static Flusher<?> flusher = null;
+
+        // Linear region file settings
+        public static int linearIoFlushDelayMs = 10000;
+        public static LinearImplementation linearImplementation = LinearImplementation.V2;
+
+        // Buffered linear region file settings
+        public static int checkIntervalMs = 20;
+        public static int flushOfWriteTimeoutMs = 3000;
+
+        public static void load() {
+            regionFileExtension();
+            linear();
+            buffered();
+            flusher();
+        }
+
+        private static void regionFileExtension() {
+            try {
+                regionFileType = EnumRegionFileExtension.fromString(getString(ConfigCategory.REGION.key("type"), regionFileType.toString(),
+                    "The type of region file format to use for storing chunk data.",
+                    "Valid values:",
+                    " - MCA: Default Minecraft region file format",
+                    " - LINEAR: Linear region file format V2",
+                    " - B_LINEAR: Buffered region file format (just uses Zstd)"));
+            } catch (IllegalArgumentException ignore) {
+                LOGGER.warn("Invalid region file type: {}, resetting to default (MCA)", getString(ConfigCategory.REGION.key("type"), regionFileType.toString()));
+                regionFileType = EnumRegionFileExtension.MCA;
+            }
+
+            threadCount = getInt(ConfigCategory.REGION.key("thread-count"), threadCount,
+                "The number of threads to use for IO operations.");
+
+            if (threadCount < 1) {
+                LOGGER.warn("Invalid thread count: {}, resetting to default (4)", threadCount);
+                threadCount = 4;
+            }
+
+            compressionLevel = getInt(ConfigCategory.REGION.key("compression-level"), compressionLevel,
+                "The compression level to use for the either linear or buffered linear region file format.");
+
+            if (compressionLevel > 23 || compressionLevel < 1) {
+                LOGGER.warn("Invalid compression level: {}, resetting to default (4)", compressionLevel);
+                compressionLevel = 4;
+            }
+        }
+
+        private static void linear() {
+            linearIoFlushDelayMs = getInt(ConfigCategory.REGION.key("linear.io-flush-delay-ms"), linearIoFlushDelayMs,
+                "The delay in milliseconds to wait before flushing IO operations.");
+
+            linearImplementation = LinearImplementation.valueOf(getString(ConfigCategory.REGION.key("linear.implementation"), linearImplementation.name(),
+                "The implementation of the linear region file format to use.",
+                "Valid values:",
+                " - V1: Basic and default linear implementation",
+                " - V2: Introduces a grid-based compression scheme for better data management and flexibility (default)",
+                " - V3: Minor improvements over V2"));
+        }
+
+        private static void buffered() {
+            checkIntervalMs = getInt(ConfigCategory.REGION.key("b-linear.check-interval-ms"), checkIntervalMs,
+                "The interval in milliseconds to check for dirty region files to flush.");
+            flushOfWriteTimeoutMs = getInt(ConfigCategory.REGION.key("b-linear.flush-of-write-timeout-ms"), flushOfWriteTimeoutMs,
+                "The timeout in milliseconds to wait before forcing a flush of a region file that is being written to.");
+        }
+
+        private static void flusher() {
+            flusher = switch (regionFileType) {
+                case MCA -> null;
+                case LINEAR -> new LinearRegionFileFlusher(threadCount, linearIoFlushDelayMs);
+                case B_LINEAR -> new BufferedRegionFileFlusher(threadCount, checkIntervalMs, flushOfWriteTimeoutMs);
+            };
         }
     }
 
