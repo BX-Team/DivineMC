@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout DivineMC repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: 'DivineMC'
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout Purpur repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: 'Purpur'
           repository: "PurpurMC/Purpur"
