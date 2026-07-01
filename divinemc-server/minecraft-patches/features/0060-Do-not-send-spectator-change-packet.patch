@@ -5,7 +5,7 @@ Subject: [PATCH] Do not send spectator change packet
 
 
 diff --git a/net/minecraft/server/level/ServerPlayerGameMode.java b/net/minecraft/server/level/ServerPlayerGameMode.java
-index f040339bb380a8f92cb0d941defcb26c0284ef8d..854840b4f5a3e922c91cb0956e8237033274d772 100644
+index cf9e62c6cd734d4163cb77b103a4ecd36937ae34..0837794a9b0eb0c3f9408b2048cc368931db443a 100644
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
 @@ -84,10 +84,7 @@ public class ServerPlayerGameMode {
@@ -20,7 +20,7 @@ index f040339bb380a8f92cb0d941defcb26c0284ef8d..854840b4f5a3e922c91cb0956e823703
          this.level.updateSleepingPlayerList();
          if (gameModeForPlayer == GameType.CREATIVE) {
              this.player.resetCurrentImpulseContext();
-@@ -619,4 +616,17 @@ public class ServerPlayerGameMode {
+@@ -621,4 +618,17 @@ public class ServerPlayerGameMode {
          return false;
      }
      // Purpur end - Shift right click to use exp for mending

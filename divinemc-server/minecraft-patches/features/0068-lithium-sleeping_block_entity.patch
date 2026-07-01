@@ -71,10 +71,10 @@ index bcd7097def03c59140e1774cfdc787d526fb205b..3af304c7364bc6a7c8c4735ae0967c50
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 9b6dffd60cba592494f3d61a9f59903ebbbcd481..96a87ed14151b2f5cf100a002d28d760bc77df48 100644
+index 477b69d004fa4df25c1887d8c6f2c77f64cdf34f..38b82a69fc32bcadc3677c8b4721233252014fa7 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2646,6 +2646,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2657,6 +2657,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
          for (TickingBlockEntity ticker : this.blockEntityTickers) {
              BlockPos blockPos = ticker.getPos();
@@ -281,7 +281,7 @@ index 8170c890010fa677ac1be50c65f2eb176a8614d0..729f461f5e0a3e6fa1f4a2d8b368e2cb
              ItemStack itemStack = container.getItem(i);
              if (!itemStack.isEmpty()) {
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 68b41586b2d3c071c8ff44d8c1a43ae465f6c8bf..42aa70dabf952d4e119ccbf663383a55f89c5d46 100644
+index 75220dba2aa0b0d2fddefaf237171c4abd9ca927..49dac8de38dfb60d39b71e8c9fda1912e3ef08e4 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -100,7 +100,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -293,7 +293,7 @@ index 68b41586b2d3c071c8ff44d8c1a43ae465f6c8bf..42aa70dabf952d4e119ccbf663383a55
      private static final List<Component> OP_NBT_WARNING = List.of(
          Component.translatable("item.op_warning.line1").withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
          Component.translatable("item.op_warning.line2").withStyle(ChatFormatting.RED),
-@@ -1024,6 +1024,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1028,6 +1028,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      // CraftBukkit end
  
      public <T> @Nullable T set(final DataComponentType<T> type, final @Nullable T value) {
@@ -301,7 +301,7 @@ index 68b41586b2d3c071c8ff44d8c1a43ae465f6c8bf..42aa70dabf952d4e119ccbf663383a55
          return this.components.set(type, value);
      }
  
-@@ -1368,6 +1369,23 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1372,6 +1373,23 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      }
  
      public void setCount(final int count) {
@@ -325,7 +325,7 @@ index 68b41586b2d3c071c8ff44d8c1a43ae465f6c8bf..42aa70dabf952d4e119ccbf663383a55
          this.count = count;
      }
  
-@@ -1435,4 +1453,90 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1439,4 +1457,90 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
              .or(() -> Optional.ofNullable(this.getItem().getItemDamageSource(attacker)))
              .orElseGet(defaultSource);
      }
@@ -417,10 +417,10 @@ index 68b41586b2d3c071c8ff44d8c1a43ae465f6c8bf..42aa70dabf952d4e119ccbf663383a55
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 6e4ab943069340b5155be2a787cf40cc37a94405..7be5057b26e98b00c41fbea329a2c2eafa5f5575 100644
+index fd2212fb14d4a596c4483d9a266d8e6acde705da..363568f4c5a8291c9fd495c5a25e25a40bab51a9 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -2286,4 +2286,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2297,4 +2297,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option
@@ -2357,7 +2357,7 @@ index 72819d84ec0672c8415cbf0ba0145c87cd130240..7b35af8301ccc908b2a7adca4aa655cd
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index bc8008593f0e7d1e60d6df374ad9d6cf3b3cce73..e6da9ff1b4c1eb95d0ef16417480fbe9fd037233 100644
+index 96a787a65b21ee0c59617fa4517c57f3538c06b7..9d00724da1d6bff89bab4e444d4c050ee9a15831 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -924,10 +924,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

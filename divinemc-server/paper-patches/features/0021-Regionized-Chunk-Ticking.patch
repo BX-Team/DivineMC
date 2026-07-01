@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sat, 23 May 2026 21:35:25 +0300
+Subject: [PATCH] Regionized Chunk Ticking
+
+This patch adds regionized chunk ticking feature, by grouping adjacent chunks into regions and processing each region on its own thread.
+
+Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 2b76f13bc67a2dd12251636a93b4666e587d0348..347550202ca7744eea343fb6cbabd946b901932f 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -760,13 +760,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+     @Override
+     public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
+         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, loc.getX(), loc.getZ(), "Cannot generate tree asynchronously"); // DivineMC - Parallel world ticking
+-        this.world.captureTreeGeneration = true;
+-        this.world.captureBlockStates = true;
++        // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
++        this.world.captureTreeGeneration.set(true);
++        this.world.captureBlockStates.set(true);
+         boolean grownTree = this.generateTree(loc, type);
+-        this.world.captureBlockStates = false;
+-        this.world.captureTreeGeneration = false;
++        this.world.captureBlockStates.set(false);
++        this.world.captureTreeGeneration.set(false);
++        java.util.Map<BlockPos, CraftBlockState> capturedBlockStates = this.world.capturedBlockStates.get();
+         if (grownTree) { // Copy block data to delegate
+-            for (BlockState blockstate : this.world.capturedBlockStates.values()) {
++            for (BlockState blockstate : capturedBlockStates.values()) {
+                 BlockPos position = ((CraftBlockState) blockstate).getPosition();
+                 net.minecraft.world.level.block.state.BlockState oldBlock = this.world.getBlockState(position);
+                 int flags = ((CraftBlockState) blockstate).getFlags();
+@@ -774,12 +776,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+                 net.minecraft.world.level.block.state.BlockState newBlock = this.world.getBlockState(position);
+                 this.world.notifyAndUpdatePhysics(position, null, oldBlock, newBlock, newBlock, flags, net.minecraft.world.level.block.Block.UPDATE_LIMIT);
+             }
+-            this.world.capturedBlockStates.clear();
++            capturedBlockStates.clear();
+             return true;
+         } else {
+-            this.world.capturedBlockStates.clear();
++            capturedBlockStates.clear();
+             return false;
+         }
++        // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
+     }
+ 
+     @Override
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+index 316290367c361a4b3421d2702ef2f3c122c0b413..ca07a57298a0f7c235cd09790ae4ed3a6e6a339b 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -576,17 +576,20 @@ public class CraftBlock implements Block {
+         UseOnContext context = new UseOnContext(world, null, InteractionHand.MAIN_HAND, Items.BONE_MEAL.getDefaultInstance(), new BlockHitResult(Vec3.ZERO, direction, this.getPosition(), false));
+ 
+         // SPIGOT-6895: Call StructureGrowEvent and BlockFertilizeEvent
+-        world.captureTreeGeneration = true;
++        // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
++        world.captureTreeGeneration.set(true);
+         InteractionResult result = BoneMealItem.applyBonemeal(context);
+-        world.captureTreeGeneration = false;
++        world.captureTreeGeneration.set(false);
+ 
+-        if (!world.capturedBlockStates.isEmpty()) {
++        java.util.Map<net.minecraft.core.BlockPos, CraftBlockState> capturedBlockStates = world.capturedBlockStates.get();
++        if (!capturedBlockStates.isEmpty()) {
+             // DivineMC start - Parallel world ticking
+             TreeType treeType = SaplingBlock.getTreeTypeTL();
+             SaplingBlock.setTreeTypeTL(null);
+             // DivineMC end - Parallel world ticking
+-            List<org.bukkit.block.BlockState> states = new ArrayList<>(world.capturedBlockStates.values());
+-            world.capturedBlockStates.clear();
++            List<org.bukkit.block.BlockState> states = new ArrayList<>(capturedBlockStates.values());
++            capturedBlockStates.clear();
++        // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
+             StructureGrowEvent structureEvent = null;
+ 
+             if (treeType != null) {

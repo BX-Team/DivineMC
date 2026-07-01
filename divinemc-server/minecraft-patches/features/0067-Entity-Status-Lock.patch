@@ -5,21 +5,34 @@ Subject: [PATCH] Entity Status Lock
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index 8d9ce3d301d5f7e4106587ae00adb8dd5b8b6f88..37e940e5f9ed7dbb0077761c1604947d37b45d16 100644
+index 8d9ce3d301d5f7e4106587ae00adb8dd5b8b6f88..0af09f10fb1f9831159e625f3540b9bdc62dd1b5 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-@@ -225,8 +225,10 @@ public final class ChunkEntitySlices {
+@@ -225,11 +225,22 @@ public final class ChunkEntitySlices {
          }
      }
  
 +    private final java.util.concurrent.locks.ReentrantLock statusLock = new java.util.concurrent.locks.ReentrantLock(); // DivineMC - Entity Status Lock
      private boolean preventStatusUpdates;
      public boolean startPreventingStatusUpdates() {
-+        this.statusLock.lock(); // DivineMC - Entity Status Lock
++        // DivineMC start - Entity Status Lock
++        this.statusLock.lock();
          final boolean ret = this.preventStatusUpdates;
-         this.preventStatusUpdates = true;
+-        this.preventStatusUpdates = true;
++        if (ret) {
++            // EntityLookup#entityStatusChange logs and returns early without calling stopPreventingStatusUpdates,
++            // so we must release the lock here to avoid leaking it.
++            this.statusLock.unlock();
++        } else {
++            this.preventStatusUpdates = true;
++        }
++
          return ret;
-@@ -238,85 +240,107 @@ public final class ChunkEntitySlices {
++        // DivineMC end - Entity Status Lock
+     }
+ 
+     public boolean isPreventingStatusUpdates() {
+@@ -238,85 +249,107 @@ public final class ChunkEntitySlices {
  
      public void stopPreventingStatusUpdates(final boolean prev) {
          this.preventStatusUpdates = prev;

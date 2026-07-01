@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize level ticking
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 0284a07fafbf69c799b570af35b1b263f8dd5ca7..cab60df4c826ca72944d98adce88f2c86d20bb93 100644
+index 4232317bf152dd2a9ccaa26500e34f19ac5c4a09..7f9156136c309afc8ca77d6997b7ddeb375da6fa 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1034,9 +1034,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1042,9 +1042,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      // Paper start - optimise random ticking
      private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
  
@@ -20,7 +20,7 @@ index 0284a07fafbf69c799b570af35b1b263f8dd5ca7..cab60df4c826ca72944d98adce88f2c8
          final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
          final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
  
-@@ -1045,42 +1046,38 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1053,42 +1054,38 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          final int offsetZ = cpos.z() << 4;
  
          for (int sectionIndex = 0, sectionsLen = sections.length; sectionIndex < sectionsLen; sectionIndex++) {
@@ -73,7 +73,7 @@ index 0284a07fafbf69c799b570af35b1b263f8dd5ca7..cab60df4c826ca72944d98adce88f2c8
  
      public void tickChunk(final LevelChunk chunk, final int tickSpeed) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 5a11b9eac4938585ef5fa77f2d338ec0490c319c..3f5c67a84de77045c72dfefc655af86e8d03a911 100644
+index db064ca8ea24d606150b38950d6d0a168f222523..fedcbf85ed4e0302dfc7d695f582e6e4990ee658 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -85,7 +85,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
