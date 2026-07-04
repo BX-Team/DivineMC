@@ -29,16 +29,18 @@ public final class DivineCommand extends Command {
     private static final DivineSubCommand MSPT_SUBCOMMAND = new MSPTCommand();
     private static final DivineSubCommand RELOAD_SUBCOMMAND = new ReloadCommand();
     private static final DivineSubCommand VERSION_SUBCOMMAND = new VersionCommand();
+    private static final DivineSubCommand TICK_TIMES_SUBCOMMAND = new TickTimes();
     private static final Map<String, DivineSubCommand> SUBCOMMANDS = Util.make(() -> {
         final Map<Set<String>, DivineSubCommand> commands = new HashMap<>();
 
         commands.put(Set.of(MSPTCommand.LITERAL_ARGUMENT), MSPT_SUBCOMMAND);
         commands.put(Set.of(ReloadCommand.LITERAL_ARGUMENT), RELOAD_SUBCOMMAND);
         commands.put(Set.of(VersionCommand.LITERAL_ARGUMENT), VERSION_SUBCOMMAND);
+        commands.put(Set.of(TickTimes.LITERAL_ARGUMENT), TICK_TIMES_SUBCOMMAND);
 
         return commands.entrySet().stream()
-                .flatMap(entry -> entry.getKey().stream().map(s -> Map.entry(s, entry.getValue())))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .flatMap(entry -> entry.getKey().stream().map(s -> Map.entry(s, entry.getValue())))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     });
     // alias -> subcommand label
     private static final Map<String, String> ALIASES = Util.make(() -> {
@@ -47,8 +49,8 @@ public final class DivineCommand extends Command {
         aliases.put(VersionCommand.LITERAL_ARGUMENT, Set.of("ver"));
 
         return aliases.entrySet().stream()
-                .flatMap(entry -> entry.getValue().stream().map(s -> Map.entry(s, entry.getKey())))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .flatMap(entry -> entry.getValue().stream().map(s -> Map.entry(s, entry.getKey())))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     });
 
     private String createUsageMessage(Collection<String> arguments) {
@@ -70,10 +72,10 @@ public final class DivineCommand extends Command {
 
     @Override
     public List<String> tabComplete(
-            final CommandSender sender,
-            final String alias,
-            final String[] args,
-            final @Nullable Location location
+        final CommandSender sender,
+        final String alias,
+        final String[] args,
+        final @Nullable Location location
     ) throws IllegalArgumentException {
         if (args.length <= 1) {
             List<String> subCommandArguments = new ArrayList<>(SUBCOMMANDS.size());
@@ -104,9 +106,9 @@ public final class DivineCommand extends Command {
 
     @Override
     public boolean execute(
-            final CommandSender sender,
-            final String commandLabel,
-            final String[] args
+        final CommandSender sender,
+        final String commandLabel,
+        final String[] args
     ) {
 
         // Check if the sender has the base permission and at least one specific permission
