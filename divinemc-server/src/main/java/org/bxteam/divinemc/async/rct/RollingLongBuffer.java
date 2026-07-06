@@ -2,6 +2,7 @@ package org.bxteam.divinemc.async.rct;
 
 import java.util.Arrays;
 import java.util.OptionalDouble;
+import java.util.OptionalLong;
 import java.util.stream.LongStream;
 
 public final class RollingLongBuffer {
@@ -68,6 +69,38 @@ public final class RollingLongBuffer {
             }
         }
         return Arrays.stream(snapshot, 0, snapshot.length);
+    }
+
+    /**
+     * Returns the arithmetic average of the last {@code n} entries as OptionalDouble.
+     * If the buffer is empty, returns OptionalDouble.empty().
+     * If n > size(), averages over the available entries.
+     *
+     * Time: O(n) where n is the requested number of entries (bounded by buffer size).
+     *
+     * @throws IllegalArgumentException if n <= 0
+     */
+    public synchronized OptionalDouble averageLast(int n) {
+        if (n <= 0) throw new IllegalArgumentException("n must be > 0");
+        if (count == 0) return OptionalDouble.empty();
+
+        int use = Math.min(n, count);
+        // accumulate in double to reduce risk of overflow for large sums
+        double acc = 0.0;
+        int start = (head + count - use) % capacity;
+        for (int i = 0; i < use; i++) {
+            acc += buffer[(start + i) % capacity];
+        }
+        return OptionalDouble.of(acc / (double) use);
+    }
+
+    /**
+     * Returns the last (newest) entry as OptionalLong, or OptionalLong.empty() if buffer is empty.
+     */
+    public synchronized OptionalLong last() {
+        if (count == 0) return OptionalLong.empty();
+        int idx = (head + count - 1) % capacity;
+        return OptionalLong.of(buffer[idx]);
     }
 
     /**

@@ -10,19 +10,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.function.Supplier;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -39,13 +26,18 @@ import org.bxteam.divinemc.config.DivineConfig;
 import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.Supplier;
+
 public final class RegionizedChunkTicking extends ServerChunkCache {
     public static final Executor REGION_EXECUTOR = Executors.newFixedThreadPool(DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount,
         new NamedAgnosticThreadFactory<>("Region Ticking", TickThread::new, DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority));
-    private static final int LOG_INTERVAL = 18000;
     private final AvgTimeLogger avgTimeLogger;
+    public final RollingLongBuffer avgTime = new RollingLongBuffer(100);
+    private final LongOpenHashSet tickedChunkKeys = new LongOpenHashSet(8192);
     private int i = 0;
-    private volatile TickPair lastTickPair;
 
     public RegionizedChunkTicking(
         ServerLevel level,
@@ -67,26 +59,40 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
 
     @Override
     protected void iterateTickingChunksFaster(final @NotNull CompletableFuture<Void> spawns) {
+        final long start = System.nanoTime();
         final ServerLevel world = this.level;
         final int randomTickSpeed = world.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
         final LevelChunk[] raw = world.moonrise$getEntityTickingChunks().toArray(new LevelChunk[0]);
         final TickPair tickPair = computePlayerRegions();
-        this.lastTickPair = tickPair;
         final RegionData[] regions = tickPair.regions();
 
-        ObjectArrayList<CompletableFuture<LongOpenHashSet>> futures = new ObjectArrayList<>(regions.length);
+        ActivationRange.activateEntities(level); // Paper - EAR
+
+        ObjectArrayList<CompletableFuture<LongOpenHashSet>> blockFutures = new ObjectArrayList<>(regions.length);
         for (final RegionData region : regions) {
             if (region == null || region.isEmpty()) {
                 continue;
             }
-            futures.add(tick(region, randomTickSpeed));
+            blockFutures.add(tickBlocks(region, randomTickSpeed));
         }
+        finishBlockTicking(blockFutures, randomTickSpeed, raw, tickPair);
 
-        finishTicking(futures, randomTickSpeed, raw, tickPair);
         spawns.join();
+
+        ObjectArrayList<CompletableFuture<Void>> entityFutures = new ObjectArrayList<>(regions.length);
+        for (final RegionData region : regions) {
+            if (region == null || region.entities().isEmpty()) {
+                continue;
+            }
+            entityFutures.add(tickEntities(region));
+        }
+        finishEntityTicking(entityFutures, tickPair);
+
+        final long end = System.nanoTime();
+        avgTime.add(end - start);
     }
 
-    private CompletableFuture<LongOpenHashSet> tick(RegionData region, int randomTickSpeed) {
+    private CompletableFuture<LongOpenHashSet> tickBlocks(RegionData region, int randomTickSpeed) {
         return CompletableFuture.supplyAsync(() -> {
             final long start = System.nanoTime();
             final LongOpenHashSet regionChunksIDs = new LongOpenHashSet(region.chunks().size());
@@ -98,20 +104,48 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                 }
             }
 
-            final long end = System.nanoTime();
-            region.players().forEach(player -> player.avgTickTimeNanos.add(end - start));
+            final long time = System.nanoTime() - start;
+            final int regionHash = region.hashCode();
+            final int chunks = regionChunksIDs.size();
+            for (ServerPlayer player : region.players()) {
+                player.avgTickTimeNanos.add(time);
+                player.lastRegionChunkSize = chunks;
+                player.regionHash = regionHash;
+            }
             return regionChunksIDs;
         }, REGION_EXECUTOR);
     }
 
-    private void finishTicking(final ObjectArrayList<CompletableFuture<LongOpenHashSet>> ticked, final int randomTickSpeed, final LevelChunk[] raw, final TickPair tickPair) {
-        try {
-            CompletableFuture.allOf(ticked.toArray(new CompletableFuture[0])).join();
-        } catch (CompletionException ex) {
-            LOGGER.error("Error during region chunk ticking", ex.getCause());
+    private CompletableFuture<Void> tickEntities(RegionData region) {
+        return CompletableFuture.runAsync(() -> {
+            final long start = System.nanoTime();
+            for (Entity entity : region.entities()) {
+                tickEntity(entity);
+            }
+
+            final long time = System.nanoTime() - start;
+            final int entities = region.entities().size();
+            for (ServerPlayer player : region.players()) {
+                player.avgTickTimeNanos.add(time);
+                player.lastRegionEntityAmount = entities;
+            }
+        }, REGION_EXECUTOR);
+    }
+
+    private void finishBlockTicking(final ObjectArrayList<CompletableFuture<LongOpenHashSet>> ticked, final int randomTickSpeed, final LevelChunk[] raw, final TickPair tickPair) {
+        tickedChunkKeys.clear();
+        for (CompletableFuture<LongOpenHashSet> future : ticked) {
+            try {
+                LongOpenHashSet result = future.join();
+                if (result != null) {
+                    tickedChunkKeys.addAll(result);
+                }
+            } catch (Exception e) {
+                LOGGER.error("Exception retrieving region ticking result", e);
+            }
         }
 
-        if (false && i % 100 == 0 && tickPair.regions().length > 0) {
+        if (i++ % 100 == 0 && tickPair.regions().length > 0) {
             REGION_EXECUTOR.execute(() -> {
                 StringBuilder sb = new StringBuilder();
                 for (RegionData regionData : tickPair.regions()) {
@@ -128,18 +162,6 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             });
         }
 
-        LongOpenHashSet tickedChunkKeys = new LongOpenHashSet(raw.length);
-
-        for (CompletableFuture<LongOpenHashSet> future : ticked) {
-            if (!future.isCompletedExceptionally()) {
-                try {
-                    tickedChunkKeys.addAll(future.join());
-                } catch (Exception e) {
-                    LOGGER.error("Exception retrieving region ticking result", e);
-                }
-            }
-        }
-
         for (LevelChunk chunk : raw) {
             if (!tickedChunkKeys.contains(chunk.coordinateKey)) {
                 level.tickChunk(chunk, randomTickSpeed);
@@ -147,33 +169,13 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         }
     }
 
-    public void tickEntitiesParallel() {
-        final TickPair tickPair = this.lastTickPair;
-        this.lastTickPair = null;
-        if (tickPair == null) return;
-
-        ActivationRange.activateEntities(level); // Paper - EAR
-
-        final RegionData[] regions = tickPair.regions();
-        ObjectArrayList<CompletableFuture<Void>> futures = new ObjectArrayList<>(regions.length);
-        for (final RegionData region : regions) {
-            if (region == null || region.entities().isEmpty()) {
-                continue;
+    private void finishEntityTicking(final ObjectArrayList<CompletableFuture<Void>> ticked, final TickPair tickPair) {
+        for (CompletableFuture<Void> future : ticked) {
+            try {
+                future.join();
+            } catch (Exception e) {
+                LOGGER.error("Exception during region entity ticking", e);
             }
-            futures.add(CompletableFuture.runAsync(() -> {
-                final long start = System.nanoTime();
-                for (Entity entity : region.entities()) {
-                    tickEntity(entity);
-                }
-                final long end = System.nanoTime();
-                region.players().forEach(player -> player.avgTickTimeNanos.add(end - start));
-            }, REGION_EXECUTOR));
-        }
-
-        try {
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        } catch (CompletionException ex) {
-            LOGGER.error("Error during region entity ticking", ex.getCause());
         }
 
         for (Entity entity : tickPair.entities()) {
@@ -263,12 +265,6 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             }
         }
 
-        i++;
-        if (false && i % LOG_INTERVAL == 0) {
-            LOGGER.info("Computed {} regions for {} players", regions.size(), players.size());
-            LOGGER.info("region sizes for each region: {}", Arrays.toString(regions.stream().mapToInt(r -> r.chunks().size()).toArray()));
-        }
-
         final Set<Entity> firstTick = ConcurrentHashMap.newKeySet();
 
         IteratorSafeOrderedReferenceSet<Entity> entities;
@@ -284,7 +280,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                     .forEach(entity -> {
                         long chunkKey = entity.chunkPosition().pack();
                         int regionIndex = chunkToRegion.get(chunkKey);
-                        if (regionIndex != -1) {
+                        if (regionIndex != -1 && !mustTickOnMainThread(entity)) {
                             RegionData targetRegion = regions.get(regionIndex);
                             targetRegion.entities().add(entity);
                             if (entity instanceof ServerPlayer player) {
@@ -299,8 +295,12 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             }
         }
 
-        regions.sort(Comparator.comparingDouble(r -> ((RegionData) r).players().stream().map(p -> p.avgTickTimeNanos.average().orElse(-1)).max(Comparator.naturalOrder()).orElse(-1d)).reversed());
+        regions.sort(Comparator.<RegionData>comparingDouble(r -> r.players().stream().map(p -> p.avgTickTimeNanos.average().orElse(-1)).max(Comparator.naturalOrder()).orElse(-1d)).reversed());
         return new TickPair(regions.toArray(new RegionData[0]), firstTick);
+    }
+
+    private static boolean mustTickOnMainThread(Entity entity) {
+        return entity instanceof net.minecraft.world.entity.item.PrimedTnt;
     }
 
     private void tickEntity(Entity entity) {

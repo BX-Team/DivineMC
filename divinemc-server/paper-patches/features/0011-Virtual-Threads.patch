@@ -4,6 +4,26 @@ Date: Mon, 24 Feb 2025 19:36:33 +0300
 Subject: [PATCH] Virtual Threads
 
 
+diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+index 3575da419ed6dfc391a458831a9ebd6736af4032..76388bea22e42c684b0c320fecfa4dbb47513fe3 100644
+--- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
++++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+@@ -314,9 +314,12 @@ public class GlobalConfiguration extends ConfigurationPart {
+                     _chatExecutorMaxSize = _chatExecutorCoreSize;
+                 }
+ 
+-                java.util.concurrent.ThreadPoolExecutor executor = (java.util.concurrent.ThreadPoolExecutor) net.minecraft.server.MinecraftServer.getServer().chatExecutor;
+-                executor.setCorePoolSize(_chatExecutorCoreSize);
+-                executor.setMaximumPoolSize(_chatExecutorMaxSize);
++                // DivineMC start - Virtual Threads
++                if (net.minecraft.server.MinecraftServer.getServer().chatExecutor instanceof java.util.concurrent.ThreadPoolExecutor executor) {
++                    executor.setCorePoolSize(_chatExecutorCoreSize);
++                    executor.setMaximumPoolSize(_chatExecutorMaxSize);
++                }
++                // DivineMC end - Virtual Threads
+             }
+         }
+         public int maxJoinsPerTick = 5;
 diff --git a/src/main/java/io/papermc/paper/util/MCUtil.java b/src/main/java/io/papermc/paper/util/MCUtil.java
 index ae3e03fe01f04ce01317268e202d45b6047dddb7..b66b2f39f133b32330cbdced476394cd12a2e469 100644
 --- a/src/main/java/io/papermc/paper/util/MCUtil.java

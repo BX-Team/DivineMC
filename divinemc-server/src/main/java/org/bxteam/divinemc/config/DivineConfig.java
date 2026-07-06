@@ -47,6 +47,8 @@ public class DivineConfig {
     public static final Logger LOGGER = LogManager.getLogger(DivineConfig.class.getSimpleName());
     public static final int CONFIG_VERSION = 8;
 
+    private static final int maxThreads = Runtime.getRuntime().availableProcessors();
+
     private static File configFile;
     public static final YamlFile config = new YamlFile();
 
@@ -97,7 +99,6 @@ public class DivineConfig {
             if (Modifier.isStatic(innerClass.getModifiers())) {
                 try {
                     Object innerInstance = null;
-
                     Method loadMethod = null;
                     try {
                         loadMethod = innerClass.getDeclaredMethod("load");
@@ -191,6 +192,8 @@ public class DivineConfig {
     }
 
     public static class AsyncCategory {
+        private static boolean enableAutoAllocation = false;
+
         // Parallel world ticking settings
         @Experimental("Parallel World Ticking")
         public static boolean enableParallelWorldTicking = false;
@@ -229,12 +232,66 @@ public class DivineConfig {
         public static boolean asyncNaturalSpawn = true;
 
         public static void load() {
+            enableAutoAllocation();
             parallelWorldTicking();
             regionizedChunkTicking();
             asyncPathfinding();
             multithreadedTracker();
             asyncChunkSending();
             asyncMobSpawning();
+            autoAllocation();
+        }
+
+        private static void enableAutoAllocation() {
+            enableAutoAllocation = getBoolean(ConfigCategory.ASYNC.key("auto-thread-allocation"), enableAutoAllocation,
+                "Enables optimal thread allocation for Parallel World Ticking and Regionized Chunk Ticking.",
+                "By enabling this, both Parallel World Ticking and Regionized Chunk Ticking will get enabled and",
+                "thread count in config will get ignored and automatically allocated based on your system's CPU cores."
+            );
+            if (enableAutoAllocation) {
+                if (maxThreads < 6) {
+                    LOGGER.warn("Minimum thread count for auto-thread-allocation is 6, disabling auto-thread-allocation.");
+                    enableAutoAllocation = false;
+                } else {
+                    LOGGER.info("Detected {} CPU threads", maxThreads);
+                }
+            }
+        }
+
+        private static void autoAllocation() {
+            if (!enableAutoAllocation) {
+                return;
+            }
+
+            enableParallelWorldTicking = true;
+            enableRegionizedChunkTicking = true;
+
+            assert maxThreads >= 6;
+            int max = maxThreads - 1;
+            switch (maxThreads) {
+                case 6, 7, 8 -> {
+                    parallelThreadCount = 2;
+                    max -= 2;
+                    regionizedChunkTickingExecutorThreadCount = max; // 3 - 5
+                }
+                case 9, 10, 11 -> {
+                    parallelThreadCount = 3;
+                    max -= 4;
+                    regionizedChunkTickingExecutorThreadCount = max; // 4 - 6
+                }
+                case 12, 13, 14, 15 -> {
+                    parallelThreadCount = 4;
+                    max -= 5;
+                    regionizedChunkTickingExecutorThreadCount = max; // 6 - 9
+                }
+                default -> {
+                    parallelThreadCount = 5;
+                    max -= 5;
+                    regionizedChunkTickingExecutorThreadCount = Math.min(max, 16); // 10 - 16
+                }
+            }
+
+            LOGGER.info("Auto-thread-allocation enabled, using {} threads for parallel world ticking and {} threads for regionized chunk ticking.", parallelThreadCount, regionizedChunkTickingExecutorThreadCount);
         }
 
         private static void parallelWorldTicking() {
@@ -263,7 +320,7 @@ public class DivineConfig {
             regionizedChunkTickingExecutorThreadPriority = getInt(ConfigCategory.ASYNC.key("regionized-chunk-ticking.executor-thread-priority"), regionizedChunkTickingExecutorThreadPriority,
                 "Configures the thread priority of the executor");
 
-            if (regionizedChunkTickingExecutorThreadCount < 1 || regionizedChunkTickingExecutorThreadCount > 10) {
+            if (!enableAutoAllocation && (regionizedChunkTickingExecutorThreadCount <= 1 || regionizedChunkTickingExecutorThreadCount > maxThreads)) {
                 LOGGER.warn("Invalid regionized chunk ticking thread count: {}, resetting to default (4)", regionizedChunkTickingExecutorThreadCount);
                 regionizedChunkTickingExecutorThreadCount = 4;
             }
@@ -275,7 +332,6 @@ public class DivineConfig {
             asyncPathfindingKeepalive = getInt(ConfigCategory.ASYNC.key("pathfinding.keepalive"), asyncPathfindingKeepalive);
             asyncPathfindingQueueSize = getInt(ConfigCategory.ASYNC.key("pathfinding.queue-size"), asyncPathfindingQueueSize);
 
-            final int maxThreads = Runtime.getRuntime().availableProcessors();
             if (asyncPathfindingMaxThreads < 0) {
                 asyncPathfindingMaxThreads = Math.max(maxThreads + asyncPathfindingMaxThreads, 1);
             } else if (asyncPathfindingMaxThreads == 0) {
@@ -318,9 +374,9 @@ public class DivineConfig {
             asyncEntityTrackerQueueSize = getInt(ConfigCategory.ASYNC.key("multithreaded-tracker.queue-size"), asyncEntityTrackerQueueSize);
 
             if (asyncEntityTrackerMaxThreads < 0) {
-                asyncEntityTrackerMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() + asyncEntityTrackerMaxThreads, 1);
+                asyncEntityTrackerMaxThreads = Math.max(maxThreads + asyncEntityTrackerMaxThreads, 1);
             } else if (asyncEntityTrackerMaxThreads == 0) {
-                asyncEntityTrackerMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() / 4, 1);
+                asyncEntityTrackerMaxThreads = Math.max(maxThreads / 4, 1);
             }
 
             if (!multithreadedEnabled) {
@@ -338,9 +394,9 @@ public class DivineConfig {
             asyncChunkSendingMaxThreads = getInt(ConfigCategory.ASYNC.key("chunk-sending.max-threads"), asyncChunkSendingMaxThreads);
 
             if (asyncChunkSendingMaxThreads < 0) {
-                asyncChunkSendingMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() + asyncChunkSendingMaxThreads, 1);
+                asyncChunkSendingMaxThreads = Math.max(maxThreads + asyncChunkSendingMaxThreads, 1);
             } else if (asyncChunkSendingMaxThreads == 0) {
-                asyncChunkSendingMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() / 4, 1);
+                asyncChunkSendingMaxThreads = Math.max(maxThreads / 4, 1);
             }
         }
 
@@ -401,13 +457,13 @@ public class DivineConfig {
         ));
 
         // Virtual threads
-        public static boolean virtualThreadsEnabled = false;
-        public static boolean virtualBukkitScheduler = false;
-        public static boolean virtualChatScheduler = false;
-        public static boolean virtualTabCompleteScheduler = false;
-        public static boolean virtualAsyncExecutor = false;
-        public static boolean virtualCommandBuilderScheduler = false;
-        public static boolean virtualServerTextFilterPool = false;
+        public static boolean virtualThreadsEnabled = true;
+        public static boolean virtualBukkitScheduler = true;
+        public static boolean virtualChatScheduler = true;
+        public static boolean virtualTabCompleteScheduler = true;
+        public static boolean virtualAsyncExecutor = true;
+        public static boolean virtualCommandBuilderScheduler = true;
+        public static boolean virtualServerTextFilterPool = true;
 
         public static void load() {
             chunkSettings();
