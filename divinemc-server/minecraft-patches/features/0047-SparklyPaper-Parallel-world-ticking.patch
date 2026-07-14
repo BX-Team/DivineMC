@@ -1432,3 +1432,68 @@ index 6b3ce2ded53a7ea46cf7f0cb49043a022f6d9ee7..fbf0e14f6dd7907e2cb3a63a4410dbfe
 +        // DivineMC end - Parallel world ticking
      }
  }
+diff --git a/net/minecraft/world/level/storage/SavedDataStorage.java b/net/minecraft/world/level/storage/SavedDataStorage.java
+index f359e53024019f35aaa5cd8477da708bda2fc57a..a1b2c90b32abed4d494b2a1fd4513ef9dcf23d19 100644
+--- a/net/minecraft/world/level/storage/SavedDataStorage.java
++++ b/net/minecraft/world/level/storage/SavedDataStorage.java
+@@ -40,7 +40,7 @@ import org.slf4j.Logger;
+ 
+ public class SavedDataStorage implements AutoCloseable {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    public final Map<SavedDataType<?>, Optional<SavedData>> cache = new HashMap<>();
++    public final Map<SavedDataType<?>, Optional<SavedData>> cache = new java.util.concurrent.ConcurrentHashMap<>(); // DivineMC - Parallel world ticking - thread-safe saved data storage
+     private final DataFixer fixerUpper;
+     private final HolderLookup.Provider registries;
+     private final Path dataFolder;
+@@ -63,24 +63,29 @@ public class SavedDataStorage implements AutoCloseable {
+     }
+ 
+     public <T extends SavedData> T computeIfAbsent(final SavedDataType<T> type) {
+-        T data = this.get(type);
+-        if (data != null) {
+-            return data;
+-        }
++        // DivineMC start - Parallel world ticking - thread-safe saved data storage
++        Optional<SavedData> data = this.cache.compute(type, (key, existing) -> {
++            if (existing == null) {
++                existing = Optional.ofNullable(this.readSavedData(type));
++            }
++
++            if (existing.isEmpty()) {
++                SavedData newData = type.constructor().get();
++                newData.setDirty();
++                existing = Optional.of(newData);
++            }
+ 
+-        T newData = (T)type.constructor().get();
+-        this.set(type, newData);
+-        return newData;
++            return existing;
++        });
++        return (T)data.orElseThrow();
++        // DivineMC end - Parallel world ticking - thread-safe saved data storage
+     }
+ 
+     public <T extends SavedData> @Nullable T get(final SavedDataType<T> type) {
+-        Optional<SavedData> data = this.cache.get(type);
+-        if (data == null) {
+-            data = Optional.ofNullable(this.readSavedData(type));
+-            this.cache.put(type, data);
+-        }
+-
++        // DivineMC start - Parallel world ticking - thread-safe saved data storage
++        Optional<SavedData> data = this.cache.computeIfAbsent(type, key -> Optional.ofNullable(this.readSavedData(type)));
+         return (T)data.orElse(null);
++        // DivineMC end - Parallel world ticking - thread-safe saved data storage
+     }
+ 
+     private <T extends SavedData> @Nullable T readSavedData(final SavedDataType<T> type) {
+@@ -143,7 +148,7 @@ public class SavedDataStorage implements AutoCloseable {
+         return gzip;
+     }
+ 
+-    public CompletableFuture<?> scheduleSave() {
++    public synchronized CompletableFuture<?> scheduleSave() { // DivineMC - Parallel world ticking - thread-safe saved data storage
+         if (this.closed) {
+             throw new IllegalStateException("Trying to schedule save when SavedDataStorage is already closed");
+         }

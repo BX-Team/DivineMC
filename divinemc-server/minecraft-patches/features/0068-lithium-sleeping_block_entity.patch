@@ -417,9 +417,18 @@ index 75220dba2aa0b0d2fddefaf237171c4abd9ca927..49dac8de38dfb60d39b71e8c9fda1912
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index fd2212fb14d4a596c4483d9a266d8e6acde705da..363568f4c5a8291c9fd495c5a25e25a40bab51a9 100644
+index fd2212fb14d4a596c4483d9a266d8e6acde705da..6b309af9e0923ac69f4dc115f755adf831aab648 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
+@@ -1570,7 +1570,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+             final TickingBlockEntity ticker = this.blockEntityTickers.get(tickerIndex);
+             if (ticker.isRemoved()) {
+                 this.blockEntityTickers.markAsRemoved(tickerIndex); // DivineMC - optimize block entity removals - Fix MC-117075
+-            } else if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
++            } else if (tickBlockEntities && this.shouldTickBlockPosFilterNull(ticker.getPos())) { // DivineMC - lithium: sleeping_block_entity - sleeping tickers have a null pos
+                 ticker.tick();
+                 // DivineMC start - Parallel world ticking
+                 ++tickedEntities;
 @@ -2297,4 +2297,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
