@@ -224,7 +224,7 @@ public class DivineConfig {
         public static int asyncEntityTrackerQueueSize = 0;
 
         // Async chunk sending settings
-        public static boolean asyncChunkSendingEnabled = true;
+        public static boolean asyncChunkSendingEnabled = false;
         public static int asyncChunkSendingMaxThreads = 1;
 
         // Async mob spawning settings
