@@ -69,10 +69,10 @@ index f398d48910dff89c41d1344ebf7b793c27dcb6aa..aa5989ed22b3b72137c5d037c7e1315a
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 653e3b5f8ff6344d716115b693e607057af14e43..564f479de20ee1d549e374c1b19ff70479a00d99 100644
+index 74e0e35eeccbb87fa889ed924673e259625a0154..4768682322e01e13db2a0be965a486cba99d4fb6 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1521,11 +1521,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1525,11 +1525,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      public void tickNonPassenger(final Entity entity) {
          // Paper start - log detailed entity tick information
          ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot tick an entity off-main");
@@ -84,7 +84,7 @@ index 653e3b5f8ff6344d716115b693e607057af14e43..564f479de20ee1d549e374c1b19ff704
          entity.setOldPosAndRot();
          ProfilerFiller profiler = Profiler.get();
          entity.tickCount++;
-@@ -1542,13 +1537,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1546,13 +1541,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          for (Entity passenger : entity.getPassengers()) {
              this.tickPassenger(entity, passenger, isActive); // Paper - EAR 2
          }

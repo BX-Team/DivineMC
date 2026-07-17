@@ -38,6 +38,8 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     public final RollingLongBuffer avgTime = new RollingLongBuffer(100);
     private final LongOpenHashSet tickedChunkKeys = new LongOpenHashSet(8192);
     private int i = 0;
+    private TickPair pendingEntityTick;
+    private long blockPhaseNanos;
 
     public RegionizedChunkTicking(
         ServerLevel level,
@@ -79,8 +81,20 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
 
         spawns.join();
 
-        ObjectArrayList<CompletableFuture<Void>> entityFutures = new ObjectArrayList<>(regions.length);
-        for (final RegionData region : regions) {
+        this.pendingEntityTick = tickPair;
+        this.blockPhaseNanos = System.nanoTime() - start;
+    }
+
+    public void tickEntitiesParallel() {
+        final TickPair tickPair = this.pendingEntityTick;
+        if (tickPair == null) {
+            return;
+        }
+        this.pendingEntityTick = null;
+
+        final long start = System.nanoTime();
+        ObjectArrayList<CompletableFuture<Void>> entityFutures = new ObjectArrayList<>(tickPair.regions().length);
+        for (final RegionData region : tickPair.regions()) {
             if (region == null || region.entities().isEmpty()) {
                 continue;
             }
@@ -88,8 +102,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         }
         finishEntityTicking(entityFutures, tickPair);
 
-        final long end = System.nanoTime();
-        avgTime.add(end - start);
+        avgTime.add(this.blockPhaseNanos + (System.nanoTime() - start));
     }
 
     private CompletableFuture<LongOpenHashSet> tickBlocks(RegionData region, int randomTickSpeed) {
@@ -304,6 +317,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     }
 
     private void tickEntity(Entity entity) {
+        entity.activatedPriorityReset = false; // DivineMC - Dynamic Activation of Brain - matches the non-RCT entity tick path
         if (!entity.isRemoved() && !level.tickRateManager().isEntityFrozen(entity)) {
             if (entity.moonrise$isUpdatingSectionStatus()) {
                 LOGGER.info("Skipping tick for entity {} as it is in the process of updating section status", entity);
