@@ -41,7 +41,7 @@ metadata_json=$(jq -n --argjson bn "$BUILD_NUMBER" --arg ch "$api_channel" --arg
 
 echo "$metadata_json" | jq . > metadata.json 2>/dev/null || echo "$metadata_json" > metadata.json
 
-API_URL="https://bxteam.org/api/v2/projects/divinemc/versions/$mcversion/builds/upload"
+API_URL="https://api.bxteam.org/atlas/projects/divinemc/versions/$mcversion/builds/upload"
 API_KEY="${API_KEY:-}"
 
 if [ -z "$API_KEY" ]; then
