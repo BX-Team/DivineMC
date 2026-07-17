@@ -53,7 +53,7 @@ For anything else you can refer to our [contribution guide](https://bxteam.org/d
 <dependency>
   <groupId>org.bxteam.divinemc</groupId>
   <artifactId>divinemc-api</artifactId>
-  <version>[26.1.2.build,)</version>
+  <version>[26.2.build,)</version>
   <scope>provided</scope>
 </dependency>
 ```
@@ -66,7 +66,7 @@ repositories {
 ```
 ```kotlin
 dependencies {
-    compileOnly("org.bxteam.divinemc:divinemc-api:26.1.2.build.+")
+    compileOnly("org.bxteam.divinemc:divinemc-api:26.2.build.+")
 }
 ```
 

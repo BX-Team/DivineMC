@@ -1,9 +1,9 @@
-name: Build DivineMC 26.1.2
+name: Build DivineMC 26.2
 
 on:
   push:
     branches:
-      - "ver/26.1.2"
+      - "ver/26.2"
   workflow_dispatch:
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
       build_number: ${{ env.BUILD_NUMBER }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
