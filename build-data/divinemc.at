@@ -7,7 +7,9 @@ private-f net.minecraft.world.level.levelgen.NoiseChunk$NoiseInterpolator noiseF
 private-f net.minecraft.world.level.levelgen.RandomState router
 private-f net.minecraft.world.level.levelgen.RandomState sampler
 public net.minecraft.core.NonNullList list
+public net.minecraft.server.level.ServerLevel chunkSource
 public net.minecraft.server.level.ServerLevel entityTickList
+public net.minecraft.server.players.PlayerList players
 public net.minecraft.util.Mth SIN
 public net.minecraft.world.entity.Entity levelCallback
 public net.minecraft.world.entity.ai.Brain sensors
@@ -26,6 +28,7 @@ public net.minecraft.world.level.Level isClientSide
 public net.minecraft.world.level.chunk.LevelChunk$RebindableTickingBlockEntityWrapper
 public net.minecraft.world.level.chunk.LevelChunk$RebindableTickingBlockEntityWrapper rebind(Lnet/minecraft/world/level/block/entity/TickingBlockEntity;)V
 public net.minecraft.world.level.chunk.LevelChunk$RebindableTickingBlockEntityWrapper ticker
+public net.minecraft.world.level.chunk.LevelChunkSection states
 public net.minecraft.world.level.chunk.PaletteResize
 public net.minecraft.world.level.chunk.storage.RegionFile getOversizedData(II)Lnet/minecraft/nbt/CompoundTag;
 public net.minecraft.world.level.chunk.storage.RegionFile isOversized(II)Z
@@ -38,6 +41,7 @@ public net.minecraft.world.level.levelgen.DensityFunctions$BlendDensity
 public net.minecraft.world.level.levelgen.DensityFunctions$BlendOffset
 public net.minecraft.world.level.levelgen.DensityFunctions$Clamp
 public net.minecraft.world.level.levelgen.DensityFunctions$Constant
+public net.minecraft.world.level.levelgen.DensityFunctions$IntervalSelect
 public net.minecraft.world.level.levelgen.DensityFunctions$Mapped
 public net.minecraft.world.level.levelgen.DensityFunctions$Mapped$Type
 public net.minecraft.world.level.levelgen.DensityFunctions$Noise
@@ -51,6 +55,7 @@ public net.minecraft.world.level.levelgen.DensityFunctions$WeirdScaledSampler
 public net.minecraft.world.level.levelgen.DensityFunctions$WeirdScaledSampler$RarityValueMapper mapper
 public net.minecraft.world.level.levelgen.DensityFunctions$YClampedGradient
 public net.minecraft.world.level.levelgen.Heightmap setHeight(III)V
+public net.minecraft.world.level.levelgen.NoiseChunk blender
 public net.minecraft.world.level.levelgen.NoiseChunk$BlendAlpha
 public net.minecraft.world.level.levelgen.NoiseChunk$BlendOffset
 public net.minecraft.world.level.levelgen.NoiseRouterData$QuantizedSpaghettiRarity

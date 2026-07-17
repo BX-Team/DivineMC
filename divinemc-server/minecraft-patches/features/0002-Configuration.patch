@@ -5,10 +5,10 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 891df1e27e6f7d6c8b331eb446bb80ceb8f853e0..b85a6ce9029b45a749e0ad8eff39abd4c4886669 100644
+index 2627039d46af92de3f68a2e508c9c2e17822e10d..49e6975b247252a699af0326e8e67860949521a6 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -269,6 +269,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -230,6 +230,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
              this.setLocalIp(properties.serverIp);
          }
  
@@ -17,7 +17,7 @@ index 891df1e27e6f7d6c8b331eb446bb80ceb8f853e0..b85a6ce9029b45a749e0ad8eff39abd4
          // Spigot start
          this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
          org.spigotmc.SpigotConfig.init((java.io.File) this.options.valueOf("spigot-settings"));
-@@ -283,6 +285,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -244,6 +246,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          }
          org.purpurmc.purpur.PurpurConfig.registerCommands();
          // Purpur end - Migrate Setting to reintroduce end void rings
@@ -26,10 +26,10 @@ index 891df1e27e6f7d6c8b331eb446bb80ceb8f853e0..b85a6ce9029b45a749e0ad8eff39abd4
          this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
          this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 4464428c9163fa33ea6f750af4d14a030fcbcf20..8db987b78010688e76fda817650e29eb1019f7e8 100644
+index d272874549a71b77fadeaa39f655ddc6d51f75a7..0e91b5de2b888c7c2fb573fb9d685a5321ae5368 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -172,6 +172,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -173,6 +173,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      // Paper end - add paper world config
  
      public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files
@@ -37,7 +37,7 @@ index 4464428c9163fa33ea6f750af4d14a030fcbcf20..8db987b78010688e76fda817650e29eb
      public static @Nullable BlockPos lastPhysicsProblem; // Spigot
      public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
      public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
-@@ -897,6 +898,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -898,6 +899,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(bukkitName, worldKey); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
          this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(bukkitName, environment, worldKey); // Purpur - Purpur config files

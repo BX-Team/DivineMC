@@ -204,10 +204,10 @@ index 5eb7d46bf0d84720662125711fa7b544e9299446..5aecaee50918d60e2a4cac47fd204891
          private static final String PREFIX = "data:image/png;base64,";
          public static final Codec<ServerStatus.Favicon> CODEC = Codec.STRING.comapFlatMap(string -> {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index b85a6ce9029b45a749e0ad8eff39abd4c4886669..060c4c2c0ba29c9f8c26b4ea7703950893160a3e 100644
+index 49e6975b247252a699af0326e8e67860949521a6..52929c90e8749dfe137023e7723c37f9e2858b65 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -870,6 +870,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -837,6 +837,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
  
      @Override
      public boolean enforceSecureProfile() {
@@ -216,7 +216,7 @@ index b85a6ce9029b45a749e0ad8eff39abd4c4886669..060c4c2c0ba29c9f8c26b4ea77039508
          // Paper start - Add setting for proxy online mode status
          return properties.enforceSecureProfile
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 9057ec887d136ea85ede153cd5ec76ae816f0239..7874d893276ab5fb441a5cf70c3e71edc2a90443 100644
+index 048bbab91c4614f8935797b389594c1bdd4542b0..e0885debae3fd2b8fbdd152c33000cc0d00c2968 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -340,11 +340,65 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
@@ -287,19 +287,19 @@ index 9057ec887d136ea85ede153cd5ec76ae816f0239..7874d893276ab5fb441a5cf70c3e71ed
          if (packet == null) {
              return;
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 02401e8fea50067c6b33889038109eafa882aeda..ded724ed453f51364390cbfe76b0daae36ea7e75 100644
+index a42d5c43ef04ec7a68d8f37ad7a7bfc6e719411b..c67d0039d40940e26e4f63b6d093c4e228f7d6cb 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -188,7 +188,7 @@ public abstract class PlayerList {
-                 !immediateRespawn,
+@@ -189,7 +189,7 @@ public abstract class PlayerList {
                  doLimitedCrafting,
                  player.createCommonSpawnInfo(level),
+                 this.server.usesAuthentication(),
 -                this.server.enforceSecureProfile()
 +                org.bxteam.divinemc.config.DivineConfig.NetworkCategory.noChatReportsEnabled || this.server.enforceSecureProfile() // DivineMC - Implement NoChatReports
              )
          );
          player.getBukkitEntity().sendSupportedChannels(); // CraftBukkit
-@@ -1201,6 +1201,7 @@ public abstract class PlayerList {
+@@ -1204,6 +1204,7 @@ public abstract class PlayerList {
      }
  
      public boolean verifyChatTrusted(final PlayerChatMessage message) {

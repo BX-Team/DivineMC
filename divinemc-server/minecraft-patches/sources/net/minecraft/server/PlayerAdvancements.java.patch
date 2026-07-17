@@ -4,12 +4,12 @@
      private @Nullable AdvancementHolder lastSelectedTab;
      private boolean isFirstPacket = true;
      private final Codec<PlayerAdvancements.Data> codec;
--    public final Map<net.minecraft.advancements.criterion.SimpleCriterionTrigger<?>, Set<CriterionTrigger.Listener<?>>> criterionData = new java.util.IdentityHashMap<>(); // Paper - fix advancement data player leakage
-+    public final Map<net.minecraft.advancements.criterion.SimpleCriterionTrigger<?>, Set<CriterionTrigger.Listener<?>>> criterionData = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>(); // Paper - fix advancement data player leakage // DivineMC - Use fastutil for criterion data
+-    private final Map<CriterionTrigger<?>, Map<PlayerAdvancements.TriggerInstanceKey, ? extends CriterionTriggerInstance>> activeTriggers = new IdentityHashMap<>();
++    private final Map<CriterionTrigger<?>, Map<PlayerAdvancements.TriggerInstanceKey, ? extends CriterionTriggerInstance>> activeTriggers = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>(); // DivineMC - Use fastutil for criterion data
  
      public PlayerAdvancements(
          final DataFixer dataFixer, final PlayerList playerList, final ServerAdvancementManager manager, final Path playerSavePath, final ServerPlayer player
-@@ -212,6 +_,11 @@
+@@ -210,6 +_,11 @@
      }
  
      public boolean revoke(final AdvancementHolder advancement, final String criterion) {

@@ -7,7 +7,7 @@
 +val bxTeamMavenPublicUrl = "https://repo.bxteam.org/snapshots/"
  
  dependencies {
-     mache("io.papermc:mache:26.1.2+build.3")
+     mache("io.papermc:mache:26.2+build.1")
 @@ -26,6 +_,7 @@
  
      // Purpur start - Rebrand
@@ -43,7 +43,7 @@
 +    // DivineMC end - Rebrand
 +
      /*updatingMinecraft { // Purpur start - TODO - snapshot - we don't need this
-         // oldPaperCommit = "711c5de2b05df39b72c44ff54e9f9381f8d153cb"
+         // oldPaperCommit = "d4fe85375af18bfa88f44d7c1e6a61904ae550cc"
      }*/ // Purpur end - TODO - snapshot - we don't need this
 @@ -45,6 +_,7 @@
      libraryRepositories.addAll(
@@ -90,7 +90,7 @@
 +    implementation("net.objecthunter:exp4j:0.4.8")
 +    // DivineMC end - Dependencies
 +
-     implementation("ca.spottedleaf:concurrentutil:0.0.10")
+     implementation("ca.spottedleaf:leafpile:1.0.0")
 -    implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
 -    implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21
 +    implementation("org.jline:jline-terminal-ffm:3.29.0") // use ffm on java 22+ // DivineMC - Bump dependencies

@@ -1,14 +1,5 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -263,7 +_,7 @@
-     private static double viewScale = 1.0;
-     private final EntityType<?> type;
-     private boolean requiresPrecisePosition;
--    private int id = ENTITY_COUNTER.incrementAndGet();
-+    private int id = Entity.nextEntityId(); // DivineMC - Prevent Entity ID counter overflow
-     public boolean blocksBuilding;
-     public ImmutableList<Entity> passengers = ImmutableList.of();
-     protected int boardingCooldown;
 @@ -390,6 +_,7 @@
      public long activatedTick = Integer.MIN_VALUE;
      public boolean isTemporarilyActive;
@@ -17,7 +8,7 @@
  
      public void inactiveTick() {
      }
-@@ -1162,6 +_,7 @@
+@@ -1167,6 +_,7 @@
      // Paper end - detailed watchdog information
  
      public void move(final MoverType moverType, Vec3 delta) {
@@ -25,7 +16,7 @@
          final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
          ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
-@@ -2669,6 +_,7 @@
+@@ -2758,6 +_,7 @@
              }
  
              this.addAdditionalSaveData(output, includeAll); // CraftBukkit - pass on includeAll
@@ -33,7 +24,7 @@
              if (this.isVehicle()) {
                  ValueOutput.ValueOutputList passengersList = output.childrenList("Passengers");
  
-@@ -2780,6 +_,7 @@
+@@ -2869,6 +_,7 @@
                  this.tags.clear();
                  input.read("Tags", TAG_LIST_CODEC).ifPresent(this.tags::addAll);
                  this.readAdditionalSaveData(input);
@@ -41,7 +32,7 @@
                  if (this.repositionEntityAfterLoad()) {
                      this.reapplyPosition();
                  }
-@@ -4300,6 +_,7 @@
+@@ -4373,6 +_,7 @@
      }
  
      public boolean canTeleport(final Level from, final Level to) {
@@ -49,7 +40,7 @@
          if (!this.isAlive() || !this.valid) return false; // Paper - Fix item duplication and teleport issues
          if (from.dimension() == Level.END && to.dimension() == Level.OVERWORLD) {
              for (Entity passenger : this.getPassengers()) {
-@@ -4563,6 +_,7 @@
+@@ -4638,6 +_,7 @@
      }
  
      public final void setBoundingBox(final AABB bb) {
@@ -57,19 +48,3 @@
          // CraftBukkit start - block invalid bounding boxes
          double minX = bb.minX,
                  minY = bb.minY,
-@@ -5442,7 +_,14 @@
- 
-     // Paper start - Expose entity id counter
-     public static int nextEntityId() {
--        return ENTITY_COUNTER.incrementAndGet();
-+        // DivineMC start - Prevent Entity ID counter overflow
-+        int next = ENTITY_COUNTER.incrementAndGet();
-+        if (next <= 0) {
-+            ENTITY_COUNTER.set(1);
-+            return 1;
-+        }
-+        return next;
-+        // DivineMC end - Prevent Entity ID counter overflow
-     }
- 
-     public boolean isTicking() {

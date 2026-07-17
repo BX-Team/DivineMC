@@ -5,30 +5,30 @@ Subject: [PATCH] Optimize Raids
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index a993b195bcc60552b478424d3f3c69374dba04ba..27ff114d0f888a8f40ab246ff6063aaf079ed03d 100644
+index 4f0e5a01d4372d1120cab50616517423f7ca822d..cfdb8598054bc99bb9542d4d2c217c474e1c5e42 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -237,6 +237,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
-     public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
+@@ -238,6 +238,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+     public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
      private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
      public boolean hasRidableMoveEvent = false; // Purpur - Ridables
 +    public net.minecraft.world.item.ItemStack ominousBanner; // DivineMC - Optimize Raids
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -759,6 +760,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -760,6 +761,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+         this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
-         this.preciseTime = this.serverLevelData.getGameTime(); // Purpur - Configurable daylight cycle
 +        this.ominousBanner = Objects.requireNonNullElse(this.registryAccess(), net.minecraft.core.RegistryAccess.EMPTY).lookup(Registries.BANNER_PATTERN).map(Raid::getOminousBannerInstance).orElse(null); // DivineMC - Optimize Raids
      }
  
      // Paper start
 diff --git a/net/minecraft/world/entity/raid/Raid.java b/net/minecraft/world/entity/raid/Raid.java
-index 7382dbc587ad18de56b1d10af4f4e558bcd91fd3..54fcb7cbfeedbd10c65f0ec3ed7751ba7016823e 100644
+index d6d3f8856decae3739972071939d34faab88037e..aa05acb6da6e5738a974c377bf7a4d5bd203292b 100644
 --- a/net/minecraft/world/entity/raid/Raid.java
 +++ b/net/minecraft/world/entity/raid/Raid.java
-@@ -131,6 +131,7 @@ public class Raid {
+@@ -132,6 +132,7 @@ public class Raid {
      private Raid.RaidStatus status;
      private int celebrationTicks;
      private Optional<BlockPos> waveSpawnPos = Optional.empty();
@@ -36,7 +36,7 @@ index 7382dbc587ad18de56b1d10af4f4e558bcd91fd3..54fcb7cbfeedbd10c65f0ec3ed7751ba
  
      public Raid(final BlockPos center, final Difficulty difficulty) {
          this.active = true;
-@@ -283,6 +284,12 @@ public class Raid {
+@@ -284,6 +285,12 @@ public class Raid {
      }
  
      public void tick(final ServerLevel level) {
@@ -49,7 +49,7 @@ index 7382dbc587ad18de56b1d10af4f4e558bcd91fd3..54fcb7cbfeedbd10c65f0ec3ed7751ba
          if (!this.isStopped()) {
              if (this.status == Raid.RaidStatus.ONGOING) {
                  boolean oldActive = this.active;
-@@ -615,7 +622,7 @@ public class Raid {
+@@ -616,7 +623,7 @@ public class Raid {
      }
  
      public void updateBossbar() {
@@ -59,10 +59,10 @@ index 7382dbc587ad18de56b1d10af4f4e558bcd91fd3..54fcb7cbfeedbd10c65f0ec3ed7751ba
  
      public float getHealthOfLivingRaiders() {
 diff --git a/net/minecraft/world/entity/raid/Raider.java b/net/minecraft/world/entity/raid/Raider.java
-index 7eeb25f068d77095dbd35e5f9c079a78f24538fe..eb40ea899ffa771d40922a16ba95fad5839cc1ac 100644
+index 3c68ca6a9f2ccb8eb67f1dbb009222324dff7c8d..e8f38f8e7de1963409c7a1c0caa6b0324b066986 100644
 --- a/net/minecraft/world/entity/raid/Raider.java
 +++ b/net/minecraft/world/entity/raid/Raider.java
-@@ -44,9 +44,25 @@ import org.jspecify.annotations.Nullable;
+@@ -45,9 +45,25 @@ import org.jspecify.annotations.Nullable;
  
  public abstract class Raider extends PatrollingMonster {
      protected static final EntityDataAccessor<Boolean> IS_CELEBRATING = SynchedEntityData.defineId(Raider.class, EntityDataSerializers.BOOLEAN);
@@ -91,7 +91,7 @@ index 7eeb25f068d77095dbd35e5f9c079a78f24538fe..eb40ea899ffa771d40922a16ba95fad5
      private static final int DEFAULT_WAVE = 0;
      private static final boolean DEFAULT_CAN_JOIN_RAID = false;
      protected @Nullable Raid raid;
-@@ -149,7 +165,7 @@ public abstract class Raider extends PatrollingMonster {
+@@ -150,7 +166,7 @@ public abstract class Raider extends PatrollingMonster {
      public boolean isCaptain() {
          ItemStack banner = this.getItemBySlot(EquipmentSlot.HEAD);
          boolean hasCaptainBanner = !banner.isEmpty()
@@ -100,7 +100,7 @@ index 7eeb25f068d77095dbd35e5f9c079a78f24538fe..eb40ea899ffa771d40922a16ba95fad5
          boolean patrolLeader = this.isPatrolLeader();
          return hasCaptainBanner && patrolLeader;
      }
-@@ -212,7 +228,7 @@ public abstract class Raider extends PatrollingMonster {
+@@ -213,7 +229,7 @@ public abstract class Raider extends PatrollingMonster {
          boolean hasRaidLeader = this.hasActiveRaid() && this.getCurrentRaid().getLeader(this.getWave()) != null;
          if (this.hasActiveRaid()
              && !hasRaidLeader
@@ -109,7 +109,7 @@ index 7eeb25f068d77095dbd35e5f9c079a78f24538fe..eb40ea899ffa771d40922a16ba95fad5
              // Paper start - EntityPickupItemEvent fixes
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, entity, 0).isCancelled()) {
                  return;
-@@ -396,6 +412,16 @@ public abstract class Raider extends PatrollingMonster {
+@@ -395,6 +411,16 @@ public abstract class Raider extends PatrollingMonster {
                  && !this.cannotPickUpBanner();
          }
  
@@ -126,7 +126,7 @@ index 7eeb25f068d77095dbd35e5f9c079a78f24538fe..eb40ea899ffa771d40922a16ba95fad5
          private boolean cannotPickUpBanner() {
              if (!getServerLevel(this.mob).getGameRules().get(net.minecraft.world.level.gamerules.GameRules.MOB_GRIEFING, this.mob.level().purpurConfig.pillagerCanPickUpLoot)) return true; // Paper - respect game and entity rules for picking up items // Purpur - Check mobGriefing Overrides
              if (!this.mob.hasActiveRaid()) {
-@@ -411,7 +437,7 @@ public abstract class Raider extends PatrollingMonster {
+@@ -410,7 +436,7 @@ public abstract class Raider extends PatrollingMonster {
              }
  
              if (ItemStack.matches(

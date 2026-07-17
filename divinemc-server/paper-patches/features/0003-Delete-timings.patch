@@ -5,7 +5,7 @@ Subject: [PATCH] Delete timings
 
 
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-index e989053b703fddfbffc3e4ed9381594aaaa0df41..d7398b1ecf2660c29fb7d106b48fe02d3736603e 100644
+index 0c59175f4fa4cf093c4d764ab8a8ebd929758026..be70298daa6adbb18c442ce50ef242556a167ff9 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 @@ -1,6 +1,5 @@
@@ -15,23 +15,6 @@ index e989053b703fddfbffc3e4ed9381594aaaa0df41..d7398b1ecf2660c29fb7d106b48fe02d
  import com.destroystokyo.paper.event.server.ServerExceptionEvent;
  import com.destroystokyo.paper.exception.ServerEventException;
  import com.google.common.collect.Sets;
-@@ -96,7 +95,6 @@ class PaperEventManager {
-             throw new IllegalPluginAccessException("Plugin attempted to register " + event + " while not enabled");
-         }
- 
--        executor = new TimedEventExecutor(executor, plugin, null, event);
-         this.getEventListeners(event).register(new RegisteredListener(listener, executor, priority, plugin, ignoreCancelled));
-     }
- 
-@@ -183,7 +181,7 @@ class PaperEventManager {
-                 }
-             }
- 
--            EventExecutor executor = new TimedEventExecutor(EventExecutor.create(method, eventClass), plugin, method, eventClass);
-+            EventExecutor executor = EventExecutor.create(method, eventClass); // DivineMC - Delete timings
-             eventSet.add(new RegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
-         }
-         return ret;
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperPluginManagerImpl.java b/src/main/java/io/papermc/paper/plugin/manager/PaperPluginManagerImpl.java
 index 097500a59336db1bbfffcd1aa4cff7a8586e46ec..69341cb3b11409e41b9ff756b11d9bd1b9e6da10 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperPluginManagerImpl.java

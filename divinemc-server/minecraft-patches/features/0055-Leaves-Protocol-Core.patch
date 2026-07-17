@@ -7,7 +7,7 @@ Original project: https://github.com/LeavesMC/Leaves
 Original license: GPLv3
 
 diff --git a/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java b/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
-index 812649b85290068af1ccea2ca69afa1817e14427..efe131bc1a4f112793fefc973d1b3ce7aa197a15 100644
+index 08e253662a2c183c0ab53a51cc07485cff33bf2c..9ba33e2bbb7fb8309bfadecd6f5d370a7c9bead0 100644
 --- a/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 +++ b/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 @@ -40,13 +40,22 @@ public interface CustomPacketPayload {
@@ -35,10 +35,10 @@ index 812649b85290068af1ccea2ca69afa1817e14427..efe131bc1a4f112793fefc973d1b3ce7
          };
      }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 7487f5f4d6abaf3f4fa666ac9e0d8299b0ec2581..a19756c5a798fed03d2b6941b0d2b7a538a33050 100644
+index 8eb45a1733a563b6accf0d783d2510b1be4fa7e1..e5e20659d526a8611410cf9b96fd0a9659b1c5ea 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1985,6 +1985,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1961,6 +1961,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          profiler.popPush("server gui refresh");
  
@@ -48,11 +48,11 @@ index 7487f5f4d6abaf3f4fa666ac9e0d8299b0ec2581..a19756c5a798fed03d2b6941b0d2b7a5
              tickable.run();
          }
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 7874d893276ab5fb441a5cf70c3e71edc2a90443..1aeffa2d02673ad8002673cae12e4f282ff525ac 100644
+index e0885debae3fd2b8fbdd152c33000cc0d00c2968..127637023a3d6cec317c7c7d1e9324ef37b95ce0 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -62,6 +62,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
-     public @Nullable String playerBrand;
+     public @Nullable String clientBrand;
      public final java.util.Set<String> pluginMessagerChannels;
      // Paper end - retain certain values
 +    public final GameProfile profile; // DivineMC - Leaves Protocol Core
@@ -94,10 +94,10 @@ index 7874d893276ab5fb441a5cf70c3e71edc2a90443..1aeffa2d02673ad8002673cae12e4f28
              bridge.removeChannel(channel);
          }
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 7c43f3d0bb258e6423e1678b82feb8e2fdfb0efc..af6b571179bbc318c91226319b076b53873941ac 100644
+index 1e0a06488c8476b087677f8b3767a83085dcefc6..cd6ddb4be7a8a56ecf85bcecdcec845bbb5b8e20 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -253,6 +253,8 @@ public abstract class PlayerList {
+@@ -254,6 +254,8 @@ public abstract class PlayerList {
              return;
          }
  
@@ -106,7 +106,7 @@ index 7c43f3d0bb258e6423e1678b82feb8e2fdfb0efc..af6b571179bbc318c91226319b076b53
          final net.kyori.adventure.text.Component jm = playerJoinEvent.joinMessage();
  
          if (jm != null && !jm.equals(net.kyori.adventure.text.Component.empty())) { // Paper - Adventure
-@@ -440,6 +442,7 @@ public abstract class PlayerList {
+@@ -441,6 +443,7 @@ public abstract class PlayerList {
          return this.remove(player, net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? player.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(player.getDisplayName())));
      }
      public net.kyori.adventure.text.@Nullable Component remove(final ServerPlayer player, final net.kyori.adventure.text.Component leaveMessage) {
@@ -114,7 +114,7 @@ index 7c43f3d0bb258e6423e1678b82feb8e2fdfb0efc..af6b571179bbc318c91226319b076b53
          // Paper end - Fix kick event leave message not being sent
          org.purpurmc.purpur.task.BossBarTask.removeFromAll(player.getBukkitEntity()); // Purpur - Implement TPSBar
          ServerLevel level = player.level();
-@@ -1338,6 +1341,7 @@ public abstract class PlayerList {
+@@ -1345,6 +1348,7 @@ public abstract class PlayerList {
              player.connection.send(recipes);
              player.getRecipeBook().sendInitialRecipeBook(player);
          }

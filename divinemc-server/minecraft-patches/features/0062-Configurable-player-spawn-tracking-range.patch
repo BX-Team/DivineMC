@@ -18,10 +18,10 @@ index 6d1fe8028739145b11fce98ad62b2f8044299548..9f086ded18d1fc8850877c6be113d880
      // note: vanilla does not subtract 0.5 but the result is (luckily!) the same
      public static final int NARROW_SPAWN_TRACK_RANGE = (int)Math.floor(((double)PLAYER_SPAWN_TRACK_RANGE / Math.sqrt(2.0)) - 0.5);
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 8d5ead87d61e3a7817c68ce0713ee7c27e5585f2..572de3fdc766564102cbe741e5ea78323afa891a 100644
+index e589acdea83d4ff6548ca0fcee5617f0c4d0daf1..04245121db4053aedf425a8969fbb064652871ba 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -864,10 +864,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -865,10 +865,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          final ServerPlayer[] raw = players.getRawDataUnchecked();
          final int len = players.size();
  
@@ -35,7 +35,7 @@ index 8d5ead87d61e3a7817c68ce0713ee7c27e5585f2..572de3fdc766564102cbe741e5ea7832
                  if (ret == null) {
                      ret = new ArrayList<>(len - i);
                      ret.add(player);
-@@ -1300,6 +1300,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1304,6 +1304,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
  
              for (int i = 0; i < playersLength; ++i) { // DivineMC - Multithreaded tracker
                  final ServerPlayer player = playersRaw[i];

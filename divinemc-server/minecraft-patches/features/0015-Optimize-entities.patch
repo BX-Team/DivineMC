@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize entities
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index b47f13e37598153c4c47bf2a53ecb50e158bb518..e9032b1ba09a676ac969c773b800d374d038abe5 100644
+index d67e5e17620d80c2343604ec0ef3419b0770f986..61fd8f195803ddd818411c865cfce3a7406d4c3e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1784,6 +1784,10 @@ public abstract class Entity
+@@ -1865,6 +1865,10 @@ public abstract class Entity
          final int maxMovementIterations
      ) {
          AABB deflatedBoundingBoxAtTarget = this.makeBoundingBox(to).deflate(1.0E-5F);
@@ -19,7 +19,7 @@ index b47f13e37598153c4c47bf2a53ecb50e158bb518..e9032b1ba09a676ac969c773b800d374
          boolean movedFar = from.distanceToSqr(to) > Mth.square(0.9999900000002526);
          boolean debugEntityBlockIntersections = this.level instanceof ServerLevel serverLevel
              && serverLevel.getServer().debugSubscribers().hasAnySubscriberFor(DebugSubscriptions.ENTITY_BLOCK_INTERSECTIONS);
-@@ -1802,7 +1806,21 @@ public abstract class Entity
+@@ -1883,7 +1887,21 @@ public abstract class Entity
                  }
  
                  iterations.set(iteration);
@@ -189,7 +189,7 @@ index fc7cfc75e3e5c274f01498e4afd8693236b4e394..6a919fe1016c5f73b81c8a46531e20b1
  
          // Paper start - track position inside effect was triggered on
 diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
-index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099519300cc 100644
+index 2b92de5075c7257e71dfd1f8e207a96abd24599d..664ad0231d13570ff3bb5f4f09eebb6a5794edb4 100644
 --- a/net/minecraft/world/entity/ai/Brain.java
 +++ b/net/minecraft/world/entity/ai/Brain.java
 @@ -37,16 +37,80 @@ import org.jspecify.annotations.Nullable;
@@ -538,7 +538,7 @@ index 3578ece216827fd5d8c1206c689fc608e97b50df..d5934daaf5afbc1165817cc19389a8c0
          brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, livingEntities);
          brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(level, body, livingEntities));
 diff --git a/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java b/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
-index e3b2089e74d57ae8a15e9e5d29f43054ec6ec295..d69dbed3607561681c4a46d5c0700d2f98ac6f85 100644
+index 2f3e93d4ccf238d0656e69b789ddb811263df470..6c4cd0e118c91b6c52435e5e3555d8b0516e387e 100644
 --- a/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
 @@ -21,9 +21,22 @@ public class VillagerBabiesSensor extends Sensor<LivingEntity> {
@@ -552,7 +552,7 @@ index e3b2089e74d57ae8a15e9e5d29f43054ec6ec295..d69dbed3607561681c4a46d5c0700d2f
 +        ImmutableList.Builder<LivingEntity> babies = ImmutableList.builder();
 +
 +        for (LivingEntity target : visibleEntities.nearbyEntities) {
-+            if (target.getType() == EntityType.VILLAGER
++            if (target.getType() == EntityTypes.VILLAGER
 +                && target.isBaby()
 +                && visibleEntities.lineOfSightTest.test(target)) {
 +                babies.add(target);
@@ -564,12 +564,12 @@ index e3b2089e74d57ae8a15e9e5d29f43054ec6ec295..d69dbed3607561681c4a46d5c0700d2f
 +    // DivineMC end - Optimize baby villager sensor
  
      private boolean isVillagerBaby(final LivingEntity entity) {
-         return entity.is(EntityType.VILLAGER) && entity.isBaby();
+         return entity.is(EntityTypes.VILLAGER) && entity.isBaby();
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
-index 88e672d51a8b7b74e7760529ed3fdb8835be795e..c793b06d8ed73fd8aef740dd87451e20402ca41e 100644
+index 363a6f9e8d13312f93562cf3a2b1668bc53adc66..e7208b8e4583c454dccf72bebe7593e38e110d4c 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
-@@ -87,6 +87,13 @@ public class Goat extends Animal {
+@@ -93,6 +93,13 @@ public class Goat extends Animal {
          this.getNavigation().setCanFloat(true);
          this.setPathfindingMalus(PathType.POWDER_SNOW, -1.0F);
          this.setPathfindingMalus(PathType.ON_TOP_OF_POWDER_SNOW, -1.0F);

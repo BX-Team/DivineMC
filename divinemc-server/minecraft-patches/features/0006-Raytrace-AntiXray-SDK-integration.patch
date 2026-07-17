@@ -8,7 +8,7 @@ Integration with Imanity Software's Raytrace AntiXray for better use of this plu
 Original project: https://github.com/Imanity-Software/raytrace-antixray-spigot-sdk
 
 diff --git a/net/minecraft/server/level/ServerPlayerGameMode.java b/net/minecraft/server/level/ServerPlayerGameMode.java
-index e8da84bc04587d369266da725818d0306eae7df3..f040339bb380a8f92cb0d941defcb26c0284ef8d 100644
+index 185a14c96741d9c394c07b1c7747e908282e9452..74c45502c02043813d1f4e0b10f2ccceb34168c6 100644
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
 @@ -320,6 +320,12 @@ public class ServerPlayerGameMode {
@@ -21,23 +21,23 @@ index e8da84bc04587d369266da725818d0306eae7df3..f040339bb380a8f92cb0d941defcb26c
 +            adapter.callPlayerLeftClickBlock(this.level.getWorld(), this.player.getBukkitEntity(), pos.getX(), pos.getY(), pos.getZ());
 +        }
 +        // DivineMC end - Imanity: Raytrace AntiXraySDK integration
-         this.level.chunkPacketBlockController.onPlayerLeftClickBlock(this, pos, action, direction, maxY, sequence); // Paper - Anti-Xray
+         this.level.chunkPacketBlockController.onPlayerLeftClickBlock(this.level, pos, action, direction, maxY, sequence); // Paper - Anti-Xray
      }
  
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 8db987b78010688e76fda817650e29eb1019f7e8..6cf690ef85cc1577abbb86912695c1a305199e6f 100644
+index 0e91b5de2b888c7c2fb573fb9d685a5321ae5368..ba1dd7fae37c18afb7a2f358abafe3c17aac8805 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1146,6 +1146,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1150,6 +1150,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          }
          // CraftBukkit end - capture blockstates
          BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
-+            // DivineMC start - Imanity: Raytrace AntiXraySDK integration
-+            dev.imanity.antixray.sdk.AntiXrayAdapter adapter = dev.imanity.antixray.sdk.AntiXraySDK.getAdapter();
-+            if (adapter != null) {
-+                adapter.callBlockChange(world, pos.getX(), pos.getY(), pos.getZ(), blockState.getBukkitMaterial());
-+            }
-+            // DivineMC end - Imanity: Raytrace AntiXraySDK integration
++        // DivineMC start - Imanity: Raytrace AntiXraySDK integration
++        dev.imanity.antixray.sdk.AntiXrayAdapter adapter = dev.imanity.antixray.sdk.AntiXraySDK.getAdapter();
++        if (adapter != null) {
++            adapter.callBlockChange(world, pos.getX(), pos.getY(), pos.getZ(), blockState.getBukkitMaterial());
++        }
++        // DivineMC end - Imanity: Raytrace AntiXraySDK integration
          this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
          if (oldState == null) {
              // CraftBukkit start - remove blockstate if failed (or the same)

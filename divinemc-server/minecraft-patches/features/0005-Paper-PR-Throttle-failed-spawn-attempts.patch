@@ -22,10 +22,10 @@ Example config in paper-world-defaults.yml:
 ```
 
 diff --git a/net/minecraft/world/level/NaturalSpawner.java b/net/minecraft/world/level/NaturalSpawner.java
-index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a275cb4f1a4 100644
+index 6f9b639a73bb764be820544e5732e7e8c66d0206..6a950ff9c6403939747bafdcfe74de4d9ebd326a 100644
 --- a/net/minecraft/world/level/NaturalSpawner.java
 +++ b/net/minecraft/world/level/NaturalSpawner.java
-@@ -173,31 +173,54 @@ public final class NaturalSpawner {
+@@ -170,31 +170,54 @@ public final class NaturalSpawner {
                  // Copied from getFilteredSpawningCategories
                  int limit = mobCategory.getMaxInstancesPerChunk();
                  org.bukkit.entity.SpawnCategory spawnCategory = org.bukkit.craftbukkit.util.CraftSpawnCategory.toBukkit(mobCategory);
@@ -93,7 +93,7 @@ index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a27
          }
  
          profiler.pop();
-@@ -223,7 +246,7 @@ public final class NaturalSpawner {
+@@ -220,7 +243,7 @@ public final class NaturalSpawner {
          // Paper start - Optional per player mob spawns
          spawnCategoryForChunk(mobCategory, level, chunk, extraTest, spawnCallback, Integer.MAX_VALUE, null);
      }
@@ -102,7 +102,7 @@ index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a27
          final MobCategory mobCategory,
          final ServerLevel level,
          final LevelChunk chunk,
-@@ -235,8 +258,10 @@ public final class NaturalSpawner {
+@@ -232,8 +255,10 @@ public final class NaturalSpawner {
          // Paper end - Optional per player mob spawns
          BlockPos start = getRandomPosWithin(level, chunk);
          if (start.getY() >= level.getMinY() + 1) {
@@ -114,7 +114,7 @@ index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a27
      }
  
      @VisibleForDebug
-@@ -255,7 +280,7 @@ public final class NaturalSpawner {
+@@ -252,7 +277,7 @@ public final class NaturalSpawner {
          // Paper start - Optional per player mob spawns
          spawnCategoryForPosition(mobCategory, level, chunk, start, extraTest, spawnCallback, Integer.MAX_VALUE, null);
      }
@@ -123,7 +123,7 @@ index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a27
          final MobCategory mobCategory,
          final ServerLevel level,
          final ChunkAccess chunk,
-@@ -269,10 +294,10 @@ public final class NaturalSpawner {
+@@ -266,10 +291,10 @@ public final class NaturalSpawner {
          StructureManager structureManager = level.structureManager();
          ChunkGenerator generator = level.getChunkSource().getGenerator();
          int yStart = start.getY();
@@ -135,7 +135,7 @@ index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a27
  
              for (int groupCount = 0; groupCount < 3; groupCount++) {
                  int x = start.getX();
-@@ -313,14 +338,14 @@ public final class NaturalSpawner {
+@@ -310,14 +335,14 @@ public final class NaturalSpawner {
                              }
                              // Paper end - per player mob count backoff
                              if (doSpawning == PreSpawnStatus.ABORT) {
@@ -152,7 +152,7 @@ index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a27
                                  }
  
                                  mob.snapTo(xx, yStart, zz, level.random.nextFloat() * 360.0F, 0.0F);
-@@ -343,7 +368,7 @@ public final class NaturalSpawner {
+@@ -340,7 +365,7 @@ public final class NaturalSpawner {
                                      }
                                      // CraftBukkit end
                                      if (clusterSize >= maxSpawns || clusterSize >= mob.getMaxSpawnClusterSize()) { // Paper - Optional per player mob spawns
@@ -161,7 +161,7 @@ index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a27
                                      }
  
                                      if (mob.isMaxGroupSizeReached(groupSize)) {
-@@ -356,6 +381,8 @@ public final class NaturalSpawner {
+@@ -353,6 +378,8 @@ public final class NaturalSpawner {
                  }
              }
          }
@@ -171,7 +171,7 @@ index 72934f7e69b960b2fd6d7545eaa88cf5506f2051..5d2a9d3813815d1b0056e7a833208a27
  
      private static boolean isRightDistanceToPlayerAndSpawnPoint(
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index c73b9871faa87493e081cb54e1bf1dce487359c6..942a012ff25663b3929658280e977025cfa975eb 100644
+index 28f703204afd834cd50335346ef065670d6b37ad..170c98d8809b0e9493744faea172697aafbe4b2c 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
 @@ -83,6 +83,7 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeM

@@ -5,10 +5,10 @@ Subject: [PATCH] Configurable movement speed for entities
 
 
 diff --git a/net/minecraft/world/entity/monster/zombie/Drowned.java b/net/minecraft/world/entity/monster/zombie/Drowned.java
-index 4801c6987740f846a3049bfa0fcac547183e3f13..90fe0a841c893ec542b203605cdef6f1b89d7182 100644
+index 936369cc110899ac074221be0972bbf6dc7c5847..a277b7f3bc837346f4d7cf2f28be80160671fb42 100644
 --- a/net/minecraft/world/entity/monster/zombie/Drowned.java
 +++ b/net/minecraft/world/entity/monster/zombie/Drowned.java
-@@ -108,6 +108,7 @@ public class Drowned extends Zombie implements RangedAttackMob {
+@@ -109,6 +109,7 @@ public class Drowned extends Zombie implements RangedAttackMob {
      public void initAttributes() {
          this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.drownedMaxHealth);
          this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.drownedScale);
@@ -17,10 +17,10 @@ index 4801c6987740f846a3049bfa0fcac547183e3f13..90fe0a841c893ec542b203605cdef6f1
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/zombie/Husk.java b/net/minecraft/world/entity/monster/zombie/Husk.java
-index 55b2bd676f2e9633fc8250bcd984424e8c37e2ee..0775982f7bf202bb79d43bfe8413e98b7f8cf9c3 100644
+index de736df453541a2c4a71de97765581575caba0b7..2bdcf2522bac51626bbdad766fc230cd305f1e98 100644
 --- a/net/minecraft/world/entity/monster/zombie/Husk.java
 +++ b/net/minecraft/world/entity/monster/zombie/Husk.java
-@@ -59,6 +59,7 @@ public class Husk extends Zombie {
+@@ -60,6 +60,7 @@ public class Husk extends Zombie {
      @Override
      public void initAttributes() {
          this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.huskMaxHealth);
@@ -29,10 +29,10 @@ index 55b2bd676f2e9633fc8250bcd984424e8c37e2ee..0775982f7bf202bb79d43bfe8413e98b
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/zombie/Zombie.java b/net/minecraft/world/entity/monster/zombie/Zombie.java
-index 04ba29b8864804899e19b08b1952df781c96a23e..3c710ea446dbb7275b331651150609eb0d946054 100644
+index 6335b03c39452c2e8e46084e61cefcf8185d2580..b10af4fb9329b4240e5ab3dfcf5638ee201aec62 100644
 --- a/net/minecraft/world/entity/monster/zombie/Zombie.java
 +++ b/net/minecraft/world/entity/monster/zombie/Zombie.java
-@@ -135,6 +135,7 @@ public class Zombie extends Monster {
+@@ -136,6 +136,7 @@ public class Zombie extends Monster {
      public void initAttributes() {
          this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.zombieMaxHealth);
          this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.zombieScale);
@@ -40,7 +40,7 @@ index 04ba29b8864804899e19b08b1952df781c96a23e..3c710ea446dbb7275b331651150609eb
      }
      // Purpur end - Configurable entity base attributes
  
-@@ -210,7 +211,6 @@ public class Zombie extends Monster {
+@@ -211,7 +212,6 @@ public class Zombie extends Monster {
      public static AttributeSupplier.Builder createAttributes() {
          return Monster.createMonsterAttributes()
              .add(Attributes.FOLLOW_RANGE, 35.0)
@@ -49,10 +49,10 @@ index 04ba29b8864804899e19b08b1952df781c96a23e..3c710ea446dbb7275b331651150609eb
              .add(Attributes.ARMOR, 2.0)
              .add(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
 diff --git a/net/minecraft/world/entity/monster/zombie/ZombieVillager.java b/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
-index 127c917e1a068af6a6f8f46bafc608f30e9df487..470416bac8b83661aa350f810e1ea4463a4e3d0f 100644
+index 179ae65e4854f2508111ef907d3ce6f8752816fb..cb698e9ec5bf6db2f4b1614f7ae14bf901e34e10 100644
 --- a/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
 +++ b/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
-@@ -106,6 +106,7 @@ public class ZombieVillager extends Zombie implements VillagerDataHolder {
+@@ -108,6 +108,7 @@ public class ZombieVillager extends Zombie implements VillagerDataHolder {
      @Override
      public void initAttributes() {
          this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.zombieVillagerMaxHealth);
@@ -61,7 +61,7 @@ index 127c917e1a068af6a6f8f46bafc608f30e9df487..470416bac8b83661aa350f810e1ea446
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java b/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java
-index 54ba4d2e8305e2d9ba0c9e71bae67bfd7b7d34b9..ab522fce10b9a2538d97e38ec6be45c8b925056c 100644
+index 8245dcf59c17d98a01ee509350bd79efca2b1bb3..f55dcef7828d470ff7f185f282f8414f4cc84e90 100644
 --- a/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java
 +++ b/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java
 @@ -90,6 +90,7 @@ public class ZombifiedPiglin extends Zombie implements NeutralMob {

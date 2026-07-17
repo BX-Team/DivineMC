@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
 +++ b/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
-@@ -347,6 +_,12 @@
+@@ -344,6 +_,12 @@
                  if (!this.isSilent()) {
                      level.levelEvent(null, LevelEvent.SOUND_ZOMBIE_CONVERTED, this.blockPosition(), 0);
                  }

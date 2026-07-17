@@ -16,7 +16,7 @@ import com.ishland.c2me.opts.dfc.common.ast.noise.DFTNoiseNode;
 import com.ishland.c2me.opts.dfc.common.ast.noise.DFTShiftANode;
 import com.ishland.c2me.opts.dfc.common.ast.noise.DFTShiftBNode;
 import com.ishland.c2me.opts.dfc.common.ast.noise.DFTShiftNode;
-import com.ishland.c2me.opts.dfc.common.ast.noise.DFTWeirdScaledSamplerNode;
+import com.ishland.c2me.opts.dfc.common.ast.misc.IntervalSelectNode;
 import com.ishland.c2me.opts.dfc.common.ast.noise.ShiftedNoiseNode;
 import com.ishland.c2me.opts.dfc.common.ast.spline.SplineAstNode;
 import com.ishland.c2me.opts.dfc.common.ast.unary.AbsNode;
@@ -66,7 +66,6 @@ public class McToAst {
                     }
                 }
             };
-            case DensityFunctions.BlendDensity f -> toAst(f.input());
             case DensityFunctions.Clamp f -> new MaxNode(new ConstantNode(f.minValue()), new MinNode(new ConstantNode(f.maxValue()), toAst(f.input())));
             case DensityFunctions.Constant f -> new ConstantNode(f.value());
             case DensityFunctions.HolderHolder f -> toAst(f.function().value());
@@ -81,6 +80,9 @@ public class McToAst {
             };
             case DensityFunctions.RangeChoice f -> new RangeChoiceNode(toAst(f.input()), f.minInclusive(), f.maxExclusive(), toAst(f.whenInRange()), toAst(f.whenOutOfRange()));
             case DensityFunctions.Marker f -> {
+                if (f.type() == DensityFunctions.Marker.Type.BlendDensity) {
+                    yield toAst(f.wrapped());
+                }
                 DensityFunctions.Marker wrapping = new DensityFunctions.Marker(f.type(), new AstVanillaInterface(toAst(f.wrapped()), null));
                 ((IEqualityOverriding) (Object) wrapping).c2me$overrideEquality(wrapping);
                 yield new DelegateNode(wrapping);
@@ -92,7 +94,7 @@ public class McToAst {
             case DensityFunctions.ShiftA f -> new DFTShiftANode(f.offsetNoise());
             case DensityFunctions.ShiftB f -> new DFTShiftBNode(f.offsetNoise());
             case DensityFunctions.YClampedGradient f -> new YClampedGradientNode(f.fromY(), f.toY(), f.fromValue(), f.toValue());
-            case DensityFunctions.WeirdScaledSampler f -> new DFTWeirdScaledSamplerNode(toAst(f.input()), f.noise(), f.rarityValueMapper());
+            case DensityFunctions.IntervalSelect f -> new IntervalSelectNode(toAst(f.input()), f.thresholds().toDoubleArray(), f.functions().stream().map(McToAst::toAst).toArray(AstNode[]::new));
             case DensityFunctions.Spline f -> new SplineAstNode(f.spline());
 
             default -> {

@@ -113,7 +113,7 @@ index a1018e9ca9dfb978d6e6633577abd7d5d0960fa6..1ad23d86a82e0c6404ddc48306372ffd
          this.x = input.readInt();
          this.z = input.readInt();
 diff --git a/net/minecraft/server/network/PlayerChunkSender.java b/net/minecraft/server/network/PlayerChunkSender.java
-index 373da9d604cfb1614a0618d856aefd2be3c7682b..8577c3a329d49369388eb5f1791584f9e3f1a217 100644
+index 196c01fe5f200ed57e6f23e0939cac616305571a..3a6c9ea3b0f6f2f7bed89379f1486ee33e49e654 100644
 --- a/net/minecraft/server/network/PlayerChunkSender.java
 +++ b/net/minecraft/server/network/PlayerChunkSender.java
 @@ -64,13 +64,25 @@ public class PlayerChunkSender {
@@ -169,12 +169,12 @@ index 373da9d604cfb1614a0618d856aefd2be3c7682b..8577c3a329d49369388eb5f1791584f9
          // Paper start - PlayerChunkLoadEvent
          if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunkSection.java b/net/minecraft/world/level/chunk/LevelChunkSection.java
-index 0f807317cc7fa113ee57ab31f91bb6b8df7c4ae0..c074bde306109e36f5eecab463ece4066f382e54 100644
+index a25b1747fe6bde428265f90eadfade81c0979400..dac6d56e604c1b5555a29becd16a3c90b3f4a0c1 100644
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -14,7 +14,7 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
-     public static final int SECTION_HEIGHT = 16;
-     public static final int SECTION_SIZE = 4096;
+@@ -11,7 +11,7 @@ import net.minecraft.world.level.material.FluidState;
+ 
+ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection { // Paper - block counting
      public static final int BIOME_CONTAINER_BITS = 2;
 -    short nonEmptyBlockCount; // Paper - package private
 +    volatile short nonEmptyBlockCount; // Paper - package private // DivineMC - Async Chunk Sending

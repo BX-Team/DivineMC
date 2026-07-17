@@ -224,10 +224,10 @@ index 7a352bf170c5f004d35c3de89b152129c1124be0..e1d21dbb8a3e90d7cb7f2b25bb5e40da
 +    // DivineMC end - Optimize Structure Generation
  }
 diff --git a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
-index 17293eeda23265ca7b0b607576737fbd1c5d52eb..db1efbf5081e4c66c2ac35b80458643f403ad963 100644
+index 49df8221216d5af4fd3101109a1f5231e3d1a68c..cccfe8655eb4f382b17761f57f6baf4d76944e1c 100644
 --- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 +++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
-@@ -252,6 +252,12 @@ public class StructureTemplate {
+@@ -253,6 +253,12 @@ public class StructureTemplate {
          return transform(pos, settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
      }
  
@@ -240,7 +240,7 @@ index 17293eeda23265ca7b0b607576737fbd1c5d52eb..db1efbf5081e4c66c2ac35b80458643f
      public boolean placeInWorld(
          ServerLevelAccessor level, // Paper - make non-final
          final BlockPos position,
-@@ -277,7 +283,11 @@ public class StructureTemplate {
+@@ -278,7 +284,11 @@ public class StructureTemplate {
              }
          }
          // CraftBukkit end
@@ -253,7 +253,7 @@ index 17293eeda23265ca7b0b607576737fbd1c5d52eb..db1efbf5081e4c66c2ac35b80458643f
          if ((!blockInfoList.isEmpty() || !settings.isIgnoreEntities() && !this.entityInfoList.isEmpty())
              && this.size.getX() >= 1
              && this.size.getY() >= 1
-@@ -882,7 +892,11 @@ public class StructureTemplate {
+@@ -876,7 +886,11 @@ public class StructureTemplate {
          private @Nullable List<StructureTemplate.JigsawBlockInfo> cachedJigsaws;
  
          private Palette(final List<StructureTemplate.StructureBlockInfo> blocks) {

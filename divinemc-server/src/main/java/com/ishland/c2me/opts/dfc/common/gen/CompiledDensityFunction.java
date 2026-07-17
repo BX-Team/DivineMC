@@ -22,6 +22,80 @@ public class CompiledDensityFunction extends SubCompiledDensityFunction {
         this.compiledEntry = (CompiledEntry)Objects.requireNonNull(compiledEntry);
     }
 
+    public DensityFunction mapChildren(Visitor visitor) {
+        if (visitor instanceof IBlendingAwareVisitor blendingAwareVisitor) {
+            if (blendingAwareVisitor.c2me$isBlendingEnabled()) {
+                DensityFunction fallback1 = this.getFallback();
+                if (fallback1 == null) {
+                    throw new IllegalStateException("blendingFallback is no more");
+                }
+
+                return visitor.apply(fallback1);
+            }
+        }
+
+        boolean modified = false;
+        List<Object> args = this.compiledEntry.getArgs();
+        ListIterator<Object> iterator = args.listIterator();
+
+        Object next;
+        while(iterator.hasNext()) {
+            next = iterator.next();
+            if (next instanceof DensityFunction df) {
+                if (!(df instanceof IFastCacheLike)) {
+                    DensityFunction applied = visitor.apply(df);
+                    if (df != applied) {
+                        iterator.set(applied);
+                        modified = true;
+                    }
+                }
+            }
+
+            if (next instanceof NoiseHolder noise) {
+                NoiseHolder applied = visitor.visitNoise(noise);
+                if (noise != applied) {
+                    iterator.set(applied);
+                    modified = true;
+                }
+            }
+        }
+
+        iterator = args.listIterator();
+
+        while(iterator.hasNext()) {
+            next = iterator.next();
+            if (next instanceof IFastCacheLike cacheLike) {
+                DensityFunction applied = visitor.apply(cacheLike);
+                if (applied == cacheLike.c2me$getDelegate()) {
+                    iterator.set((Object)null);
+                    modified = true;
+                } else {
+                    if (!(applied instanceof IFastCacheLike)) {
+                        throw new UnsupportedOperationException("Unsupported transformation on Wrapping node");
+                    }
+
+                    IFastCacheLike newCacheLike = (IFastCacheLike)applied;
+                    iterator.set(newCacheLike);
+                    modified = true;
+                }
+            }
+        }
+
+        Supplier<DensityFunction> fallback = this.blendingFallback != null ? Suppliers.memoize(() -> {
+            DensityFunction densityFunction = (DensityFunction)this.blendingFallback.get();
+            return densityFunction != null ? visitor.apply(densityFunction) : null;
+        }) : null;
+        if (fallback != this.blendingFallback) {
+            modified = true;
+        }
+
+        if (modified) {
+            return new CompiledDensityFunction(this.compiledEntry.newInstance(args), fallback);
+        } else {
+            return this;
+        }
+    }
+
     public DensityFunction mapAll(Visitor visitor) {
         if (visitor instanceof IBlendingAwareVisitor blendingAwareVisitor) {
             if (blendingAwareVisitor.c2me$isBlendingEnabled()) {

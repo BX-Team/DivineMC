@@ -20,10 +20,10 @@ index 7d2b38ecf1478c9e53d033f41c4184864c8d32e4..3575da419ed6dfc391a458831a9ebd67
          public IntOr.Default compressionLevel = IntOr.Default.USE_DEFAULT;
          @Comment("Defines the leniency distance added on the server to the interaction range of a player when validating interact packets.")
 diff --git a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
-index a64f55850654930d83b6cf18a307b5d6989ca459..8e30b988187e081d010dd865e383d43f1b851600 100644
+index a78bbb43edcf8898714862a3c23e5e0b01fd0145..4a09411b79b139779b4472ab62e3a79e17b36700 100644
 --- a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
 +++ b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
-@@ -149,8 +149,10 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -150,8 +150,10 @@ public class WorldConfiguration extends ConfigurationPart {
          public ArmorStands armorStands;
  
          public class ArmorStands extends ConfigurationPart {
@@ -36,7 +36,7 @@ index a64f55850654930d83b6cf18a307b5d6989ca459..8e30b988187e081d010dd865e383d43f
          }
  
          public Markers markers;
-@@ -276,8 +278,38 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -277,8 +279,38 @@ public class WorldConfiguration extends ConfigurationPart {
              public AltItemDespawnRate altItemDespawnRate;
  
              public class AltItemDespawnRate extends ConfigurationPart {
@@ -77,7 +77,7 @@ index a64f55850654930d83b6cf18a307b5d6989ca459..8e30b988187e081d010dd865e383d43f
              }
          }
  
-@@ -422,7 +454,7 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -423,7 +455,7 @@ public class WorldConfiguration extends ConfigurationPart {
      public class Environment extends ConfigurationPart {
          public boolean disableThunder = false;
          public boolean disableIceAndSnow = false;
@@ -86,7 +86,7 @@ index a64f55850654930d83b6cf18a307b5d6989ca459..8e30b988187e081d010dd865e383d43f
          public boolean disableExplosionKnockback = false;
          public boolean generateFlatBedrock = false;
          public FrostedIce frostedIce;
-@@ -475,7 +507,7 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -476,7 +508,7 @@ public class WorldConfiguration extends ConfigurationPart {
      public Fixes fixes;
  
      public class Fixes extends ConfigurationPart {
@@ -95,7 +95,7 @@ index a64f55850654930d83b6cf18a307b5d6989ca459..8e30b988187e081d010dd865e383d43f
          public boolean disableUnloadedChunkEnderpearlExploit = false;
          public boolean preventTntFromMovingInWater = false;
          public boolean splitOverstackedLoot = true;
-@@ -509,9 +541,9 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -510,9 +542,9 @@ public class WorldConfiguration extends ConfigurationPart {
      public class Collisions extends ConfigurationPart {
          public boolean onlyPlayersCollide = false;
          public boolean allowVehicleCollisions = true;
@@ -107,7 +107,7 @@ index a64f55850654930d83b6cf18a307b5d6989ca459..8e30b988187e081d010dd865e383d43f
          public boolean allowPlayerCrammingDamage = false;
      }
  
-@@ -521,16 +553,33 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -522,16 +554,33 @@ public class WorldConfiguration extends ConfigurationPart {
          public AutosavePeriod autoSaveInterval = AutosavePeriod.def();
          public int maxAutoSaveChunksPerTick = 24;
          public int fixedChunkInhabitedTime = -1;
@@ -116,39 +116,39 @@ index a64f55850654930d83b6cf18a307b5d6989ca459..8e30b988187e081d010dd865e383d43f
          public Duration delayChunkUnloadsBy = Duration.of("10s");
          public Reference2IntMap<EntityType<?>> entityPerChunkSaveLimit = Util.make(new Reference2IntOpenHashMap<>(BuiltInRegistries.ENTITY_TYPE.size()), map -> {
              map.defaultReturnValue(-1);
--            map.put(EntityType.EXPERIENCE_ORB, -1);
--            map.put(EntityType.SNOWBALL, -1);
--            map.put(EntityType.ENDER_PEARL, -1);
--            map.put(EntityType.ARROW, -1);
--            map.put(EntityType.FIREBALL, -1);
--            map.put(EntityType.SMALL_FIREBALL, -1);
+-            map.put(EntityTypes.EXPERIENCE_ORB, -1);
+-            map.put(EntityTypes.SNOWBALL, -1);
+-            map.put(EntityTypes.ENDER_PEARL, -1);
+-            map.put(EntityTypes.ARROW, -1);
+-            map.put(EntityTypes.FIREBALL, -1);
+-            map.put(EntityTypes.SMALL_FIREBALL, -1);
 +            // DivineMC start - Optimize default values for configs
-+            map.put(EntityType.AREA_EFFECT_CLOUD, 8);
-+            map.put(EntityType.ARROW, 16);
-+            map.put(EntityType.BREEZE_WIND_CHARGE, 8);
-+            map.put(EntityType.DRAGON_FIREBALL, 3);
-+            map.put(EntityType.EGG, 8);
-+            map.put(EntityType.ENDER_PEARL, 8);
-+            map.put(EntityType.EXPERIENCE_BOTTLE, 3);
-+            map.put(EntityType.EXPERIENCE_ORB, 16);
-+            map.put(EntityType.EYE_OF_ENDER, 8);
-+            map.put(EntityType.FIREBALL, 8);
-+            map.put(EntityType.FIREWORK_ROCKET, 8);
-+            map.put(EntityType.LLAMA_SPIT, 3);
-+            map.put(EntityType.SPLASH_POTION, 8);
-+            map.put(EntityType.LINGERING_POTION, 8);
-+            map.put(EntityType.SHULKER_BULLET, 8);
-+            map.put(EntityType.SMALL_FIREBALL, 8);
-+            map.put(EntityType.SNOWBALL, 8);
-+            map.put(EntityType.SPECTRAL_ARROW, 16);
-+            map.put(EntityType.TRIDENT, 16);
-+            map.put(EntityType.WIND_CHARGE, 8);
-+            map.put(EntityType.WITHER_SKULL, 4);
++            map.put(EntityTypes.AREA_EFFECT_CLOUD, 8);
++            map.put(EntityTypes.ARROW, 16);
++            map.put(EntityTypes.BREEZE_WIND_CHARGE, 8);
++            map.put(EntityTypes.DRAGON_FIREBALL, 3);
++            map.put(EntityTypes.EGG, 8);
++            map.put(EntityTypes.ENDER_PEARL, 8);
++            map.put(EntityTypes.EXPERIENCE_BOTTLE, 3);
++            map.put(EntityTypes.EXPERIENCE_ORB, 16);
++            map.put(EntityTypes.EYE_OF_ENDER, 8);
++            map.put(EntityTypes.FIREBALL, 8);
++            map.put(EntityTypes.FIREWORK_ROCKET, 8);
++            map.put(EntityTypes.LLAMA_SPIT, 3);
++            map.put(EntityTypes.SPLASH_POTION, 8);
++            map.put(EntityTypes.LINGERING_POTION, 8);
++            map.put(EntityTypes.SHULKER_BULLET, 8);
++            map.put(EntityTypes.SMALL_FIREBALL, 8);
++            map.put(EntityTypes.SNOWBALL, 8);
++            map.put(EntityTypes.SPECTRAL_ARROW, 16);
++            map.put(EntityTypes.TRIDENT, 16);
++            map.put(EntityTypes.WIND_CHARGE, 8);
++            map.put(EntityTypes.WITHER_SKULL, 4);
 +            // DivineMC end - Optimize default values for configs
          });
          public boolean flushRegionsOnSave = false;
  
-@@ -550,9 +599,9 @@ public class WorldConfiguration extends ConfigurationPart {
+@@ -551,9 +600,9 @@ public class WorldConfiguration extends ConfigurationPart {
      public TickRates tickRates;
  
      public class TickRates extends ConfigurationPart {
@@ -159,8 +159,8 @@ index a64f55850654930d83b6cf18a307b5d6989ca459..8e30b988187e081d010dd865e383d43f
 +        public int mobSpawner = 2;
          public int wetFarmland = 1;
          public int dryFarmland = 1;
-         public Table<EntityType<?>, String, Integer> sensor = Util.make(HashBasedTable.create(), table -> table.put(EntityType.VILLAGER, "secondarypoisensor", 40));
-@@ -587,7 +636,7 @@ public class WorldConfiguration extends ConfigurationPart {
+         public Table<EntityType<?>, String, Integer> sensor = Util.make(HashBasedTable.create(), table -> table.put(EntityTypes.VILLAGER, "secondarypoisensor", 40));
+@@ -588,7 +637,7 @@ public class WorldConfiguration extends ConfigurationPart {
      public class Misc extends ConfigurationPart {
          public boolean updatePathfindingOnBlockUpdate = true;
          public boolean showSignClickCommandFailureMsgsToPlayer = false;

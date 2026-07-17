@@ -91,7 +91,6 @@ subprojects {
         mavenCentral()
         maven(paperMavenPublicUrl)
         maven("https://jitpack.io")
-        maven("https://s01.oss.sonatype.org/content/repositories/snapshots")
     }
 
     extensions.configure<PublishingExtension> {

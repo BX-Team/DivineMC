@@ -9,22 +9,22 @@ Original project: https://github.com/pufferfish-gg/Pufferfish
 This patch reduces the main-thread impact of mob spawning by moving spawning work to other threads
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index a6aad24383b23f7994400468a4783df9972217bc..3d790d7cda79e19a2f3f891bc408196d3d3624c5 100644
+index 31fa9c86a38fac4e9ca674e522e2760c156ad7a9..36efaf87514f2657c9f44d82a7b833a2e2c29b52 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -340,6 +340,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -339,6 +339,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      public boolean lagging = false; // Purpur - Lagging threshold
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
      public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
 +    public gg.pufferfish.pufferfish.util.AsyncExecutor mobSpawnExecutor = new gg.pufferfish.pufferfish.util.AsyncExecutor("Mob Spawning"); // DivineMC - Pufferfish: Optimize mob spawning
      // Paper start - improve tick loop
-     public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
-     public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
+     public final ca.spottedleaf.common.time.TickData tickTimes1s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
+     public final ca.spottedleaf.common.time.TickData tickTimes5s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 060c4c2c0ba29c9f8c26b4ea7703950893160a3e..6ee80440be2b39e343a260e3f00cf59c46496eae 100644
+index 52929c90e8749dfe137023e7723c37f9e2858b65..ed7424cd5d53e5387939e20709683daa370f0852 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -479,7 +479,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -439,7 +439,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
  
          org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur - Implement TPSBar
          if (org.purpurmc.purpur.PurpurConfig.beeCountPayload) org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur - Give bee counts in beehives to Purpur clients
@@ -34,7 +34,7 @@ index 060c4c2c0ba29c9f8c26b4ea7703950893160a3e..6ee80440be2b39e343a260e3f00cf59c
          this.notificationManager().serverStarted();
          return true;
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 01d9852953806f7132ab6d1f7a532d86419e7904..e315c11117b77d81eed442d8ec6cc856fd052336 100644
+index 8662fa5322af70f5c32763ced28ac8675549e3b2..ad498d9f7cf27c465506976ad36ac273d2cb123d 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -75,6 +75,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon

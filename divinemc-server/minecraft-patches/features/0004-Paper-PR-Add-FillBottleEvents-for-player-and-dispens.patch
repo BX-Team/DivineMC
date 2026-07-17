@@ -5,7 +5,7 @@ Subject: [PATCH] Paper PR: Add FillBottleEvents for player and dispenser
 
 
 diff --git a/net/minecraft/core/cauldron/CauldronInteractions.java b/net/minecraft/core/cauldron/CauldronInteractions.java
-index 04b47a788586d21a37f73ba2dcf9036ea174872b..fbc3a7ef33a6db96e97dbfd146e5e0d29e92b324 100644
+index 80b4905bc7b9c67a0d4355e5de3b3cdb46fcb061..570f912ecb396159a8a762d4600615c04e5c783b 100644
 --- a/net/minecraft/core/cauldron/CauldronInteractions.java
 +++ b/net/minecraft/core/cauldron/CauldronInteractions.java
 @@ -56,7 +56,12 @@ public class CauldronInteractions {
@@ -23,10 +23,10 @@ index 04b47a788586d21a37f73ba2dcf9036ea174872b..fbc3a7ef33a6db96e97dbfd146e5e0d2
                      player.awardStat(Stats.ITEM_USED.get(usedItem));
                      // level.setBlockAndUpdate(pos, Blocks.WATER_CAULDRON.defaultBlockState()); // CraftBukkit
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index 56b9f9016a652a704d785de683738efcf02a44f9..d00caca4e8b593e821c2f19de091d000180f5346 100644
+index aa5bebc293a73468cadf7939fd0a64822953e452..c1c4c7d6afd94da4f139d14e4a406e136039d03c 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-@@ -523,13 +523,25 @@ public interface DispenseItemBehavior {
+@@ -474,13 +474,25 @@ public interface DispenseItemBehavior {
                      // Paper end - Call BlockDispenseEvent
                      if (state.is(BlockTags.BEEHIVES, s -> s.hasProperty(BeehiveBlock.HONEY_LEVEL) && s.getBlock() instanceof BeehiveBlock)
                          && state.getValue(BeehiveBlock.HONEY_LEVEL) >= 5) {
@@ -55,7 +55,7 @@ index 56b9f9016a652a704d785de683738efcf02a44f9..d00caca4e8b593e821c2f19de091d000
                          return super.execute(source, dispensed);
                      }
 diff --git a/net/minecraft/world/item/BottleItem.java b/net/minecraft/world/item/BottleItem.java
-index e45fb987b709cbd798b7bcd179a559d8ab70e6ff..a0a84f7b97d94989768beee39206b807e21a0f26 100644
+index 83c4c614ccc3a219d4e27d9e17d0fc61ec6e4dd9..b6b06bc2902a6d0febdfec92a65fc2a8bc69df8a 100644
 --- a/net/minecraft/world/item/BottleItem.java
 +++ b/net/minecraft/world/item/BottleItem.java
 @@ -33,6 +33,18 @@ public class BottleItem extends Item {
@@ -111,10 +111,10 @@ index e45fb987b709cbd798b7bcd179a559d8ab70e6ff..a0a84f7b97d94989768beee39206b807
              }
  
 diff --git a/net/minecraft/world/level/block/BeehiveBlock.java b/net/minecraft/world/level/block/BeehiveBlock.java
-index 0d3e97012b0d590dc2b93e4886a7009f6f78e0d7..360875c9b6f59d091d587e7f93255bff0dd5f7ec 100644
+index e071dae775a5dc95eb0d5d6c080e623aeaa97385..c519107372dcdd6d3d53e1d5f2d07401ee638ee0 100644
 --- a/net/minecraft/world/level/block/BeehiveBlock.java
 +++ b/net/minecraft/world/level/block/BeehiveBlock.java
-@@ -180,12 +180,26 @@ public class BeehiveBlock extends BaseEntityBlock {
+@@ -181,12 +181,26 @@ public class BeehiveBlock extends BaseEntityBlock {
                  hiveEmptied = true;
                  level.gameEvent(player, GameEvent.SHEAR, pos);
              } else if (itemStack.is(Items.GLASS_BOTTLE)) {

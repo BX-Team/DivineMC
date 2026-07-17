@@ -8,7 +8,7 @@
 -            || this.sections[sectionIndex].nonEmptyBlockCount == 0) {
 -            return Blocks.AIR.defaultBlockState();
 -        }
--        return this.sections[sectionIndex].states.get((y & 15) << 8 | (z & 15) << 4 | x & 15);
+-        return this.sections[sectionIndex].getStates().get((y & 15) << 8 | (z & 15) << 4 | x & 15);
 +        // DivineMC start - Optimize block state lookup
 +        if (sectionIndex < 0 || sectionIndex >= this.sections.length) {
 +            return Blocks.AIR.defaultBlockState();

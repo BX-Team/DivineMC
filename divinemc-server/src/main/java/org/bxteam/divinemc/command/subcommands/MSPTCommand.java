@@ -1,6 +1,6 @@
 package org.bxteam.divinemc.command.subcommands;
 
-import ca.spottedleaf.moonrise.common.time.TickData;
+import ca.spottedleaf.common.time.TickData;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.server.MinecraftServer;
@@ -135,7 +135,7 @@ public final class MSPTCommand extends DivineSubCommandPermission {
         return Arrays.asList(getColoredValue(avg), getColoredValue(min), getColoredValue(max));
     }
 
-    private static List<Component> evalFromTickData(ca.spottedleaf.moonrise.common.time.TickData tickData, long tickInterval) {
+    private static List<Component> evalFromTickData(ca.spottedleaf.common.time.TickData tickData, long tickInterval) {
         TickData.TickReportData report = tickData.generateTickReport(null, System.nanoTime(), tickInterval);
 
         if (report == null) {

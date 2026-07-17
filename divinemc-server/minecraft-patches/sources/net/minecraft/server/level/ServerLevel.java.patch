@@ -1,0 +1,17 @@
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -773,8 +_,13 @@
+     public int getNextEntityId() {
+         int id = 0;
+ 
+-        while (id == 0 || this.chunkSource.hasEntityWithId(id)) {
++        while (id <= 0 || this.chunkSource.hasEntityWithId(id)) { // DivineMC - Prevent Entity ID counter overflow
+             id = ENTITY_COUNTER.incrementAndGet();
++            // DivineMC start - Prevent Entity ID counter overflow
++            if (id <= 0) {
++                ENTITY_COUNTER.set(0);
++            }
++            // DivineMC end - Prevent Entity ID counter overflow
+         }
+ 
+         return id;

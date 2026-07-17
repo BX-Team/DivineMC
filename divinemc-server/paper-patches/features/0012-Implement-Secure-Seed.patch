@@ -7,10 +7,10 @@ Original license: GPLv3
 Original project: https://github.com/plasmoapp/matter
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
-index c8d179d936d57e8222d87b7fd943dbddfa8446a0..a82aba8f9099bfa50c87496d272df71b0ae52987 100644
+index f020f310c4bca49a23de91bea72ccd9941c0b03c..a4cee77de0caf20218a5aa2f7844d512977ebabe 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
-@@ -193,7 +193,12 @@ public class CraftChunk implements Chunk {
+@@ -191,7 +191,12 @@ public class CraftChunk implements Chunk {
      @Override
      public boolean isSlimeChunk() {
          // 987234911L is taken from Slime when seeing if a slime can spawn in a chunk
@@ -25,12 +25,12 @@ index c8d179d936d57e8222d87b7fd943dbddfa8446a0..a82aba8f9099bfa50c87496d272df71b
  
      @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index c33e0794673380e640ea90187cf773ad2789bc77..a99d4fd971e12188992058388dcbc6ce1618a354 100644
+index 008a2213172de3e36e0e3db941652cb6eb2a21ec..7fae4c7ff45f6e8ce2dbb8a2adb13ccc7a985bd2 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -1251,7 +1251,11 @@ public final class CraftServer implements Server {
-             .result()
+@@ -1246,7 +1246,11 @@ public final class CraftServer implements Server {
              .orElse(null);
+         RegistryAccess contextRegistryAccess = registryAccess;
          if (worldGenSettings == null) {
 -            WorldOptions worldOptions = new WorldOptions(creator.seed(), creator.generateStructures(), creator.bonusChest());
 +            // DivineMC start - Implement Secure Seed
@@ -39,5 +39,5 @@ index c33e0794673380e640ea90187cf773ad2789bc77..a99d4fd971e12188992058388dcbc6ce
 +                    : new WorldOptions(creator.seed(), creator.generateStructures(), creator.bonusChest());
 +            // DivineMC end - Implement Secure Seed
  
-             DedicatedServerProperties.WorldDimensionData properties = new DedicatedServerProperties.WorldDimensionData(GsonHelper.parse((creator.generatorSettings().isEmpty()) ? "{}" : creator.generatorSettings()), creator.type().name().toLowerCase(Locale.ROOT));
-             WorldDimensions worldDimensions = properties.create(context.datapackWorldgen());
+             String flatGenSettings = creator.generatorSettings();
+             if (flatGenSettings.isEmpty()) {

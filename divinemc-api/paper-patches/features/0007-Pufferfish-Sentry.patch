@@ -5,10 +5,10 @@ Subject: [PATCH] Pufferfish: Sentry
 
 
 diff --git a/src/main/java/org/bukkit/plugin/SimplePluginManager.java b/src/main/java/org/bukkit/plugin/SimplePluginManager.java
-index d4a4ae2e8eef3c800bb7ec7713bccb05706b09bc..a0d0edd1b334ff05746ad633f1788b6754ffed87 100644
+index 4a38faecb46255fd4705d97bfa3442739a732e1f..b87992b34243faaf684ca14705c302ee3d8c17c2 100644
 --- a/src/main/java/org/bukkit/plugin/SimplePluginManager.java
 +++ b/src/main/java/org/bukkit/plugin/SimplePluginManager.java
-@@ -597,7 +597,9 @@ public final class SimplePluginManager implements PluginManager {
+@@ -596,7 +596,9 @@ public final class SimplePluginManager implements PluginManager {
  
      // Paper start
      private void handlePluginException(String msg, Throwable ex, Plugin plugin) {
@@ -18,7 +18,7 @@ index d4a4ae2e8eef3c800bb7ec7713bccb05706b09bc..a0d0edd1b334ff05746ad633f1788b67
          callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerPluginEnableDisableException(msg, ex, plugin)));
      }
      // Paper end
-@@ -667,9 +669,11 @@ public final class SimplePluginManager implements PluginManager {
+@@ -666,9 +668,11 @@ public final class SimplePluginManager implements PluginManager {
                              ));
                  }
              } catch (Throwable ex) {
@@ -31,7 +31,7 @@ index d4a4ae2e8eef3c800bb7ec7713bccb05706b09bc..a0d0edd1b334ff05746ad633f1788b67
                      callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerEventException(msg, ex, registration.getPlugin(), registration.getListener(), event)));
                  }
 diff --git a/src/main/java/org/bukkit/plugin/java/JavaPluginLoader.java b/src/main/java/org/bukkit/plugin/java/JavaPluginLoader.java
-index 1ad24e0107499e4dcaad647feeb54887675d9e51..9342ea35fb963379039ae020f9317bb02147f9c1 100644
+index 03fb05648d30d047263178e037d76d926521fb3b..827a4d5649ac230c0f01da08a3fb9f5948a0ca9b 100644
 --- a/src/main/java/org/bukkit/plugin/java/JavaPluginLoader.java
 +++ b/src/main/java/org/bukkit/plugin/java/JavaPluginLoader.java
 @@ -330,7 +330,13 @@ public final class JavaPluginLoader implements PluginLoader {

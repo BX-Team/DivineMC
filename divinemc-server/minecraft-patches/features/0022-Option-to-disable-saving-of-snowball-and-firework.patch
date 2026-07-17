@@ -5,7 +5,7 @@ Subject: [PATCH] Option to disable saving of snowball and firework
 
 
 diff --git a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
-index c9f7e68abccbc6b894a66b675952c973e22af8e6..0c67e8e23945a94de6bd1af9188ff66c5d9bea29 100644
+index 325bdcd8c7dd4e03aa6f649c8f76b031529d5fd8..a7dd1efd8ab20e912d0da886a688db81471fa939 100644
 --- a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 +++ b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 @@ -350,4 +350,14 @@ public class FireworkRocketEntity extends Projectile implements ItemSupplier {
@@ -24,10 +24,10 @@ index c9f7e68abccbc6b894a66b675952c973e22af8e6..0c67e8e23945a94de6bd1af9188ff66c
 +    // DivineMC end - Option to disable saving firework
  }
 diff --git a/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java b/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
-index f8ca088ab75e6bfdfc566c97879c12beaeefcda0..8136f8dd6bf0fc9ad8f013804ee1a017e454cc2d 100644
+index 7735ba697e9f172ebedaae80fe4ad4cd48a8c558..209f5903d93f040804b56ebe692916908d353be9 100644
 --- a/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
-@@ -96,4 +96,14 @@ public class Snowball extends ThrowableItemProjectile {
+@@ -97,4 +97,14 @@ public class Snowball extends ThrowableItemProjectile {
              this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
          }
      }

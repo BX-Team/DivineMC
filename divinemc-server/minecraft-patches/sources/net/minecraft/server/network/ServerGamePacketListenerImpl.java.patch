@@ -8,15 +8,15 @@
  
      public ServerGamePacketListenerImpl(final MinecraftServer server, final Connection connection, final ServerPlayer player, final CommonListenerCookie cookie) {
          super(server, connection, cookie);
-@@ -340,6 +_,7 @@
+@@ -342,6 +_,7 @@
          this.chatMessageChain = new FutureChain(server.chatExecutor); // CraftBukkit - async chat
          this.tickEndEvent = new io.papermc.paper.event.packet.ClientTickEndEvent(player.getBukkitEntity()); // Paper - add client tick end event
-         this.playerGameConnection =  new io.papermc.paper.connection.PaperPlayerGameConnection(this); // Paper
+         this.playerGameConnection = new io.papermc.paper.connection.PaperPlayerGameConnection(this); // Paper
 +        this.exchangeTarget = new org.leavesmc.leaves.protocol.syncmatica.exchange.ExchangeTarget(this); // DivineMC - Leaves: Syncmatica Protocol
      }
  
      // Paper start - configuration phase API
-@@ -1125,6 +_,7 @@
+@@ -1128,6 +_,7 @@
  
              this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
              this.player.inventoryMenu.broadcastChanges();

@@ -111,7 +111,7 @@ index b228cd6c54e8c8998923ab332882d99092769c67..653b5d8d8fa7c0b310933e6fa85b14ad
              if (this.previousWriteFuture != null) {
                  this.previousWriteFuture.join();
 diff --git a/net/minecraft/world/level/chunk/storage/RegionFile.java b/net/minecraft/world/level/chunk/storage/RegionFile.java
-index 0df154fbdd7f9c0596410cf37ea179023ce32279..77d35572ce9b706bcf8e8070b0f2d87fd500c22e 100644
+index 1616ab8a89602a3cdc00a9b8608e42f316356273..bb4cf7d87bc5e69698b0a18457546d1805a667bf 100644
 --- a/net/minecraft/world/level/chunk/storage/RegionFile.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFile.java
 @@ -22,7 +22,7 @@ import net.minecraft.world.level.ChunkPos;
@@ -133,7 +133,7 @@ index 0df154fbdd7f9c0596410cf37ea179023ce32279..77d35572ce9b706bcf8e8070b0f2d87f
          }
          // Paper end - rewrite chunk system
 diff --git a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-index 51dbf4a8172c5550adec1159583619412a8237bb..c2a19df35d474127de6662cf9275a67c547ddf30 100644
+index 84cdf7d5427d7a61894d70980fcfa2897dca99d2..011c96e23101dbd8063067f2f5de984094f42b23 100644
 --- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 @@ -15,11 +15,13 @@ import net.minecraft.util.FileUtil;
@@ -146,7 +146,7 @@ index 51dbf4a8172c5550adec1159583619412a8237bb..c2a19df35d474127de6662cf9275a67c
      private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger(); // Paper
      public static final String ANVIL_EXTENSION = ".mca";
      private static final int MAX_CACHE_SIZE = 256;
--    public final Long2ObjectLinkedOpenHashMap<RegionFile> regionCache = new Long2ObjectLinkedOpenHashMap<>();
+-    private final Long2ObjectLinkedOpenHashMap<RegionFile> regionCache = new Long2ObjectLinkedOpenHashMap<>();
 +    public final Long2ObjectLinkedOpenHashMap<org.bxteam.divinemc.region.IRegionFile> regionCache = new Long2ObjectLinkedOpenHashMap<>(); // DivineMC - Buffered Linear region format
      private final RegionStorageInfo info;
      private final Path folder;
@@ -309,7 +309,7 @@ index 51dbf4a8172c5550adec1159583619412a8237bb..c2a19df35d474127de6662cf9275a67c
          }
 @@ -398,7 +419,7 @@ public class RegionFileStorage implements AutoCloseable, ca.spottedleaf.moonrise
  
-     public void write(final ChunkPos pos, final @Nullable CompoundTag value) throws IOException { // Paper - rewrite chunk system - public
+     public void write(final ChunkPos pos, final @Nullable CompoundTag value) throws IOException {
          if (!SharedConstants.DEBUG_DONT_SAVE_WORLD) {
 -            RegionFile region = this.getRegionFile(pos, value == null); // CraftBukkit // Paper - rewrite chunk system
 +            IRegionFile region = this.getRegionFile(pos, value == null); // CraftBukkit // Paper - rewrite chunk system // DivineMC - Buffered Linear region format

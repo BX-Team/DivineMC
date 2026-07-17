@@ -264,7 +264,7 @@ public class BytecodeGen {
         private int methodIdx = 0;
         private final Object2ReferenceOpenHashMap<AstNode, String> singleMethods = new Object2ReferenceOpenHashMap<>();
         private final Object2ReferenceOpenHashMap<AstNode, String> multiMethods = new Object2ReferenceOpenHashMap<>();
-        private final Object2ReferenceOpenHashMap<CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate>, String> splineMethods = new Object2ReferenceOpenHashMap<>();
+        private final Object2ReferenceOpenHashMap<CubicSpline<DensityFunctions.Spline.Coordinate>, String> splineMethods = new Object2ReferenceOpenHashMap<>();
         private final ObjectOpenHashSet<String> postProcessMethods = new ObjectOpenHashSet<>();
         private final Reference2ObjectOpenHashMap<Object, FieldRecord> args = new Reference2ObjectOpenHashMap<>();
 
@@ -364,11 +364,11 @@ public class BytecodeGen {
             adapter.visitMaxs(0, 0);
         }
 
-        public String getCachedSplineMethod(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline) {
+        public String getCachedSplineMethod(CubicSpline<DensityFunctions.Spline.Coordinate> spline) {
             return (String)this.splineMethods.get(spline);
         }
 
-        public void cacheSplineMethod(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline, String method) {
+        public void cacheSplineMethod(CubicSpline<DensityFunctions.Spline.Coordinate> spline, String method) {
             this.splineMethods.put(spline, method);
         }
 

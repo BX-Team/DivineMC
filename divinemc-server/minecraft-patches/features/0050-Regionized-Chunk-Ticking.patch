@@ -8,10 +8,10 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-index 56e71bf01f22579c294c6b33450bd282e082f6ae..6e8d405b38f5378a187c14bc3aa26cf8180e2119 100644
+index 328784ba08236553e49d62320b79f7222292412f..05ef9cfaa29e6f3f8ee5d600fc201e46bdfe1114 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-@@ -425,6 +425,11 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
+@@ -429,6 +429,11 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
          Entity currentlyMapped = this.entityById.putIfAbsent((long)entity.getId(), entity);
          if (currentlyMapped != null) {
              LOGGER.warn("Entity id already exists: " + entity.getId() + ", mapped to " + currentlyMapped + ", can't add " + entity);
@@ -23,7 +23,7 @@ index 56e71bf01f22579c294c6b33450bd282e082f6ae..6e8d405b38f5378a187c14bc3aa26cf8
              return false;
          }
  
-@@ -433,6 +438,11 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
+@@ -437,6 +442,11 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
              // need to remove mapping for id
              this.entityById.remove((long)entity.getId(), entity);
              LOGGER.warn("Entity uuid already exists: " + entity.getUUID() + ", mapped to " + currentlyMapped + ", can't add " + entity);
@@ -36,43 +36,37 @@ index 56e71bf01f22579c294c6b33450bd282e082f6ae..6e8d405b38f5378a187c14bc3aa26cf8
          }
  
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index 98b60752f50b613b9c9fce67b95315fd2a40c020..bbd837106eecf4ec368c4c24de79b7f2ff335d17 100644
+index c4e7c02c51f7732eeba46fcfc6047a63a7ffc0b2..6aec91364a2171a0ff3b5d4baaefe7ef1147da8a 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-@@ -337,22 +337,23 @@ public interface DispenseItemBehavior {
-                     return result;
-                 }
+@@ -293,7 +293,7 @@ public interface DispenseItemBehavior {
                  // Paper end - Call BlockDispenseEvent
+                 List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates; // Paper
+                 org.bukkit.TreeType treeType; // Paper
 -                level.captureTreeGeneration = true; // CraftBukkit
 +                level.captureTreeGeneration.set(true); // CraftBukkit // DivineMC - Regionized Chunk Ticking - thread-safe block capture
+                 try { // Paper
                  if (!BoneMealItem.growCrop(dispensed, level, target) && !BoneMealItem.growWaterPlant(dispensed, level, target, null)) {
                      this.setSuccess(false);
-                 } else if (!level.isClientSide()) {
-                     level.levelEvent(LevelEvent.PARTICLES_AND_SOUND_PLANT_GROWTH, target, 15);
+@@ -302,10 +302,10 @@ public interface DispenseItemBehavior {
                  }
-                 // CraftBukkit start
--                level.captureTreeGeneration = false;
--                if (!level.capturedBlockStates.isEmpty()) {
-+                level.captureTreeGeneration.set(false); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-+                java.util.Map<net.minecraft.core.BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = level.capturedBlockStates.get(); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-+                if (!capturedBlockStates.isEmpty()) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-                     // DivineMC start - Parallel world ticking
-                     org.bukkit.TreeType treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
-                     net.minecraft.world.level.block.SaplingBlock.setTreeTypeTL(null);
-                     // DivineMC end - Parallel world ticking
-                     org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(target, level);
--                    List<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(level.capturedBlockStates.values());
+                 // Paper start
+                 } finally {
+-                    level.captureTreeGeneration = false;
++                    level.captureTreeGeneration.set(false); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
+ 
+-                    capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.values());
 -                    level.capturedBlockStates.clear();
-+                    List<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(capturedBlockStates.values()); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-+                    capturedBlockStates.clear(); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-                     org.bukkit.event.world.StructureGrowEvent structureEvent = null;
-                     if (treeType != null) {
-                         structureEvent = new org.bukkit.event.world.StructureGrowEvent(location, treeType, false, null, states);
++                    capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.get().values()); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
++                    level.capturedBlockStates.get().clear(); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
+ 
+                     // DivineMC start - Parallel world ticking
+                     treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 297a4a96beec0512b2fe7aa5cd87a63b91f415ef..24a9fcbc7516143bffa4edac7769aa686d81e102 100644
+index 87dff5306c79b7f0fc940d9e85e523fa0c2f4ea6..80e46df1a18b66fff8abfc6d94b92a4767cac731 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -302,7 +302,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -303,7 +303,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
  
      private static void syncAfterConfigurationChange(final ChannelFuture future) {
          try {
@@ -82,14 +76,14 @@ index 297a4a96beec0512b2fe7aa5cd87a63b91f415ef..24a9fcbc7516143bffa4edac7769aa68
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 7fe76cc5de38a4b63f5cb0044762ac24be801494..8d5ead87d61e3a7817c68ce0713ee7c27e5585f2 100644
+index bf41f4db304b97c623fb097103f27b99772fe8fe..e589acdea83d4ff6548ca0fcee5617f0c4d0daf1 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -748,25 +748,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -749,25 +749,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      }
      // Paper end - optimise chunk tick iteration
  
--    void collectSpawningChunks(final List<LevelChunk> output) {
+-    public void collectSpawningChunks(final List<LevelChunk> output) {
 +    // DivineMC start - Regionized Chunk Ticking
 +    synchronized void collectSpawningChunks(final List<LevelChunk> output) {
          // Paper start - optimise chunk tick iteration
@@ -123,10 +117,10 @@ index 7fe76cc5de38a4b63f5cb0044762ac24be801494..8d5ead87d61e3a7817c68ce0713ee7c2
      }
 +    // DivineMC end - Regionized Chunk Ticking
  
-     void forEachBlockTickingChunk(final Consumer<LevelChunk> tickingChunkConsumer) {
+     public void forEachBlockTickingChunk(final Consumer<LevelChunk> tickingChunkConsumer) {
          this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
-@@ -794,11 +797,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-     boolean anyPlayerCloseEnoughTo(final BlockPos pos, final int maxDistance) {
+@@ -795,11 +798,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+     public boolean anyPlayerCloseEnoughTo(final BlockPos pos, final int maxDistance) {
          Vec3 target = new Vec3(pos);
  
 -        for (ServerPlayer player : this.playerMap.getAllPlayers()) {
@@ -145,10 +139,10 @@ index 7fe76cc5de38a4b63f5cb0044762ac24be801494..8d5ead87d61e3a7817c68ce0713ee7c2
          return false;
      }
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 1cea4229db11113aab6f8d96004708b17604b1ca..9487bb3f88aacb0e2527245d9b426b70ae45cb2e 100644
+index 070c5f3cb119f3b989d2430dc898a631d6c7924a..41ef18dd82a27bd6abf2303a36587cb2676b2c8c 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -55,9 +55,9 @@ import org.jspecify.annotations.Nullable;
+@@ -55,10 +55,10 @@ import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
  public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemServerChunkCache { // Paper - rewrite chunk system
@@ -156,10 +150,12 @@ index 1cea4229db11113aab6f8d96004708b17604b1ca..9487bb3f88aacb0e2527245d9b426b70
 +    protected static final Logger LOGGER = LogUtils.getLogger(); // DivineMC - Regionized Chunk Ticking - private -> protected
      private final DistanceManager distanceManager;
 -    private final ServerLevel level;
+-    private final Thread mainThread;
 +    protected final ServerLevel level; // DivineMC - Regionized Chunk Ticking - private -> protected
-     public final Thread mainThread;
++    public final Thread mainThread;
      private final ThreadedLevelLightEngine lightEngine;
      public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
+     public final ChunkMap chunkMap;
 @@ -71,8 +71,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      private final long[] lastChunkPos = new long[4];
      private final @Nullable ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
@@ -316,7 +312,7 @@ index 1cea4229db11113aab6f8d96004708b17604b1ca..9487bb3f88aacb0e2527245d9b426b70
  
      private void tickSpawningChunk(
          final LevelChunk chunk, final long timeDiff, final List<MobCategory> spawningCategories, final NaturalSpawner.SpawnState spawnCookie
-@@ -884,8 +918,15 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -888,8 +922,15 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
                  return true;
              }
  
@@ -335,10 +331,10 @@ index 1cea4229db11113aab6f8d96004708b17604b1ca..9487bb3f88aacb0e2527245d9b426b70
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259625a0154 100644
+index 2ba7322e996d12e0ed77966af95879177c2cbe49..15d70106defcac9d4c3d2d9216b593efffcb8c4a 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -207,7 +207,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -208,7 +208,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      private final LevelTicks<Block> blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
      private final LevelTicks<Fluid> fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
      private final PathTypeCache pathTypesByPosCache = new PathTypeCache();
@@ -347,7 +343,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
      private volatile boolean isUpdatingNavigations;
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
-@@ -539,75 +539,88 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -540,75 +540,88 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
     }
      // Paper end - rewrite chunk system
      // Paper start - chunk tick iteration
@@ -476,7 +472,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
      // Paper end - chunk tick iteration
  
      // DivineMC start - MSPT Tracking for each world
-@@ -703,20 +716,39 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -704,20 +717,39 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          boolean syncWrites = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          // Paper - rewrite chunk system
@@ -530,7 +526,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
          this.portalForcer = new PortalForcer(this);
          if (this.canHaveWeather()) {
-@@ -912,40 +944,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -930,40 +962,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  profiler.pop();
              }
  
@@ -615,7 +611,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
          }
  
          profiler.push("entityManagement");
-@@ -1741,10 +1789,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1757,10 +1805,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -629,16 +625,16 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1947,7 +1998,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1963,7 +2014,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      }
  
      @Override
--    public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final int updateFlags) {
-+    public synchronized void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final int updateFlags) { // DivineMC - Regionized Chunk Ticking - synchronized
+-    public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
++    public synchronized void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) { // DivineMC - Regionized Chunk Ticking - synchronized
          if (this.isUpdatingNavigations) {
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
-@@ -1961,22 +2012,16 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1977,22 +2028,16 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -669,7 +665,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
  
              try {
                  this.isUpdatingNavigations = true;
-@@ -1994,17 +2039,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2010,17 +2055,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -691,10 +687,10 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
      }
  
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 89294af580c17ee86a259d1fed658281240522b9..01a91c966b385519280998ec4cfb9c82712eb3e6 100644
+index c967db4f3510cdab80d7410afbbeadfd3b81cf7b..ae65853d8a2d42fa06a18674be13943439157c56 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -439,6 +439,10 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -445,6 +445,10 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
      private boolean compassBar = false; // Purpur - Add compass command
      private boolean ramBar = false; // Purpur - Implement rambar commands
      public boolean hasTickedAtLeastOnceInNewWorld = false; // DivineMC - Parallel world ticking
@@ -706,7 +702,7 @@ index 89294af580c17ee86a259d1fed658281240522b9..01a91c966b385519280998ec4cfb9c82
      // Paper start - rewrite chunk system
      private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
 diff --git a/net/minecraft/server/level/ServerPlayerGameMode.java b/net/minecraft/server/level/ServerPlayerGameMode.java
-index f040339bb380a8f92cb0d941defcb26c0284ef8d..cf9e62c6cd734d4163cb77b103a4ecd36937ae34 100644
+index 74c45502c02043813d1f4e0b10f2ccceb34168c6..e6b644fcaf34199a0303e10b314eada894230284 100644
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
 @@ -398,7 +398,7 @@ public class ServerPlayerGameMode {
@@ -732,117 +728,64 @@ index f040339bb380a8f92cb0d941defcb26c0284ef8d..cf9e62c6cd734d4163cb77b103a4ecd3
              org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, bState, this.player, itemsToDrop); // Paper - capture all item additions to the world
          }
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 68b41586b2d3c071c8ff44d8c1a43ae465f6c8bf..75220dba2aa0b0d2fddefaf237171c4abd9ca927 100644
+index e163435f0e2d3a846330763e543fdc991507e5bb..c9f2155c4bb788f5e2304794e162d5322a287eee 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -384,30 +384,31 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -383,8 +383,8 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
          boolean isBonemeal = usedItem == Items.BONE_MEAL;
  
          if (!(usedItem instanceof BucketItem)) {
 -            level.captureBlockStates = true;
+-            level.captureTreeGeneration = isBonemeal;
 +            level.captureBlockStates.set(true); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-             if (isBonemeal) {
--                level.captureTreeGeneration = true;
-+                level.captureTreeGeneration.set(true); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-             }
++            level.captureTreeGeneration.set(isBonemeal); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
          }
-         InteractionResult result;
+ 
+         List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
+@@ -394,14 +394,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
          try {
              result = usedItem.useOn(context);
          } finally {
 -            level.captureBlockStates = false;
-+            level.captureBlockStates.set(false); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-         }
-         DataComponentPatch newPatch = this.components.asPatch();
-         int newCount = this.getCount();
-         this.setCount(previousCount);
-         this.restorePatch(previousPatch);
--        if (result.consumesAction() && level.captureTreeGeneration && !level.capturedBlockStates.isEmpty()) {
 -            level.captureTreeGeneration = false;
-+        java.util.Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = level.capturedBlockStates.get(); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-+        if (result.consumesAction() && level.captureTreeGeneration.get() && !capturedBlockStates.isEmpty()) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-+            level.captureTreeGeneration.set(false); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-             org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level);
++            // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
++            level.captureBlockStates.set(false);
++            level.captureTreeGeneration.set(false);
+ 
+-            capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.values());
+-            level.capturedBlockStates.clear();
++            capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.get().values());
++            level.capturedBlockStates.get().clear();
+ 
+-            capturedBlockEntities = new java.util.ArrayList<>(level.capturedBlockEntities.values());
+-            level.capturedBlockEntities.clear();
++            capturedBlockEntities = new java.util.ArrayList<>(level.capturedTileEntities.get().values());
++            level.capturedTileEntities.get().clear();
++            // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
+ 
              // DivineMC start - Parallel world ticking
-             org.bukkit.TreeType treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
-             net.minecraft.world.level.block.SaplingBlock.setTreeTypeTL(null);
-             // DivineMC end - Parallel world ticking
--            List<org.bukkit.craftbukkit.block.CraftBlockState> blocks = new java.util.ArrayList<>(level.capturedBlockStates.values());
--            level.capturedBlockStates.clear();
-+            List<org.bukkit.craftbukkit.block.CraftBlockState> blocks = new java.util.ArrayList<>(capturedBlockStates.values()); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-+            capturedBlockStates.clear(); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-             org.bukkit.event.world.StructureGrowEvent structureEvent = null;
-             if (treeType != null) {
-                 structureEvent = new org.bukkit.event.world.StructureGrowEvent(location, treeType, isBonemeal, (org.bukkit.entity.Player) player.getBukkitEntity(), (List<org.bukkit.block.BlockState>) (List<? extends org.bukkit.block.BlockState>) blocks);
-@@ -435,12 +436,13 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
-             SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
-             return result;
-         }
--        level.captureTreeGeneration = false;
-+        level.captureTreeGeneration.set(false); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-+        java.util.Map<BlockPos, net.minecraft.world.level.block.entity.BlockEntity> capturedTileEntities = level.capturedTileEntities.get(); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-         if (player != null && result instanceof InteractionResult.Success success && success.wasItemInteraction()) {
-             InteractionHand hand = context.getHand();
-             org.bukkit.event.block.BlockPlaceEvent placeEvent = null;
--            List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(level.capturedBlockStates.values());
--            level.capturedBlockStates.clear();
-+            List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(capturedBlockStates.values()); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-+            capturedBlockStates.clear(); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-             if (blocks.size() > 1) {
-                 placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(level, player, hand, blocks, pos);
-             } else if (blocks.size() == 1 && usedItem != Items.POWDER_SNOW_BUCKET) { // Paper - Fix cancelled powdered snow bucket placement
-@@ -451,7 +453,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
-                 result = InteractionResult.FAIL; // cancel placement
-                 // PAIL: Remove this when MC-99075 fixed
-                 player.containerMenu.forceHeldSlot(hand);
--                level.capturedTileEntities.clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot
-+                capturedTileEntities.clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-                 // revert back all captured blocks
-                 for (org.bukkit.block.BlockState blockstate : blocks) {
-                     ((org.bukkit.craftbukkit.block.CraftBlockState) blockstate).revertPlace();
-@@ -466,7 +468,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
-                     this.setCount(newCount);
-                 }
- 
--                for (java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.entity.BlockEntity> e : level.capturedTileEntities.entrySet()) {
-+                for (java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.entity.BlockEntity> e : capturedTileEntities.entrySet()) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-                     level.setBlockEntity(e.getValue());
-                 }
- 
-@@ -537,8 +539,10 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
-                 player.awardStat(Stats.ITEM_USED.get(usedItem));
-             }
-         }
--        level.capturedTileEntities.clear();
--        level.capturedBlockStates.clear();
-+        // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
-+        capturedTileEntities.clear();
-+        capturedBlockStates.clear();
-+        // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
-         // CraftBukkit end
- 
-         return result;
+             treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c6963b46222c 100644
+index 3d329ec1eeac11d5249efce81a7316b0d0a09c48..d3340bcfc50109b6f281d90445b3ce77aff8e778 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -120,7 +120,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -121,7 +121,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          .build();
      public final org.bxteam.divinemc.util.BlockEntityTickersList blockEntityTickers = new org.bxteam.divinemc.util.BlockEntityTickersList(); // DivineMC - optimize block entity removals - Fix MC-117075
      protected final CollectingNeighborUpdater neighborUpdater;
 -    private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
 +    private final List<TickingBlockEntity> pendingBlockEntityTickers = java.util.Collections.synchronizedList(Lists.newArrayList()); // DivineMC - Regionized Chunk Ticking
      private boolean tickingBlockEntities;
-     public final Thread thread;
+     protected final Thread thread;
      private final boolean isDebug;
-@@ -149,12 +149,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -150,12 +150,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      private final CraftWorld world;
      public org.bukkit.generator.@Nullable ChunkGenerator generator;
  
 -    public boolean captureBlockStates = false;
 -    public boolean captureTreeGeneration = false;
 -    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
--    public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
+-    public Map<BlockPos, BlockEntity> capturedBlockEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
 -    @Nullable
 -    public List<net.minecraft.world.entity.item.ItemEntity> captureDrops;
 +    // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
@@ -855,7 +798,7 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
      public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
      // Paper start - EAR 2
      public int wakeupInactiveRemainingAnimals;
-@@ -162,7 +163,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -163,7 +164,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public int wakeupInactiveRemainingMonsters;
      public int wakeupInactiveRemainingVillagers;
      // Paper end - EAR 2
@@ -864,7 +807,7 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
      public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
      // Paper start - add paper world config
      private final io.papermc.paper.configuration.WorldConfiguration paperConfig;
-@@ -1043,8 +1044,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1048,8 +1049,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Nullable
      public final BlockState getBlockStateIfLoaded(BlockPos pos) {
          // CraftBukkit start - tree generation
@@ -875,8 +818,8 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
              if (previous != null) {
                  return previous.getHandle();
              }
-@@ -1109,20 +1110,23 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     public boolean setBlock(final BlockPos pos, final BlockState blockState, @Block.UpdateFlags final int updateFlags, final int updateLimit) {
+@@ -1113,20 +1114,23 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public boolean setBlock(final BlockPos pos, final BlockState blockState, final @Block.UpdateFlags int updateFlags, final int updateLimit) {
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // DivineMC - Parallel world ticking (additional concurrency issues logs)
          // CraftBukkit start - tree generation
 -        if (this.captureTreeGeneration) {
@@ -902,7 +845,7 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
          // CraftBukkit end
          if (!this.isInValidBounds(pos)) {
              return false;
-@@ -1136,17 +1140,21 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1140,17 +1144,21 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          Block block = blockState.getBlock();
          // CraftBukkit start - capture blockstates
          boolean captured = false;
@@ -927,8 +870,8 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
 +        // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
          // CraftBukkit end - capture blockstates
          BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
-             // DivineMC start - Imanity: Raytrace AntiXraySDK integration
-@@ -1158,8 +1166,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         // DivineMC start - Imanity: Raytrace AntiXraySDK integration
+@@ -1162,8 +1170,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
          if (oldState == null) {
              // CraftBukkit start - remove blockstate if failed (or the same)
@@ -939,7 +882,7 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
              }
              // CraftBukkit end
              return false;
-@@ -1197,7 +1205,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1201,7 +1209,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          */ // CraftBukkit
  
          // CraftBukkit start
@@ -948,7 +891,7 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
              // Modularize client and physic updates
              // Spigot start
              try {
-@@ -1368,8 +1376,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1373,8 +1381,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Override
      public BlockState getBlockState(final BlockPos pos) {
          // CraftBukkit start - tree generation
@@ -959,7 +902,7 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
              if (previous != null) {
                  return previous.getHandle();
              }
-@@ -1545,10 +1553,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1550,10 +1558,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
      public void tickBlockEntities() {
          this.tickingBlockEntities = true;
@@ -977,13 +920,13 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
  
          // Paper - Fix MC-117075 use removeAll - remove iterator in favour of indexed for loop, ensuring compile error if something uses iter incorrectly
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
-@@ -1741,10 +1753,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1746,10 +1758,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos) {
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // DivineMC - Parallel world ticking
          // Paper start - Perf: Optimize capturedTileEntities lookup
 +        // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
          net.minecraft.world.level.block.entity.BlockEntity blockEntity;
--        if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(pos)) != null) {
+-        if (!this.capturedBlockEntities.isEmpty() && (blockEntity = this.capturedBlockEntities.get(pos)) != null) {
 +        final Map<BlockPos, BlockEntity> capturedTileEntities = this.capturedTileEntities.get();
 +        if (!capturedTileEntities.isEmpty() && (blockEntity = capturedTileEntities.get(pos)) != null) {
              return blockEntity;
@@ -992,35 +935,46 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
          // Paper end - Perf: Optimize capturedTileEntities lookup
          if (!this.isInValidBounds(pos)) {
              return null;
-@@ -1760,8 +1775,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1765,8 +1780,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
              // CraftBukkit start
 -            if (this.captureBlockStates) {
--                this.capturedTileEntities.put(pos.immutable(), blockEntity);
+-                this.capturedBlockEntities.put(pos.immutable(), blockEntity);
 +            if (this.captureBlockStates.get()) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture
 +                this.capturedTileEntities.get().put(pos.immutable(), blockEntity); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
                  return;
              }
              // CraftBukkit end
 diff --git a/net/minecraft/world/level/block/BedBlock.java b/net/minecraft/world/level/block/BedBlock.java
-index 23d6d30a386816c7af0fdafc4b446a61a7d66763..fe6ccbb3b0a16f373eb716bc3a820b2a3393d5ec 100644
+index 4fd5e46deac615bdb3744149772962b68daf72ee..126c4347c164c306e435aa69680adadd101a9070 100644
 --- a/net/minecraft/world/level/block/BedBlock.java
 +++ b/net/minecraft/world/level/block/BedBlock.java
-@@ -338,7 +338,7 @@ public class BedBlock extends HorizontalDirectionalBlock implements EntityBlock
-             BlockPos otherPos = pos.relative(state.getValue(FACING));
-             level.setBlock(otherPos, state.setValue(PART, BedPart.HEAD), Block.UPDATE_ALL);
-             // CraftBukkit start - SPIGOT-7315: Don't updated if we capture block states
--            if (level.captureBlockStates) {
+@@ -310,8 +310,17 @@ public class BedBlock extends HorizontalDirectionalBlock {
+     @Override
+     public void setPlacedBy(final Level level, final BlockPos pos, final BlockState state, final @Nullable LivingEntity by, final ItemStack itemStack) {
+         super.setPlacedBy(level, pos, state, by, itemStack);
+-        BlockPos otherPos = pos.relative(state.getValue(FACING));
+-        level.setBlockAndUpdate(otherPos, state.setValue(PART, BedPart.HEAD));
++        if (!level.isClientSide()) {
++            BlockPos otherPos = pos.relative(state.getValue(FACING));
++            level.setBlock(otherPos, state.setValue(PART, BedPart.HEAD), Block.UPDATE_ALL);
++            // CraftBukkit start - SPIGOT-7315: Don't updated if we capture block states
 +            if (level.captureBlockStates.get()) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-                 return;
-             }
-             // CraftBukkit end
++                return;
++            }
++            // CraftBukkit end
++            level.updateNeighborsAt(pos, Blocks.AIR);
++            state.updateNeighbourShapes(level, pos, Block.UPDATE_ALL);
++        }
+     }
+ 
+     public DyeColor getColor() {
 diff --git a/net/minecraft/world/level/block/Block.java b/net/minecraft/world/level/block/Block.java
-index 06fbc03f596b280c285ab7601da8a7cd71647944..ff72eb547c5871f11f952defcaa58ffee1f49265 100644
+index f1b446aa35185c2eaa987dfe645e2caf3ddad2f4..ed10a3ce8e23526c936c0bfcda7292af73fc2b9d 100644
 --- a/net/minecraft/world/level/block/Block.java
 +++ b/net/minecraft/world/level/block/Block.java
-@@ -512,11 +512,14 @@ public class Block extends BlockBehaviour implements ItemLike {
+@@ -509,11 +509,14 @@ public class Block extends BlockBehaviour implements ItemLike {
              ItemEntity entity = entityFactory.get();
              entity.setDefaultPickUpDelay();
              // CraftBukkit start
@@ -1038,10 +992,10 @@ index 06fbc03f596b280c285ab7601da8a7cd71647944..ff72eb547c5871f11f952defcaa58ffe
          }
      }
 diff --git a/net/minecraft/world/level/block/SaplingBlock.java b/net/minecraft/world/level/block/SaplingBlock.java
-index 90fd4187c87fdd56a228096b589cd422bf884c71..a717cdefe33b60927b75972355529f194ab8d559 100644
+index bf9b94eeed932504bbe3604111bbb576890f000c..63e397e54abc82b0e301b4ebd4d19cef1476517b 100644
 --- a/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/net/minecraft/world/level/block/SaplingBlock.java
-@@ -74,20 +74,22 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
+@@ -74,19 +74,20 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
              level.setBlock(pos, state.cycle(STAGE), Block.UPDATE_NONE);
          } else {
              // CraftBukkit start
@@ -1051,26 +1005,23 @@ index 90fd4187c87fdd56a228096b589cd422bf884c71..a717cdefe33b60927b75972355529f19
                  this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
              } else {
 -                level.captureTreeGeneration = true;
-+                level.captureTreeGeneration.set(true);
-                 this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
--                level.captureTreeGeneration = false;
--                if (!level.capturedBlockStates.isEmpty()) {
-+                level.captureTreeGeneration.set(false);
-+                java.util.Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = level.capturedBlockStates.get();
-+                if (!capturedBlockStates.isEmpty()) {
-                     // DivineMC start - Parallel world ticking
-                     org.bukkit.TreeType treeTypeLocal = SaplingBlock.getTreeTypeTL();
-                     SaplingBlock.setTreeTypeTL(null);
-                     // DivineMC end - Parallel world ticking
-                     org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level);
--                    java.util.List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(level.capturedBlockStates.values());
++                level.captureTreeGeneration.set(true); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
+                 java.util.List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
+                 org.bukkit.TreeType treeTypeLocal;
+                 try {
+                     this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
+                 } finally {
+-                    level.captureTreeGeneration = false;
++                    level.captureTreeGeneration.set(false); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
+ 
+-                    capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.values());
 -                    level.capturedBlockStates.clear();
-+                    java.util.List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(capturedBlockStates.values());
-+                    capturedBlockStates.clear();
-                     org.bukkit.event.world.StructureGrowEvent event = null;
-                     if (treeTypeLocal != null) { // DivineMC - Parallel world ticking
-                         event = new org.bukkit.event.world.StructureGrowEvent(location, treeTypeLocal, false, null, blocks); // DivineMC - Parallel world ticking
-@@ -102,6 +104,7 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
++                    capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.get().values()); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
++                    level.capturedBlockStates.get().clear(); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
+ 
+                     // DivineMC start - Parallel world ticking
+                     treeTypeLocal = SaplingBlock.getTreeTypeTL();
+@@ -108,6 +109,7 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
                      }
                  }
              }
@@ -1079,20 +1030,20 @@ index 90fd4187c87fdd56a228096b589cd422bf884c71..a717cdefe33b60927b75972355529f19
          }
      }
 diff --git a/net/minecraft/world/level/block/WitherSkullBlock.java b/net/minecraft/world/level/block/WitherSkullBlock.java
-index 590fb5905b12901dca750c48f6e7d36df282df7e..6d7bc348227d3a4240083e622e7e451e424fa62f 100644
+index b5c9f0cdc830438cb9a966cee9d0504767e9f06d..b8affcbbd5a06f54d02b6fd4e299cf05fd7a194d 100644
 --- a/net/minecraft/world/level/block/WitherSkullBlock.java
 +++ b/net/minecraft/world/level/block/WitherSkullBlock.java
-@@ -49,7 +49,7 @@ public class WitherSkullBlock extends SkullBlock {
+@@ -43,7 +43,7 @@ public class WitherSkullBlock extends SkullBlock {
      }
  
-     public static void checkSpawn(final Level level, final BlockPos pos, final SkullBlockEntity placedSkull) {
--        if (level.captureBlockStates) return; // CraftBukkit
-+        if (level.captureBlockStates.get()) return; // CraftBukkit // DivineMC - Regionized Chunk Ticking - thread-safe block capture
-         if (!level.isClientSide()) {
-             BlockState blockState = placedSkull.getBlockState();
-             boolean correctBlock = blockState.is(Blocks.WITHER_SKELETON_SKULL) || blockState.is(Blocks.WITHER_SKELETON_WALL_SKULL);
+     public static void checkSpawn(final Level level, final BlockPos pos) {
+-        if (!level.captureBlockStates && level.getBlockEntity(pos) instanceof SkullBlockEntity placedSkull) { // CraftBukkit
++        if (!level.captureBlockStates.get() && level.getBlockEntity(pos) instanceof SkullBlockEntity placedSkull) { // CraftBukkit // DivineMC - Regionized Chunk Ticking - thread-safe block capture
+             checkSpawn(level, pos, placedSkull);
+         }
+     }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 5a11b9eac4938585ef5fa77f2d338ec0490c319c..db064ca8ea24d606150b38950d6d0a168f222523 100644
+index cabb9220eb500d6a6b59dafdfe5ac2b455be6c3b..79e13958d3401324c6aee5946254360b1a37a549 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -432,7 +432,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
@@ -1108,12 +1059,12 @@ index 5a11b9eac4938585ef5fa77f2d338ec0490c319c..db064ca8ea24d606150b38950d6d0a16
  
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos, final LevelChunk.EntityCreationType creationType) {
          // CraftBukkit start
--        BlockEntity blockEntity = this.level.capturedTileEntities.get(pos);
+-        BlockEntity blockEntity = this.level.capturedBlockEntities.get(pos);
 +        BlockEntity blockEntity = this.level.capturedTileEntities.get().get(pos); // DivineMC - Regionized Chunk Ticking - thread-safe block capture
          if (blockEntity == null) {
              blockEntity = this.blockEntities.get(pos);
          }
-@@ -664,13 +664,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -663,13 +663,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
  
                  org.bukkit.World world = this.level.getWorld();
                  if (world != null) {
@@ -1143,7 +1094,7 @@ index 9f340f8ed56e1218f268e4f418dd6ddd87b1902a..a342ffd6b60744b65416baff2b1a4695
      // DivineMC start - Parallel world ticking
      @Nullable
 diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-index deb62cf4b878f34ba13f83faf711c0666f12e6fa..57a7ae4d9ab1cd3a02ace06458d0162e2b96c516 100644
+index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..05a9b7e75d158c845f18f953ce00a95a3810c5e9 100644
 --- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 @@ -65,7 +65,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {

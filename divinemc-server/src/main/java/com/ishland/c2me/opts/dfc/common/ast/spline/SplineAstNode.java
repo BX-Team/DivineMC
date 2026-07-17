@@ -24,14 +24,14 @@ import org.objectweb.asm.commons.InstructionAdapter;
 
 public class SplineAstNode implements AstNode {
     public static final String SPLINE_METHOD_DESC;
-    private final CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline;
+    private final CubicSpline<DensityFunctions.Spline.Coordinate> spline;
 
-    public SplineAstNode(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline) {
+    public SplineAstNode(CubicSpline<DensityFunctions.Spline.Coordinate> spline) {
         this.spline = spline;
     }
 
     public double evalSingle(int x, int y, int z, EvalType type) {
-        return (double)this.spline.apply(new DensityFunctions.Spline.Point(new NoisePosVanillaInterface(x, y, z, type)));
+        return (double)CubicSpline.sample(this.spline, new DensityFunctions.Spline.Point(new NoisePosVanillaInterface(x, y, z, type)));
     }
 
     public void evalMulti(double[] res, int[] x, int[] y, int[] z, EvalType type) {
@@ -56,12 +56,12 @@ public class SplineAstNode implements AstNode {
         m.areturn(Type.DOUBLE_TYPE);
     }
 
-    private static ValuesMethodDef doBytecodeGenSpline(BytecodeGen.Context context, CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline) {
+    private static ValuesMethodDef doBytecodeGenSpline(BytecodeGen.Context context, CubicSpline<DensityFunctions.Spline.Coordinate> spline) {
         String name = context.getCachedSplineMethod(spline);
         if (name != null) {
             return new ValuesMethodDef(false, name, 0.0F);
         } else if (spline instanceof CubicSpline.Constant) {
-            CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline1 = (CubicSpline.Constant)spline;
+            CubicSpline.Constant<DensityFunctions.Spline.Coordinate> spline1 = (CubicSpline.Constant)spline;
             return new ValuesMethodDef(true, (String)null, spline1.value());
         } else {
             name = context.nextMethodName("Spline");
@@ -76,7 +76,7 @@ public class SplineAstNode implements AstNode {
                 return ordinal;
             };
             if (spline instanceof CubicSpline.Multipoint) {
-                CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> impl = (CubicSpline.Multipoint)spline;
+                CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> impl = (CubicSpline.Multipoint)spline;
                 ValuesMethodDef[] valuesMethods = (ValuesMethodDef[])impl.values().stream().map((spline1x) -> {
                     return doBytecodeGenSpline(context, spline1x);
                 }).toArray((x$0) -> {
@@ -87,7 +87,7 @@ public class SplineAstNode implements AstNode {
                 int point = localVarConsumer.createLocalVariable("point", Type.FLOAT_TYPE.getDescriptor());
                 int rangeForLocation = localVarConsumer.createLocalVariable("rangeForLocation", Type.INT_TYPE.getDescriptor());
                 int lastConst = impl.locations().length - 1;
-                String locationFunction = context.newSingleMethod(McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)impl.coordinate()).function().value()));
+                String locationFunction = context.newSingleMethod(McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)impl.coordinate()).function()));
                 context.callDelegateSingle(m, locationFunction);
                 m.cast(Type.DOUBLE_TYPE, Type.FLOAT_TYPE);
                 m.store(point, Type.FLOAT_TYPE);
@@ -258,7 +258,7 @@ public class SplineAstNode implements AstNode {
                     throw new UnsupportedOperationException(String.format("Unsupported spline implementation: %s", spline.getClass().getName()));
                 }
 
-                CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> floatFunction = (CubicSpline.Constant)spline;
+                CubicSpline.Constant<DensityFunctions.Spline.Coordinate> floatFunction = (CubicSpline.Constant)spline;
                 m.fconst(floatFunction.value());
                 m.areturn(Type.FLOAT_TYPE);
             }
@@ -301,16 +301,16 @@ public class SplineAstNode implements AstNode {
         m.areturn(Type.VOID_TYPE);
     }
 
-    private static boolean deepEquals(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a, CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b) {
-        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
-            if (b instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
+    private static boolean deepEquals(CubicSpline<DensityFunctions.Spline.Coordinate> a, CubicSpline<DensityFunctions.Spline.Coordinate> b) {
+        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> a1) {
+            if (b instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> b1) {
                 return a1.value() == b1.value();
             }
         }
 
-        if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
-            if (b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
-                boolean equals1 = Arrays.equals(a1.derivatives(), b1.derivatives()) && Arrays.equals(a1.locations(), b1.locations()) && a1.values().size() == b1.values().size() && McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)a1.coordinate()).function().value()).equals(McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)b1.coordinate()).function().value()));
+        if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1) {
+            if (b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> b1) {
+                boolean equals1 = Arrays.equals(a1.derivatives(), b1.derivatives()) && Arrays.equals(a1.locations(), b1.locations()) && a1.values().size() == b1.values().size() && McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)a1.coordinate()).function()).equals(McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)b1.coordinate()).function()));
                 if (!equals1) {
                     return false;
                 }
@@ -330,16 +330,16 @@ public class SplineAstNode implements AstNode {
         return false;
     }
 
-    private static boolean deepRelaxedEquals(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a, CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b) {
-        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
-            if (b instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
+    private static boolean deepRelaxedEquals(CubicSpline<DensityFunctions.Spline.Coordinate> a, CubicSpline<DensityFunctions.Spline.Coordinate> b) {
+        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> a1) {
+            if (b instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> b1) {
                 return a1.value() == b1.value();
             }
         }
 
-        if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
-            if (b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
-                boolean equals1 = a1.values().size() == b1.values().size() && McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)a1.coordinate()).function().value()).relaxedEquals(McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)b1.coordinate()).function().value()));
+        if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1) {
+            if (b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> b1) {
+                boolean equals1 = a1.values().size() == b1.values().size() && McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)a1.coordinate()).function()).relaxedEquals(McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)b1.coordinate()).function()));
                 if (!equals1) {
                     return false;
                 }
@@ -359,10 +359,10 @@ public class SplineAstNode implements AstNode {
         return false;
     }
 
-    private static int deepHashcode(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a) {
-        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
+    private static int deepHashcode(CubicSpline<DensityFunctions.Spline.Coordinate> a) {
+        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> a1) {
             return Float.hashCode(a1.value());
-        } else if (!(a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1)) {
+        } else if (!(a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1)) {
             return a.hashCode();
         } else {
             int result = 1;
@@ -374,15 +374,15 @@ public class SplineAstNode implements AstNode {
                 spline = (CubicSpline)var4.next();
             }
 
-            result = 31 * result + McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)a1.coordinate()).function().value()).hashCode();
+            result = 31 * result + McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)a1.coordinate()).function()).hashCode();
             return result;
         }
     }
 
-    private static int deepRelaxedHashcode(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a) {
-        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
+    private static int deepRelaxedHashcode(CubicSpline<DensityFunctions.Spline.Coordinate> a) {
+        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> a1) {
             return Float.hashCode(a1.value());
-        } else if (!(a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1)) {
+        } else if (!(a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1)) {
             return a.hashCode();
         } else {
             int result = 1;
@@ -392,7 +392,7 @@ public class SplineAstNode implements AstNode {
                 spline = (CubicSpline)var4.next();
             }
 
-            result = 31 * result + McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)a1.coordinate()).function().value()).relaxedHashCode();
+            result = 31 * result + McToAst.toAst((DensityFunction)((DensityFunctions.Spline.Coordinate)a1.coordinate()).function()).relaxedHashCode();
             return result;
         }
     }

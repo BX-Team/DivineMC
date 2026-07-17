@@ -21,7 +21,7 @@ public class AstVanillaInterface implements DensityFunction {
     }
 
     public double compute(FunctionContext pos) {
-        if (pos.getBlender() != Blender.empty()) {
+        if (pos instanceof NoiseChunk sampler && !sampler.blender.isEmpty()) {
             if (this.blendingFallback == null) {
                 throw new IllegalStateException("blendingFallback is no more");
             } else {
@@ -34,7 +34,7 @@ public class AstVanillaInterface implements DensityFunction {
 
     public void fillArray(double[] densities, ContextProvider applier) {
         if (applier instanceof NoiseChunk sampler) {
-            if (sampler.getBlender() != Blender.empty()) {
+            if (!sampler.blender.isEmpty()) {
                 if (this.blendingFallback == null) {
                     throw new IllegalStateException("blendingFallback is no more");
                 }
@@ -60,6 +60,20 @@ public class AstVanillaInterface implements DensityFunction {
 
             this.astNode.evalMulti(densities, x, y, z, EvalType.from(applier));
         }
+    }
+
+    public DensityFunction mapChildren(Visitor visitor) {
+        AstNode transformed = this.astNode.transform((astNode) -> {
+            if (astNode instanceof DelegateNode delegateNode) {
+                return new DelegateNode(visitor.apply(delegateNode.getDelegate()));
+            } else if (astNode instanceof CacheLikeNode cacheLikeNode) {
+                return new CacheLikeNode((IFastCacheLike)visitor.apply((DensityFunction)cacheLikeNode.getCacheLike()), cacheLikeNode.getDelegate());
+            } else {
+                return astNode;
+            }
+        });
+        DensityFunction blendingFallback1 = this.blendingFallback != null ? visitor.apply(this.blendingFallback) : null;
+        return transformed == this.astNode && blendingFallback1 == this.blendingFallback ? this : new AstVanillaInterface(transformed, blendingFallback1);
     }
 
     public DensityFunction mapAll(Visitor visitor) {
