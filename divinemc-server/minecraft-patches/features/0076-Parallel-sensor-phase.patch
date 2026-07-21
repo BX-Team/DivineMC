@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sat, 4 Jul 2026 00:28:19 +0300
+Subject: [PATCH] Parallel sensor phase
+
+Runs due AI sensors (read-only world scans) on a worker pool before the entity
+ticking phase, one task per mob, while the tick thread blocks on a join barrier
+so the world can't mutate. Sensors unsafe off-thread opt out via
+divinemc$canRunAsync, and TargetingConditions are made thread-local.
+
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index 91592bb126b2f7604ca39e061f1d8cd17735257e..06e6e95621157d7264db1171201830c2f6ef9710 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -961,6 +961,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+                 this.spigotConfig.currentPrimedTnt = 0; // Spigot
+             } else {
+                 io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
++                org.bxteam.divinemc.async.sensing.ParallelSensorTicker.preTickSensors(this); // DivineMC - Parallel sensor phase
+                 this.entityTickList
+                     .forEach(
+                         entity -> {
+diff --git a/net/minecraft/world/entity/ai/sensing/Sensor.java b/net/minecraft/world/entity/ai/sensing/Sensor.java
+index 535c7e0d369a6579eadb5d98be4d1409bca3d2ff..9ef88fa7d254636f02ad0ed08c1b7f0f33af546b 100644
+--- a/net/minecraft/world/entity/ai/sensing/Sensor.java
++++ b/net/minecraft/world/entity/ai/sensing/Sensor.java
+@@ -13,19 +13,21 @@ import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+ public abstract class Sensor<E extends LivingEntity> {
+     private static final int DEFAULT_SCAN_RATE = 20;
+     private static final int DEFAULT_TARGETING_RANGE = 16;
+-    private static final TargetingConditions TARGET_CONDITIONS = TargetingConditions.forNonCombat().range(16.0);
+-    private static final TargetingConditions TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING = TargetingConditions.forNonCombat()
++    // DivineMC start - Parallel sensor phase
++    private static final ThreadLocal<TargetingConditions> TARGET_CONDITIONS = ThreadLocal.withInitial(() -> TargetingConditions.forNonCombat().range(16.0));
++    private static final ThreadLocal<TargetingConditions> TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING = ThreadLocal.withInitial(() -> TargetingConditions.forNonCombat()
+         .range(16.0)
+-        .ignoreInvisibilityTesting();
+-    private static final TargetingConditions ATTACK_TARGET_CONDITIONS = TargetingConditions.forCombat().range(16.0);
+-    private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING = TargetingConditions.forCombat()
++        .ignoreInvisibilityTesting());
++    private static final ThreadLocal<TargetingConditions> ATTACK_TARGET_CONDITIONS = ThreadLocal.withInitial(() -> TargetingConditions.forCombat().range(16.0));
++    private static final ThreadLocal<TargetingConditions> ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING = ThreadLocal.withInitial(() -> TargetingConditions.forCombat()
+         .range(16.0)
+-        .ignoreInvisibilityTesting();
+-    private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT = TargetingConditions.forCombat().range(16.0).ignoreLineOfSight();
+-    private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT = TargetingConditions.forCombat()
++        .ignoreInvisibilityTesting());
++    private static final ThreadLocal<TargetingConditions> ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT = ThreadLocal.withInitial(() -> TargetingConditions.forCombat().range(16.0).ignoreLineOfSight());
++    private static final ThreadLocal<TargetingConditions> ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT = ThreadLocal.withInitial(() -> TargetingConditions.forCombat()
+         .range(16.0)
+         .ignoreLineOfSight()
+-        .ignoreInvisibilityTesting();
++        .ignoreInvisibilityTesting());
++    // DivineMC end - Parallel sensor phase
+     public final int scanRate;
+     public long timeToTick;
+     private final String configKey; // Paper - configurable sensor tick rate and timings
+@@ -58,14 +60,28 @@ public abstract class Sensor<E extends LivingEntity> {
+         }
+     }
+ 
++    // DivineMC start - Parallel sensor phase
++    public final boolean divinemc$isDue() {
++        return this.timeToTick <= 1L;
++    }
++
++    public final void divinemc$tickAsync(final ServerLevel level, final E body) {
++        this.timeToTick = java.util.Objects.requireNonNullElse(level.paperConfig().tickRates.sensor.get(body.getType(), this.configKey), this.scanRate);
++        this.updateTargetingConditionRanges(body);
++        this.doTick(level, body);
++    }
++    // DivineMC end - Parallel sensor phase
++
+     private void updateTargetingConditionRanges(final E body) {
+         double followRange = body.getAttributeValue(Attributes.FOLLOW_RANGE);
+-        TARGET_CONDITIONS.range(followRange);
+-        TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.range(followRange);
+-        ATTACK_TARGET_CONDITIONS.range(followRange);
+-        ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.range(followRange);
+-        ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.range(followRange);
+-        ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.range(followRange);
++        // DivineMC start - Parallel sensor phase
++        TARGET_CONDITIONS.get().range(followRange);
++        TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.get().range(followRange);
++        ATTACK_TARGET_CONDITIONS.get().range(followRange);
++        ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.get().range(followRange);
++        ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.get().range(followRange);
++        ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.get().range(followRange);
++        // DivineMC end - Parallel sensor phase
+     }
+ 
+     protected abstract void doTick(final ServerLevel level, final E body);
+@@ -74,14 +90,14 @@ public abstract class Sensor<E extends LivingEntity> {
+ 
+     public static boolean isEntityTargetable(final ServerLevel level, final LivingEntity body, final LivingEntity entity) {
+         return body.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, entity)
+-            ? TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.test(level, body, entity)
+-            : TARGET_CONDITIONS.test(level, body, entity);
++            ? TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.get().test(level, body, entity) // DivineMC - Parallel sensor phase
++            : TARGET_CONDITIONS.get().test(level, body, entity); // DivineMC - Parallel sensor phase
+     }
+ 
+     public static boolean isEntityAttackable(final ServerLevel level, final LivingEntity body, final LivingEntity target) {
+         return body.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, target)
+-            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.test(level, body, target)
+-            : ATTACK_TARGET_CONDITIONS.test(level, body, target);
++            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.get().test(level, body, target) // DivineMC - Parallel sensor phase
++            : ATTACK_TARGET_CONDITIONS.get().test(level, body, target); // DivineMC - Parallel sensor phase
+     }
+ 
+     public static BiPredicate<ServerLevel, LivingEntity> wasEntityAttackableLastNTicks(final LivingEntity body, final int ticks) {
+@@ -90,8 +106,8 @@ public abstract class Sensor<E extends LivingEntity> {
+ 
+     public static boolean isEntityAttackableIgnoringLineOfSight(final ServerLevel level, final LivingEntity body, final LivingEntity target) {
+         return body.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, target)
+-            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.test(level, body, target)
+-            : ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.test(level, body, target);
++            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.get().test(level, body, target) // DivineMC - Parallel sensor phase
++            : ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.get().test(level, body, target); // DivineMC - Parallel sensor phase
+     }
+ 
+     static <T, U> BiPredicate<T, U> rememberPositives(final int invocations, final BiPredicate<T, U> predicate) {
