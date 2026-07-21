@@ -4,7 +4,7 @@ import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.async.pathfinding.AsyncPath;
-import org.bxteam.divinemc.async.tracking.MultithreadedTracker;
+import org.bxteam.divinemc.async.tracking.ParallelEntityTracker;
 import org.bxteam.divinemc.config.DivineConfig;
 import org.bxteam.divinemc.region.Flusher;
 
@@ -32,12 +32,12 @@ public class ExecutorShutdown {
             } catch (InterruptedException ignored) { }
         }
 
-        if (MultithreadedTracker.TRACKER_EXECUTOR != null) {
-            LOGGER.info("Shutting down mob tracker executor...");
-            MultithreadedTracker.TRACKER_EXECUTOR.shutdown();
+        if (ParallelEntityTracker.TRACKER_EXECUTOR != null) {
+            LOGGER.info("Shutting down parallel entity tracker executor...");
+            ParallelEntityTracker.TRACKER_EXECUTOR.shutdown();
 
             try {
-                MultithreadedTracker.TRACKER_EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
+                ParallelEntityTracker.TRACKER_EXECUTOR.awaitTermination(10L, TimeUnit.SECONDS);
             } catch (InterruptedException ignored) { }
         }
 

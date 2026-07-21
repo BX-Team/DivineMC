@@ -22,7 +22,7 @@ public class DivineWorldConfig {
     }
 
     public void init() throws IOException {
-        if (DivineConfig.CONFIG_VERSION < 8) {
+        if (DivineConfig.configVersion < 8) {
             ConfigurationSection section = DivineConfig.config.getConfigurationSection("world-settings." + this.legacyWorldName);
             if (section != null) {
                 DivineConfig.config.set("world-settings." + this.legacyWorldName, null);

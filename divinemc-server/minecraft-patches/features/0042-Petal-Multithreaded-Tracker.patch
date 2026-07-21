@@ -1,72 +1,13 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
-Date: Tue, 28 Jan 2025 01:18:49 +0300
-Subject: [PATCH] Petal: Multithreaded Tracker
+Date: Tue, 20 Jul 2025 12:21:41 +0300
+Subject: [PATCH] Parallel entity tracker
 
-Original project: https://github.com/Bloom-host/Petal
-Original license: GPL v3
+Derived from Petal's multithreaded tracker; rewritten into a three-phase
+scan/apply/send model with join barriers.
 
-Patch description:
-
-We made much of tracking logic asynchronously, and fixed visible issue
-for the case of some NPC plugins which using real entity type, e.g. Citizens.
-
-But it is still recommending to use those packet based, virtual entity
-based NPC plugins, e.g. ZNPC Plus, Adyeshach, Fancy NPC, etc.
-
-diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-index fff7a796a61542213bdaa417d44e25cd05f7e774..ede85aa9452a6b71265b10385d5581c37d6976b0 100644
---- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-+++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-@@ -60,7 +60,16 @@ public final class NearbyPlayers {
- 
-     private final ServerLevel world;
-     private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
--    private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
-+    // DivineMC start - Multithreaded Tracker
-+    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<TrackedChunk> byChunk;
-+    {
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
-+            byChunk = it.unimi.dsi.fastutil.longs.Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>());
-+        } else {
-+            byChunk = new Long2ReferenceOpenHashMap<>();
-+        }
-+    }
-+    // DivineMC end - Multithreaded Tracker
-     private final Long2ReferenceOpenHashMap<ReferenceList<ServerPlayer>>[] directByChunk = new Long2ReferenceOpenHashMap[TOTAL_MAP_TYPES];
-     {
-         for (int i = 0; i < this.directByChunk.length; ++i) {
-diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index d80c2619a7429b7122d71ab96669938499b0374c..05141bb32b921a8c35c1714bc66109cfb73c1cdb 100644
---- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-+++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-@@ -345,7 +345,11 @@ public final class RegionizedPlayerChunkLoader {
-         private boolean canGenerateChunks = true;
- 
-         private final ArrayDeque<ChunkHolderManager.TicketOperation<?, ?>> delayedTicketOps = new ArrayDeque<>();
--        private final LongOpenHashSet sentChunks = new LongOpenHashSet();
-+        // DivineMC start - Multithreaded tracker
-+        private final LongOpenHashSet sentChunks = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled && !org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedCompatModeEnabled
-+            ? new org.bxteam.divinemc.util.map.ConcurrentLongHashSet()
-+            : new LongOpenHashSet();
-+        // DivineMC end - Multithreaded tracker
- 
-         private static final byte CHUNK_TICKET_STAGE_NONE           = 0;
-         private static final byte CHUNK_TICKET_STAGE_LOADING        = 1;
-diff --git a/net/minecraft/network/protocol/game/ClientboundUpdateAttributesPacket.java b/net/minecraft/network/protocol/game/ClientboundUpdateAttributesPacket.java
-index 344260d191e4c80671062cd29ce0146a16ea7f1d..8d4264ab3e12aa898374f52811735676dee2c6eb 100644
---- a/net/minecraft/network/protocol/game/ClientboundUpdateAttributesPacket.java
-+++ b/net/minecraft/network/protocol/game/ClientboundUpdateAttributesPacket.java
-@@ -32,6 +32,7 @@ public class ClientboundUpdateAttributesPacket implements Packet<ClientGamePacke
-         this.attributes = Lists.newArrayList();
- 
-         for (AttributeInstance value : values) {
-+            if (value == null) continue; // DivineMC - Multithreaded Tracker
-             this.attributes.add(new ClientboundUpdateAttributesPacket.AttributeSnapshot(value.getAttribute(), value.getBaseValue(), value.getModifiers()));
-         }
-     }
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24be801494 100644
+index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704aafc7785d 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -252,9 +252,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -75,8 +16,8 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
          final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
 -        for (int i = 0, len = inRange.size(); i < len; i++) {
 -            ++(backingSet[i].mobCounts[index]);
-+        // DivineMC start - Multithreaded Tracker
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
++        // DivineMC start - Parallel entity tracker
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.parallelTrackerEnabled) {
 +            for (int i = 0, len = inRange.size(); i < len; i++) {
 +                final ServerPlayer player = backingSet[i];
 +                if (player == null) continue;
@@ -87,7 +28,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
 +                ++(backingSet[i].mobCounts[index]);
 +            }
          }
-+        // DivineMC end - Multithreaded Tracker
++        // DivineMC end - Parallel entity tracker
      }
  
      // Paper start - per player mob count backoff
@@ -95,24 +36,24 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
      // Paper end - optimise entity tracker
  
      protected void tick() {
-+        // DivineMC start - Multithreaded tracker
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
++        // DivineMC start - Parallel entity tracker
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.parallelTrackerEnabled) {
 +            final ServerLevel level = this.level;
-+            org.bxteam.divinemc.async.tracking.MultithreadedTracker.tick(level);
++            org.bxteam.divinemc.async.tracking.ParallelEntityTracker.tick(level);
 +            return;
 +        }
-+        // DivineMC end - Multithreaded tracker
++        // DivineMC end - Parallel entity tracker
          // Paper start - optimise entity tracker
          if (true) {
              this.newTrackerTick();
-@@ -1208,7 +1225,44 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1208,7 +1225,45 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          private final Entity entity;
          private final int range;
          private SectionPos lastSectionPos;
 -        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
-+        // DivineMC start - Multithreaded tracker
++        // DivineMC start - Parallel entity tracker
 +        public static final ServerPlayerConnection[] EMPTY_OBJECT_ARRAY = new ServerPlayerConnection[0];
-+        private final it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<ServerPlayerConnection> nonSyncSeenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>() {
++        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>() { // Paper - Perf: optimise map impl
 +            @Override
 +            public boolean add(ServerPlayerConnection serverPlayerConnection) {
 +                seenByUpdated = true;
@@ -131,7 +72,6 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
 +                super.clear();
 +            }
 +        };
-+        public final Set<ServerPlayerConnection> seenBy = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled ? it.unimi.dsi.fastutil.objects.ReferenceSets.synchronize(nonSyncSeenBy) : nonSyncSeenBy; // Paper - Perf: optimise map impl
 +        private volatile boolean seenByUpdated = true;
 +        private volatile ServerPlayerConnection[] seenByArray = EMPTY_OBJECT_ARRAY;
 +
@@ -147,18 +87,18 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
 +            this.seenByArray = this.seenBy.toArray(EMPTY_OBJECT_ARRAY);
 +            seenByUpdated = false;
 +        }
-+        // DivineMC end - Multithreaded tracker
++        // DivineMC end - Parallel entity tracker
  
          // Paper start - optimise entity tracker
          private long lastChunkUpdate = -1L;
-@@ -1235,23 +1289,93 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1235,23 +1290,121 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              this.lastTrackedChunk = chunk;
  
              final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
-+            final int playersLength = Math.min(playersRaw.length, players.size()); // DivineMC - Multithreaded tracker
++            final int playersLength = Math.min(playersRaw.length, players.size()); // DivineMC - Parallel entity tracker
  
 -            for (int i = 0, len = players.size(); i < len; ++i) {
-+            for (int i = 0; i < playersLength; ++i) { // DivineMC - Multithreaded tracker
++            for (int i = 0; i < playersLength; ++i) { // DivineMC - Parallel entity tracker
                  final ServerPlayer player = playersRaw[i];
                  this.updatePlayer(player);
              }
@@ -166,7 +106,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
              if (lastChunkUpdate != currChunkUpdate || lastTrackedChunk != chunk) {
                  // need to purge any players possible not in the chunk list
 -                for (final ServerPlayerConnection conn : new java.util.ArrayList<>(this.seenBy)) {
-+                // DivineMC start - Multithreaded tracker
++                // DivineMC start - Parallel entity tracker
 +                boolean removed = false;
 +                for (final ServerPlayerConnection conn : this.seenBy()) {
                      final ServerPlayer player = conn.getPlayer();
@@ -179,22 +119,18 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
 +                if (removed) {
 +                    this.seenByUpdated();
 +                }
-+                // DivineMC end - Multithreaded tracker
++                // DivineMC end - Parallel entity tracker
              }
          }
  
-+        // DivineMC start - Multithreaded tracker
-+        public final @Nullable Runnable tickCompact(final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk chunk) {
-+            if (chunk == null) {
-+                this.moonrise$clearPlayers();
-+                return null;
-+            }
-+
-+            final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> players = chunk.getPlayers(ca.spottedleaf.moonrise.common.misc.NearbyPlayers.NearbyMapType.VIEW_DISTANCE);
-+
++        // DivineMC start - Parallel entity tracker
++        public final org.bxteam.divinemc.async.tracking.ParallelEntityTracker.@Nullable ScanResult scanPlayers(final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk chunk) {
++            final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> players =
++                chunk == null ? null : chunk.getPlayers(ca.spottedleaf.moonrise.common.misc.NearbyPlayers.NearbyMapType.VIEW_DISTANCE);
 +            if (players == null) {
-+                this.moonrise$clearPlayers();
-+                return null;
++                return this.seenBy.isEmpty() && this.lastTrackedChunk == null
++                    ? null
++                    : new org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult(this, null, null, true);
 +            }
 +
 +            final long lastChunkUpdate = this.lastChunkUpdate;
@@ -203,110 +139,129 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
 +            this.lastChunkUpdate = currChunkUpdate;
 +            this.lastTrackedChunk = chunk;
 +
++            java.util.List<ServerPlayer> toAdd = null;
++            java.util.List<ServerPlayer> toRemove = null;
++
 +            final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
-+            final int playersLen = players.size(); // Ensure length won't change in the future tasks
-+
-+            if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled || !org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedCompatModeEnabled) {
-+                throw new IllegalStateException();
++            final int playersLength = Math.min(playersRaw.length, players.size());
++            for (int i = 0; i < playersLength; ++i) {
++                final ServerPlayer player = playersRaw[i];
++                if (player == null || player == this.entity) continue;
++                final boolean wantsToSee = this.wantsToSee(player);
++                if (wantsToSee == this.seenBy.contains(player.connection)) continue;
++                if (wantsToSee) {
++                    if (toAdd == null) toAdd = new java.util.ArrayList<>(4);
++                    toAdd.add(player);
++                } else {
++                    if (toRemove == null) toRemove = new java.util.ArrayList<>(4);
++                    toRemove.add(player);
++                }
 +            }
-+            final boolean isServerPlayer = this.entity instanceof ServerPlayer;
-+            final boolean isRealPlayer = isServerPlayer && ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer) this.entity).moonrise$isRealPlayer();
-+            Runnable updatePlayerTasks = () -> {
-+                for (int i = 0; i < playersLen; ++i) {
-+                    final ServerPlayer player = playersRaw[i];
-+                    this.updatePlayer(player);
-+                }
 +
-+                if (lastChunkUpdate != currChunkUpdate || lastTrackedChunk != chunk) {
-+                    // need to purge any players possible not in the chunk list
-+                    boolean removed = false;
-+                    for (final ServerPlayerConnection conn : this.seenBy()) {
-+                        final ServerPlayer player = conn.getPlayer();
-+                        if (!players.contains(player)) {
-+                            removed |= this.removePlayerMulti(player);
-+                        }
-+                    }
-+                    if (removed) {
-+                        this.seenByUpdated();
++            if (lastChunkUpdate != currChunkUpdate || lastTrackedChunk != chunk) {
++                // need to purge any players possibly not in the chunk list
++                for (final ServerPlayerConnection conn : this.seenBy()) {
++                    final ServerPlayer player = conn.getPlayer();
++                    if (!players.contains(player) && (toRemove == null || !toRemove.contains(player))) {
++                        if (toRemove == null) toRemove = new java.util.ArrayList<>(4);
++                        toRemove.add(player);
 +                    }
 +                }
-+            };
++            }
 +
-+            // Only update asynchronously for real player, and sync update for fake players
-+            // This can fix compatibility issue with NPC plugins using real entity type, like Citizens
-+            // To prevent visible issue with player type NPCs
-+            // btw, still recommend to use packet based NPC plugins, like ZNPC Plus, Adyeshach, Fancy NPC, etc.
-+            if (isRealPlayer || !isServerPlayer) {
-+                return updatePlayerTasks;
-+            } else {
-+                updatePlayerTasks.run();
-+                return null;
++            return toAdd == null && toRemove == null
++                ? null
++                : new org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult(this, toAdd, toRemove, false);
++        }
++
++        public final void applyScan(final org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult result) {
++            if (result.clearAll()) {
++                this.moonrise$clearPlayers();
++                return;
++            }
++
++            final java.util.List<ServerPlayer> toRemove = result.toRemove();
++            if (toRemove != null) {
++                for (int i = 0, len = toRemove.size(); i < len; ++i) {
++                    this.removePlayer(toRemove.get(i));
++                }
++            }
++
++            final java.util.List<ServerPlayer> toAdd = result.toAdd();
++            if (toAdd != null) {
++                boolean added = false;
++                for (int i = 0, len = toAdd.size(); i < len; ++i) {
++                    added |= this.addPlayer(toAdd.get(i));
++                }
++                if (added) {
++                    this.seenByUpdated();
++                }
 +            }
 +        }
-+        // DivineMC end - Multithreaded tracker
++        // DivineMC end - Parallel entity tracker
 +
          @Override
          public final void moonrise$removeNonTickThreadPlayers() {
              boolean foundToRemove = false;
-@@ -1266,12 +1390,13 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1266,12 +1419,13 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                  return;
              }
  
 -            for (final ServerPlayerConnection conn : new java.util.ArrayList<>(this.seenBy)) {
-+            for (final ServerPlayerConnection conn : this.seenBy()) { // DivineMC - Multithreaded tracker
++            for (final ServerPlayerConnection conn : this.seenBy()) { // DivineMC - Parallel entity tracker
                  ServerPlayer player = conn.getPlayer();
                  if (!ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(player)) {
 -                    this.removePlayer(player);
-+                    this.removePlayerMulti(player); // DivineMC - Multithreaded tracker
++                    this.removePlayerMulti(player); // DivineMC - Parallel entity tracker
                  }
              }
-+            this.seenByUpdated(); // DivineMC - Multithreaded tracker
++            this.seenByUpdated(); // DivineMC - Parallel entity tracker
          }
  
          @Override
-@@ -1281,10 +1406,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1281,10 +1435,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              if (this.seenBy.isEmpty()) {
                  return;
              }
 -            for (final ServerPlayerConnection conn : new java.util.ArrayList<>(this.seenBy)) {
-+            for (final ServerPlayerConnection conn : this.seenBy()) { // DivineMC - Multithreaded tracker
++            for (final ServerPlayerConnection conn : this.seenBy()) { // DivineMC - Parallel entity tracker
                  ServerPlayer player = conn.getPlayer();
 -                this.removePlayer(player);
-+                this.removePlayerMulti(player); // DivineMC - Multithreaded tracker
++                this.removePlayerMulti(player); // DivineMC - Parallel entity tracker
              }
-+            this.seenByUpdated(); // DivineMC - Multithreaded tracker
++            this.seenByUpdated(); // DivineMC - Parallel entity tracker
          }
  
          @Override
-@@ -1312,7 +1438,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1312,7 +1467,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
  
          @Override
          public void sendToTrackingPlayers(final Packet<? super ClientGamePacketListener> packet) {
 -            for (ServerPlayerConnection connection : this.seenBy) {
-+            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Multithreaded tracker
++            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Parallel entity tracker
                  connection.send(packet);
              }
          }
-@@ -1327,7 +1453,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1327,7 +1482,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
  
          @Override
          public void sendToTrackingPlayersFiltered(final Packet<? super ClientGamePacketListener> packet, final Predicate<ServerPlayer> targetPredicate) {
 -            for (ServerPlayerConnection connection : this.seenBy) {
-+            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Multithreaded tracker
++            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Parallel entity tracker
                  if (targetPredicate.test(connection.getPlayer())) {
                      connection.send(packet);
                  }
-@@ -1335,24 +1461,35 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1335,11 +1475,22 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          }
  
          public void broadcastRemoved() {
 -            for (ServerPlayerConnection connection : this.seenBy) {
-+            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Multithreaded tracker
++            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Parallel entity tracker
                  this.serverEntity.removePairing(connection.getPlayer());
              }
          }
  
-+        // DivineMC start - Multithreaded tracker
++        // DivineMC start - Parallel entity tracker
 +        public boolean removePlayerMulti(ServerPlayer player) {
 +            if (this.seenBy.remove(player.connection)) {
 +                this.serverEntity.removePairing(player);
@@ -315,359 +270,124 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..7fe76cc5de38a4b63f5cb0044762ac24
 +                return false;
 +            }
 +        }
-+        // DivineMC end - Multithreaded tracker
++        // DivineMC end - Parallel entity tracker
 +
          public void removePlayer(final ServerPlayer player) {
--            org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
+             org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
              if (this.seenBy.remove(player.connection)) {
-                 this.serverEntity.removePairing(player);
-                 if (this.seenBy.isEmpty()) {
+@@ -1348,57 +1499,75 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                      ChunkMap.this.level.debugSynchronizers().dropEntity(this.entity);
                  }
              }
-+            this.seenByUpdated(); // DivineMC - Multithreaded tracker
++            this.seenByUpdated(); // DivineMC - Parallel entity tracker
          }
  
          public void updatePlayer(final ServerPlayer player) {
--            org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
+             org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
              if (player != this.entity) {
-+                if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled && player == null) return; // DivineMC - Multithreaded tracker
-                 // Paper start - remove allocation of Vec3D here
-                 // Vec3 deltaToPlayer = player.position().subtract(this.entity.position());
-                 double deltaToPlayerX = player.getX() - this.entity.getX();
-@@ -1382,6 +1519,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-                 // CraftBukkit end
-                 if (visibleToPlayer) {
-                     if (this.seenBy.add(player.connection)) {
-+                        this.seenByUpdated(); // DivineMC - Multithreaded tracker
-                         // Paper start - entity tracking events
-                         if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
-                         this.serverEntity.addPairing(player);
-@@ -1395,6 +1533,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-                         this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
+-                // Paper start - remove allocation of Vec3D here
+-                // Vec3 deltaToPlayer = player.position().subtract(this.entity.position());
+-                double deltaToPlayerX = player.getX() - this.entity.getX();
+-                double deltaToPlayerZ = player.getZ() - this.entity.getZ();
+-                // Paper end - remove allocation of Vec3D here
+-                int playerViewDistance = ChunkMap.this.getPlayerViewDistance(player);
+-                double visibleRange = Math.min(this.getEffectiveRange(), playerViewDistance * 16);
+-                double distanceSquared = deltaToPlayerX * deltaToPlayerX + deltaToPlayerZ * deltaToPlayerZ; // Paper
+-                double rangeSquared = visibleRange * visibleRange;
+-                // Paper start - Configurable entity tracking range by Y
+-                boolean visibleToPlayer = distanceSquared <= rangeSquared;
+-                if (visibleToPlayer && level.paperConfig().entities.trackingRangeY.enabled) {
+-                    double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
+-                    if (rangeY != -1) {
+-                        double deltaToPlayerY = player.getY() - this.entity.getY();
+-                        visibleToPlayer = deltaToPlayerY * deltaToPlayerY <= rangeY * rangeY;
+-                    }
+-                }
+-                visibleToPlayer = visibleToPlayer
+-                    && this.entity.broadcastToPlayer(player)
+-                    && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
+-                // Paper end - Configurable entity tracking range by Y
+-                // CraftBukkit start - respect vanish API
+-                if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
+-                    visibleToPlayer = false;
+-                }
+-                // CraftBukkit end
+-                if (visibleToPlayer) {
+-                    if (this.seenBy.add(player.connection)) {
+-                        // Paper start - entity tracking events
+-                        if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
+-                        this.serverEntity.addPairing(player);
+-                        if (this.seenBy.size() == 1) {
+-                            ChunkMap.this.level.debugSynchronizers().registerEntity(this.entity);
+-                        }
+-
+-                        ChunkMap.this.level.debugSynchronizers().startTrackingEntity(player, this.entity);
+-                        }
+-                        // Paper end - entity tracking events
+-                        this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
++                if (player == null) return; // DivineMC - Parallel entity tracker - raw nearby-player arrays may contain nulls
++                // DivineMC start - Parallel entity tracker - visibility check extracted into wantsToSee for the parallel scan phase
++                if (this.wantsToSee(player)) {
++                    if (this.addPlayer(player)) {
++                        this.seenByUpdated();
                      }
                  } else {
-+                    this.seenByUpdated(); // DivineMC - Multithreaded tracker
                      this.removePlayer(player);
                  }
-             }
-diff --git a/net/minecraft/server/level/ServerBossEvent.java b/net/minecraft/server/level/ServerBossEvent.java
-index 3b996666ff183ba8f8a48306af7d2f9272eb30bf..182e87611cae6d6de6cf3c717cec6c40723a63e3 100644
---- a/net/minecraft/server/level/ServerBossEvent.java
-+++ b/net/minecraft/server/level/ServerBossEvent.java
-@@ -13,7 +13,11 @@ import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
- import net.minecraft.world.BossEvent;
- 
- public class ServerBossEvent extends BossEvent {
--    private final Set<ServerPlayer> players = Sets.newHashSet();
-+    // DivineMC start - Multithreaded tracker - players can be removed in async tracking
-+    private final Set<ServerPlayer> players = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled
-+            ? Sets.newConcurrentHashSet()
-+            : Sets.newHashSet();
-+    // DivineMC end - Multithreaded tracker
-     private final Set<ServerPlayer> unmodifiablePlayers = Collections.unmodifiableSet(this.players);
-     public boolean visible = true;
- 
-diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
-index d237d4246b3e291c589a52aa8bf746fbd7a11485..401a27faa0a9ca9f9da096fd35e33ad4318ff4b4 100644
---- a/net/minecraft/server/level/ServerEntity.java
-+++ b/net/minecraft/server/level/ServerEntity.java
-@@ -123,7 +123,7 @@ public class ServerEntity {
-                 MapId id = frame.cachedMapId; // Paper - Perf: Cache map ids on item frames
-                 MapItemSavedData data = MapItem.getSavedData(id, this.level);
-                 if (data != null) {
--                    for (final net.minecraft.server.network.ServerPlayerConnection connection : this.trackedPlayers) { // Paper
-+                    for (final net.minecraft.server.network.ServerPlayerConnection connection : this.trackedPlayers.toArray(ChunkMap.TrackedEntity.EMPTY_OBJECT_ARRAY)) { // Paper // DivineMC - Multithreaded tracker
-                         final ServerPlayer player = connection.getPlayer(); // Paper
-                         data.tickCarriedBy(player, itemStack, frame);
-                         Packet<?> packet = data.getUpdatePacket(id, player);
-@@ -410,8 +410,6 @@ public class ServerEntity {
-                 // CraftBukkit end
-                 this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributes));
-             }
--
--            attributes.clear();
-         }
-     }
- 
-diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index f0a43753d191cd9eabefe9e7a927e049f00144fe..3a648ba62298b7eb2dd82802b068e29bf3f2b6db 100644
---- a/net/minecraft/server/level/ServerLevel.java
-+++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2681,7 +2681,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
- 
-     @Override
-     public LevelEntityGetter<Entity> getEntities() {
--        org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot
-         return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
-     }
- 
-@@ -2987,7 +2986,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
-                         }
- 
-                         map.carriedByPlayers.remove(player);
--                        if (map.carriedBy.removeIf(holdingPlayer -> holdingPlayer.player == player)) {
-+                        if (map.carriedBy.removeIf(holdingPlayer -> holdingPlayer != null && holdingPlayer.player == player)) { // DivineMC - Multithreaded tracker
-                             map.decorations.remove(player.getName().getString());
-                         }
-                     }
-diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 30448b0a265642c9475189df9785871b163adcfe..5d8f2cf7f3609694cdf31ca62961e6d2674bd377 100644
---- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-+++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2013,7 +2013,6 @@ public class ServerGamePacketListenerImpl
-     }
- 
-     public void internalTeleport(PositionMoveRotation destination, Set<Relative> relatives) {
--        org.spigotmc.AsyncCatcher.catchOp("teleport"); // Paper
-         // Paper start - Prevent teleporting dead entities
-         if (this.player.isRemoved()) {
-             LOGGER.info("Attempt to teleport removed player {} restricted", this.player.getScoreboardName());
-diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 6c55796a5ff6f5fa833bb92743a4c46b44868ea2..ca1bb152589e4122d3237aab56dc2bcc9fd28738 100644
---- a/net/minecraft/world/entity/LivingEntity.java
-+++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -1375,13 +1375,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
-     }
- 
-     private void refreshDirtyAttributes() {
--        Set<AttributeInstance> attributesToUpdate = this.getAttributes().getAttributesToUpdate();
-+        // DivineMC start - Multithreaded tracker
-+        int[] attributesToUpdate = this.getAttributes().getAttributesToUpdateIds();
- 
--        for (AttributeInstance changedAttributeInstance : attributesToUpdate) {
--            this.onAttributeUpdated(changedAttributeInstance.getAttribute());
-+        for (int attribute : attributesToUpdate) {
-+            this.onAttributeUpdated(net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.get(attribute).orElseThrow());
-         }
--
--        attributesToUpdate.clear();
-+        // DivineMC end - Multithreaded tracker
-     }
- 
-     protected void onAttributeUpdated(final Holder<Attribute> attribute) {
-diff --git a/net/minecraft/world/entity/ai/attributes/Attribute.java b/net/minecraft/world/entity/ai/attributes/Attribute.java
-index ad3dc7f69eb6e5a167118c4fe16c2fe4083522dd..31e67965efd62dcf39c5d4bac26eb36cafd477c5 100644
---- a/net/minecraft/world/entity/ai/attributes/Attribute.java
-+++ b/net/minecraft/world/entity/ai/attributes/Attribute.java
-@@ -16,10 +16,15 @@ public class Attribute {
-     private boolean syncable;
-     private final String descriptionId;
-     public Attribute.Sentiment sentiment = Attribute.Sentiment.POSITIVE;
-+    // DivineMC start - Multithreaded Tracker
-+    public final int uid;
-+    private static final java.util.concurrent.atomic.AtomicInteger SIZE = new java.util.concurrent.atomic.AtomicInteger();
-+    // DivineMC end - Multithreaded Tracker
- 
-     protected Attribute(final String descriptionId, final double defaultValue) {
-         this.defaultValue = defaultValue;
-         this.descriptionId = descriptionId;
-+        this.uid = SIZE.getAndAdd(1); // DivineMC - Multithreaded Tracker
-     }
- 
-     public double getDefaultValue() {
-diff --git a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
-index 0ed3fea287c65da82a8823d1949828b0c55d29b2..11bb22171e9d217eca3e74095e409d1b7c64fad1 100644
---- a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
-+++ b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
-@@ -20,8 +20,24 @@ import org.jspecify.annotations.Nullable;
- public class AttributeInstance {
-     private final Holder<Attribute> attribute;
-     private final Map<AttributeModifier.Operation, Map<Identifier, AttributeModifier>> modifiersByOperation = Maps.newEnumMap(AttributeModifier.Operation.class);
--    private final Map<Identifier, AttributeModifier> modifierById = new Object2ObjectArrayMap<>();
--    private final Map<Identifier, AttributeModifier> permanentModifiers = new Object2ObjectArrayMap<>();
-+    // DivineMC start - Multithreaded tracker
-+    private final Map<Identifier, AttributeModifier> modifierById;
-+    {
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
-+            modifierById = it.unimi.dsi.fastutil.objects.Object2ObjectMaps.synchronize(new Object2ObjectArrayMap<>(), this);
-+        } else {
-+            modifierById = new Object2ObjectArrayMap<>();
-+        }
-+    }
-+    private final Map<Identifier, AttributeModifier> permanentModifiers;
-+    {
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
-+            permanentModifiers = it.unimi.dsi.fastutil.objects.Object2ObjectMaps.synchronize(new Object2ObjectArrayMap<>(), this);
-+        } else {
-+            permanentModifiers = new Object2ObjectArrayMap<>();
-+        }
-+    }
-+    // DivineMC end - Multithreaded tracker
-     private double baseValue;
-     private boolean dirty = true;
-     private double cachedValue;
-@@ -50,7 +66,13 @@ public class AttributeInstance {
- 
-     @VisibleForTesting
-     Map<Identifier, AttributeModifier> getModifiers(final AttributeModifier.Operation operation) {
--        return this.modifiersByOperation.computeIfAbsent(operation, key -> new Object2ObjectOpenHashMap<>());
-+        // DivineMC start - Multithreaded tracker
-+        return this.modifiersByOperation.computeIfAbsent(operation, operation1 -> {
-+            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled)
-+                return it.unimi.dsi.fastutil.objects.Object2ObjectMaps.synchronize(new Object2ObjectArrayMap<>(), this);
-+            else return new Object2ObjectArrayMap<>();
-+        });
-+        // DivineMC end - Multithreaded tracker
-     }
- 
-     public Set<AttributeModifier> getModifiers() {
-@@ -137,8 +159,12 @@ public class AttributeInstance {
- 
-     public double getValue() {
-         if (this.dirty) {
--            this.cachedValue = this.calculateValue();
-+            // DivineMC start - Multithreaded tracker
-+            double value = this.calculateValue();
-+            this.cachedValue = value;
-             this.dirty = false;
-+            return value;
-+            // DivineMC end - Multithreaded tracker
-         }
- 
-         return this.cachedValue;
-@@ -184,7 +210,15 @@ public class AttributeInstance {
-     }
- 
-     public AttributeInstance.Packed pack() {
--        return new AttributeInstance.Packed(this.attribute, this.baseValue, List.copyOf(this.permanentModifiers.values()));
-+        // DivineMC start - Multithreaded tracker
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
-+            synchronized (this) {
-+                return new AttributeInstance.Packed(this.attribute, this.baseValue, List.copyOf(this.permanentModifiers.values()));
-+            }
-+        } else {
-+            return new AttributeInstance.Packed(this.attribute, this.baseValue, List.copyOf(this.permanentModifiers.values()));
-+        }
-+        // DivineMC end - Multithreaded tracker
-     }
- 
-     public void apply(final AttributeInstance.Packed packed) {
-diff --git a/net/minecraft/world/entity/ai/attributes/AttributeMap.java b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
-index fe5f4f79e5a1b091d15fa3bfd876b831e493655c..1a01e1af10132be1877cc5efdcd9c6d53f7386a1 100644
---- a/net/minecraft/world/entity/ai/attributes/AttributeMap.java
-+++ b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
-@@ -14,9 +14,11 @@ import net.minecraft.resources.Identifier;
- import org.jspecify.annotations.Nullable;
- 
- public class AttributeMap {
--    private final Map<Holder<Attribute>, AttributeInstance> attributes = new Object2ObjectOpenHashMap<>();
--    private final Set<AttributeInstance> attributesToSync = new ObjectOpenHashSet<>();
--    private final Set<AttributeInstance> attributesToUpdate = new ObjectOpenHashSet<>();
-+    // DivineMC start - Multithreaded tracker
-+    private final Map<Holder<Attribute>, AttributeInstance> attributes = new org.bxteam.divinemc.util.map.AttributeInstanceArrayMap();
-+    private final org.bxteam.divinemc.util.map.AttributeInstanceSet attributesToSync =  new org.bxteam.divinemc.util.map.AttributeInstanceSet((org.bxteam.divinemc.util.map.AttributeInstanceArrayMap) attributes);
-+    private final org.bxteam.divinemc.util.map.AttributeInstanceSet attributesToUpdate = new org.bxteam.divinemc.util.map.AttributeInstanceSet((org.bxteam.divinemc.util.map.AttributeInstanceArrayMap) attributes);
-+    // DivineMC end - Multithreaded tracker
-     private final AttributeSupplier supplier;
-     private final net.minecraft.world.entity.LivingEntity entity; // Purpur - Ridables
- 
-@@ -30,27 +32,51 @@ public class AttributeMap {
-         this.supplier = defaultAttributes;
-     }
- 
--    private void onAttributeModified(final AttributeInstance attributeInstance) {
-+    private synchronized void onAttributeModified(final AttributeInstance attributeInstance) { // DivineMC - Multithreaded Tracker
-         this.attributesToUpdate.add(attributeInstance);
-         if (attributeInstance.getAttribute().value().isClientSyncable() && (entity == null || entity.shouldSendAttribute(attributeInstance.getAttribute().value()))) { // Purpur - Ridables
-             this.attributesToSync.add(attributeInstance);
-         }
-     }
- 
--    public Set<AttributeInstance> getAttributesToSync() {
--        return this.attributesToSync;
-+    // DivineMC start - Multithreaded Tracker
-+    private static final AttributeInstance[] EMPTY_ATTRIBUTE_INSTANCE = new AttributeInstance[0];
-+    public synchronized Set<AttributeInstance> getAttributesToSync() {
-+        var clone = it.unimi.dsi.fastutil.objects.ReferenceArraySet.ofUnchecked(attributesToSync.toArray(EMPTY_ATTRIBUTE_INSTANCE));
-+        this.attributesToSync.clear();
-+        return clone;
-     }
- 
--    public Set<AttributeInstance> getAttributesToUpdate() {
--        return this.attributesToUpdate;
-+    public synchronized Set<AttributeInstance> getAttributesToUpdate() {
-+        var clone = it.unimi.dsi.fastutil.objects.ReferenceArraySet.ofUnchecked(attributesToUpdate.toArray(EMPTY_ATTRIBUTE_INSTANCE));
-+        this.attributesToUpdate.clear();
-+        return clone;
-     }
- 
-+    public synchronized int[] getAttributesToUpdateIds() {
-+        int[] clone = attributesToUpdate.inner.toIntArray();
-+        this.attributesToUpdate.clear();
-+        return clone;
-+    }
-+    // DivineMC end - Multithreaded Tracker
-+
-     public Collection<AttributeInstance> getSyncableAttributes() {
-         return this.attributes.values().stream().filter(instance -> instance.getAttribute().value().isClientSyncable() && (entity == null || entity.shouldSendAttribute(instance.getAttribute().value()))).collect(Collectors.toList()); // Purpur - Ridables
-     }
- 
-     public @Nullable AttributeInstance getInstance(final Holder<Attribute> attribute) {
--        return this.attributes.computeIfAbsent(attribute, key -> this.supplier.createInstance(this::onAttributeModified, (Holder<Attribute>)key));
-+        // DivineMC start - Multithreaded Tracker
-+        AttributeInstance attributeInstance;
-+        if ((attributeInstance = this.attributes.get(attribute)) == null) {
-+            AttributeInstance newValue;
-+            if ((newValue = this.supplier.createInstance(this::onAttributeModified, attribute)) != null) {
-+                attributes.put(attribute, newValue);
-+                return newValue;
++                // DivineMC end - Parallel entity tracker
 +            }
 +        }
 +
-+        return attributeInstance;
-+        // DivineMC end - Multithreaded Tracker
-     }
- 
-     public boolean hasAttribute(final Holder<Attribute> attribute) {
-diff --git a/net/minecraft/world/entity/ai/attributes/AttributeSupplier.java b/net/minecraft/world/entity/ai/attributes/AttributeSupplier.java
-index 5d2c1cfbdd20c5c195790b5241c3a607c51aa72c..ca34c9ffc315dfb5578d068a6b0c40a2e31644e2 100644
---- a/net/minecraft/world/entity/ai/attributes/AttributeSupplier.java
-+++ b/net/minecraft/world/entity/ai/attributes/AttributeSupplier.java
-@@ -11,7 +11,7 @@ public class AttributeSupplier {
-     private final Map<Holder<Attribute>, AttributeInstance> instances;
- 
-     private AttributeSupplier(final Map<Holder<Attribute>, AttributeInstance> instances) {
--        this.instances = instances;
-+        this.instances = new org.bxteam.divinemc.util.map.AttributeInstanceArrayMap(instances); // DivineMC - Multithreaded Tracker
-     }
- 
-     public AttributeInstance getAttributeInstance(final Holder<Attribute> attribute) {
-diff --git a/net/minecraft/world/entity/vehicle/minecart/NewMinecartBehavior.java b/net/minecraft/world/entity/vehicle/minecart/NewMinecartBehavior.java
-index 4a8bbb06e0cbb8974fa4f2e509eafe38b7d38173..bbda82a4da28223e7d122c86c23bc968f098a30c 100644
---- a/net/minecraft/world/entity/vehicle/minecart/NewMinecartBehavior.java
-+++ b/net/minecraft/world/entity/vehicle/minecart/NewMinecartBehavior.java
-@@ -34,13 +34,20 @@ public class NewMinecartBehavior extends MinecartBehavior {
-     private int cachedLerpDelay;
-     private float cachedPartialTick;
-     private int lerpDelay = 0;
--    public final List<NewMinecartBehavior.MinecartStep> lerpSteps = new LinkedList<>();
-+    public final List<NewMinecartBehavior.MinecartStep> lerpSteps; // DivineMC - Multithreaded Tracker
-     public final List<NewMinecartBehavior.MinecartStep> currentLerpSteps = new LinkedList<>();
-     public double currentLerpStepsTotalWeight = 0.0;
-     public NewMinecartBehavior.MinecartStep oldLerp = NewMinecartBehavior.MinecartStep.ZERO;
- 
-     public NewMinecartBehavior(final AbstractMinecart minecart) {
-         super(minecart);
-+        // DivineMC start - Multithreaded Tracker
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.multithreadedEnabled) {
-+            this.lerpSteps = it.unimi.dsi.fastutil.objects.ObjectLists.synchronize(new it.unimi.dsi.fastutil.objects.ObjectArrayList<>());
-+        } else {
-+            this.lerpSteps = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++        // DivineMC start - Parallel entity tracker - split updatePlayer into a read-only predicate and a mutating apply
++        private boolean wantsToSee(final ServerPlayer player) {
++            // Paper start - remove allocation of Vec3D here
++            // Vec3 deltaToPlayer = player.position().subtract(this.entity.position());
++            double deltaToPlayerX = player.getX() - this.entity.getX();
++            double deltaToPlayerZ = player.getZ() - this.entity.getZ();
++            // Paper end - remove allocation of Vec3D here
++            int playerViewDistance = ChunkMap.this.getPlayerViewDistance(player);
++            double visibleRange = Math.min(this.getEffectiveRange(), playerViewDistance * 16);
++            double distanceSquared = deltaToPlayerX * deltaToPlayerX + deltaToPlayerZ * deltaToPlayerZ; // Paper
++            double rangeSquared = visibleRange * visibleRange;
++            // Paper start - Configurable entity tracking range by Y
++            boolean visibleToPlayer = distanceSquared <= rangeSquared;
++            if (visibleToPlayer && level.paperConfig().entities.trackingRangeY.enabled) {
++                double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
++                if (rangeY != -1) {
++                    double deltaToPlayerY = player.getY() - this.entity.getY();
++                    visibleToPlayer = deltaToPlayerY * deltaToPlayerY <= rangeY * rangeY;
++                }
++            }
++            visibleToPlayer = visibleToPlayer
++                && this.entity.broadcastToPlayer(player)
++                && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
++            // Paper end - Configurable entity tracking range by Y
++            // CraftBukkit start - respect vanish API
++            if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
++                visibleToPlayer = false;
++            }
++            // CraftBukkit end
++            return visibleToPlayer;
 +        }
-+        // DivineMC end - Multithreaded Tracker
-     }
++
++        private boolean addPlayer(final ServerPlayer player) {
++            if (!this.seenBy.add(player.connection)) {
++                return false;
++            }
++            // Paper start - entity tracking events
++            if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
++            this.serverEntity.addPairing(player);
++            if (this.seenBy.size() == 1) {
++                ChunkMap.this.level.debugSynchronizers().registerEntity(this.entity);
++            }
++
++            ChunkMap.this.level.debugSynchronizers().startTrackingEntity(player, this.entity);
+             }
++            // Paper end - entity tracking events
++            this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
++            return true;
+         }
++        // DivineMC end - Parallel entity tracker
  
-     @Override
-diff --git a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
-index 6ae51d0dc5e44e0900f4311d32cea70ec4ad5e94..5c77c9e531e5c36b5370501438048185745c77ab 100644
---- a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
-+++ b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
-@@ -216,6 +216,7 @@ public class MapItemSavedData extends SavedData {
- 
-         for (int i = 0; i < this.carriedBy.size(); i++) {
-             MapItemSavedData.HoldingPlayer otherHoldingPlayer = this.carriedBy.get(i);
-+            if (otherHoldingPlayer == null) continue; // DivineMC - Multithreaded tracker
-             Player otherPlayer = otherHoldingPlayer.player;
-             String otherPlayerName = otherPlayer.getPlainTextName();
-             if (!otherPlayer.isRemoved() && (placedInFrame != null || otherPlayer.getInventory().contains(mapMatcher))) {
+         private int scaledRange(final int range) {
+             return ChunkMap.this.level.getServer().getScaledTrackingDistance(range);
