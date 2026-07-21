@@ -273,6 +273,11 @@ public class DivineConfig {
         public static boolean enableAsyncSpawning = true;
         public static boolean asyncNaturalSpawn = true;
 
+        // Parallel sensor phase settings
+        @Experimental("Parallel Sensor Phase")
+        public static boolean parallelSensorsEnabled = false;
+        public static int parallelSensorsMaxThreads = 0;
+
         public static void load() {
             enableAutoAllocation();
             parallelWorldTicking();
@@ -281,6 +286,7 @@ public class DivineConfig {
             parallelEntityTracker();
             asyncChunkSending();
             asyncMobSpawning();
+            parallelSensors();
             autoAllocation();
         }
 
@@ -459,6 +465,27 @@ public class DivineConfig {
                 "Enables optimization that will offload much of the computational effort involved with spawning new mobs to a different thread.");
             asyncNaturalSpawn = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.async-natural-spawn"), asyncNaturalSpawn,
                 "Enables offloading of natural spawning to a different thread");
+        }
+
+        private static void parallelSensors() {
+            parallelSensorsEnabled = getBoolean(ConfigCategory.ASYNC.key("parallel-sensors.enable"), parallelSensorsEnabled,
+                "Runs the read-only part of brain AI (sensors: nearest-entity scans, line-of-sight raycasts)",
+                "on a worker thread pool right before the entity ticking phase, instead of on the main thread",
+                "during each mob's tick. Sensors are a stable top entry in profiler output on servers with",
+                "many villagers/piglins, and they only read world state, which makes them safe to batch.");
+            parallelSensorsMaxThreads = getInt(ConfigCategory.ASYNC.key("parallel-sensors.max-threads"), parallelSensorsMaxThreads,
+                "The amount of threads to use for the parallel sensor phase.",
+                "Values <= 0 mean 1/4 of available cores (at least 1).");
+
+            if (parallelSensorsMaxThreads < 0) {
+                parallelSensorsMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() + parallelSensorsMaxThreads, 1);
+            } else if (parallelSensorsMaxThreads == 0) {
+                parallelSensorsMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() / 4, 1);
+            }
+
+            if (parallelSensorsEnabled) {
+                LOGGER.info("Using {} threads for Parallel Sensor Phase", parallelSensorsMaxThreads);
+            }
         }
     }
 
