@@ -273,6 +273,9 @@ public class DivineConfig {
         public static boolean enableAsyncSpawning = true;
         public static boolean asyncNaturalSpawn = true;
 
+        // Portal search prefetch settings
+        public static boolean portalSearchPrefetchEnabled = true;
+
         // Parallel sensor phase settings
         @Experimental("Parallel Sensor Phase")
         public static boolean parallelSensorsEnabled = false;
@@ -286,6 +289,7 @@ public class DivineConfig {
             parallelEntityTracker();
             asyncChunkSending();
             asyncMobSpawning();
+            portalSearchPrefetch();
             parallelSensors();
             autoAllocation();
         }
@@ -465,6 +469,12 @@ public class DivineConfig {
                 "Enables optimization that will offload much of the computational effort involved with spawning new mobs to a different thread.");
             asyncNaturalSpawn = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.async-natural-spawn"), asyncNaturalSpawn,
                 "Enables offloading of natural spawning to a different thread");
+        }
+
+        private static void portalSearchPrefetch() {
+            portalSearchPrefetchEnabled = getBoolean(ConfigCategory.ASYNC.key("portal-search-prefetch.enable"), portalSearchPrefetchEnabled,
+                "Async pre-loads the exit portal search area (chunk and POI data) when an entity enters a nether",
+                "portal, so the destination search at teleport time hits warm caches instead of reading from disk.");
         }
 
         private static void parallelSensors() {
