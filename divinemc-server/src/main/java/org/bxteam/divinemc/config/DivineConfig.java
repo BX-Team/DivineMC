@@ -501,7 +501,7 @@ public class DivineConfig {
 
     public static class PerformanceCategory {
         // Chunk settings
-        public static boolean nativeAccelerationEnabled = true;
+        public static boolean nativeAccelerationEnabled = false;
         public static boolean allowAVX512 = false;
         public static int isaTargetLevelOverride = -1;
         public static long chunkDataCacheSoftLimit = 8192L;
@@ -564,7 +564,12 @@ public class DivineConfig {
         }
 
         private static void chunkSettings() {
-            nativeAccelerationEnabled = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.native-acceleration.enabled"), nativeAccelerationEnabled);
+            nativeAccelerationEnabled = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.native-acceleration.enabled"), nativeAccelerationEnabled,
+                "Enables native (C2ME) acceleration of world generation math.",
+                "",
+                "WARNING: native floating-point math may not be bit-identical to Java's, so worlds",
+                "generated with this enabled can differ block-by-block from vanilla generation and",
+                "between machines with different CPU ISA levels. Seed-parity is NOT guaranteed.");
 
             allowAVX512 = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.native-acceleration.allow-avx512"), allowAVX512,
                 "Enables AVX512 support for natives-math optimizations",
