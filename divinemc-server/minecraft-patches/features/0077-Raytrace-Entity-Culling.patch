@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 19 Jul 2026 00:34:38 +0300
+Subject: [PATCH] Raytrace Entity Culling
+
+Server-side port of tr7zw's EntityCulling mod.
+Entities that a player provably cannot see (fully hidden behind opaque blocks)
+are removed from that player's entity tracker. This reduces network bandwidth,
+improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
+cannot see mobs, players or items through walls anymore).
+
+diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
+index b499bb1ba0ac45db68fd26698b0a6e4e17954b62..1525f1c958ebade2f5ca39e5586cf37291d8737f 100644
+--- a/net/minecraft/server/level/ChunkMap.java
++++ b/net/minecraft/server/level/ChunkMap.java
+@@ -1552,6 +1552,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+                 && this.entity.broadcastToPlayer(player)
+                 && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
+             // Paper end - Configurable entity tracking range by Y
++            visibleToPlayer = visibleToPlayer && !org.bxteam.divinemc.culling.EntityCullingManager.isCulled(player, this.entity); // DivineMC - Raytrace Entity Culling
+             // CraftBukkit start - respect vanish API
+             if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
+                 visibleToPlayer = false;
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index 2faceab5b07a1225b9f59cdd48b47e1718d5d353..601744643fde100d08627df404a504a7cab266e0 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -433,6 +433,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+     public boolean suppressTrackerForLogin = false; // Paper - Fire PlayerJoinEvent when Player is actually ready
+     // CraftBukkit end
+     public boolean isRealPlayer; // Paper
++    public volatile org.bxteam.divinemc.culling.@Nullable PlayerCullTracker cullTracker; // DivineMC - Raytrace Entity Culling
+     public com.destroystokyo.paper.event.entity.@Nullable PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
+     public org.bukkit.event.player.PlayerQuitEvent.@Nullable QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
+     private boolean tpsBar = false; // Purpur - Implement TPSBar
+@@ -825,6 +826,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+ 
+     public void doTick() {
+         try {
++            org.bxteam.divinemc.culling.EntityCullingManager.tickPlayer(this); // DivineMC - Raytrace Entity Culling
+             if (valid && !this.isSpectator() || !this.touchingUnloadedChunk()) { // Paper - don't tick dead players that are not in the world currently (pending respawn)
+                 super.tick();
+                 if (!this.containerMenu.stillValid(this)) {
+diff --git a/net/minecraft/world/entity/EntityType.java b/net/minecraft/world/entity/EntityType.java
+index 854b08372687d578e90e8bfc6fa6d06f70775f7b..57df4f820c289b4f5fa5819c1af8950289610346 100644
+--- a/net/minecraft/world/entity/EntityType.java
++++ b/net/minecraft/world/entity/EntityType.java
+@@ -1219,6 +1219,7 @@ public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>,
+     private final int clientTrackingRange;
+     private final int updateInterval;
+     public boolean dabEnabled = false; // DivineMC - Dynamic Activation of Brain
++    public boolean raytraceCullingSkip = false; // DivineMC - Raytrace Entity Culling
+     private final String descriptionId;
+     private @Nullable Component description;
+     private final Optional<ResourceKey<LootTable>> lootTable;
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 6b309af9e0923ac69f4dc115f755adf831aab648..7b2e077cd84222cc9d074c4b0b85efe2d58bb0cd 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -1164,6 +1164,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+             }
+             // DivineMC end - Imanity: Raytrace AntiXraySDK integration
+         this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
++        org.bxteam.divinemc.culling.EntityCullingManager.onBlockChange(this, pos); // DivineMC - Raytrace Entity Culling
+         if (oldState == null) {
+             // CraftBukkit start - remove blockstate if failed (or the same)
+             if (captureBlockStates && captured) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture

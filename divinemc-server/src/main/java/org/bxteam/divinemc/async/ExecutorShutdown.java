@@ -50,6 +50,11 @@ public class ExecutorShutdown {
             } catch (InterruptedException ignored) { }
         }
 
+        if (DivineConfig.NetworkCategory.raytraceCullingEnabled) {
+            LOGGER.info("Shutting down entity culling executor...");
+            org.bxteam.divinemc.culling.EntityCullingManager.shutdown();
+        }
+
         final Flusher<?> flusher = DivineConfig.RegionSettingsCategory.flusher;
         if (flusher != null) {
             LOGGER.info("Shutting down region flusher executor...");
