@@ -9,7 +9,7 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 3d5b7fd67d203b09cb68a14b062d24d11daab19f..2241072044b1e97b22a716b90c839b7c1b5824f7 100644
+index a4f33218fb2f698db984b48faf39822b26555671..836522dc62bae194436e92a642b8b228618d383c 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -106,6 +106,26 @@ public class Main {
@@ -18,7 +18,7 @@ index 3d5b7fd67d203b09cb68a14b062d24d11daab19f..2241072044b1e97b22a716b90c839b7c
  
 +            // DivineMC start - C2ME: native math optimization
 +            org.bukkit.configuration.file.YamlConfiguration divinemcConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("divinemc-settings"));
-+            boolean divinemcNativeMathEnabled = divinemcConfiguration.getBoolean("performance.chunks.native-acceleration.enabled", true);
++            boolean divinemcNativeMathEnabled = divinemcConfiguration.getBoolean("performance.chunks.native-acceleration.enabled", false);
 +            if (divinemcNativeMathEnabled) {
 +                org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.allowAVX512 =
 +                    divinemcConfiguration.getBoolean("performance.chunks.native-acceleration.allow-avx512", false);
@@ -31,7 +31,7 @@ index 3d5b7fd67d203b09cb68a14b062d24d11daab19f..2241072044b1e97b22a716b90c839b7c
 +                try {
 +                    Class.forName("org.bxteam.divinemc.math.NativeLoader").getField("lookup").get(null);
 +                } catch (Throwable e) {
-+                    e.printStackTrace();
++                    LOGGER.error("Failed to initialize native math acceleration, continuing without it", e);
 +                }
 +            }
 +            // DivineMC end - C2ME: native math optimization
@@ -39,3 +39,241 @@ index 3d5b7fd67d203b09cb68a14b062d24d11daab19f..2241072044b1e97b22a716b90c839b7c
              io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
              Bootstrap.bootStrap();
              Bootstrap.validate();
+diff --git a/net/minecraft/world/level/levelgen/DensityFunctions.java b/net/minecraft/world/level/levelgen/DensityFunctions.java
+index 8c41263d3953ab5a906ea241455a04ed916d0662..b0783ba436a6bf27e14f4eaf2846c1c5d221e95c 100644
+--- a/net/minecraft/world/level/levelgen/DensityFunctions.java
++++ b/net/minecraft/world/level/levelgen/DensityFunctions.java
+@@ -1047,6 +1047,30 @@ public final class DensityFunctions {
+ 
+         @Override
+         public void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
++            // DivineMC start - C2ME: native math optimization
++            final NormalNoise normalNoise = this.noise.noise();
++            final long ptr = normalNoise == null ? 0L : normalNoise.divinemc$nativePointer();
++            if (ptr != 0L) {
++                final int length = output.length;
++                final double[] x = new double[length];
++                final double[] y = new double[length];
++                final double[] z = new double[length];
++                for (int i = 0; i < length; i++) {
++                    final DensityFunction.FunctionContext context = contextProvider.forIndex(i);
++                    x[i] = context.blockX() * this.xzScale;
++                    y[i] = context.blockY() * this.yScale;
++                    z[i] = context.blockZ() * this.xzScale;
++                }
++                org.bxteam.divinemc.math.Bindings.c2me_natives_noise_perlin_double_batch(
++                    ptr,
++                    java.lang.foreign.MemorySegment.ofArray(output),
++                    java.lang.foreign.MemorySegment.ofArray(x),
++                    java.lang.foreign.MemorySegment.ofArray(y),
++                    java.lang.foreign.MemorySegment.ofArray(z),
++                    length);
++                return;
++            }
++            // DivineMC end - C2ME: native math optimization
+             contextProvider.fillAllDirectly(output, this);
+         }
+ 
+@@ -1160,6 +1184,16 @@ public final class DensityFunctions {
+             return this.compute(context.blockX(), context.blockY(), context.blockZ());
+         }
+ 
++        // DivineMC start - C2ME: native math optimization
++        @Override
++        public void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
++            if (this.divinemc$fillArrayNative(output, contextProvider, 0)) {
++                return;
++            }
++            contextProvider.fillAllDirectly(output, this);
++        }
++        // DivineMC end - C2ME: native math optimization
++
+         @Override
+         public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
+             return visitor.apply(new DensityFunctions.Shift(visitor.visitNoise(this.offsetNoise)));
+@@ -1181,6 +1215,16 @@ public final class DensityFunctions {
+             return this.compute(context.blockX(), 0.0, context.blockZ());
+         }
+ 
++        // DivineMC start - C2ME: native math optimization
++        @Override
++        public void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
++            if (this.divinemc$fillArrayNative(output, contextProvider, 1)) {
++                return;
++            }
++            contextProvider.fillAllDirectly(output, this);
++        }
++        // DivineMC end - C2ME: native math optimization
++
+         @Override
+         public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
+             return visitor.apply(new DensityFunctions.ShiftA(visitor.visitNoise(this.offsetNoise)));
+@@ -1202,6 +1246,16 @@ public final class DensityFunctions {
+             return this.compute(context.blockZ(), context.blockX(), 0.0);
+         }
+ 
++        // DivineMC start - C2ME: native math optimization
++        @Override
++        public void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
++            if (this.divinemc$fillArrayNative(output, contextProvider, 2)) {
++                return;
++            }
++            contextProvider.fillAllDirectly(output, this);
++        }
++        // DivineMC end - C2ME: native math optimization
++
+         @Override
+         public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
+             return visitor.apply(new DensityFunctions.ShiftB(visitor.visitNoise(this.offsetNoise)));
+@@ -1234,6 +1288,53 @@ public final class DensityFunctions {
+         default void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
+             contextProvider.fillAllDirectly(output, this);
+         }
++
++        // DivineMC start - C2ME: native math optimization
++        default boolean divinemc$fillArrayNative(final double[] output, final DensityFunction.ContextProvider contextProvider, final int axisMode) {
++            final NormalNoise normalNoise = this.offsetNoise().noise();
++            final long ptr = normalNoise == null ? 0L : normalNoise.divinemc$nativePointer();
++            if (ptr == 0L) {
++                return false;
++            }
++            final int length = output.length;
++            final double[] x = new double[length];
++            final double[] y = new double[length];
++            final double[] z = new double[length];
++            for (int i = 0; i < length; i++) {
++                final DensityFunction.FunctionContext context = contextProvider.forIndex(i);
++                switch (axisMode) {
++                    case 1 -> {
++                        x[i] = context.blockX() * 0.25;
++                        y[i] = 0.0;
++                        z[i] = context.blockZ() * 0.25;
++                    }
++                    case 2 -> {
++                        x[i] = context.blockZ() * 0.25;
++                        y[i] = context.blockX() * 0.25;
++                        z[i] = 0.0;
++                    }
++                    default -> {
++                        x[i] = context.blockX() * 0.25;
++                        y[i] = context.blockY() * 0.25;
++                        z[i] = context.blockZ() * 0.25;
++                    }
++                }
++            }
++            org.bxteam.divinemc.math.Bindings.c2me_natives_noise_perlin_double_batch(
++                ptr,
++                java.lang.foreign.MemorySegment.ofArray(output),
++                java.lang.foreign.MemorySegment.ofArray(x),
++                java.lang.foreign.MemorySegment.ofArray(y),
++                java.lang.foreign.MemorySegment.ofArray(z),
++                length);
++            for (int i = 0; i < length; i++) {
++                output[i] *= 4.0;
++            }
++            return true;
++        }
++        // DivineMC end - C2ME: native math optimization
+     }
+ 
+     public record ShiftedNoise(
+diff --git a/net/minecraft/world/level/levelgen/synth/BlendedNoise.java b/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
+index 90736b2dbd1bc6e67f1d00ca200b48c0a95e3d13..8c949e6d8816cfaec4a4133624401e681c8ba08e 100644
+--- a/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
+@@ -36,6 +36,10 @@ public class BlendedNoise implements DensityFunction.SimpleFunction {
+     private final double maxValue;
+     public final double xzScale;
+     public final double yScale;
++    // DivineMC start - C2ME: native math optimization
++    private final java.lang.foreign.Arena divinemc$arena;
++    private final long divinemc$samplerDataPtr;
++    // DivineMC end - C2ME: native math optimization
+ 
+     public static BlendedNoise createUnseeded(
+         final double xzScale, final double yScale, final double xzFactor, final double yFactor, final double smearScaleMultiplier
+@@ -64,6 +71,17 @@ public class BlendedNoise implements DensityFunction.SimpleFunction {
+         this.xzMultiplier = 684.412 * this.xzScale;
+         this.yMultiplier = 684.412 * this.yScale;
+         this.maxValue = minLimitNoise.maxBrokenValue(this.yMultiplier);
++        // DivineMC start - C2ME: native math optimization
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++            this.divinemc$arena = java.lang.foreign.Arena.ofAuto();
++            this.divinemc$samplerDataPtr = org.bxteam.divinemc.math.BindingsTemplate
++                .interpolated_noise_sampler$create(this.divinemc$arena, this)
++                .address();
++        } else {
++            this.divinemc$arena = null;
++            this.divinemc$samplerDataPtr = 0L;
++        }
++        // DivineMC end - C2ME: native math optimization
+     }
+ 
+     @VisibleForTesting
+@@ -88,6 +106,11 @@ public class BlendedNoise implements DensityFunction.SimpleFunction {
+ 
+     @Override
+     public double compute(final DensityFunction.FunctionContext context) {
++        // DivineMC start - C2ME: native math optimization
++        if (this.divinemc$samplerDataPtr != 0L) {
++            return org.bxteam.divinemc.math.Bindings.c2me_natives_noise_interpolated(this.divinemc$samplerDataPtr, context.blockX(), context.blockY(), context.blockZ());
++        }
++        // DivineMC end - C2ME: native math optimization
+         double limitX = context.blockX() * this.xzMultiplier;
+         double limitY = context.blockY() * this.yMultiplier;
+         double limitZ = context.blockZ() * this.xzMultiplier;
+diff --git a/net/minecraft/world/level/levelgen/synth/NormalNoise.java b/net/minecraft/world/level/levelgen/synth/NormalNoise.java
+index 868b96065b665c2653d5005bc91da8ef5f149211..d734cdfdd684a7c00be0421628aea4ead296ffdd 100644
+--- a/net/minecraft/world/level/levelgen/synth/NormalNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/NormalNoise.java
+@@ -21,6 +21,10 @@ public class NormalNoise {
+     private final PerlinNoise second;
+     private final double maxValue;
+     private final NormalNoise.NoiseParameters parameters;
++    // DivineMC start - C2ME: native math optimization
++    private final java.lang.foreign.Arena divinemc$arena;
++    private final long divinemc$samplerDataPtr;
++    // DivineMC end - C2ME: native math optimization
+ 
+     @Deprecated
+     public static NormalNoise createLegacyNetherBiome(final RandomSource random, final NormalNoise.NoiseParameters parameters) {
+@@ -62,17 +69,39 @@ public class NormalNoise {
+ 
+         this.valueFactor = 0.16666666666666666 / expectedDeviation(maxOctave - minOctave);
+         this.maxValue = (this.first.maxValue() + this.second.maxValue()) * this.valueFactor;
++        // DivineMC start - C2ME: native math optimization
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++            this.divinemc$arena = java.lang.foreign.Arena.ofAuto();
++            this.divinemc$samplerDataPtr = org.bxteam.divinemc.math.BindingsTemplate
++                .double_octave_sampler_data$create(this.divinemc$arena, this.first, this.second, this.valueFactor)
++                .address();
++        } else {
++            this.divinemc$arena = null;
++            this.divinemc$samplerDataPtr = 0L;
++        }
++        // DivineMC end - C2ME: native math optimization
+     }
+ 
+     public double maxValue() {
+         return this.maxValue;
+     }
+ 
++    // DivineMC start - C2ME: native math optimization
++    public long divinemc$nativePointer() {
++        return this.divinemc$samplerDataPtr;
++    }
++    // DivineMC end - C2ME: native math optimization
++
+     private static double expectedDeviation(final int octaveSpan) {
+         return 0.1 * (1.0 + 1.0 / (octaveSpan + 1));
+     }
+ 
+     public double getValue(final double x, final double y, final double z) {
++        // DivineMC start - C2ME: native math optimization
++        if (this.divinemc$samplerDataPtr != 0L) {
++            return org.bxteam.divinemc.math.Bindings.c2me_natives_noise_perlin_double(this.divinemc$samplerDataPtr, x, y, z);
++        }
++        // DivineMC end - C2ME: native math optimization
+         double x2 = x * 1.0181268882175227;
+         double y2 = y * 1.0181268882175227;
+         double z2 = z * 1.0181268882175227;
