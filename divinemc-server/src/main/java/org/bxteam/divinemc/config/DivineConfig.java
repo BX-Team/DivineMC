@@ -899,10 +899,25 @@ public class DivineConfig {
         public static boolean protocolsSyncMaticaQuota = false;
         public static int protocolsSyncMaticaQuotaLimit = 40000000;
 
+        // Raytrace entity culling
+        @Experimental("Raytrace Entity Culling")
+        public static boolean raytraceCullingEnabled = false;
+        public static int raytraceCullingThreads = 0;
+        public static int raytraceCullingCheckIntervalMs = 50;
+        public static int raytraceCullingMaxTraceDistance = 64;
+        public static double raytraceCullingForceVisibleRadius = 4.0D;
+        public static long raytraceCullingVisibilityTimeoutMs = 1000L;
+        public static double raytraceCullingAabbExpansion = 0.5D;
+        public static int raytraceCullingBoundingBoxLimit = 20;
+        public static boolean raytraceCullingCullPlayers = true;
+        public static boolean raytraceCullingSkipMarkerArmorStands = true;
+        public static List<String> raytraceCullingSkippedEntityTypes = new ArrayList<>();
+
         public static void load() {
             networkSettings();
             noChatReports();
             protocols();
+            raytraceCulling();
         }
 
         private static void networkSettings() {
@@ -965,6 +980,67 @@ public class DivineConfig {
                 "Enables quota system for SyncMatica");
             protocolsSyncMaticaQuotaLimit = getInt(ConfigCategory.NETWORK.key("protocols.syncmatica.quota-limit"), protocolsSyncMaticaQuotaLimit,
                 "Quota limit for SyncMatica protocol");
+        }
+
+        private static void raytraceCulling() {
+            raytraceCullingEnabled = getBoolean(ConfigCategory.NETWORK.key("raytrace-entity-culling.enabled"), raytraceCullingEnabled,
+                "Enables Raytrace Entity Culling, a server-side port of tr7zw's EntityCulling mod.",
+                "Entities that a player provably cannot see (fully hidden behind opaque blocks)",
+                "are removed from that player's entity tracker. This reduces network bandwidth,",
+                "improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks",
+                "cannot see mobs, players or items through walls anymore).",
+                "",
+                "Visibility is checked asynchronously via raytracing; when a hidden entity comes",
+                "into view it is re-tracked within one check interval plus one tracker tick.",
+                "Players with very high ping may notice entities appearing slightly late when",
+                "peeking around corners.");
+            raytraceCullingThreads = getInt(ConfigCategory.NETWORK.key("raytrace-entity-culling.threads"), raytraceCullingThreads,
+                "The number of threads used for visibility raytracing. All players share this pool.",
+                "Set to 0 to determine automatically based on CPU core count.");
+            raytraceCullingCheckIntervalMs = getInt(ConfigCategory.NETWORK.key("raytrace-entity-culling.check-interval-ms"), raytraceCullingCheckIntervalMs,
+                "The interval in milliseconds between visibility passes for each player.",
+                "Lower values make hidden entities appear faster when they come into view,",
+                "at the cost of more raytracing work.");
+            raytraceCullingMaxTraceDistance = getInt(ConfigCategory.NETWORK.key("raytrace-entity-culling.max-trace-distance"), raytraceCullingMaxTraceDistance,
+                "The maximum distance in blocks at which entities are raytraced.",
+                "Entities beyond this distance are always visible (never culled).",
+                "NOTE: each player allocates an occlusion cache of (2*distance)^3 / 4 bytes",
+                "(~512KB at 64), so keep this value reasonable.");
+            raytraceCullingMaxTraceDistance = Math.clamp(raytraceCullingMaxTraceDistance, 16, 160);
+            raytraceCullingForceVisibleRadius = getDouble(ConfigCategory.NETWORK.key("raytrace-entity-culling.force-visible-radius"), raytraceCullingForceVisibleRadius,
+                "Entities within this radius of the player are always visible, no raytracing done.");
+            raytraceCullingVisibilityTimeoutMs = getLong(ConfigCategory.NETWORK.key("raytrace-entity-culling.visibility-timeout-ms"), raytraceCullingVisibilityTimeoutMs,
+                "Once an entity is proven visible it stays visible for at least this many",
+                "milliseconds before it can be culled again. Prevents track/untrack packet",
+                "flicker for entities on the edge of visibility.");
+            raytraceCullingAabbExpansion = getDouble(ConfigCategory.NETWORK.key("raytrace-entity-culling.aabb-expansion"), raytraceCullingAabbExpansion,
+                "How much the entity bounding box is expanded before raytracing. Larger values",
+                "make entities visible slightly earlier around corners (smoother but less strict).");
+            raytraceCullingBoundingBoxLimit = getInt(ConfigCategory.NETWORK.key("raytrace-entity-culling.bounding-box-limit"), raytraceCullingBoundingBoxLimit,
+                "Entities with a bounding box larger than this on any axis are never culled.");
+            raytraceCullingCullPlayers = getBoolean(ConfigCategory.NETWORK.key("raytrace-entity-culling.cull-players"), raytraceCullingCullPlayers,
+                "Whether player entities may be culled too. This is the main anti-ESP protection,",
+                "but on PvP servers with high-ping players it can give a slight disadvantage when",
+                "peeking around corners - disable it if that matters more to you.");
+            raytraceCullingSkipMarkerArmorStands = getBoolean(ConfigCategory.NETWORK.key("raytrace-entity-culling.skip-marker-armor-stands"), raytraceCullingSkipMarkerArmorStands,
+                "Whether invisible armor stands (often used as plugin markers/holograms) are",
+                "always visible and never raytraced.");
+            raytraceCullingSkippedEntityTypes = getStringList(ConfigCategory.NETWORK.key("raytrace-entity-culling.skipped-entity-types"), raytraceCullingSkippedEntityTypes,
+                "Entity types that are never culled, e.g. [\"minecraft:item_frame\", \"minecraft:villager\"].",
+                "Glowing entities, entities with always-visible custom names, display entities and",
+                "fishing bobbers are always skipped regardless of this list.");
+
+            for (EntityType<?> entityType : BuiltInRegistries.ENTITY_TYPE) {
+                entityType.raytraceCullingSkip = false;
+            }
+
+            final String DEFAULT_PREFIX = Identifier.DEFAULT_NAMESPACE + Identifier.NAMESPACE_SEPARATOR;
+            for (String name : raytraceCullingSkippedEntityTypes) {
+                String lowerName = name.toLowerCase(Locale.ROOT);
+                String typeId = lowerName.startsWith(DEFAULT_PREFIX) ? lowerName : DEFAULT_PREFIX + lowerName;
+
+                EntityType.byString(typeId).ifPresentOrElse(entityType -> entityType.raytraceCullingSkip = true, () -> LOGGER.warn("Unknown entity {}, in {}", name, ConfigCategory.NETWORK.key("raytrace-entity-culling.skipped-entity-types")));
+            }
         }
     }
 
