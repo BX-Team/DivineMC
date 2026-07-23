@@ -11,10 +11,50 @@ All functions provided by vanilla are implemented.
 About Density function: https://minecraft.wiki/w/Density_function
 
 diff --git a/net/minecraft/util/CubicSpline.java b/net/minecraft/util/CubicSpline.java
-index 110e50665256d1bf9fe49c7769be927ec50168a9..e87c5c061ead272da25bd9e77da3ba9bf15c55aa 100644
+index 2343f63a244841587552f03aeaecba9584241752..84eb0ed0335d04a2f736fc7c5de7f988ffe9903b 100644
 --- a/net/minecraft/util/CubicSpline.java
 +++ b/net/minecraft/util/CubicSpline.java
-@@ -270,7 +270,23 @@ public sealed interface CubicSpline<I> permits CubicSpline.Multipoint, CubicSpli
+@@ -250,33 +250,47 @@ public interface CubicSpline<C, I extends BoundedFloatFunction<C>> extends Bound
+ 
+         @Override
+         public float apply(final C c) {
++            // DivineMC start - Density Function Compiler
+             float input = this.coordinate.apply(c);
+             int start = findIntervalStart(this.locations, input);
+             int lastIndex = this.locations.length - 1;
+             if (start < 0) {
+                 return linearExtend(input, this.locations, this.values.get(0).apply(c), this.derivatives, 0);
+-            }
+-
+-            if (start == lastIndex) {
++            } else if (start == lastIndex) {
+                 return linearExtend(input, this.locations, this.values.get(lastIndex).apply(c), this.derivatives, lastIndex);
++            } else {
++                float loc0 = this.locations[start];
++                float loc1 = this.locations[start + 1];
++                float locDist = loc1 - loc0;
++                float k = (input - loc0) / locDist;
++                float n = this.values.get(start).apply(c);
++                float o = this.values.get(start + 1).apply(c);
++                float onDist = o - n;
++                float p = this.derivatives[start] * locDist - onDist;
++                float q = -this.derivatives[start + 1] * locDist + onDist;
++                return Mth.lerp(k, n, o) + k * (1.0F - k) * Mth.lerp(k, p, q);
+             }
+-
+-            float x1 = this.locations[start];
+-            float x2 = this.locations[start + 1];
+-            float t = (input - x1) / (x2 - x1);
+-            BoundedFloatFunction<C> f1 = (BoundedFloatFunction<C>)this.values.get(start);
+-            BoundedFloatFunction<C> f2 = (BoundedFloatFunction<C>)this.values.get(start + 1);
+-            float d1 = this.derivatives[start];
+-            float d2 = this.derivatives[start + 1];
+-            float y1 = f1.apply(c);
+-            float y2 = f2.apply(c);
+-            float a = d1 * (x2 - x1) - (y2 - y1);
+-            float b = -d2 * (x2 - x1) + (y2 - y1);
+-            return Mth.lerp(t, y1, y2) + t * (1.0F - t) * Mth.lerp(t, a, b);
++            // DivineMC end - Density Function Compiler
          }
  
          private static int findIntervalStart(final float[] locations, final float input) {
@@ -39,9 +79,9 @@ index 110e50665256d1bf9fe49c7769be927ec50168a9..e87c5c061ead272da25bd9e77da3ba9b
          }
  
          @VisibleForTesting
-@@ -361,5 +377,27 @@ public sealed interface CubicSpline<I> permits CubicSpline.Multipoint, CubicSpli
-                 );
-             }
+@@ -306,5 +320,27 @@ public interface CubicSpline<C, I extends BoundedFloatFunction<C>> extends Bound
+         public CubicSpline<C, I> mapAll(final CubicSpline.CoordinateVisitor<I> visitor) {
+             return create(visitor.visit(this.coordinate), this.locations, this.values().stream().map(v -> v.mapAll(visitor)).toList(), this.derivatives);
          }
 +
 +        // DivineMC start - Density Function Compiler
@@ -49,7 +89,7 @@ index 110e50665256d1bf9fe49c7769be927ec50168a9..e87c5c061ead272da25bd9e77da3ba9b
 +        public boolean equals(Object o) {
 +            if (this == o) return true;
 +            if (o == null || getClass() != o.getClass()) return false;
-+            Multipoint<?> that = (Multipoint<?>) o;
++            Multipoint<?, ?> that = (Multipoint<?, ?>) o;
 +            return java.util.Objects.equals(coordinate, that.coordinate()) && java.util.Arrays.equals(locations, that.locations()) && java.util.Objects.equals(values, that.values()) && java.util.Arrays.equals(derivatives, that.derivatives());
 +        }
 +
@@ -67,152 +107,142 @@ index 110e50665256d1bf9fe49c7769be927ec50168a9..e87c5c061ead272da25bd9e77da3ba9b
 +        // DivineMC end - Density Function Compiler
      }
  }
-diff --git a/net/minecraft/world/level/levelgen/DensityFunctions.java b/net/minecraft/world/level/levelgen/DensityFunctions.java
-index 9f740bfbdddbdbdb729351574f1eb7169dc2e230..3bb49f269ae2e66bf0f16fa8d2cb885d3a6cbcbc 100644
---- a/net/minecraft/world/level/levelgen/DensityFunctions.java
-+++ b/net/minecraft/world/level/levelgen/DensityFunctions.java
-@@ -299,38 +299,66 @@ public final class DensityFunctions {
- 
-         @Override
-         public void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
--            this.argument1.fillArray(output, contextProvider);
--            switch (this.type) {
--                case ADD:
--                    double[] v2 = new double[output.length];
--                    this.argument2.fillArray(v2, contextProvider);
--
--                    for (int i = 0; i < output.length; i++) {
--                        output[i] += v2[i];
--                    }
--                    break;
--                case MUL:
--                    for (int i = 0; i < output.length; i++) {
--                        double v = output[i];
--                        output[i] = v == 0.0 ? 0.0 : v * this.argument2.compute(contextProvider.forIndex(i));
--                    }
--                    break;
--                case MIN:
--                    double min = this.argument2.minValue();
-+            // DivineMC start - Density Function Compiler
-+            Runnable run = () -> {
-+                this.argument1.fillArray(output, contextProvider);
-+                switch (this.type) {
-+                    case ADD:
-+                        double[] doubles = new double[output.length];
-+                        this.argument2.fillArray(doubles, contextProvider);
-+
-+                        for (int i = 0; i < output.length; i++) {
-+                            output[i] += doubles[i];
-+                        }
-+                        break;
-+                    case MUL:
-+                        for (int i1 = 0; i1 < output.length; i1++) {
-+                            double d = output[i1];
-+                            output[i1] = d == 0.0 ? 0.0 : d * this.argument2.compute(contextProvider.forIndex(i1));
-+                        }
-+                        break;
-+                    case MIN:
-+                        double d1 = this.argument2.minValue();
- 
--                    for (int i = 0; i < output.length; i++) {
--                        double v = output[i];
--                        output[i] = v < min ? v : Math.min(v, this.argument2.compute(contextProvider.forIndex(i)));
--                    }
--                    break;
--                case MAX:
--                    double max = this.argument2.maxValue();
-+                        for (int i2 = 0; i2 < output.length; i2++) {
-+                            double d2 = output[i2];
-+                            output[i2] = d2 < d1 ? d2 : Math.min(d2, this.argument2.compute(contextProvider.forIndex(i2)));
-+                        }
-+                        break;
-+                    case MAX:
-+                        d1 = this.argument2.maxValue();
- 
--                    for (int i = 0; i < output.length; i++) {
--                        double v = output[i];
--                        output[i] = v > max ? v : Math.max(v, this.argument2.compute(contextProvider.forIndex(i)));
--                    }
-+                        for (int i2 = 0; i2 < output.length; i2++) {
-+                            double d2 = output[i2];
-+                            output[i2] = d2 > d1 ? d2 : Math.max(d2, this.argument2.compute(contextProvider.forIndex(i2)));
-+                        }
-+                }
-+            };
-+            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler && this.type == DensityFunctions.TwoArgumentSimpleFunction.Type.ADD) {
-+                this.argument1.fillArray(output, contextProvider);
-+                double[] ds;
-+
-+                com.ishland.c2me.opts.dfc.common.util.ArrayCache arrayCache = contextProvider instanceof com.ishland.c2me.opts.dfc.common.ducks.IArrayCacheCapable arrayCacheCapable ? arrayCacheCapable.c2me$getArrayCache() : null;
-+
-+                if (arrayCache != null) {
-+                    ds = arrayCache.getDoubleArray(output.length, false);
-+                } else {
-+                    ds = new double[output.length];
-+                }
-+
-+                this.argument2.fillArray(ds, contextProvider);
-+
-+                for (int i = 0; i < output.length; i++) {
-+                    output[i] += ds[i];
-+                }
-+
-+                if (arrayCache != null) {
-+                    arrayCache.recycle(ds);
-+                }
-+            } else {
-+                run.run();
-             }
-+            // DivineMC end - Density Function Compiler
+diff --git a/net/minecraft/world/level/levelgen/DensityFunction.java b/net/minecraft/world/level/levelgen/DensityFunction.java
+index 734cbe683ca7bc3112e4cdf7867086c14507736d..ef16971bc26bd65177459367a2f2ce6f2b3e5ca5 100644
+--- a/net/minecraft/world/level/levelgen/DensityFunction.java
++++ b/net/minecraft/world/level/levelgen/DensityFunction.java
+@@ -93,6 +93,27 @@ public interface DensityFunction {
+         public double maxValue() {
+             return this.noise == null ? 2.0 : this.noise.maxValue();
          }
- 
-         @Override
-@@ -828,7 +856,105 @@ public final class DensityFunctions {
-         }
-     }
- 
--    record Marker(@Override DensityFunctions.Marker.Type type, @Override DensityFunction wrapped) implements DensityFunctions.MarkerOrMarked {
-+    // DivineMC start - Density Function Compiler
-+    public static final class Marker implements com.ishland.c2me.opts.dfc.common.ducks.IFastCacheLike, com.ishland.c2me.opts.dfc.common.ducks.IEqualityOverriding, MarkerOrMarked {
-+        private final Type type;
-+        private final DensityFunction wrapped;
-+        private Object c2me$optionalEquality;
 +
++        // DivineMC start - Density Function Compiler - equality for AST deduplication (upstream MixinDensityFunctionNoise)
 +        @Override
-+        public boolean equals(final Object that) {
-+            Function<Object, Boolean> original = (o) -> {
-+                if (o == this) return true;
-+                if (o == null || o.getClass() != this.getClass()) return false;
-+                var a = (Marker) o;
-+                return java.util.Objects.equals(this.type, a.type) &&
-+                    java.util.Objects.equals(this.wrapped, a.wrapped);
-+            };
-+            if (true) {
-+                return original.apply(that);
-+            }
-+            Object a = this.c2me$getOverriddenEquality();
-+            Object b = that instanceof com.ishland.c2me.opts.dfc.common.ducks.IEqualityOverriding equalityOverriding ? equalityOverriding.c2me$getOverriddenEquality() : null;
-+            if (a == null) {
-+                return original.apply(b != null ? b : that);
-+            } else {
-+                return a.equals(b != null ? b : that);
-+            }
++        public boolean equals(final Object o) {
++            if (this == o) return true;
++            if (o == null || getClass() != o.getClass()) return false;
++            NoiseHolder that = (NoiseHolder) o;
++            return (this.noise != null || that.noise != null)
++                ? java.util.Objects.equals(this.noise, that.noise)
++                : java.util.Objects.equals(this.noiseData, that.noiseData);
 +        }
 +
 +        @Override
 +        public int hashCode() {
-+            java.util.function.Supplier<Integer> original = () -> java.util.Objects.hash(type, wrapped);
-+            Object c2me$optionalEquality1 = this.c2me$optionalEquality;
-+            if (c2me$optionalEquality1 != null && false) {
-+                return c2me$optionalEquality1.hashCode();
++            if (this.noise != null) {
++                return this.noise.hashCode();
 +            } else {
-+                return original.get();
++                return java.util.Objects.hashCode(this.noiseData);
 +            }
 +        }
++        // DivineMC end - Density Function Compiler
+     }
+ 
+     interface SimpleFunction extends DensityFunction {
+diff --git a/net/minecraft/world/level/levelgen/DensityFunctions.java b/net/minecraft/world/level/levelgen/DensityFunctions.java
+index baa1da8fad8113624a1c85beb08a6d411f9000f8..36439c7812de847651ff6964cc121baaa3e7fa76 100644
+--- a/net/minecraft/world/level/levelgen/DensityFunctions.java
++++ b/net/minecraft/world/level/levelgen/DensityFunctions.java
+@@ -280,7 +280,7 @@ public final class DensityFunctions {
+         return new DensityFunctions.FindTopSurface(density, upperBound, lowerBound, stepSize);
+     }
+ 
+-    private record Ap2(
++    public record Ap2( // DivineMC - Density Function Compiler - private -> public (McToAst frontend registration)
+         @Override DensityFunctions.TwoArgumentSimpleFunction.Type type,
+         @Override DensityFunction argument1,
+         @Override DensityFunction argument2,
+@@ -304,12 +304,25 @@ public final class DensityFunctions {
+             this.argument1.fillArray(output, contextProvider);
+             switch (this.type) {
+                 case ADD:
+-                    double[] v2 = new double[output.length];
++                    // DivineMC start - Density Function Compiler - recycle the temporary array through DfcObjectCache (upstream MixinDFTBinaryOperation)
++                    double[] v2;
++                    com.ishland.c2me.opts.dfc.common.gen.jvm.util.DfcObjectCache dfcObjectCache =
++                        contextProvider instanceof com.ishland.c2me.opts.dfc.common.ducks.IDfcObjectCacheCapable cacheCapable ? cacheCapable.c2me$getDfcObjectCache() : null;
++                    if (dfcObjectCache != null) {
++                        v2 = dfcObjectCache.getDoubleArray(output.length, false);
++                    } else {
++                        v2 = new double[output.length];
++                    }
+                     this.argument2.fillArray(v2, contextProvider);
+ 
+                     for (int i = 0; i < output.length; i++) {
+                         output[i] += v2[i];
+                     }
++
++                    if (dfcObjectCache != null) {
++                        dfcObjectCache.recycle(v2);
++                    }
++                    // DivineMC end - Density Function Compiler
+                     break;
+                 case MUL:
+                     for (int i = 0; i < output.length; i++) {
+@@ -341,7 +354,7 @@ public final class DensityFunctions {
+         }
+     }
+ 
+-    protected enum BeardifierMarker implements DensityFunctions.BeardifierOrMarker {
++    public enum BeardifierMarker implements DensityFunctions.BeardifierOrMarker { // DivineMC - Density Function Compiler - protected -> public
+         INSTANCE;
+ 
+         @Override
+@@ -526,12 +539,27 @@ public final class DensityFunctions {
+         }
+     }
+ 
+-    protected static final class EndIslandDensityFunction implements DensityFunction.SimpleFunction {
++    public static final class EndIslandDensityFunction implements DensityFunction.SimpleFunction { // DivineMC - Density Function Compiler - protected -> public
+         public static final KeyDispatchDataCodec<DensityFunctions.EndIslandDensityFunction> CODEC = KeyDispatchDataCodec.of(
+             MapCodec.unit(new DensityFunctions.EndIslandDensityFunction(0L))
+         );
+         private static final float ISLAND_THRESHOLD = -0.9F;
+         private final SimplexNoise islandNoise;
++
++        // DivineMC start - Density Function Compiler - equality for AST deduplication (upstream MixinDFTEndIslands)
++        @Override
++        public boolean equals(final Object o) {
++            if (this == o) return true;
++            if (o == null || getClass() != o.getClass()) return false;
++            EndIslandDensityFunction that = (EndIslandDensityFunction) o;
++            return java.util.Objects.equals(this.islandNoise, that.islandNoise);
++        }
++
++        @Override
++        public int hashCode() {
++            return java.util.Objects.hashCode(this.islandNoise);
++        }
++        // DivineMC end - Density Function Compiler
+         // Paper start - Perf: Optimize end generation
+         private static final class NoiseCache {
+             public long[] keys = new long[8192];
+@@ -776,7 +804,75 @@ public final class DensityFunctions {
+         }
+     }
+ 
+-    protected record Marker(@Override DensityFunctions.Marker.Type type, @Override DensityFunction wrapped) implements DensityFunctions.MarkerOrMarked {
++    // DivineMC start - Density Function Compiler - Marker record converted to a class implementing IFastCacheLike (upstream MixinDFTWrapping)
++    public static final class Marker implements com.ishland.c2me.opts.dfc.common.ducks.IFastCacheLike, MarkerOrMarked {
++        private final Type type;
++        private final DensityFunction wrapped;
 +
 +        public Marker(Type type, DensityFunction wrapped) {
 +            this.type = type;
 +            this.wrapped = wrapped;
++        }
++
++        @Override
++        public boolean equals(final Object o) {
++            if (o == this) return true;
++            if (o == null || o.getClass() != this.getClass()) return false;
++            Marker that = (Marker) o;
++            return this.type == that.type && java.util.Objects.equals(this.wrapped, that.wrapped);
++        }
++
++        @Override
++        public int hashCode() {
++            return java.util.Objects.hash(this.type, this.wrapped);
 +        }
 +
 +        @Override
@@ -236,33 +266,23 @@ index 9f740bfbdddbdbdb729351574f1eb7169dc2e230..3bb49f269ae2e66bf0f16fa8d2cb885d
 +        }
 +
 +        @Override
++        public boolean c2me$isActualCache() {
++            return this.type != Type.Interpolated;
++        }
++
++        @Override
++        public String c2me$describeCacheLike() {
++            return "wrapping, " + this.type.getSerializedName();
++        }
++
++        @Override
 +        public DensityFunction c2me$getDelegate() {
 +            return this.wrapped;
 +        }
 +
 +        @Override
 +        public DensityFunction c2me$withDelegate(DensityFunction delegate) {
-+            DensityFunctions.Marker wrapping = new DensityFunctions.Marker(this.type(), delegate);
-+            ((com.ishland.c2me.opts.dfc.common.ducks.IEqualityOverriding) (Object) wrapping).c2me$overrideEquality(this);
-+            return wrapping;
-+        }
-+
-+        @Override
-+        public void c2me$overrideEquality(Object object) {
-+            Object inner = object;
-+            while (true) {
-+                Object inner1 = inner instanceof com.ishland.c2me.opts.dfc.common.ducks.IEqualityOverriding e1 ? e1.c2me$getOverriddenEquality() : null;
-+                if (inner1 == null) {
-+                    this.c2me$optionalEquality = inner;
-+                    break;
-+                }
-+                inner = inner1;
-+            }
-+        }
-+
-+        @Override
-+        public Object c2me$getOverriddenEquality() {
-+            return this.c2me$optionalEquality;
++            return new DensityFunctions.Marker(this.type(), delegate);
 +        }
 +
 +        @Override
@@ -274,11 +294,11 @@ index 9f740bfbdddbdbdb729351574f1eb7169dc2e230..3bb49f269ae2e66bf0f16fa8d2cb885d
          @Override
          public double compute(final DensityFunction.FunctionContext context) {
              return this.wrapped.compute(context);
-@@ -849,7 +975,19 @@ public final class DensityFunctions {
-             return this.type == DensityFunctions.Marker.Type.BlendDensity ? Double.POSITIVE_INFINITY : this.wrapped.maxValue();
+@@ -797,7 +893,19 @@ public final class DensityFunctions {
+             return this.wrapped.maxValue();
          }
  
--        public enum Type implements StringRepresentable {
+-        enum Type implements StringRepresentable {
 +        // DivineMC start - Density Function Compiler
 +        @Override
 +        public Type type() {
@@ -295,11 +315,20 @@ index 9f740bfbdddbdbdb729351574f1eb7169dc2e230..3bb49f269ae2e66bf0f16fa8d2cb885d
              Interpolated("interpolated"),
              FlatCache("flat_cache"),
              Cache2D("cache_2d"),
+@@ -836,7 +944,7 @@ public final class DensityFunctions {
+         }
+     }
+ 
+-    private record MulOrAdd(
++    public record MulOrAdd( // DivineMC - Density Function Compiler - private -> public (McToAst frontend registration)
+         DensityFunctions.MulOrAdd.Type specificType, @Override DensityFunction input, @Override double minValue, @Override double maxValue, double argument
+     ) implements DensityFunctions.TwoArgumentSimpleFunction, DensityFunctions.PureTransformer {
+         @Override
 diff --git a/net/minecraft/world/level/levelgen/NoiseChunk.java b/net/minecraft/world/level/levelgen/NoiseChunk.java
-index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706c4fef85a 100644
+index 1b86f6833eed345052b3d12a2cf3a19caff991db..5836e696a015cdf2a1910962a2e68ab6d1b80c05 100644
 --- a/net/minecraft/world/level/levelgen/NoiseChunk.java
 +++ b/net/minecraft/world/level/levelgen/NoiseChunk.java
-@@ -20,8 +20,18 @@ import net.minecraft.world.level.chunk.ChunkAccess;
+@@ -20,8 +20,20 @@ import net.minecraft.world.level.chunk.ChunkAccess;
  import net.minecraft.world.level.levelgen.blending.Blender;
  import net.minecraft.world.level.levelgen.material.MaterialRuleList;
  import org.jspecify.annotations.Nullable;
@@ -307,30 +336,39 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 -public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunction.ContextProvider {
 +// DivineMC start - Density Function Compiler
 +import com.ishland.c2me.opts.dfc.common.ast.EvalType;
-+import com.ishland.c2me.opts.dfc.common.ducks.IArrayCacheCapable;
 +import com.ishland.c2me.opts.dfc.common.ducks.ICoordinatesFilling;
++import com.ishland.c2me.opts.dfc.common.ducks.IDfcObjectCacheCapable;
 +import com.ishland.c2me.opts.dfc.common.ducks.IFastCacheLike;
++import com.ishland.c2me.opts.dfc.common.ducks.IPreloadedCoordinates;
++import com.ishland.c2me.opts.dfc.common.ducks.NoiseRouterExtension;
 +import com.ishland.c2me.opts.dfc.common.gen.DelegatingBlendingAwareVisitor;
-+import com.ishland.c2me.opts.dfc.common.util.ArrayCache;
-+import com.ishland.c2me.opts.dfc.common.vif.EachApplierVanillaInterface;
-+import com.ishland.c2me.opts.dfc.common.vif.NoisePosVanillaInterface;
++import com.ishland.c2me.opts.dfc.common.gen.jvm.util.DfcObjectCache;
++import com.ishland.c2me.opts.dfc.common.gen.jvm.vif.EachApplierVanillaInterface;
++import com.ishland.c2me.opts.dfc.common.gen.jvm.vif.NoisePosVanillaInterface;
 +// DivineMC end - Density Function Compiler
 +
-+public class NoiseChunk implements DensityFunction.ContextProvider, DensityFunction.FunctionContext, IArrayCacheCapable, ICoordinatesFilling { // DivineMC - Density Function Compiler
++public class NoiseChunk implements DensityFunction.ContextProvider, DensityFunction.FunctionContext, IDfcObjectCacheCapable, ICoordinatesFilling, IPreloadedCoordinates { // DivineMC - Density Function Compiler
      private final int cellCountXZ;
      private final int cellCountY;
      private final int cellNoiseMinY;
-@@ -57,7 +67,47 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -57,7 +69,88 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
      private long interpolationCounter;
      private long arrayInterpolationCounter;
      private int arrayIndex;
 -    private final DensityFunction.ContextProvider sliceFillingContextProvider = new DensityFunction.ContextProvider() {
 +    // DivineMC start - Density Function Compiler
-+    private final ArrayCache c2me$arrayCache = new ArrayCache();
++    private final DfcObjectCache c2me$dfcObjectCache = new DfcObjectCache.Impl();
++
++    private int c2me$oldStartBlockX = Integer.MAX_VALUE;
++    private int c2me$oldStartBlockY = Integer.MAX_VALUE;
++    private int c2me$oldStartBlockZ = Integer.MAX_VALUE;
++    private int[] c2me$cachedXArray;
++    private int[] c2me$cachedYArray;
++    private int[] c2me$cachedZArray;
 +
 +    @Override
-+    public ArrayCache c2me$getArrayCache() {
-+        return this.c2me$arrayCache != null ? this.c2me$arrayCache : new ArrayCache();
++    public DfcObjectCache c2me$getDfcObjectCache() {
++        return java.util.Objects.requireNonNull(this.c2me$dfcObjectCache, "broken initialization");
 +    }
 +
 +    @Override
@@ -353,8 +391,42 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +        }
 +    }
 +
++    private void c2me$reloadCachedArrays() {
++        if (this.c2me$cachedXArray == null || this.c2me$cachedYArray == null || this.c2me$cachedZArray == null) {
++            int length = this.cellWidth * this.cellWidth * this.cellHeight;
++            DfcObjectCache dfcObjectCache = this.c2me$getDfcObjectCache();
++            this.c2me$cachedXArray = dfcObjectCache.getIntArray(length, false);
++            this.c2me$cachedYArray = dfcObjectCache.getIntArray(length, false);
++            this.c2me$cachedZArray = dfcObjectCache.getIntArray(length, false);
++        }
++        if (this.c2me$oldStartBlockX != this.cellStartBlockX || this.c2me$oldStartBlockY != this.cellStartBlockY || this.c2me$oldStartBlockZ != this.cellStartBlockZ) {
++            this.c2me$fillCoordinates(this.c2me$cachedXArray, this.c2me$cachedYArray, this.c2me$cachedZArray);
++            this.c2me$oldStartBlockX = this.cellStartBlockX;
++            this.c2me$oldStartBlockY = this.cellStartBlockY;
++            this.c2me$oldStartBlockZ = this.cellStartBlockZ;
++        }
++    }
++
++    @Override
++    public int[] c2me$getXArray() {
++        this.c2me$reloadCachedArrays();
++        return this.c2me$cachedXArray;
++    }
++
++    @Override
++    public int[] c2me$getYArray() {
++        this.c2me$reloadCachedArrays();
++        return this.c2me$cachedYArray;
++    }
++
++    @Override
++    public int[] c2me$getZArray() {
++        this.c2me$reloadCachedArrays();
++        return this.c2me$cachedZArray;
++    }
++
 +    private @org.jetbrains.annotations.NotNull DelegatingBlendingAwareVisitor c2me$getDelegatingBlendingAwareVisitor(DensityFunction.Visitor visitor) {
-+        return new DelegatingBlendingAwareVisitor(visitor, !this.blender.isEmpty());
++        return new DelegatingBlendingAwareVisitor(visitor, this.getBlender() != Blender.empty());
 +    }
 +
 +    private DensityFunction.Visitor modifyVisitor1(DensityFunction.Visitor visitor) {
@@ -365,19 +437,19 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +        return c2me$getDelegatingBlendingAwareVisitor(visitor);
 +    }
 +
-+    public class NoiseChunkSliceFillingContextProvider implements DensityFunction.ContextProvider, IArrayCacheCapable, ICoordinatesFilling {
++    public class NoiseChunkSliceFillingContextProvider implements DensityFunction.ContextProvider, IDfcObjectCacheCapable, ICoordinatesFilling {
          @Override
          public DensityFunction.FunctionContext forIndex(final int cellYIndex) {
              NoiseChunk.this.cellStartBlockY = (cellYIndex + NoiseChunk.this.cellNoiseMinY) * NoiseChunk.this.cellHeight;
-@@ -77,7 +127,23 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -77,7 +170,23 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
                  output[cellYIndex] = function.compute(NoiseChunk.this);
              }
          }
 -    };
 +
 +        @Override
-+        public ArrayCache c2me$getArrayCache() {
-+            return (NoiseChunk.this).c2me$getArrayCache();
++        public DfcObjectCache c2me$getDfcObjectCache() {
++            return (NoiseChunk.this).c2me$getDfcObjectCache();
 +        }
 +
 +        @Override
@@ -394,7 +466,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
  
      public static NoiseChunk forChunk(
          final ChunkAccess chunk,
-@@ -140,7 +206,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -139,7 +248,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
  
          NoiseRouter router = randomState.router();
@@ -403,16 +475,33 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
          this.preliminarySurfaceLevel = wrappedRouter.preliminarySurfaceLevel();
          if (!settings.isAquifersEnabled()) {
              this.aquifer = Aquifer.createDisabled(globalFluidPicker);
-@@ -156,7 +222,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
-         DensityFunction fullNoiseValue = DensityFunctions.cacheAllInCell(
-                 DensityFunctions.add(wrappedRouter.finalDensity(), DensityFunctions.BeardifierMarker.INSTANCE)
-             )
+@@ -152,10 +261,21 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+         }
+ 
+         List<NoiseChunk.BlockStateFiller> builder = new ArrayList<>();
+-        DensityFunction fullNoiseValue = DensityFunctions.cacheAllInCell(
+-                DensityFunctions.add(wrappedRouter.finalDensity(), DensityFunctions.BeardifierMarker.INSTANCE)
+-            )
 -            .mapAll(this::wrap);
-+            .mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap); // DivineMC - Density Function Compiler
++        // DivineMC start - Density Function Compiler - use the precompiled finalDensity+Beardifier when available (upstream wrapFinalFinalDensity0-3);
++        // it was already propagated through the wrap visitor by NoiseRouter#mapAll above, so it is used as-is
++        DensityFunction fullNoiseValue;
++        DensityFunction precompiledFinalFinalDensity = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler
++            ? ((NoiseRouterExtension) wrappedRouter).c2me$getFinalFinalDensity()
++            : null;
++        if (precompiledFinalFinalDensity != null) {
++            fullNoiseValue = precompiledFinalFinalDensity;
++        } else {
++            fullNoiseValue = DensityFunctions.cacheAllInCell(
++                    DensityFunctions.add(wrappedRouter.finalDensity(), DensityFunctions.BeardifierMarker.INSTANCE)
++                )
++                .mapAll(org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler ? modifyVisitor2(this::wrap) : this::wrap);
++        }
++        // DivineMC end - Density Function Compiler
          this.fullNoiseDensity = fullNoiseValue;
          builder.add(context -> this.aquifer.computeSubstance(context, fullNoiseValue.compute(context)));
          if (settings.oreVeinsEnabled()) {
-@@ -168,12 +234,14 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -167,12 +287,14 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
  
      protected Climate.Sampler cachedClimateSampler(final NoiseRouter noises, final List<Climate.ParameterPoint> spawnTarget) {
          return new Climate.Sampler(
@@ -433,7 +522,61 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
              spawnTarget
          );
      }
-@@ -377,21 +445,28 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -315,10 +437,21 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+         this.fillingCell = false;
+     }
+ 
++    // DivineMC start - Density Function Compiler - iterate interpolators over a cached array (upstream MixinChunkNoiseSampler overwrites)
++    private NoiseChunk.NoiseInterpolator @Nullable [] c2me$interpolatorsArray;
++
++    private NoiseChunk.NoiseInterpolator[] c2me$initInterpolatorsArray() {
++        NoiseChunk.NoiseInterpolator[] interpolatorsArray = this.c2me$interpolatorsArray;
++        if (interpolatorsArray == null) {
++            interpolatorsArray = this.c2me$interpolatorsArray = this.interpolators.toArray(NoiseChunk.NoiseInterpolator[]::new);
++        }
++        return interpolatorsArray;
++    }
++
+     public void updateForY(final int posY, final double factorY) {
+         this.inCellY = posY - this.cellStartBlockY;
+ 
+-        for (NoiseChunk.NoiseInterpolator i : this.interpolators) {
++        for (NoiseChunk.NoiseInterpolator i : this.c2me$initInterpolatorsArray()) {
+             i.updateForY(factorY);
+         }
+     }
+@@ -326,7 +459,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+     public void updateForX(final int posX, final double factorX) {
+         this.inCellX = posX - this.cellStartBlockX;
+ 
+-        for (NoiseChunk.NoiseInterpolator i : this.interpolators) {
++        for (NoiseChunk.NoiseInterpolator i : this.c2me$initInterpolatorsArray()) {
+             i.updateForX(factorX);
+         }
+     }
+@@ -335,7 +468,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+         this.inCellZ = posZ - this.cellStartBlockZ;
+         this.interpolationCounter++;
+ 
+-        for (NoiseChunk.NoiseInterpolator i : this.interpolators) {
++        for (NoiseChunk.NoiseInterpolator i : this.c2me$initInterpolatorsArray()) {
+             i.updateForZ(factorZ);
+         }
+     }
+@@ -349,8 +482,11 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+     }
+ 
+     public void swapSlices() {
+-        this.interpolators.forEach(NoiseChunk.NoiseInterpolator::swapSlices);
++        for (NoiseChunk.NoiseInterpolator i : this.c2me$initInterpolatorsArray()) {
++            i.swapSlices();
++        }
+     }
++    // DivineMC end - Density Function Compiler
+ 
+     public Aquifer aquifer() {
+         return this.aquifer;
+@@ -381,6 +517,13 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
      }
  
      private DensityFunction wrapNew(final DensityFunction function) {
@@ -444,38 +587,15 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +            }
 +        }
 +        // DivineMC end - Density Function Compiler
-         return switch (function) {
--            case DensityFunctions.Marker(DensityFunctions.Marker.Type type, DensityFunction wrapped) -> {
--                switch (type) {
-+            case DensityFunctions.Marker marker -> { // DivineMC - Density Function Compiler - Marker is no longer a record
-+                switch (marker.type()) {
-                     case Interpolated:
--                        yield new NoiseChunk.NoiseInterpolator(wrapped);
-+                        yield new NoiseChunk.NoiseInterpolator(marker.wrapped());
-                     case FlatCache:
--                        yield new NoiseChunk.FlatCache(wrapped, true);
-+                        yield new NoiseChunk.FlatCache(marker.wrapped(), true);
-                     case Cache2D:
--                        yield new NoiseChunk.Cache2D(wrapped);
-+                        yield new NoiseChunk.Cache2D(marker.wrapped());
-                     case CacheOnce:
--                        yield new NoiseChunk.CacheOnce(wrapped);
-+                        yield new NoiseChunk.CacheOnce(marker.wrapped());
-                     case CacheAllInCell:
--                        yield new NoiseChunk.CacheAllInCell(wrapped);
-+                        yield new NoiseChunk.CacheAllInCell(marker.wrapped());
-                     case BlendDensity:
--                        yield !this.blender.isEmpty() ? new NoiseChunk.BlendDensity(wrapped) : wrapped;
-+                        yield !this.blender.isEmpty() ? new NoiseChunk.BlendDensity(marker.wrapped()) : marker.wrapped();
-                     default:
-                         throw new MatchException(null, null);
-                 }
-@@ -531,10 +606,48 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+         if (function instanceof DensityFunctions.Marker marker) {
+             return switch (marker.type()) {
+                 case Interpolated -> new NoiseChunk.NoiseInterpolator(marker.wrapped());
+@@ -489,10 +632,58 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          @Nullable BlockState calculate(final DensityFunction.FunctionContext context);
      }
  
 -    private static class Cache2D implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked {
-+    private static class Cache2D implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked, IFastCacheLike { // DivineMC - Density Function Compiler
++    public static class Cache2D implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked, IFastCacheLike { // DivineMC - Density Function Compiler - private -> public, IFastCacheLike (upstream MixinChunkNoiseSamplerCache2D)
          private DensityFunction function;
          private long lastPos2D = ChunkPos.INVALID_CHUNK_POS;
          private double lastValue;
@@ -507,6 +627,16 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +        }
 +
 +        @Override
++        public boolean c2me$isActualCache() {
++            return true;
++        }
++
++        @Override
++        public String c2me$describeCacheLike() {
++            return "cache_2d";
++        }
++
++        @Override
 +        public DensityFunction c2me$getDelegate() {
 +            return this.function;
 +        }
@@ -520,72 +650,63 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
  
          private Cache2D(final DensityFunction function) {
              this.function = function;
-@@ -571,9 +684,92 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -529,9 +720,93 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
      }
  
 -    private class CacheAllInCell implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked {
 -        private final DensityFunction noiseFiller;
-+    private class CacheAllInCell implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked, IFastCacheLike { // DivineMC - Density Function Compiler
++    public class CacheAllInCell implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked, IFastCacheLike { // DivineMC - Density Function Compiler - private -> public, IFastCacheLike (upstream MixinChunkNoiseSamplerCellCache)
 +        private DensityFunction noiseFiller; // DivineMC - Density Function Compiler - remove final
          private final double[] values;
 +        // DivineMC start - Density Function Compiler
 +        @Override
 +        public double c2me$getCached(int x, int y, int z, EvalType evalType) {
-+            if (evalType == EvalType.INTERPOLATION) {
-+                boolean isInInterpolationLoop = (NoiseChunk.this).interpolating;
-+                if (isInInterpolationLoop) {
-+                    int startBlockX = (NoiseChunk.this).cellStartBlockX;
-+                    int startBlockY = (NoiseChunk.this).cellStartBlockY;
-+                    int startBlockZ = (NoiseChunk.this).cellStartBlockZ;
-+                    int horizontalCellBlockCount = (NoiseChunk.this).cellWidth;
-+                    int verticalCellBlockCount = (NoiseChunk.this).cellHeight;
-+                    int cellBlockX = x - startBlockX;
-+                    int cellBlockY = y - startBlockY;
-+                    int cellBlockZ = z - startBlockZ;
++            if (evalType == EvalType.INTERPOLATION && NoiseChunk.this.interpolating) {
++                int cellBlockX = x - NoiseChunk.this.cellStartBlockX;
++                int cellBlockY = y - NoiseChunk.this.cellStartBlockY;
++                int cellBlockZ = z - NoiseChunk.this.cellStartBlockZ;
++                int horizontalCellBlockCount = NoiseChunk.this.cellWidth;
++                int verticalCellBlockCount = NoiseChunk.this.cellHeight;
++                if (cellBlockX >= 0 &&
++                    cellBlockY >= 0 &&
++                    cellBlockZ >= 0 &&
++                    cellBlockX < horizontalCellBlockCount &&
++                    cellBlockY < verticalCellBlockCount &&
++                    cellBlockZ < horizontalCellBlockCount) {
++                    return this.values[((verticalCellBlockCount - 1 - cellBlockY) * horizontalCellBlockCount + cellBlockX)
++                        * horizontalCellBlockCount
++                        + cellBlockZ];
++                }
++            }
++
++            return Double.longBitsToDouble(CACHE_MISS_NAN_BITS); // DivineMC - fix upstream bug: long constant was implicitly widened to a bogus double
++        }
++
++        @Override
++        public boolean c2me$getCached(double[] res, int[] x, int[] y, int[] z, EvalType evalType) {
++            if (evalType == EvalType.INTERPOLATION && NoiseChunk.this.interpolating) {
++                int startBlockX = NoiseChunk.this.cellStartBlockX;
++                int startBlockY = NoiseChunk.this.cellStartBlockY;
++                int startBlockZ = NoiseChunk.this.cellStartBlockZ;
++                int horizontalCellBlockCount = NoiseChunk.this.cellWidth;
++                int verticalCellBlockCount = NoiseChunk.this.cellHeight;
++                for (int i = 0; i < res.length; i++) {
++                    int cellBlockX = x[i] - startBlockX;
++                    int cellBlockY = y[i] - startBlockY;
++                    int cellBlockZ = z[i] - startBlockZ;
 +                    if (cellBlockX >= 0 &&
 +                        cellBlockY >= 0 &&
 +                        cellBlockZ >= 0 &&
 +                        cellBlockX < horizontalCellBlockCount &&
 +                        cellBlockY < verticalCellBlockCount &&
 +                        cellBlockZ < horizontalCellBlockCount) {
-+                        return this.values[((verticalCellBlockCount - 1 - cellBlockY) * horizontalCellBlockCount + cellBlockX)
-+                            * horizontalCellBlockCount
-+                            + cellBlockZ];
++                        res[i] = this.values[((verticalCellBlockCount - 1 - cellBlockY) * horizontalCellBlockCount + cellBlockX) * horizontalCellBlockCount + cellBlockZ];
++                    } else {
++                        return false; // partial hit possible
 +                    }
 +                }
-+            }
-+
-+            return CACHE_MISS_NAN_BITS;
-+        }
-+
-+        @Override
-+        public boolean c2me$getCached(double[] res, int[] x, int[] y, int[] z, EvalType evalType) {
-+            if (evalType == EvalType.INTERPOLATION) {
-+                boolean isInInterpolationLoop = (NoiseChunk.this).interpolating;
-+                if (isInInterpolationLoop) {
-+                    int startBlockX = (NoiseChunk.this).cellStartBlockX;
-+                    int startBlockY = (NoiseChunk.this).cellStartBlockY;
-+                    int startBlockZ = (NoiseChunk.this).cellStartBlockZ;
-+                    int horizontalCellBlockCount = (NoiseChunk.this).cellWidth;
-+                    int verticalCellBlockCount = (NoiseChunk.this).cellHeight;
-+                    for (int i = 0; i < res.length; i++) {
-+                        int cellBlockX = x[i] - startBlockX;
-+                        int cellBlockY = y[i] - startBlockY;
-+                        int cellBlockZ = z[i] - startBlockZ;
-+                        if (cellBlockX >= 0 &&
-+                            cellBlockY >= 0 &&
-+                            cellBlockZ >= 0 &&
-+                            cellBlockX < horizontalCellBlockCount &&
-+                            cellBlockY < verticalCellBlockCount &&
-+                            cellBlockZ < horizontalCellBlockCount) {
-+                            res[i] = this.values[((verticalCellBlockCount - 1 - cellBlockY) * horizontalCellBlockCount + cellBlockX) * horizontalCellBlockCount + cellBlockZ];
-+                        } else {
-+                            System.out.println("partial cell cache hit");
-+                            return false; // partial hit possible
-+                        }
-+                    }
-+                }
++                return true; // DivineMC - fix upstream bug: a full scan without misses is a complete hit
 +            }
 +
 +            return false;
@@ -602,6 +723,16 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +        }
 +
 +        @Override
++        public boolean c2me$isActualCache() {
++            return true;
++        }
++
++        @Override
++        public String c2me$describeCacheLike() {
++            return "cache_all_in_cell";
++        }
++
++        @Override
 +        public DensityFunction c2me$getDelegate() {
 +            return this.noiseFiller;
 +        }
@@ -615,89 +746,37 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
  
          private CacheAllInCell(final DensityFunction noiseFiller) {
              this.noiseFiller = noiseFiller;
-@@ -583,20 +779,66 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
- 
+@@ -542,6 +817,24 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          @Override
          public double compute(final DensityFunction.FunctionContext context) {
--            if (context != NoiseChunk.this) {
--                return this.noiseFiller.compute(context);
-+            // DivineMC start - Density Function Compiler
-+            java.util.function.Supplier<Double> run = () -> {
-+                if (context != NoiseChunk.this) {
-+                    return this.noiseFiller.compute(context);
-+                } else if (!NoiseChunk.this.interpolating) {
-+                    throw new IllegalStateException("Trying to sample interpolator outside the interpolation loop");
-+                } else {
-+                    int x = NoiseChunk.this.inCellX;
-+                    int y = NoiseChunk.this.inCellY;
-+                    int z = NoiseChunk.this.inCellZ;
-+
-+                    return x >= 0
-+                        && y >= 0
-+                        && z >= 0
-+                        && x < NoiseChunk.this.cellWidth
-+                        && y < NoiseChunk.this.cellHeight
-+                        && z < NoiseChunk.this.cellWidth
-+                        ? this.values[((NoiseChunk.this.cellHeight - 1 - y) * NoiseChunk.this.cellWidth + x)
-+                                      * NoiseChunk.this.cellWidth + z]
+             if (context != NoiseChunk.this) {
++                // DivineMC start - Density Function Compiler - serve compiled-code lookups from the cell cache (upstream MixinChunkNoiseSamplerCellCache#wrapSample)
++                if (context instanceof NoisePosVanillaInterface vif && vif.getType() == EvalType.INTERPOLATION && NoiseChunk.this.interpolating) {
++                    int cellBlockX = context.blockX() - NoiseChunk.this.cellStartBlockX;
++                    int cellBlockY = context.blockY() - NoiseChunk.this.cellStartBlockY;
++                    int cellBlockZ = context.blockZ() - NoiseChunk.this.cellStartBlockZ;
++                    int horizontalCellBlockCount = NoiseChunk.this.cellWidth;
++                    int verticalCellBlockCount = NoiseChunk.this.cellHeight;
++                    return cellBlockX >= 0
++                        && cellBlockY >= 0
++                        && cellBlockZ >= 0
++                        && cellBlockX < horizontalCellBlockCount
++                        && cellBlockY < verticalCellBlockCount
++                        && cellBlockZ < horizontalCellBlockCount
++                        ? this.values[((verticalCellBlockCount - 1 - cellBlockY) * horizontalCellBlockCount + cellBlockX)
++                                      * horizontalCellBlockCount + cellBlockZ]
 +                        : this.noiseFiller.compute(context);
 +                }
-+            };
-+
-+            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler
-+                || context instanceof NoiseChunk) {
-+                return run.get();
++                // DivineMC end - Density Function Compiler
+                 return this.noiseFiller.compute(context);
              }
  
--            if (!NoiseChunk.this.interpolating) {
--                throw new IllegalStateException("Trying to sample interpolator outside the interpolation loop");
-+            if (context instanceof NoisePosVanillaInterface vif
-+                && vif.getType() == EvalType.INTERPOLATION) {
-+
-+                boolean isInInterpolationLoop = NoiseChunk.this.interpolating;
-+                if (!isInInterpolationLoop) {
-+                    return run.get();
-+                }
-+
-+                int startBlockX = NoiseChunk.this.cellStartBlockX;
-+                int startBlockY = NoiseChunk.this.cellStartBlockY;
-+                int startBlockZ = NoiseChunk.this.cellStartBlockZ;
-+
-+                int horizontalCellBlockCount = NoiseChunk.this.cellWidth;
-+                int verticalCellBlockCount = NoiseChunk.this.cellHeight;
-+
-+                int cellBlockX = context.blockX() - startBlockX;
-+                int cellBlockY = context.blockY() - startBlockY;
-+                int cellBlockZ = context.blockZ() - startBlockZ;
-+
-+                return cellBlockX >= 0
-+                    && cellBlockY >= 0
-+                    && cellBlockZ >= 0
-+                    && cellBlockX < horizontalCellBlockCount
-+                    && cellBlockY < verticalCellBlockCount
-+                    && cellBlockZ < horizontalCellBlockCount
-+                    ? this.values[((verticalCellBlockCount - 1 - cellBlockY) * horizontalCellBlockCount + cellBlockX)
-+                                  * horizontalCellBlockCount + cellBlockZ]
-+                    : this.noiseFiller.compute(context);
-             }
- 
--            int x = NoiseChunk.this.inCellX;
--            int y = NoiseChunk.this.inCellY;
--            int z = NoiseChunk.this.inCellZ;
--            return x >= 0 && y >= 0 && z >= 0 && x < NoiseChunk.this.cellWidth && y < NoiseChunk.this.cellHeight && z < NoiseChunk.this.cellWidth
--                ? this.values[((NoiseChunk.this.cellHeight - 1 - y) * NoiseChunk.this.cellWidth + x) * NoiseChunk.this.cellWidth + z]
--                : this.noiseFiller.compute(context);
-+            return run.get();
-+            // DivineMC end - Density Function Compiler
-         }
- 
-         @Override
-@@ -615,12 +857,83 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -573,12 +866,93 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
      }
  
 -    private class CacheOnce implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked {
-+    private class CacheOnce implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked, IFastCacheLike { // DivineMC - Density Function Compiler
++    public class CacheOnce implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked, IFastCacheLike { // DivineMC - Density Function Compiler - private -> public, IFastCacheLike (upstream MixinChunkNoiseSamplerCacheOnce)
          private DensityFunction function;
          private long lastCounter;
          private long lastArrayCounter;
@@ -732,7 +811,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +
 +        @Override
 +        public boolean c2me$getCached(double[] res, int[] x, int[] y, int[] z, EvalType evalType) {
-+            if (c2me$lastValuea != null && java.util.Arrays.equals(y, c2me$lastYa) && java.util.Arrays.equals(x, c2me$lastXa) && java.util.Arrays.equals(z, c2me$lastZa)) {
++            if (c2me$lastValuea != null && Arrays.equals(y, c2me$lastYa) && Arrays.equals(x, c2me$lastXa) && Arrays.equals(z, c2me$lastZa)) {
 +                System.arraycopy(c2me$lastValuea, 0, res, 0, c2me$lastValuea.length);
 +                return true;
 +            } else {
@@ -756,11 +835,21 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +                System.arraycopy(y, 0, this.c2me$lastYa, 0, this.c2me$lastValuea.length);
 +                System.arraycopy(z, 0, this.c2me$lastZa, 0, this.c2me$lastValuea.length);
 +            } else {
-+                this.c2me$lastValuea = java.util.Arrays.copyOf(res, res.length);
-+                this.c2me$lastXa = java.util.Arrays.copyOf(x, x.length);
-+                this.c2me$lastYa = java.util.Arrays.copyOf(y, y.length);
-+                this.c2me$lastZa = java.util.Arrays.copyOf(z, z.length);
++                this.c2me$lastValuea = Arrays.copyOf(res, res.length);
++                this.c2me$lastXa = Arrays.copyOf(x, x.length);
++                this.c2me$lastYa = Arrays.copyOf(y, y.length);
++                this.c2me$lastZa = Arrays.copyOf(z, z.length);
 +            }
++        }
++
++        @Override
++        public boolean c2me$isActualCache() {
++            return true;
++        }
++
++        @Override
++        public String c2me$describeCacheLike() {
++            return "cache_once";
 +        }
 +
 +        @Override
@@ -777,14 +866,14 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
  
          private CacheOnce(final DensityFunction function) {
              this.function = function;
-@@ -628,38 +941,99 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -586,26 +960,76 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
  
          @Override
          public double compute(final DensityFunction.FunctionContext context) {
 -            if (context != NoiseChunk.this) {
 -                return this.function.compute(context);
-+            // DivineMC start - Density Function Compiler
-+            java.util.function.Supplier<Double> run = () -> {
++            // DivineMC start - Density Function Compiler - vanilla path for NoiseChunk contexts, coordinate cache otherwise (upstream MixinChunkNoiseSamplerCacheOnce#wrapSample)
++            if (context instanceof NoiseChunk) {
 +                if (context != NoiseChunk.this) {
 +                    return this.function.compute(context);
 +                }
@@ -802,11 +891,6 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +                double value = this.function.compute(context);
 +                this.lastValue = value;
 +                return value;
-+            };
-+
-+            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler
-+                || context instanceof NoiseChunk) {
-+                return run.get();
              }
  
 -            if (this.lastArray != null && this.lastArrayCounter == NoiseChunk.this.arrayInterpolationCounter) {
@@ -851,57 +935,39 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
  
          @Override
          public void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
--            if (this.lastArray != null && this.lastArrayCounter == NoiseChunk.this.arrayInterpolationCounter) {
--                System.arraycopy(this.lastArray, 0, output, 0, output.length);
--            } else {
--                this.wrapped().fillArray(output, contextProvider);
--                if (this.lastArray != null && this.lastArray.length == output.length) {
--                    System.arraycopy(output, 0, this.lastArray, 0, output.length);
-+            // DivineMC start - Density Function Compiler
-+            Runnable run = () -> {
-+                if (this.lastArray != null && this.lastArrayCounter == NoiseChunk.this.arrayInterpolationCounter) {
-+                    System.arraycopy(this.lastArray, 0, output, 0, output.length);
-                 } else {
--                    this.lastArray = (double[])output.clone();
--                }
-+                    this.wrapped().fillArray(output, contextProvider);
-+                    if (this.lastArray != null && this.lastArray.length == output.length) {
-+                        System.arraycopy(output, 0, this.lastArray, 0, output.length);
-+                    } else {
-+                        this.lastArray = (double[]) output.clone();
-+                    }
- 
--                this.lastArrayCounter = NoiseChunk.this.arrayInterpolationCounter;
-+                    this.lastArrayCounter = NoiseChunk.this.arrayInterpolationCounter;
-+                }
-+            };
-+            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler || contextProvider instanceof NoiseChunk) {
-+                run.run();
-+                return;
-+            }
++            // DivineMC start - Density Function Compiler - divert compiled-code (VIF) calls into the coordinate array cache (upstream MixinChunkNoiseSamplerCacheOnce#wrapFill);
++            // every vanilla provider (NoiseChunk, slice filler, ...) keeps the vanilla lastArray caching below
 +            if (contextProvider instanceof EachApplierVanillaInterface ap) {
-+                if (c2me$lastValuea != null && java.util.Arrays.equals(ap.getY(), c2me$lastYa) && java.util.Arrays.equals(ap.getX(), c2me$lastXa) && java.util.Arrays.equals(ap.getZ(), c2me$lastZa)) {
++                if (c2me$lastValuea != null && Arrays.equals(ap.getY(), c2me$lastYa) && Arrays.equals(ap.getX(), c2me$lastXa) && Arrays.equals(ap.getZ(), c2me$lastZa)) {
 +                    System.arraycopy(c2me$lastValuea, 0, output, 0, c2me$lastValuea.length);
 +                } else {
 +                    this.function.fillArray(output, contextProvider);
-+                    this.c2me$lastValuea = java.util.Arrays.copyOf(output, output.length);
++                    this.c2me$lastValuea = Arrays.copyOf(output, output.length);
 +                    this.c2me$lastXa = ap.getX();
 +                    this.c2me$lastYa = ap.getY();
 +                    this.c2me$lastZa = ap.getZ();
 +                }
 +                return;
-             }
-+            this.function.fillArray(output, contextProvider);
++            }
 +            // DivineMC end - Density Function Compiler
-         }
+             if (this.lastArray != null && this.lastArrayCounter == NoiseChunk.this.arrayInterpolationCounter) {
+                 System.arraycopy(this.lastArray, 0, output, 0, output.length);
+             } else {
+@@ -613,7 +1037,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+                 if (this.lastArray != null && this.lastArray.length == output.length) {
+                     System.arraycopy(output, 0, this.lastArray, 0, output.length);
+                 } else {
+-                    this.lastArray = (double[])output.clone();
++                    this.lastArray = (double[]) output.clone();
+                 }
  
-         @Override
-@@ -673,10 +1047,64 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+                 this.lastArrayCounter = NoiseChunk.this.arrayInterpolationCounter;
+@@ -631,10 +1055,73 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
      }
  
 -    private class FlatCache implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked {
-+    private class FlatCache implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked, IFastCacheLike { // DivineMC - Density Function Compiler
++    public class FlatCache implements NoiseChunk.NoiseChunkDensityFunction, DensityFunctions.MarkerOrMarked, IFastCacheLike { // DivineMC - Density Function Compiler - private -> public, IFastCacheLike (upstream MixinChunkNoiseSamplerFlatCache)
          private DensityFunction noiseFiller;
          private final double[] values;
          private final int sizeXZ;
@@ -912,9 +978,9 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +            int j = QuartPos.fromBlock(z);
 +            int k = i - (NoiseChunk.this).firstNoiseX;
 +            int l = j - (NoiseChunk.this).firstNoiseZ;
-+            int m = this.values.length;
++            int m = this.sizeXZ; // DivineMC - fix old port bug: bound/stride must be sizeXZ, not values.length
 +            if (k >= 0 && l >= 0 && k < m && l < m) {
-+                return this.values[k + l * this.values.length];
++                return this.values[k + l * m];
 +            } else {
 +                return Double.longBitsToDouble(CACHE_MISS_NAN_BITS);
 +            }
@@ -927,11 +993,10 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +                int j1 = QuartPos.fromBlock(z[i]);
 +                int k = i1 - (NoiseChunk.this).firstNoiseX;
 +                int l = j1 - (NoiseChunk.this).firstNoiseZ;
-+                int m = this.values.length;
++                int m = this.sizeXZ; // DivineMC - fix old port bug: bound/stride must be sizeXZ, not values.length
 +                if (k >= 0 && l >= 0 && k < m && l < m) {
-+                    res[i] = this.values[k + l * this.values.length];
++                    res[i] = this.values[k + l * m];
 +                } else {
-+                    System.out.println("partial flat cache hit");
 +                    return false; // partial hit possible
 +                }
 +            }
@@ -949,6 +1014,16 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +        }
 +
 +        @Override
++        public boolean c2me$isActualCache() {
++            return true;
++        }
++
++        @Override
++        public String c2me$describeCacheLike() {
++            return "flat_cache";
++        }
++
++        @Override
 +        public DensityFunction c2me$getDelegate() {
 +            return this.noiseFiller;
 +        }
@@ -962,7 +1037,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
  
          private FlatCache(final DensityFunction noiseFiller, final boolean fill) {
              this.noiseFiller = noiseFiller;
-@@ -735,7 +1163,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -693,7 +1180,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
      }
  
@@ -971,7 +1046,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
          private double[][] slice0;
          private double[][] slice1;
          private DensityFunction noiseFiller;
-@@ -754,6 +1182,104 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -712,6 +1199,114 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          private double valueZ0;
          private double valueZ1;
          private double value;
@@ -1009,7 +1084,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +                }
 +            }
 +
-+            return CACHE_MISS_NAN_BITS;
++            return Double.longBitsToDouble(CACHE_MISS_NAN_BITS); // DivineMC - fix upstream bug: long constant was implicitly widened to a bogus double
 +        }
 +
 +        @Override
@@ -1043,7 +1118,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +                        }
 +                        return true;
 +                    } else {
-+                        java.util.Arrays.fill(res, this.value);
++                        Arrays.fill(res, this.value);
 +                        return true;
 +                    }
 +                }
@@ -1063,6 +1138,16 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
 +        }
 +
 +        @Override
++        public boolean c2me$isActualCache() {
++            return true;
++        }
++
++        @Override
++        public String c2me$describeCacheLike() {
++            return "interpolated";
++        }
++
++        @Override
 +        public DensityFunction c2me$getDelegate() {
 +            return this.noiseFiller;
 +        }
@@ -1076,125 +1161,452 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..e8813ff0f90e5065e6d1d18698dac706
  
          private NoiseInterpolator(final DensityFunction noiseFiller) {
              this.noiseFiller = noiseFiller;
-@@ -803,16 +1329,18 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
- 
+@@ -762,15 +1357,37 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          @Override
          public double compute(final DensityFunction.FunctionContext context) {
--            if (context != NoiseChunk.this) {
--                return this.noiseFiller.compute(context);
--            } else if (!NoiseChunk.this.interpolating) {
--                throw new IllegalStateException("Trying to sample interpolator outside the interpolation loop");
--            } else {
--                return NoiseChunk.this.fillingCell
--                    ? Mth.lerp3(
+             if (context != NoiseChunk.this) {
++                // DivineMC start - Density Function Compiler - serve compiled-code (VIF) lookups from the interpolator state (upstream MixinChunkNoiseSamplerDensityInterpolator#wrapSample)
++                if (context instanceof NoisePosVanillaInterface vif && vif.getType() == EvalType.INTERPOLATION && NoiseChunk.this.interpolating) {
++                    int cellBlockX = context.blockX() - NoiseChunk.this.cellStartBlockX;
++                    int cellBlockY = context.blockY() - NoiseChunk.this.cellStartBlockY;
++                    int cellBlockZ = context.blockZ() - NoiseChunk.this.cellStartBlockZ;
++                    return NoiseChunk.this.fillingCell
++                        ? Mth.lerp3(
++                        (double) cellBlockX / NoiseChunk.this.cellWidth,
++                        (double) cellBlockY / NoiseChunk.this.cellHeight,
++                        (double) cellBlockZ / NoiseChunk.this.cellWidth,
++                        this.noise000,
++                        this.noise100,
++                        this.noise010,
++                        this.noise110,
++                        this.noise001,
++                        this.noise101,
++                        this.noise011,
++                        this.noise111
++                    )
++                        : this.value;
++                }
++                // DivineMC end - Density Function Compiler
+                 return this.noiseFiller.compute(context);
+             } else if (!NoiseChunk.this.interpolating) {
+                 throw new IllegalStateException("Trying to sample interpolator outside the interpolation loop");
+             } else {
+                 return NoiseChunk.this.fillingCell
+                     ? Mth.lerp3(
 -                        (double)NoiseChunk.this.inCellX / NoiseChunk.this.cellWidth,
 -                        (double)NoiseChunk.this.inCellY / NoiseChunk.this.cellHeight,
 -                        (double)NoiseChunk.this.inCellZ / NoiseChunk.this.cellWidth,
-+            // DivineMC start - Density Function Compiler
-+            java.util.function.Supplier<Double> original = () -> {
-+                if (context != NoiseChunk.this) {
-+                    return this.noiseFiller.compute(context);
-+                } else if (!NoiseChunk.this.interpolating) {
-+                    throw new IllegalStateException("Trying to sample interpolator outside the interpolation loop");
-+                } else {
-+                    return NoiseChunk.this.fillingCell
-+                        ? Mth.lerp3(
 +                        (double) NoiseChunk.this.inCellX / NoiseChunk.this.cellWidth,
 +                        (double) NoiseChunk.this.inCellY / NoiseChunk.this.cellHeight,
 +                        (double) NoiseChunk.this.inCellZ / NoiseChunk.this.cellWidth,
                          this.noise000,
                          this.noise100,
                          this.noise010,
-@@ -822,8 +1350,45 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
-                         this.noise011,
-                         this.noise111
-                     )
--                    : this.value;
-+                        : this.value;
-+                }
-+            };
-+            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler || context instanceof NoiseChunk) {
-+                return original.get();
-+            }
-+            if (context instanceof NoisePosVanillaInterface vif && vif.getType() == EvalType.INTERPOLATION) {
-+                NoiseChunk field = NoiseChunk.this;
-+                boolean isInInterpolationLoop = field.interpolating;
-+                boolean isSamplingForCaches = field.fillingCell;
-+                if (!isInInterpolationLoop) {
-+                    return original.get();
-+                }
-+                int startBlockX = field.cellStartBlockX;
-+                int startBlockY = field.cellStartBlockY;
-+                int startBlockZ = field.cellStartBlockZ;
-+                int horizontalCellBlockCount = field.cellWidth();
-+                int verticalCellBlockCount = field.cellHeight();
-+                int cellBlockX = context.blockX() - startBlockX;
-+                int cellBlockY = context.blockY() - startBlockY;
-+                int cellBlockZ = context.blockZ() - startBlockZ;
-+                return isSamplingForCaches
-+                    ? Mth.lerp3(
-+                    (double)cellBlockX / (double)horizontalCellBlockCount,
-+                    (double)cellBlockY / (double)verticalCellBlockCount,
-+                    (double)cellBlockZ / (double)horizontalCellBlockCount,
-+                    this.noise000,
-+                    this.noise100,
-+                    this.noise010,
-+                    this.noise110,
-+                    this.noise001,
-+                    this.noise101,
-+                    this.noise011,
-+                    this.noise111
-+                ) : this.value;
-             }
-+
-+            return original.get();
-+            // DivineMC end - Density Function Compiler
-         }
+diff --git a/net/minecraft/world/level/levelgen/NoiseRouter.java b/net/minecraft/world/level/levelgen/NoiseRouter.java
+index deb9c107719e5625371f5444ae2dbbf7fa38e8a3..03ded7a89905158881d2267503fc4df5721b2aa7 100644
+--- a/net/minecraft/world/level/levelgen/NoiseRouter.java
++++ b/net/minecraft/world/level/levelgen/NoiseRouter.java
+@@ -4,23 +4,144 @@ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.function.Function;
  
-         @Override
+-public record NoiseRouter(
+-    DensityFunction barrierNoise,
+-    DensityFunction fluidLevelFloodednessNoise,
+-    DensityFunction fluidLevelSpreadNoise,
+-    DensityFunction lavaNoise,
+-    DensityFunction temperature,
+-    DensityFunction vegetation,
+-    DensityFunction continents,
+-    DensityFunction erosion,
+-    DensityFunction depth,
+-    DensityFunction ridges,
+-    DensityFunction preliminarySurfaceLevel,
+-    DensityFunction finalDensity,
+-    DensityFunction veinToggle,
+-    DensityFunction veinRidged,
+-    DensityFunction veinGap
+-) {
++// DivineMC start - Density Function Compiler - record converted to a class so it can carry the
++// precompiled finalDensity+Beardifier ("finalFinalDensity") and the uncompiled original router
++// (upstream MixinNoiseRouter + NoiseRouterExtension); accessors keep record naming
++public final class NoiseRouter implements com.ishland.c2me.opts.dfc.common.ducks.NoiseRouterExtension {
++    private final DensityFunction barrierNoise;
++    private final DensityFunction fluidLevelFloodednessNoise;
++    private final DensityFunction fluidLevelSpreadNoise;
++    private final DensityFunction lavaNoise;
++    private final DensityFunction temperature;
++    private final DensityFunction vegetation;
++    private final DensityFunction continents;
++    private final DensityFunction erosion;
++    private final DensityFunction depth;
++    private final DensityFunction ridges;
++    private final DensityFunction preliminarySurfaceLevel;
++    private final DensityFunction finalDensity;
++    private final DensityFunction veinToggle;
++    private final DensityFunction veinRidged;
++    private final DensityFunction veinGap;
++
++    private DensityFunction c2me$finalFinalDensity;
++    private NoiseRouter c2me$originalNoiseRouter;
++
++    public NoiseRouter(
++        DensityFunction barrierNoise,
++        DensityFunction fluidLevelFloodednessNoise,
++        DensityFunction fluidLevelSpreadNoise,
++        DensityFunction lavaNoise,
++        DensityFunction temperature,
++        DensityFunction vegetation,
++        DensityFunction continents,
++        DensityFunction erosion,
++        DensityFunction depth,
++        DensityFunction ridges,
++        DensityFunction preliminarySurfaceLevel,
++        DensityFunction finalDensity,
++        DensityFunction veinToggle,
++        DensityFunction veinRidged,
++        DensityFunction veinGap
++    ) {
++        this.barrierNoise = barrierNoise;
++        this.fluidLevelFloodednessNoise = fluidLevelFloodednessNoise;
++        this.fluidLevelSpreadNoise = fluidLevelSpreadNoise;
++        this.lavaNoise = lavaNoise;
++        this.temperature = temperature;
++        this.vegetation = vegetation;
++        this.continents = continents;
++        this.erosion = erosion;
++        this.depth = depth;
++        this.ridges = ridges;
++        this.preliminarySurfaceLevel = preliminarySurfaceLevel;
++        this.finalDensity = finalDensity;
++        this.veinToggle = veinToggle;
++        this.veinRidged = veinRidged;
++        this.veinGap = veinGap;
++    }
++
++    public DensityFunction barrierNoise() {
++        return this.barrierNoise;
++    }
++
++    public DensityFunction fluidLevelFloodednessNoise() {
++        return this.fluidLevelFloodednessNoise;
++    }
++
++    public DensityFunction fluidLevelSpreadNoise() {
++        return this.fluidLevelSpreadNoise;
++    }
++
++    public DensityFunction lavaNoise() {
++        return this.lavaNoise;
++    }
++
++    public DensityFunction temperature() {
++        return this.temperature;
++    }
++
++    public DensityFunction vegetation() {
++        return this.vegetation;
++    }
++
++    public DensityFunction continents() {
++        return this.continents;
++    }
++
++    public DensityFunction erosion() {
++        return this.erosion;
++    }
++
++    public DensityFunction depth() {
++        return this.depth;
++    }
++
++    public DensityFunction ridges() {
++        return this.ridges;
++    }
++
++    public DensityFunction preliminarySurfaceLevel() {
++        return this.preliminarySurfaceLevel;
++    }
++
++    public DensityFunction finalDensity() {
++        return this.finalDensity;
++    }
++
++    public DensityFunction veinToggle() {
++        return this.veinToggle;
++    }
++
++    public DensityFunction veinRidged() {
++        return this.veinRidged;
++    }
++
++    public DensityFunction veinGap() {
++        return this.veinGap;
++    }
++
++    @Override
++    public DensityFunction c2me$getFinalFinalDensity() {
++        return this.c2me$finalFinalDensity;
++    }
++
++    @Override
++    public void c2me$setFinalFinalDensity(DensityFunction densityFunction) {
++        this.c2me$finalFinalDensity = densityFunction;
++    }
++
++    @Override
++    public void c2me$setOriginalNoiseRouter(NoiseRouter originalNoiseRouter) {
++        this.c2me$originalNoiseRouter = originalNoiseRouter;
++    }
++
++    @Override
++    public NoiseRouter c2me$getOriginalNoiseRouter() {
++        return this.c2me$originalNoiseRouter;
++    }
++    // DivineMC end - Density Function Compiler
++
+     public static final Codec<NoiseRouter> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+                 field("barrier", NoiseRouter::barrierNoise),
+@@ -47,7 +168,7 @@ public record NoiseRouter(
+     }
+ 
+     public NoiseRouter mapAll(final DensityFunction.Visitor visitor) {
+-        return new NoiseRouter(
++        NoiseRouter mapped = new NoiseRouter(
+             this.barrierNoise.mapAll(visitor),
+             this.fluidLevelFloodednessNoise.mapAll(visitor),
+             this.fluidLevelSpreadNoise.mapAll(visitor),
+@@ -64,5 +185,12 @@ public record NoiseRouter(
+             this.veinRidged.mapAll(visitor),
+             this.veinGap.mapAll(visitor)
+         );
++        // DivineMC start - Density Function Compiler - propagate the compiled extras through visitors (upstream MixinNoiseRouter#postApply)
++        if (this.c2me$finalFinalDensity != null) {
++            mapped.c2me$finalFinalDensity = this.c2me$finalFinalDensity.mapAll(visitor);
++        }
++        mapped.c2me$originalNoiseRouter = this.c2me$originalNoiseRouter;
++        // DivineMC end - Density Function Compiler
++        return mapped;
+     }
+ }
 diff --git a/net/minecraft/world/level/levelgen/RandomState.java b/net/minecraft/world/level/levelgen/RandomState.java
-index e0c84dc7364e3a068f1325a45dee8880e4091fbe..1b830644c61467c85c6bec1a4896c3225d2afa75 100644
+index e0c84dc7364e3a068f1325a45dee8880e4091fbe..750b1cbbe0bd5d252fa8a3ffeeb9fd7d607f89b6 100644
 --- a/net/minecraft/world/level/levelgen/RandomState.java
 +++ b/net/minecraft/world/level/levelgen/RandomState.java
-@@ -107,6 +107,41 @@ public final class RandomState {
+@@ -107,6 +107,49 @@ public final class RandomState {
              this.router.ridges().mapAll(noiseFlattener),
              settings.spawnTarget()
          );
 +
-+        // DivineMC start - Density Function Compiler
++        // DivineMC start - Density Function Compiler - compile the router and climate sampler to JVM bytecode (upstream MixinNoiseConfig)
 +        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler) {
 +            com.google.common.base.Stopwatch stopwatch = com.google.common.base.Stopwatch.createStarted();
++            it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<DensityFunction, com.ishland.c2me.opts.dfc.common.ast.opto.OptoPasses.AstPair> optoCache = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>();
 +            it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<DensityFunction, DensityFunction> tempCache = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>();
++            DensityFunction finalFinalDensity = DensityFunctions.add(this.router.finalDensity(), DensityFunctions.BeardifierMarker.INSTANCE);
++            NoiseRouter original = this.router;
++            original.c2me$setFinalFinalDensity(finalFinalDensity);
 +            this.router = new NoiseRouter(
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.barrierNoise(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.fluidLevelFloodednessNoise(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.fluidLevelSpreadNoise(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.lavaNoise(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.temperature(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.vegetation(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.continents(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.erosion(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.depth(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.ridges(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.preliminarySurfaceLevel(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.finalDensity(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.veinToggle(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.veinRidged(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.router.veinGap(), tempCache)
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("barrier", this.router.barrierNoise(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("fluid_level_floodedness", this.router.fluidLevelFloodednessNoise(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("fluid_level_spread", this.router.fluidLevelSpreadNoise(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("lava", this.router.lavaNoise(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("temperature", this.router.temperature(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("vegetation", this.router.vegetation(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("continents", this.router.continents(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("erosion", this.router.erosion(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("depth", this.router.depth(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("ridges", this.router.ridges(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("preliminary_surface_level", this.router.preliminarySurfaceLevel(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("final_density", this.router.finalDensity(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("vein_toggle", this.router.veinToggle(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("vein_ridged", this.router.veinRidged(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("vein_gap", this.router.veinGap(), optoCache, tempCache)
 +            );
++            this.router.c2me$setFinalFinalDensity(
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("final_final_density", finalFinalDensity, optoCache, tempCache)
++            );
++            this.router.c2me$setOriginalNoiseRouter(original);
 +            this.sampler = new Climate.Sampler(
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.temperature(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.humidity(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.continentalness(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.erosion(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.depth(), tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.BytecodeGen.compile(this.sampler.weirdness(), tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_temperature", this.sampler.temperature(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_vegetation", this.sampler.humidity(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_continents", this.sampler.continentalness(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_erosion", this.sampler.erosion(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_depth", this.sampler.depth(), optoCache, tempCache),
++                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_ridges", this.sampler.weirdness(), optoCache, tempCache),
 +                this.sampler.spawnTarget()
 +            );
 +            stopwatch.stop();
-+            System.out.printf("Density function compilation finished in %s%n", stopwatch);
++            org.slf4j.LoggerFactory.getLogger("DivineMC").info("Density function compilation finished in {}", stopwatch);
 +        }
 +        // DivineMC end - Density Function Compiler
      }
  
      public NormalNoise getOrCreateNoise(final ResourceKey<NormalNoise.NoiseParameters> noise) {
+diff --git a/net/minecraft/world/level/levelgen/synth/BlendedNoise.java b/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
+index 90736b2dbd1bc6e67f1d00ca200b48c0a95e3d13..c6175ea210c97805cd4629f034d29e0fbe4bde33 100644
+--- a/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
+@@ -179,4 +179,35 @@ public class BlendedNoise implements DensityFunction.SimpleFunction {
+     public KeyDispatchDataCodec<? extends DensityFunction> codec() {
+         return CODEC;
+     }
++
++    // DivineMC start - Density Function Compiler - equality for AST deduplication (upstream equality MixinInterpolatedNoiseSampler)
++    @Override
++    public boolean equals(final Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++        BlendedNoise that = (BlendedNoise) o;
++        return Double.compare(this.xzMultiplier, that.xzMultiplier) == 0
++            && Double.compare(this.yMultiplier, that.yMultiplier) == 0
++            && Double.compare(this.xzFactor, that.xzFactor) == 0
++            && Double.compare(this.yFactor, that.yFactor) == 0
++            && Double.compare(this.smearScaleMultiplier, that.smearScaleMultiplier) == 0
++            && java.util.Objects.equals(this.minLimitNoise, that.minLimitNoise)
++            && java.util.Objects.equals(this.maxLimitNoise, that.maxLimitNoise)
++            && java.util.Objects.equals(this.mainNoise, that.mainNoise);
++    }
++
++    @Override
++    public int hashCode() {
++        int result = 1;
++        result = 31 * result + java.util.Objects.hashCode(this.minLimitNoise);
++        result = 31 * result + java.util.Objects.hashCode(this.maxLimitNoise);
++        result = 31 * result + java.util.Objects.hashCode(this.mainNoise);
++        result = 31 * result + Double.hashCode(this.xzMultiplier);
++        result = 31 * result + Double.hashCode(this.yMultiplier);
++        result = 31 * result + Double.hashCode(this.xzFactor);
++        result = 31 * result + Double.hashCode(this.yFactor);
++        result = 31 * result + Double.hashCode(this.smearScaleMultiplier);
++        return result;
++    }
++    // DivineMC end - Density Function Compiler
+ }
+diff --git a/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java b/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java
+index 6bc902e9f15b556a76c023c171ac489ba4939029..5db3cf351c91f71d14f858fd29af625e6e876c67 100644
+--- a/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java
+@@ -229,4 +229,27 @@ public final class ImprovedNoise {
+     public void parityConfigString(final StringBuilder sb) {
+         NoiseUtils.parityNoiseOctaveConfigString(sb, this.xo, this.yo, this.zo, this.p);
+     }
++
++    // DivineMC start - Density Function Compiler - equality for AST deduplication (upstream MixinPerlinNoiseSampler)
++    @Override
++    public boolean equals(final Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++        ImprovedNoise that = (ImprovedNoise) o;
++        return Double.compare(this.xo, that.xo) == 0
++            && Double.compare(this.yo, that.yo) == 0
++            && Double.compare(this.zo, that.zo) == 0
++            && java.util.Arrays.equals(this.p, that.p);
++    }
++
++    @Override
++    public int hashCode() {
++        int result = 1;
++        result = 31 * result + java.util.Arrays.hashCode(this.p);
++        result = 31 * result + Double.hashCode(this.xo);
++        result = 31 * result + Double.hashCode(this.yo);
++        result = 31 * result + Double.hashCode(this.zo);
++        return result;
++    }
++    // DivineMC end - Density Function Compiler
+ }
+diff --git a/net/minecraft/world/level/levelgen/synth/NormalNoise.java b/net/minecraft/world/level/levelgen/synth/NormalNoise.java
+index 868b96065b665c2653d5005bc91da8ef5f149211..5c312d89ff9f901001f0482d3d19b01ccd4ec5c7 100644
+--- a/net/minecraft/world/level/levelgen/synth/NormalNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/NormalNoise.java
+@@ -111,4 +111,25 @@ public class NormalNoise {
+             this(firstOctave, Util.make(new DoubleArrayList(amplitudes), list -> list.add(0, firstAmplitude)));
+         }
+     }
++
++    // DivineMC start - Density Function Compiler - equality for AST deduplication (upstream MixinDoublePerlinNoiseSampler)
++    @Override
++    public boolean equals(final Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++        NormalNoise that = (NormalNoise) o;
++        return Double.compare(this.valueFactor, that.valueFactor) == 0
++            && java.util.Objects.equals(this.first, that.first)
++            && java.util.Objects.equals(this.second, that.second);
++    }
++
++    @Override
++    public int hashCode() {
++        int result = 1;
++        result = 31 * result + Double.hashCode(this.valueFactor);
++        result = 31 * result + java.util.Objects.hashCode(this.first);
++        result = 31 * result + java.util.Objects.hashCode(this.second);
++        return result;
++    }
++    // DivineMC end - Density Function Compiler
+ }
+diff --git a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
+index 36dbb7522462910f04c643ce4626490be1f0eccd..5c18646aa53b396c41a03185a43818d65cea00e9 100644
+--- a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
+@@ -242,4 +242,27 @@ public class PerlinNoise {
+         sb.append("]");
+         sb.append("}");
+     }
++
++    // DivineMC start - Density Function Compiler - equality for AST deduplication (upstream MixinOctavePerlinNoiseSampler)
++    @Override
++    public boolean equals(final Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++        PerlinNoise that = (PerlinNoise) o;
++        return Double.compare(this.lowestFreqValueFactor, that.lowestFreqValueFactor) == 0
++            && Double.compare(this.lowestFreqInputFactor, that.lowestFreqInputFactor) == 0
++            && java.util.Arrays.equals(this.noiseLevels, that.noiseLevels)
++            && java.util.Arrays.equals(this.amplitudes.toDoubleArray(), that.amplitudes.toDoubleArray());
++    }
++
++    @Override
++    public int hashCode() {
++        int result = 1;
++        result = 31 * result + java.util.Arrays.hashCode(this.noiseLevels);
++        result = 31 * result + java.util.Arrays.hashCode(this.amplitudes.toDoubleArray());
++        result = 31 * result + Double.hashCode(this.lowestFreqValueFactor);
++        result = 31 * result + Double.hashCode(this.lowestFreqInputFactor);
++        return result;
++    }
++    // DivineMC end - Density Function Compiler
+ }
+diff --git a/net/minecraft/world/level/levelgen/synth/SimplexNoise.java b/net/minecraft/world/level/levelgen/synth/SimplexNoise.java
+index 5d9568ad86b573f89b42e8eec9f9143a961808a0..a65e61c446c24651539f96f0f4afb189c1b1e9fe 100644
+--- a/net/minecraft/world/level/levelgen/synth/SimplexNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/SimplexNoise.java
+@@ -191,4 +191,27 @@ public class SimplexNoise {
+         double n3 = this.getCornerNoise3D(gi3, x3, y3, z3, 0.6);
+         return 32.0 * (n0 + n1 + n2 + n3);
+     }
++
++    // DivineMC start - Density Function Compiler - equality for AST deduplication (upstream MixinSimplexNoiseSampler)
++    @Override
++    public boolean equals(final Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++        SimplexNoise that = (SimplexNoise) o;
++        return Double.compare(this.xo, that.xo) == 0
++            && Double.compare(this.yo, that.yo) == 0
++            && Double.compare(this.zo, that.zo) == 0
++            && java.util.Arrays.equals(this.p, that.p);
++    }
++
++    @Override
++    public int hashCode() {
++        int result = 1;
++        result = 31 * result + java.util.Arrays.hashCode(this.p);
++        result = 31 * result + Double.hashCode(this.xo);
++        result = 31 * result + Double.hashCode(this.yo);
++        result = 31 * result + Double.hashCode(this.zo);
++        return result;
++    }
++    // DivineMC end - Density Function Compiler
+ }
