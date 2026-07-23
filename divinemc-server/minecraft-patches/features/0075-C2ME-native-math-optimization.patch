@@ -40,10 +40,10 @@ index a4f33218fb2f698db984b48faf39822b26555671..836522dc62bae194436e92a642b8b228
              Bootstrap.bootStrap();
              Bootstrap.validate();
 diff --git a/net/minecraft/world/level/levelgen/DensityFunctions.java b/net/minecraft/world/level/levelgen/DensityFunctions.java
-index 8c41263d3953ab5a906ea241455a04ed916d0662..b0783ba436a6bf27e14f4eaf2846c1c5d221e95c 100644
+index 36439c7812de847651ff6964cc121baaa3e7fa76..374ab8b2f40164326cb7c4a0d650d16018c3604a 100644
 --- a/net/minecraft/world/level/levelgen/DensityFunctions.java
 +++ b/net/minecraft/world/level/levelgen/DensityFunctions.java
-@@ -1047,6 +1047,30 @@ public final class DensityFunctions {
+@@ -1017,6 +1017,30 @@ public final class DensityFunctions {
  
          @Override
          public void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
@@ -74,7 +74,7 @@ index 8c41263d3953ab5a906ea241455a04ed916d0662..b0783ba436a6bf27e14f4eaf2846c1c5
              contextProvider.fillAllDirectly(output, this);
          }
  
-@@ -1160,6 +1184,16 @@ public final class DensityFunctions {
+@@ -1130,6 +1154,16 @@ public final class DensityFunctions {
              return this.compute(context.blockX(), context.blockY(), context.blockZ());
          }
  
@@ -91,7 +91,7 @@ index 8c41263d3953ab5a906ea241455a04ed916d0662..b0783ba436a6bf27e14f4eaf2846c1c5
          @Override
          public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
              return visitor.apply(new DensityFunctions.Shift(visitor.visitNoise(this.offsetNoise)));
-@@ -1181,6 +1215,16 @@ public final class DensityFunctions {
+@@ -1151,6 +1185,16 @@ public final class DensityFunctions {
              return this.compute(context.blockX(), 0.0, context.blockZ());
          }
  
@@ -108,7 +108,7 @@ index 8c41263d3953ab5a906ea241455a04ed916d0662..b0783ba436a6bf27e14f4eaf2846c1c5
          @Override
          public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
              return visitor.apply(new DensityFunctions.ShiftA(visitor.visitNoise(this.offsetNoise)));
-@@ -1202,6 +1246,16 @@ public final class DensityFunctions {
+@@ -1172,6 +1216,16 @@ public final class DensityFunctions {
              return this.compute(context.blockZ(), context.blockX(), 0.0);
          }
  
@@ -125,7 +125,7 @@ index 8c41263d3953ab5a906ea241455a04ed916d0662..b0783ba436a6bf27e14f4eaf2846c1c5
          @Override
          public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
              return visitor.apply(new DensityFunctions.ShiftB(visitor.visitNoise(this.offsetNoise)));
-@@ -1234,6 +1288,53 @@ public final class DensityFunctions {
+@@ -1204,6 +1258,53 @@ public final class DensityFunctions {
          default void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
              contextProvider.fillAllDirectly(output, this);
          }
@@ -178,7 +178,7 @@ index 8c41263d3953ab5a906ea241455a04ed916d0662..b0783ba436a6bf27e14f4eaf2846c1c5
  
      public record ShiftedNoise(
 diff --git a/net/minecraft/world/level/levelgen/synth/BlendedNoise.java b/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
-index 90736b2dbd1bc6e67f1d00ca200b48c0a95e3d13..8c949e6d8816cfaec4a4133624401e681c8ba08e 100644
+index c6175ea210c97805cd4629f034d29e0fbe4bde33..dec7ea7cb88f4dd1b5c40272de7a49791e719aa5 100644
 --- a/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/BlendedNoise.java
 @@ -36,6 +36,10 @@ public class BlendedNoise implements DensityFunction.SimpleFunction {
@@ -223,7 +223,7 @@ index 90736b2dbd1bc6e67f1d00ca200b48c0a95e3d13..8c949e6d8816cfaec4a4133624401e68
          double limitY = context.blockY() * this.yMultiplier;
          double limitZ = context.blockZ() * this.xzMultiplier;
 diff --git a/net/minecraft/world/level/levelgen/synth/NormalNoise.java b/net/minecraft/world/level/levelgen/synth/NormalNoise.java
-index 868b96065b665c2653d5005bc91da8ef5f149211..d734cdfdd684a7c00be0421628aea4ead296ffdd 100644
+index 5c312d89ff9f901001f0482d3d19b01ccd4ec5c7..e805db4124986761c3068ebea16d1a002f414dd4 100644
 --- a/net/minecraft/world/level/levelgen/synth/NormalNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/NormalNoise.java
 @@ -21,6 +21,10 @@ public class NormalNoise {
