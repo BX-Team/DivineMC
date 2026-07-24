@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Wed, 27 Aug 2025 22:48:22 +0300
 Subject: [PATCH] lithium: combined_heightmap_update
 
@@ -10,7 +10,7 @@ As part of: Lithium (https://github.com/CaffeineMC/lithium)
 Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
 
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 3f5c67a84de77045c72dfefc655af86e8d03a911..bc8008593f0e7d1e60d6df374ad9d6cf3b3cce73 100644
+index fedcbf85ed4e0302dfc7d695f582e6e4990ee658..96a787a65b21ee0c59617fa4517c57f3538c06b7 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -389,10 +389,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

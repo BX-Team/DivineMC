@@ -15,3 +15,67 @@
          }
  
          return id;
+@@ -969,9 +_,10 @@
+     // Paper start - optimise random ticking
+     private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
+ 
++    // DivineMC start - Optimize level ticking
+     private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
+         final LevelChunkSection[] sections = chunk.getSections();
+-        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection((ServerLevel)(Object)this);
++        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this); // DivineMC - Optimize level ticking
+         final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
+         final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
+ 
+@@ -980,42 +_,38 @@
+         final int offsetZ = cpos.z() << 4;
+ 
+         for (int sectionIndex = 0, sectionsLen = sections.length; sectionIndex < sectionsLen; sectionIndex++) {
+-            final int offsetY = (sectionIndex + minSection) << 4;
+             final LevelChunkSection section = sections[sectionIndex];
++            if (!section.isRandomlyTickingBlocks()) continue;
++            final int offsetY = (sectionIndex + minSection) << 4;
+             final net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> states = section.states;
+-            if (!section.isRandomlyTickingBlocks()) {
+-                continue;
+-            }
+ 
+-            final ca.spottedleaf.moonrise.common.list.ShortList tickList = ((ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection)section).moonrise$getTickingBlockList();
++            final ca.spottedleaf.moonrise.common.list.ShortList tickList = section.moonrise$getTickingBlockList();
+ 
+             for (int i = 0; i < tickSpeed; ++i) {
+-                final int tickingBlocks = tickList.size();
+                 final int index = simpleRandom.nextInt() & ((16 * 16 * 16) - 1);
+ 
+-                if (index >= tickingBlocks) {
++                if (index >= tickList.size()) {
+                     // most of the time we fall here
+                     continue;
+                 }
+ 
+-                final int location = (int)tickList.getRaw(index) & 0xFFFF;
++                final int location = tickList.getRaw(index);
+                 final BlockState state = states.get(location);
+ 
+                 // do not use a mutable pos, as some random tick implementations store the input without calling immutable()!
+-                final BlockPos pos = new BlockPos((location & 15) | offsetX, ((location >>> (4 + 4)) & 15) | offsetY, ((location >>> 4) & 15) | offsetZ);
++                final BlockPos pos = new BlockPos((location & 15) | offsetX, (location >>> (4 + 4)) | offsetY, ((location >>> 4) & 15) | offsetZ);
+ 
+-                state.randomTick((ServerLevel)(Object)this, pos, simpleRandom);
++                state.randomTick(this, pos, simpleRandom);
+                 if (doubleTickFluids) {
+                     final FluidState fluidState = state.getFluidState();
+                     if (fluidState.isRandomlyTicking()) {
+-                        fluidState.randomTick((ServerLevel)(Object)this, pos, simpleRandom);
++                        fluidState.randomTick(this, pos, simpleRandom);
+                     }
+                 }
+             }
+         }
+-
+-        return;
+     }
++    // DivineMC end - Optimize level ticking
+     // Paper end - optimise random ticking
+ 
+     public void tickChunk(final LevelChunk chunk, final int tickSpeed) {

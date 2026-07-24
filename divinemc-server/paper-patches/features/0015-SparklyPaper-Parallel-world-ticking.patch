@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Wed, 29 Jan 2025 01:41:25 +0300
 Subject: [PATCH] SparklyPaper: Parallel world ticking
 
@@ -611,26 +611,3 @@ index 4350723df06e75768a46e3bf6b8bb021ef8385bd..52ec55fbe663a47dd6002550de47429b
          }
      }
  
-diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index 5dea2ac1ecae3033d90d40a4c90c97e687f6f910..b4f912a28e4a9eac552f29b65b509eae69a28169 100644
---- a/src/main/java/org/spigotmc/WatchdogThread.java
-+++ b/src/main/java/org/spigotmc/WatchdogThread.java
-@@ -112,6 +112,18 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
-                 WatchdogThread.dumpThread(ManagementFactory.getThreadMXBean().getThreadInfo(MinecraftServer.getServer().getRunningThread().threadId(), Integer.MAX_VALUE), logger);
-                 logger.log(Level.SEVERE, "------------------------------");
- 
-+                // DivineMC start - Dump Parallel World Ticking thread
-+                if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
-+                    logger.log(Level.SEVERE, "Parallel world ticking thread dump");
-+                    for (Thread thread : org.apache.commons.lang3.ThreadUtils.getAllThreads()) {
-+                        if (thread instanceof ServerLevelTickThread tickThread) {
-+                            WatchdogThread.dumpThread(ManagementFactory.getThreadMXBean().getThreadInfo(tickThread.threadId(), Integer.MAX_VALUE), logger);
-+                        }
-+                    }
-+                    logger.log(Level.SEVERE, "------------------------------");
-+                }
-+                // DivineMC end - Dump Parallel World Ticking thread
-+
-                 // Paper start - Only print full dump on long timeouts
-                 if (isLongTimeout) {
-                     logger.log(Level.SEVERE, "Entire Thread Dump:");

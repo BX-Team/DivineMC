@@ -454,7 +454,10 @@ public class DivineConfig {
 
         private static void asyncChunkSending() {
             asyncChunkSendingEnabled = getBoolean(ConfigCategory.ASYNC.key("chunk-sending.enable"), asyncChunkSendingEnabled,
-                "Makes chunk sending asynchronous, which can significantly reduce main thread load when many players are loading chunks.");
+                "Offloads chunk packet serialization to a thread pool, which can significantly reduce",
+                "main thread load when many players are loading chunks. A consistent snapshot of the",
+                "chunk is taken on its owning thread, so packets are always internally consistent and",
+                "packet order is preserved per player.");
             asyncChunkSendingMaxThreads = getInt(ConfigCategory.ASYNC.key("chunk-sending.max-threads"), asyncChunkSendingMaxThreads);
 
             if (asyncChunkSendingMaxThreads < 0) {

@@ -1,5 +1,6 @@
 # This file is auto generated, any changes may be overridden!
 # See CONTRIBUTING.md on how to add access transformers.
+private-f net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData buffer
 private-f net.minecraft.world.level.levelgen.NoiseChunk$Cache2D function
 private-f net.minecraft.world.level.levelgen.NoiseChunk$CacheOnce function
 private-f net.minecraft.world.level.levelgen.NoiseChunk$FlatCache noiseFiller
@@ -13,11 +14,8 @@ public net.minecraft.server.players.PlayerList players
 public net.minecraft.util.Mth SIN
 public net.minecraft.world.entity.Entity levelCallback
 public net.minecraft.world.entity.ai.Brain sensors
-public net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities lineOfSightTest
-public net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities nearbyEntities
 public net.minecraft.world.entity.ai.navigation.PathNavigation path
 public net.minecraft.world.entity.ai.navigation.PathNavigation reachRange
-public net.minecraft.world.entity.ai.navigation.PathNavigation resetStuckTimeout()V
 public net.minecraft.world.entity.ai.navigation.PathNavigation targetPos
 public net.minecraft.world.entity.ai.sensing.Sensor scanRate
 public net.minecraft.world.entity.ai.sensing.Sensor timeToTick

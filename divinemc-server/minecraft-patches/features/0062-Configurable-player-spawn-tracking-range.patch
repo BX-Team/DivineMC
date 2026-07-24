@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Mon, 4 Aug 2025 02:38:45 +0300
 Subject: [PATCH] Configurable player spawn tracking range
 
@@ -37,7 +37,7 @@ index e589acdea83d4ff6548ca0fcee5617f0c4d0daf1..04245121db4053aedf425a8969fbb064
                      ret.add(player);
 @@ -1304,6 +1304,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
  
-             for (int i = 0; i < playersLength; ++i) { // DivineMC - Multithreaded tracker
+             for (int i = 0; i < playersLength; ++i) { // DivineMC - Parallel entity tracker
                  final ServerPlayer player = playersRaw[i];
 +                if (player == null) continue; // DivineMC - Configurable player spawn tracking range
                  this.updatePlayer(player);

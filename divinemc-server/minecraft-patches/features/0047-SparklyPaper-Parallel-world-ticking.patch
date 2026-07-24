@@ -1,10 +1,197 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Wed, 29 Jan 2025 00:59:03 +0300
 Subject: [PATCH] SparklyPaper: Parallel world ticking
 
 Original project: https://github.com/SparklyPower/SparklyPaper
 
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+index 8d9ce3d301d5f7e4106587ae00adb8dd5b8b6f88..0af09f10fb1f9831159e625f3540b9bdc62dd1b5 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+@@ -225,11 +225,22 @@ public final class ChunkEntitySlices {
+         }
+     }
+ 
++    private final java.util.concurrent.locks.ReentrantLock statusLock = new java.util.concurrent.locks.ReentrantLock(); // DivineMC - Entity Status Lock
+     private boolean preventStatusUpdates;
+     public boolean startPreventingStatusUpdates() {
++        // DivineMC start - Entity Status Lock
++        this.statusLock.lock();
+         final boolean ret = this.preventStatusUpdates;
+-        this.preventStatusUpdates = true;
++        if (ret) {
++            // EntityLookup#entityStatusChange logs and returns early without calling stopPreventingStatusUpdates,
++            // so we must release the lock here to avoid leaking it.
++            this.statusLock.unlock();
++        } else {
++            this.preventStatusUpdates = true;
++        }
++
+         return ret;
++        // DivineMC end - Entity Status Lock
+     }
+ 
+     public boolean isPreventingStatusUpdates() {
+@@ -238,85 +249,107 @@ public final class ChunkEntitySlices {
+ 
+     public void stopPreventingStatusUpdates(final boolean prev) {
+         this.preventStatusUpdates = prev;
++        this.statusLock.unlock(); // DivineMC - Entity Status Lock
+     }
+ 
+     public void updateStatus(final FullChunkStatus status, final EntityLookup lookup) {
+-        this.status = status;
++        // DivineMC start - Entity Status Lock
++        this.statusLock.lock();
++        try {
++            this.status = status;
+ 
+-        final Entity[] entities = this.entities.getRawData();
++            final Entity[] entities = this.entities.getRawData();
+ 
+-        for (int i = 0, size = this.entities.size(); i < size; ++i) {
+-            final Entity entity = entities[i];
++            for (int i = 0, size = this.entities.size(); i < size; ++i) {
++                final Entity entity = entities[i];
+ 
+-            final Visibility oldVisibility = EntityLookup.getEntityStatus(entity);
+-            ((ChunkSystemEntity)entity).moonrise$setChunkStatus(status);
+-            final Visibility newVisibility = EntityLookup.getEntityStatus(entity);
++                final Visibility oldVisibility = EntityLookup.getEntityStatus(entity);
++                ((ChunkSystemEntity) entity).moonrise$setChunkStatus(status);
++                final Visibility newVisibility = EntityLookup.getEntityStatus(entity);
+ 
+-            lookup.entityStatusChange(entity, this, oldVisibility, newVisibility, false, false, false);
++                lookup.entityStatusChange(entity, this, oldVisibility, newVisibility, false, false, false);
++            }
++        } finally {
++            this.statusLock.unlock();
+         }
++        // DivineMC end - Entity Status Lock
+     }
+ 
+     public boolean addEntity(final Entity entity, final int chunkSection) {
+-        if (!this.entities.add(entity)) {
+-            return false;
+-        }
+-        ((ChunkSystemEntity)entity).moonrise$setChunkStatus(this.status);
+-        ((ChunkSystemEntity)entity).moonrise$setChunkData(this.chunkData);
+-        final int sectionIndex = chunkSection - this.minSection;
++        // DivineMC start - Entity Status Lock
++        this.statusLock.lock();
++        try {
++            if (!this.entities.add(entity)) {
++                return false;
++            }
++            ((ChunkSystemEntity) entity).moonrise$setChunkStatus(this.status);
++            ((ChunkSystemEntity) entity).moonrise$setChunkData(this.chunkData);
++            final int sectionIndex = chunkSection - this.minSection;
+ 
+-        this.allEntities.addEntity(entity, sectionIndex);
++            this.allEntities.addEntity(entity, sectionIndex);
+ 
+-        if (((ChunkSystemEntity)entity).moonrise$isHardColliding()) {
+-            this.hardCollidingEntities.addEntity(entity, sectionIndex);
+-        }
++            if (((ChunkSystemEntity) entity).moonrise$isHardColliding()) {
++                this.hardCollidingEntities.addEntity(entity, sectionIndex);
++            }
+ 
+-        for (final Iterator<Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection>> iterator =
+-             this.entitiesByClass.reference2ObjectEntrySet().fastIterator(); iterator.hasNext();) {
+-            final Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection> entry = iterator.next();
++            for (final Iterator<Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection>> iterator =
++                 this.entitiesByClass.reference2ObjectEntrySet().fastIterator(); iterator.hasNext(); ) {
++                final Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection> entry = iterator.next();
+ 
+-            if (entry.getKey().isInstance(entity)) {
+-                entry.getValue().addEntity(entity, sectionIndex);
++                if (entry.getKey().isInstance(entity)) {
++                    entry.getValue().addEntity(entity, sectionIndex);
++                }
+             }
+-        }
+ 
+-        EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
+-        if (byType != null) {
+-            byType.addEntity(entity, sectionIndex);
+-        } else {
+-            this.entitiesByType.put(entity.getType(), byType = new EntityCollectionBySection(this));
+-            byType.addEntity(entity, sectionIndex);
+-        }
++            EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
++            if (byType != null) {
++                byType.addEntity(entity, sectionIndex);
++            } else {
++                this.entitiesByType.put(entity.getType(), byType = new EntityCollectionBySection(this));
++                byType.addEntity(entity, sectionIndex);
++            }
+ 
+-        return true;
++            return true;
++        } finally {
++            this.statusLock.unlock();
++        }
++        // DivineMC end - Entity Status Lock
+     }
+ 
+     public boolean removeEntity(final Entity entity, final int chunkSection) {
+-        if (!this.entities.remove(entity)) {
+-            return false;
+-        }
+-        ((ChunkSystemEntity)entity).moonrise$setChunkStatus(null);
+-        ((ChunkSystemEntity)entity).moonrise$setChunkData(null);
+-        final int sectionIndex = chunkSection - this.minSection;
++        // DivineMC start - Entity Status Lock
++        this.statusLock.lock();
++        try {
++            if (!this.entities.remove(entity)) {
++                return false;
++            }
++            ((ChunkSystemEntity) entity).moonrise$setChunkStatus(null);
++            ((ChunkSystemEntity) entity).moonrise$setChunkData(null);
++            final int sectionIndex = chunkSection - this.minSection;
+ 
+-        this.allEntities.removeEntity(entity, sectionIndex);
++            this.allEntities.removeEntity(entity, sectionIndex);
+ 
+-        if (((ChunkSystemEntity)entity).moonrise$isHardColliding()) {
+-            this.hardCollidingEntities.removeEntity(entity, sectionIndex);
+-        }
++            if (((ChunkSystemEntity) entity).moonrise$isHardColliding()) {
++                this.hardCollidingEntities.removeEntity(entity, sectionIndex);
++            }
+ 
+-        for (final Iterator<Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection>> iterator =
+-             this.entitiesByClass.reference2ObjectEntrySet().fastIterator(); iterator.hasNext();) {
+-            final Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection> entry = iterator.next();
++            for (final Iterator<Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection>> iterator =
++                 this.entitiesByClass.reference2ObjectEntrySet().fastIterator(); iterator.hasNext(); ) {
++                final Reference2ObjectMap.Entry<Class<? extends Entity>, EntityCollectionBySection> entry = iterator.next();
+ 
+-            if (entry.getKey().isInstance(entity)) {
+-                entry.getValue().removeEntity(entity, sectionIndex);
++                if (entry.getKey().isInstance(entity)) {
++                    entry.getValue().removeEntity(entity, sectionIndex);
++                }
+             }
+-        }
+ 
+-        final EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
+-        byType.removeEntity(entity, sectionIndex);
++            final EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
++            byType.removeEntity(entity, sectionIndex);
+ 
+-        return true;
++            return true;
++        } finally {
++            this.statusLock.unlock();
++        }
++        // DivineMC end - Entity Status Lock
+     }
+ 
+     public void getHardCollidingEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 index 05d374f679919d082064e8f2bb363a419bc9648e..3703fde2416f940b18028bf7373811a6e3215b01 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
@@ -337,6 +524,23 @@ index ed7424cd5d53e5387939e20709683daa370f0852..4c73f07cac86dd18fbf24e207219aac8
          // this.worldData.setGameType(properties.gameMode.get()); // CraftBukkit - moved to world loading
          LOGGER.info("Default game type: {}", properties.gameMode.get());
          // Paper start - Unix domain socket support
+diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
+index 37921a68642af7c7b1ddf01ce06c33cbf6fd94df..8872ade32f74fd127de3c6e423380f17dfd908bd 100644
+--- a/net/minecraft/server/level/ChunkMap.java
++++ b/net/minecraft/server/level/ChunkMap.java
+@@ -139,8 +139,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+     public final ChunkMap.DistanceManager distanceManager;
+     private final String storageName;
+     private final PlayerMap playerMap = new PlayerMap();
+-    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectOpenHashMap<>();
+-    private final Long2ByteMap chunkTypeCache = new Long2ByteOpenHashMap();
++    // DivineMC start - Optimize collections
++    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new org.bxteam.divinemc.util.map.Int2ObjectConcurrentHashMap<>();
++    private final Long2ByteMap chunkTypeCache = it.unimi.dsi.fastutil.longs.Long2ByteMaps.synchronize(new Long2ByteOpenHashMap());
++    // DivineMC end - Optimize collections
+     // Paper - rewrite chunk system
+     public int serverViewDistance;
+     public final WorldGenContext worldGenContext; // Paper - public
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
 index ad498d9f7cf27c465506976ad36ac273d2cb123d..070c5f3cb119f3b989d2430dc898a631d6c7924a 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
@@ -989,24 +1193,24 @@ index ba1dd7fae37c18afb7a2f358abafe3c17aac8805..3d329ec1eeac11d5249efce81a7316b0
          // CraftBukkit start - tree generation
          if (this.captureTreeGeneration) {
              // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
-@@ -1562,11 +1565,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-                 this.blockEntityTickers.markAsRemoved(tickerIndex); // DivineMC - optimize block entity removals - Fix MC-117075
-             } else if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
-                 ticker.tick();
--                // Paper start - rewrite chunk system
--                if ((++tickedEntities & 7) == 0) {
--                    ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)(Level)(Object)this).moonrise$midTickTasks();
-+                // DivineMC start - Parallel world ticking
-+                ++tickedEntities;
-+                if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && (tickedEntities & 7) == 0) {
-+                    this.moonrise$midTickTasks();
-                 }
--                // Paper end - rewrite chunk system
-+                // DivineMC end - Parallel world ticking
-             }
-         }
+@@ -1560,11 +1563,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+                 if (!ticker.isRemoved()) {
+                     if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
+                         ticker.tick();
+-                        // Paper start - rewrite chunk system
+-                        if ((++tickedEntities & 7) == 0) {
+-                            ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)(Level)(Object)this).moonrise$midTickTasks();
++                        // DivineMC start - Parallel world ticking
++                        ++tickedEntities;
++                        if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && (tickedEntities & 7) == 0) {
++                            this.moonrise$midTickTasks();
+                         }
+-                        // Paper end - rewrite chunk system
++                        // DivineMC end - Parallel world ticking
+                     }
  
-@@ -1585,7 +1589,11 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+                     if (writeIndex != scanIndex) {
+@@ -1600,7 +1604,11 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
              // Paper end - Prevent block entity and entity crashes
          }
@@ -1371,6 +1575,19 @@ index 4625cb804bec4330b2c228ed5b65db4b20891455..cabb9220eb500d6a6b59dafdfe5ac2b4
          int y = pos.getY();
          LevelChunkSection section = this.getSection(this.getSectionIndex(y));
          boolean wasEmpty = section.hasOnlyAir();
+diff --git a/net/minecraft/world/level/chunk/ProtoChunk.java b/net/minecraft/world/level/chunk/ProtoChunk.java
+index 50fe95f472f143ef381557f8675e427f20aa9d09..c183be28089a42141e8c70f6e3e88cce8e055b9a 100644
+--- a/net/minecraft/world/level/chunk/ProtoChunk.java
++++ b/net/minecraft/world/level/chunk/ProtoChunk.java
+@@ -44,7 +44,7 @@ public class ProtoChunk extends ChunkAccess {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private volatile @Nullable LevelLightEngine lightEngine;
+     private volatile ChunkStatus status = ChunkStatus.EMPTY;
+-    private final List<CompoundTag> entities = Lists.newArrayList();
++    private final List<CompoundTag> entities = Collections.synchronizedList(Lists.newArrayList()); // DivineMC - Optimize collections
+     private @Nullable CarvingMask carvingMask;
+     private @Nullable BelowZeroRetrogen belowZeroRetrogen;
+     private final ProtoChunkTicks<Block> blockTicks;
 diff --git a/net/minecraft/world/level/entity/EntityTickList.java b/net/minecraft/world/level/entity/EntityTickList.java
 index a84e93c279df1ce749b3964293966b8dec7292cb..9f340f8ed56e1218f268e4f418dd6ddd87b1902a 100644
 --- a/net/minecraft/world/level/entity/EntityTickList.java
@@ -1506,3 +1723,90 @@ index f359e53024019f35aaa5cd8477da708bda2fc57a..a1b2c90b32abed4d494b2a1fd4513ef9
          if (this.closed) {
              throw new IllegalStateException("Trying to schedule save when SavedDataStorage is already closed");
          }
+diff --git a/net/minecraft/world/ticks/LevelChunkTicks.java b/net/minecraft/world/ticks/LevelChunkTicks.java
+index c3825e91504f5df6bfd8e41de1f5dc4ae45d81e2..9aecbaf92dee22ec6ad5c80ceb8785d0704b7b5b 100644
+--- a/net/minecraft/world/ticks/LevelChunkTicks.java
++++ b/net/minecraft/world/ticks/LevelChunkTicks.java
+@@ -14,9 +14,9 @@ import net.minecraft.core.BlockPos;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class LevelChunkTicks<T> implements TickContainerAccess<T>, SerializableTickContainer<T>, ca.spottedleaf.moonrise.patches.chunk_system.ticks.ChunkSystemLevelChunkTicks { // Paper - rewrite chunk system
+-    private final Queue<ScheduledTick<T>> tickQueue = new PriorityQueue<>(ScheduledTick.DRAIN_ORDER);
++    private final Queue<ScheduledTick<T>> tickQueue = org.bxteam.divinemc.util.collections.PlatformCollections.priorityQueue(11, ScheduledTick.DRAIN_ORDER); // DivineMC - Optimize level ticking - thread-safe only when PWT is enabled
+     private @Nullable List<SavedTick<T>> pendingTicks;
+-    private final Set<ScheduledTick<?>> ticksPerPosition = new ObjectOpenCustomHashSet<>(ScheduledTick.UNIQUE_TICK_HASH);
++    private final Set<ScheduledTick<?>> ticksPerPosition = org.bxteam.divinemc.util.collections.PlatformCollections.customHashSet(ScheduledTick.UNIQUE_TICK_HASH); // DivineMC - Optimize level ticking - thread-safe only when PWT is enabled
+     private @Nullable BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> onTickAdded;
+ 
+     // Paper start - rewrite chunk system
+diff --git a/net/minecraft/world/ticks/LevelTicks.java b/net/minecraft/world/ticks/LevelTicks.java
+index 7bf9e93692debcef511bfa316aeef32ae8a7d3b7..59b3911ad089b06c8be162aea40d81d934149eef 100644
+--- a/net/minecraft/world/ticks/LevelTicks.java
++++ b/net/minecraft/world/ticks/LevelTicks.java
+@@ -31,10 +31,12 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+ public class LevelTicks<T> implements LevelTickAccess<T> {
+     private static final Comparator<LevelChunkTicks<?>> CONTAINER_DRAIN_ORDER = (o1, o2) -> ScheduledTick.INTRA_TICK_DRAIN_ORDER.compare(o1.peek(), o2.peek());
+     private final LongPredicate tickCheck;
+-    private final Long2ObjectMap<LevelChunkTicks<T>> allContainers = new Long2ObjectOpenHashMap<>();
+-    private final Long2LongMap nextTickForContainer = Util.make(new Long2LongOpenHashMap(), m -> m.defaultReturnValue(Long.MAX_VALUE));
+-    private final Queue<LevelChunkTicks<T>> containersToTick = new PriorityQueue<>(CONTAINER_DRAIN_ORDER);
+-    private final Queue<ScheduledTick<T>> toRunThisTick = new ArrayDeque<>();
++    // DivineMC start - Optimize collections
++    private final Long2ObjectMap<LevelChunkTicks<T>> allContainers = org.bxteam.divinemc.util.collections.PlatformCollections.long2ObjectMap();
++    private final Long2LongMap nextTickForContainer = org.bxteam.divinemc.util.collections.PlatformCollections.long2LongMap(Long.MAX_VALUE);
++    private final Queue<LevelChunkTicks<T>> containersToTick = org.bxteam.divinemc.util.collections.PlatformCollections.priorityQueue(11, CONTAINER_DRAIN_ORDER);
++    private final Queue<ScheduledTick<T>> toRunThisTick = org.bxteam.divinemc.util.collections.PlatformCollections.queue();
++    // DivineMC end - Optimize collections
+     private final List<ScheduledTick<T>> alreadyRunThisTick = new ArrayList<>();
+     private final Set<ScheduledTick<?>> toRunThisTickSet = new ObjectOpenCustomHashSet<>(ScheduledTick.UNIQUE_TICK_HASH);
+     private final BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> chunkScheduleUpdater = (container, newTick) -> {
+@@ -42,6 +44,7 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+             this.updateContainerScheduling(newTick);
+         }
+     };
++    private final java.util.concurrent.atomic.AtomicInteger toRunThisTickCount = new java.util.concurrent.atomic.AtomicInteger(0); // DivineMC - Optimize level ticking
+ 
+     public LevelTicks(final LongPredicate tickCheck) {
+         this.tickCheck = tickCheck;
+@@ -172,16 +175,19 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     }
+ 
+     private void scheduleForThisTick(final ScheduledTick<T> tick) {
++        if (tick == null) return; // DivineMC - Optimize level ticking
+         this.toRunThisTick.add(tick);
++        this.toRunThisTickCount.incrementAndGet(); // DivineMC - Optimize level ticking
+     }
+ 
+     private boolean canScheduleMoreTicks(final int maxTicksToProcess) {
+-        return this.toRunThisTick.size() < maxTicksToProcess;
++        return this.toRunThisTickCount.get() < maxTicksToProcess; // DivineMC - Optimize level ticking
+     }
+ 
+     private void runCollectedTicks(final BiConsumer<BlockPos, T> output) {
+         while (!this.toRunThisTick.isEmpty()) {
+             ScheduledTick<T> entry = this.toRunThisTick.poll();
++            this.toRunThisTickCount.decrementAndGet(); // DivineMC - Optimize level ticking
+             if (!this.toRunThisTickSet.isEmpty()) {
+                 this.toRunThisTickSet.remove(entry);
+             }
+@@ -193,6 +199,7 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+ 
+     private void cleanupAfterTick() {
+         this.toRunThisTick.clear();
++        this.toRunThisTickCount.set(0); // DivineMC - Optimize level ticking
+         this.containersToTick.clear();
+         this.alreadyRunThisTick.clear();
+         this.toRunThisTickSet.clear();
+@@ -275,7 +282,11 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+ 
+     @Override
+     public int count() {
+-        return this.allContainers.values().stream().mapToInt(TickAccess::count).sum();
++        // DivineMC start - Optimize level ticking
++        synchronized (this.allContainers) {
++            return this.allContainers.values().stream().mapToInt(TickAccess::count).sum();
++        }
++        // DivineMC end - Optimize level ticking
+     }
+ 
+     @FunctionalInterface

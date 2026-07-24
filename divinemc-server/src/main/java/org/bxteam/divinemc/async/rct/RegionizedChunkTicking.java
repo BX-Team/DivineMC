@@ -92,6 +92,8 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         }
         this.pendingEntityTick = null;
 
+        org.bxteam.divinemc.async.sensing.ParallelSensorTicker.preTickSensors(this.level);
+
         final long start = System.nanoTime();
         ObjectArrayList<CompletableFuture<Void>> entityFutures = new ObjectArrayList<>(tickPair.regions().length);
         for (final RegionData region : tickPair.regions()) {
@@ -121,7 +123,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             final int regionHash = region.hashCode();
             final int chunks = regionChunksIDs.size();
             for (ServerPlayer player : region.players()) {
-                player.avgTickTimeNanos.add(time);
+                player.regionBlockTickNanos = time;
                 player.lastRegionChunkSize = chunks;
                 player.regionHash = regionHash;
             }
@@ -139,7 +141,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             final long time = System.nanoTime() - start;
             final int entities = region.entities().size();
             for (ServerPlayer player : region.players()) {
-                player.avgTickTimeNanos.add(time);
+                player.avgTickTimeNanos.add(player.regionBlockTickNanos + time);
                 player.lastRegionEntityAmount = entities;
             }
         }, REGION_EXECUTOR);

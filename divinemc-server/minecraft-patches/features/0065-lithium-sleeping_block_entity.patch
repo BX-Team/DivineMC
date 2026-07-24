@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Mon, 29 Sep 2025 17:53:30 +0300
 Subject: [PATCH] lithium: sleeping_block_entity
 
@@ -417,19 +417,19 @@ index c9f2155c4bb788f5e2304794e162d5322a287eee..6ea0d37320b990a5978603f99a9b639b
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 467573c2b88cf931fc6a0e6f6c8c922e4bfa4835..62fc18383b42a4a47f694e0ae06b529341e74fce 100644
+index e3869eaac773a0c70c831d21bccd4d18f7bafb57..691e7992fb0155d9981dafd68b8421133f487d60 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1575,7 +1575,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-             final TickingBlockEntity ticker = this.blockEntityTickers.get(tickerIndex);
-             if (ticker.isRemoved()) {
-                 this.blockEntityTickers.markAsRemoved(tickerIndex); // DivineMC - optimize block entity removals - Fix MC-117075
--            } else if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
-+            } else if (tickBlockEntities && this.shouldTickBlockPosFilterNull(ticker.getPos())) { // DivineMC - lithium: sleeping_block_entity - sleeping tickers have a null pos
-                 ticker.tick();
-                 // DivineMC start - Parallel world ticking
-                 ++tickedEntities;
-@@ -2302,4 +2302,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1573,7 +1573,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+             while (scanIndex < this.blockEntityTickers.size()) {
+                 final TickingBlockEntity ticker = this.blockEntityTickers.get(scanIndex);
+                 if (!ticker.isRemoved()) {
+-                    if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
++                    if (tickBlockEntities && this.shouldTickBlockPosFilterNull(ticker.getPos())) { // DivineMC - lithium: sleeping_block_entity - sleeping tickers have a null pos
+                         ticker.tick();
+                         // DivineMC start - Parallel world ticking
+                         ++tickedEntities;
+@@ -2317,4 +2317,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option

@@ -1,11 +1,11 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Thu, 10 Jul 2025 04:30:21 +0300
 Subject: [PATCH] Copper Bulb 1gt delay
 
 
 diff --git a/net/minecraft/world/level/block/CopperBulbBlock.java b/net/minecraft/world/level/block/CopperBulbBlock.java
-index cce000fe678185e41f8d3fb18a98d8e020773a79..b9941f34bfc7e52dfc3ba6628ec4f72d271c17e0 100644
+index ebc44c7adf15ea8a67b4253a18eafe2c9eadb3e2..ff959de46dc39fca54e5ef25bb8caef5a9502ccc 100644
 --- a/net/minecraft/world/level/block/CopperBulbBlock.java
 +++ b/net/minecraft/world/level/block/CopperBulbBlock.java
 @@ -33,7 +33,13 @@ public class CopperBulbBlock extends Block {

@@ -1,26 +1,20 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Mon, 11 Aug 2025 02:42:19 +0300
 Subject: [PATCH] Optimize Moonrise
 
 
 diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-index ede85aa9452a6b71265b10385d5581c37d6976b0..cdef28ddfbce3a63a9b816a14e84aed6b62435d6 100644
+index fff7a796a61542213bdaa417d44e25cd05f7e774..75ce9966db38f2970b704ddf21e46212b850c8d0 100644
 --- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 +++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-@@ -59,7 +59,7 @@ public final class NearbyPlayers {
+@@ -59,12 +59,12 @@ public final class NearbyPlayers {
      public static final int GENERAL_REALLY_SMALL_AREA_VIEW_DISTANCE_BLOCKS = (GENERAL_REALLY_SMALL_VIEW_DISTANCE << 4);
  
      private final ServerLevel world;
 -    private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
 +    private final it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<ServerPlayer, TrackedPlayer[]> players = it.unimi.dsi.fastutil.objects.Reference2ReferenceMaps.synchronize(new Reference2ReferenceOpenHashMap<>()); // DivineMC - Optimize collections
-     // DivineMC start - Multithreaded Tracker
-     private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<TrackedChunk> byChunk;
-     {
-@@ -70,10 +70,10 @@ public final class NearbyPlayers {
-         }
-     }
-     // DivineMC end - Multithreaded Tracker
+     private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
 -    private final Long2ReferenceOpenHashMap<ReferenceList<ServerPlayer>>[] directByChunk = new Long2ReferenceOpenHashMap[TOTAL_MAP_TYPES];
 +    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<ReferenceList<ServerPlayer>>[] directByChunk = new it.unimi.dsi.fastutil.longs.Long2ReferenceMap[TOTAL_MAP_TYPES]; // DivineMC - Optimize collections
      {
@@ -30,54 +24,11 @@ index ede85aa9452a6b71265b10385d5581c37d6976b0..cdef28ddfbce3a63a9b816a14e84aed6
          }
      }
  
-diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-index 05ef9cfaa29e6f3f8ee5d600fc201e46bdfe1114..c868c6cfdec14de9fcf0cce16d3d78cc27079268 100644
---- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-+++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-@@ -93,8 +93,14 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
-         if (entity == null) {
-             return null;
-         }
--        final Visibility visibility = EntityLookup.getEntityStatus(entity);
--        return visibility.isAccessible() ? entity : null;
-+        // DivineMC start - Optimize Moonrise
-+        final FullChunkStatus entityStatus = ((ChunkSystemEntity) entity).moonrise$getChunkStatus();
-+        return switch (entityStatus) {
-+            case INACCESSIBLE -> null;
-+            case FULL, BLOCK_TICKING, ENTITY_TICKING -> entity;
-+            case null -> null;
-+        };
-+        // DivineMC end - Optimize Moonrise
-     }
- 
-     @Override
-@@ -402,7 +408,14 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
-             return Visibility.TICKING;
-         }
-         final FullChunkStatus entityStatus = ((ChunkSystemEntity)entity).moonrise$getChunkStatus();
--        return Visibility.fromFullChunkStatus(entityStatus == null ? FullChunkStatus.INACCESSIBLE : entityStatus);
-+        // DivineMC start - Optimize Moonrise
-+        return switch (entityStatus) {
-+            case INACCESSIBLE -> Visibility.HIDDEN;
-+            case FULL, BLOCK_TICKING -> Visibility.TRACKED;
-+            case ENTITY_TICKING -> Visibility.TICKING;
-+            case null -> Visibility.HIDDEN;
-+        };
-+        // DivineMC end - Optimize Moonrise
-     }
- 
-     protected boolean addEntity(final Entity entity, final boolean fromDisk, final boolean event) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 3703fde2416f940b18028bf7373811a6e3215b01..3b81288b1f7f433f1717fcdac692484f3e54e8c5 100644
+index 3703fde2416f940b18028bf7373811a6e3215b01..3eb98d67038923e17ca64468a3dbd6e9bb890bfe 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -79,33 +79,45 @@ public final class ChunkHolderManager {
-     private final ConcurrentChainedLong2ReferenceHashTable<Long2IntOpenHashMap> sectionToChunkToExpireCount = new ConcurrentChainedLong2ReferenceHashTable<>();
-     final ChunkUnloadQueue unloadQueue;
- 
--    private final ConcurrentChainedLong2ReferenceHashTable<NewChunkHolder> chunkHolders = ConcurrentChainedLong2ReferenceHashTable.createWithCapacity(16384, 0.25f);
-+    private final ConcurrentChainedLong2ReferenceHashTable<NewChunkHolder> chunkHolders = ConcurrentChainedLong2ReferenceHashTable.createWithCapacity(20, 0.9F); // DivineMC - Optimize Moonrise
-     private final ServerLevel world;
+@@ -84,28 +84,40 @@ public final class ChunkHolderManager {
      private final ChunkTaskScheduler taskScheduler;
      private long currentTick;
  
@@ -184,17 +135,6 @@ index 3703fde2416f940b18028bf7373811a6e3215b01..3b81288b1f7f433f1717fcdac692484f
  
      public void saveAllChunks(final boolean flush, final boolean shutdown, final boolean logProgress,
                                final boolean emergency) {
-@@ -469,8 +485,8 @@ public final class ChunkHolderManager {
-         final Long2ObjectOpenHashMap<Collection<Ticket>> ret = new Long2ObjectOpenHashMap<>();
-         final Long2ObjectOpenHashMap<LongArrayList> sections = new Long2ObjectOpenHashMap<>();
-         final int sectionShift = this.taskScheduler.getChunkSystemLockShift();
--        for (final PrimitiveIterator.OfLong iterator = this.tickets.keyIterator(); iterator.hasNext();) {
--            final long coord = iterator.nextLong();
-+        for (final Iterator<Long> iterator = this.tickets.keyIterator(); iterator.hasNext();) { // DivineMC - Optimize Moonrise
-+            final long coord = iterator.next(); // DivineMC - Optimize Moonrise
-             sections.computeIfAbsent(
-                 CoordinateUtils.getChunkKey(
-                     CoordinateUtils.getChunkX(coord) >> sectionShift,
 @@ -567,7 +583,7 @@ public final class ChunkHolderManager {
              chunkZ >> sectionShift
          );
@@ -204,29 +144,7 @@ index 3703fde2416f940b18028bf7373811a6e3215b01..3b81288b1f7f433f1717fcdac692484f
              return new Long2IntOpenHashMap();
          }).addTo(chunkKey, 1);
      }
-@@ -763,8 +779,8 @@ public final class ChunkHolderManager {
- 
-         final Long2ObjectOpenHashMap<LongArrayList> sections = new Long2ObjectOpenHashMap<>();
-         final int sectionShift = this.taskScheduler.getChunkSystemLockShift();
--        for (final PrimitiveIterator.OfLong iterator = this.tickets.keyIterator(); iterator.hasNext();) {
--            final long coord = iterator.nextLong();
-+        for (final Iterator<Long> iterator = this.tickets.keyIterator(); iterator.hasNext();) { // DivineMC - Optimize Moonrise
-+            final long coord = iterator.next(); // DivineMC - Optimize Moonrise
-             sections.computeIfAbsent(
-                     CoordinateUtils.getChunkKey(
-                             CoordinateUtils.getChunkX(coord) >> sectionShift,
-@@ -818,8 +834,8 @@ public final class ChunkHolderManager {
- 
-         Ticket[] removedList = new Ticket[4];
- 
--        for (final PrimitiveIterator.OfLong iterator = this.sectionToChunkToExpireCount.keyIterator(); iterator.hasNext();) {
--            final long sectionKey = iterator.nextLong();
-+        for (final Iterator<Long> iterator = this.sectionToChunkToExpireCount.keyIterator(); iterator.hasNext();) { // DivineMC - Optimize Moonrise
-+            final long sectionKey = iterator.next(); // DivineMC - Optimize Moonrise
- 
-             if (!this.sectionToChunkToExpireCount.containsKey(sectionKey)) {
-                 // removed concurrently
-@@ -1132,18 +1148,18 @@ public final class ChunkHolderManager {
+@@ -1132,20 +1148,25 @@ public final class ChunkHolderManager {
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && !TickThread.isTickThreadFor(world) || !TickThread.isTickThread()) { // DivineMC - Parallel world ticking
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
@@ -248,14 +166,21 @@ index 3703fde2416f940b18028bf7373811a6e3215b01..3b81288b1f7f433f1717fcdac692484f
 +        this.getData().autoSaveQueue.remove(holder); // DivineMC - Optimize Moonrise
          PlatformHooks.get().onChunkHolderDelete(this.world, holder.vanillaChunkHolder);
          this.chunkHolders.remove(CoordinateUtils.getChunkKey(holder.chunkX, holder.chunkZ));
++        // DivineMC start - Optimize Moonrise
++        final long cachedPos = holder.getCachedLongPos();
++        this.blockTickingChunkHolders.remove(cachedPos);
++        this.entityTickingChunkHolders.remove(cachedPos);
++        // DivineMC end - Optimize Moonrise
      }
-@@ -1310,6 +1326,27 @@ public final class ChunkHolderManager {
+ 
+     // note: never call while inside the chunk system, this will absolutely break everything
+@@ -1310,6 +1331,27 @@ public final class ChunkHolderManager {
          }
      }
  
-+    // DivineMC start - Optimize Moonrise
-+    public final java.util.Set<Long> blockTickingChunkHolders = java.util.Collections.synchronizedSet(new org.agrona.collections.ObjectHashSet<>(10, 0.88f, true));
-+    public final java.util.Set<Long> entityTickingChunkHolders = java.util.Collections.synchronizedSet(new org.agrona.collections.ObjectHashSet<>(10, 0.88f, true));
++    // DivineMC start - Optimize Moonrise - primitive long sets
++    public final it.unimi.dsi.fastutil.longs.LongSet blockTickingChunkHolders = org.bxteam.divinemc.util.collections.PlatformCollections.longSet();
++    public final it.unimi.dsi.fastutil.longs.LongSet entityTickingChunkHolders = org.bxteam.divinemc.util.collections.PlatformCollections.longSet();
 +
 +    public void markBlockTicking(@org.jetbrains.annotations.NotNull NewChunkHolder newChunkHolder) {
 +        this.blockTickingChunkHolders.add(newChunkHolder.getCachedLongPos());
@@ -272,12 +197,12 @@ index 3703fde2416f940b18028bf7373811a6e3215b01..3b81288b1f7f433f1717fcdac692484f
 +    public void markNonEntityTickingIfPossible(@org.jetbrains.annotations.NotNull NewChunkHolder newChunkHolder) {
 +        this.entityTickingChunkHolders.remove(newChunkHolder.getCachedLongPos());
 +    }
-+    // DivineMC end - Optimize Moonrise
++    // DivineMC end - Optimize Moonrise - primitive long sets
 +
      public enum TicketOperationType {
          ADD, REMOVE, ADD_IF_REMOVED, ADD_AND_REMOVE
      }
-@@ -1473,8 +1510,10 @@ public final class ChunkHolderManager {
+@@ -1473,8 +1515,10 @@ public final class ChunkHolderManager {
  
      // only call on tick thread
      private void processOffThreadFullUpdates() {
@@ -290,7 +215,7 @@ index 3703fde2416f940b18028bf7373811a6e3215b01..3b81288b1f7f433f1717fcdac692484f
  
          NewChunkHolder toUpdate;
          while ((toUpdate = offThreadPendingFullLoadUpdate.poll()) != null) {
-@@ -1486,7 +1525,7 @@ public final class ChunkHolderManager {
+@@ -1486,7 +1530,7 @@ public final class ChunkHolderManager {
      private boolean processPendingFullUpdate() {
          this.processOffThreadFullUpdates();
  
@@ -300,7 +225,7 @@ index 3703fde2416f940b18028bf7373811a6e3215b01..3b81288b1f7f433f1717fcdac692484f
          boolean ret = false;
  
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
-index 9a9a599ef178f851ee5c783631a724013a693586..7f8e7d0aac516489dbbc10da68161f3ff3b2908d 100644
+index 9a9a599ef178f851ee5c783631a724013a693586..3452313e6b0bc8af44615522f231d44eff90ea0d 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
 @@ -646,12 +646,20 @@ public final class NewChunkHolder {
@@ -339,15 +264,28 @@ index 9a9a599ef178f851ee5c783631a724013a693586..7f8e7d0aac516489dbbc10da68161f3f
  
      public static final record UnloadTask(CallbackCompletable<CompoundTag> completable, PrioritisedExecutor.PrioritisedTask task,
                                            LazyRunnable toRun) {}
-@@ -1168,6 +1178,7 @@ public final class NewChunkHolder {
+@@ -1168,12 +1178,19 @@ public final class NewChunkHolder {
              for (int dz = -NEIGHBOUR_RADIUS; dz <= NEIGHBOUR_RADIUS; ++dz) {
                  for (int dx = -NEIGHBOUR_RADIUS; dx <= NEIGHBOUR_RADIUS; ++dx) {
                      final NewChunkHolder holder = (dx | dz) == 0 ? this : this.scheduler.chunkHolderManager.getChunkHolder(dx + this.chunkX, dz + this.chunkZ);
-+                    if (holder == null) continue; // DivineMC - Optimize Moonrise
++                    // DivineMC start - Optimize Moonrise
++                    if (holder == null) {
++                        LOGGER.error("Missing neighbour chunk holder at ({}, {}) while processing full chunk load change (loaded = {}) for ({}, {}) in world '{}' - neighbour full-load counters may desync",
++                            dx + this.chunkX, dz + this.chunkZ, loaded, this.chunkX, this.chunkZ, WorldUtil.getWorldName(this.world), new Throwable());
++                        continue;
++                    }
++                    // DivineMC end - Optimize Moonrise
                      if (loaded) {
                          if (holder.setNeighbourFullLoaded(-dx, -dz)) {
                              changedFullStatus.add(holder);
-@@ -1192,6 +1203,19 @@ public final class NewChunkHolder {
+                         }
+                     } else {
+-                        if (holder != null && holder.setNeighbourFullUnloaded(-dx, -dz)) {
++                        if (holder.setNeighbourFullUnloaded(-dx, -dz)) { // DivineMC - Optimize Moonrise
+                             changedFullStatus.add(holder);
+                         }
+                     }
+@@ -1192,6 +1209,19 @@ public final class NewChunkHolder {
  
      private void updateCurrentState(final FullChunkStatus to) {
          this.currentFullChunkStatus = to;
@@ -367,7 +305,7 @@ index 9a9a599ef178f851ee5c783631a724013a693586..7f8e7d0aac516489dbbc10da68161f3f
      }
  
      // only to be called on the main thread, no locks need to be held
-@@ -1326,7 +1350,7 @@ public final class NewChunkHolder {
+@@ -1326,7 +1356,7 @@ public final class NewChunkHolder {
          return this.requestedGenStatus;
      }
  
@@ -376,7 +314,7 @@ index 9a9a599ef178f851ee5c783631a724013a693586..7f8e7d0aac516489dbbc10da68161f3f
  
      void addStatusConsumer(final ChunkStatus status, final Consumer<ChunkAccess> consumer) {
          this.statusWaiters.computeIfAbsent(status, (final ChunkStatus keyInMap) -> {
-@@ -1361,7 +1385,7 @@ public final class NewChunkHolder {
+@@ -1361,7 +1391,7 @@ public final class NewChunkHolder {
          }, Priority.HIGHEST);
      }
  
@@ -477,19 +415,7 @@ index b358755edc99de2cf3cab9a113ed7236afb0e260..17dc7a1948db6471c80bf90e8a05998f
          // Paper end - rewrite chunk system
      }
  
-@@ -1061,10 +1062,9 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
-     // Paper start - optimise random ticking
-     private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
- 
--    // DivineMC start - Optimize level ticking
-     private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
-         final LevelChunkSection[] sections = chunk.getSections();
--        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this); // DivineMC - Optimize level ticking
-+        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection((ServerLevel)(Object)this);
-         final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
-         final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
- 
-@@ -2819,16 +2819,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2810,16 +2811,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      public boolean isPositionTickingWithEntitiesLoaded(final long key) {
          // Paper start - rewrite chunk system

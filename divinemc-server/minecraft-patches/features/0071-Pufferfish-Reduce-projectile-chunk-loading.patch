@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Thu, 15 Jan 2026 00:35:03 +0300
 Subject: [PATCH] Pufferfish: Reduce projectile chunk loading
 
@@ -10,7 +10,7 @@ As part of: Airplane (https://github.com/TECHNOVE/Airplane)
 Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 
 diff --git a/net/minecraft/world/entity/projectile/Projectile.java b/net/minecraft/world/entity/projectile/Projectile.java
-index 47a27f0415a769c90a99d8868f19a8297d4c1d23..c83613967f1065fd8e279b8bfcbd90620db252cc 100644
+index 7f3673a44b0200d18dbf7f1fac8d377bfc994232..5183213c65d1f47e3934d2bb467b8116b084665d 100644
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
 @@ -50,6 +50,54 @@ public abstract class Projectile extends Entity implements TraceableEntity {

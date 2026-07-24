@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Sat, 1 Feb 2025 19:17:31 +0300
 Subject: [PATCH] Carpet-Fixes: RecipeManager Optimize
 
@@ -9,7 +9,7 @@ This is a fully vanilla optimization. Improves: [Blast]Furnace/Campfire/Smoker/S
 This was mostly made for the auto crafting table, since the performance boost is much more visible while using that mod
 
 diff --git a/net/minecraft/world/item/crafting/RecipeManager.java b/net/minecraft/world/item/crafting/RecipeManager.java
-index 298908003d5422b8b58de631145fad381e8294c1..b037f79e3c8b20586bdeb469859d086360a9d04e 100644
+index 6812ade4d9de26d507234b8357b109ec7e5cbb50..b6b54bcf8a1b05835c411035463b4b8db0c23ef1 100644
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
 @@ -164,7 +164,7 @@ public class RecipeManager extends SimplePreparableReloadListener<RecipeMap> imp
