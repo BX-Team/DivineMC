@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Sun, 6 Jul 2025 02:38:39 +0300
 Subject: [PATCH] C2ME: optimize noise generation
 
@@ -180,7 +180,7 @@ index f30358343a80ce094b79cef5d4443ebd82dc98fa..6bc902e9f15b556a76c023c171ac489b
  
      private double sampleWithDerivative(final int x, final int y, final int z, final double xr, final double yr, final double zr, final double[] derivativeOut) {
 diff --git a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
-index 2b21771b7f217533c8a5b82a63179e3ffa1b1be0..bcf5a9d41b33cc109f54694c9bfc2ea8e22908b1 100644
+index 8ca042d2d16c3434154ba641a467c4e14c88328c..36dbb7522462910f04c643ce4626490be1f0eccd 100644
 --- a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
 @@ -26,6 +26,7 @@ public class PerlinNoise {

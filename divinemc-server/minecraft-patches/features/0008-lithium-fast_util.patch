@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Mon, 24 Feb 2025 19:10:17 +0300
 Subject: [PATCH] lithium: fast_util
 
@@ -69,7 +69,7 @@ index e3524e706e02683d891a8de1e552a0bd0595b0f4..438cb0f2523461b39b9b09e3d834440f
      public static final AxisCycle[] VALUES = values();
  
 diff --git a/net/minecraft/core/Direction.java b/net/minecraft/core/Direction.java
-index 240fb1346b721e4aaf8517b01fa205760cee4bbd..ff2f226b90353afdd540ab5d2e3477b0ef57949a 100644
+index 46547155b817a89a8afe2f8d1a30bf881efc07bc..0cdd9ce56170ae363a3acc3675e6f721a41675f7 100644
 --- a/net/minecraft/core/Direction.java
 +++ b/net/minecraft/core/Direction.java
 @@ -223,7 +223,7 @@ public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.pa
@@ -91,7 +91,7 @@ index 240fb1346b721e4aaf8517b01fa205760cee4bbd..ff2f226b90353afdd540ab5d2e3477b0
  
      public static Direction getApproximateNearest(final double dx, final double dy, final double dz) {
 diff --git a/net/minecraft/world/phys/AABB.java b/net/minecraft/world/phys/AABB.java
-index 053693365ab4201e2a718c1894b939e235571284..04da324dd8f64cbb2c2d9d8c9c8ee442f1b7c5b9 100644
+index 4262d099e4352978311747953f7f99831a86022c..26871a1fcb9706a4ffead9944ecdae1399f63339 100644
 --- a/net/minecraft/world/phys/AABB.java
 +++ b/net/minecraft/world/phys/AABB.java
 @@ -19,6 +19,15 @@ public class AABB {

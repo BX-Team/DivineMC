@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Thu, 15 Jan 2026 00:16:29 +0300
 Subject: [PATCH] Pufferfish: Optimize random calls in chunk ticking
 
@@ -10,10 +10,10 @@ As part of: Airplane (https://github.com/TECHNOVE/Airplane)
 Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 7e371fa32467ecd2e3bba173234bb8f4d338e58c..fd2eea28a26f8e702ea1340c5d36e71e80ed5450 100644
+index 13daae4e0a08c83fbd1b04f3d29f0d2e834287ac..9006ff1d179a2b46df09c1528a6a1fd6fb1cf106 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1121,7 +1121,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1122,7 +1122,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          int minZ = chunkPos.getMinBlockZ();
          ProfilerFiller profiler = Profiler.get();
          profiler.push("thunder");

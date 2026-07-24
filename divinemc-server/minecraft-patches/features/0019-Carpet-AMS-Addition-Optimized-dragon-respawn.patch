@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Wed, 11 Jun 2025 19:33:13 +0300
 Subject: [PATCH] Carpet-AMS-Addition: Optimized dragon respawn
 
@@ -25,7 +25,7 @@ index ed5a5fb38bfe8fb9216c7eab00b833485c4bbade..c7255e5363e6895c136e590baa026772
      ) {
          for (int x = 0; x < this.width; x++) {
 diff --git a/net/minecraft/world/level/dimension/end/EnderDragonFight.java b/net/minecraft/world/level/dimension/end/EnderDragonFight.java
-index 7f0f5ce66dd0bc4a6e86d0534546c402c601fde2..d401a03bc26e9ced1ce33e7f77cba11155a9e41c 100644
+index 6cfaf75e92d194fe4ad1d404bc12ddec5ca18b8a..b357d6d624e8ba2ad28d8cea7710e5dc53c64396 100644
 --- a/net/minecraft/world/level/dimension/end/EnderDragonFight.java
 +++ b/net/minecraft/world/level/dimension/end/EnderDragonFight.java
 @@ -311,7 +311,68 @@ public class EnderDragonFight extends SavedData {

@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Mon, 29 Sep 2025 17:53:30 +0300
 Subject: [PATCH] lithium: sleeping_block_entity
 
@@ -71,10 +71,10 @@ index bcd7097def03c59140e1774cfdc787d526fb205b..3af304c7364bc6a7c8c4735ae0967c50
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 8a3f01e48effef3df9299d86df56037d0ff6f394..7e371fa32467ecd2e3bba173234bb8f4d338e58c 100644
+index 771a2ab0a365c0eca0179d18314f4e94d8d95146..13daae4e0a08c83fbd1b04f3d29f0d2e834287ac 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2659,6 +2659,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2660,6 +2660,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
          for (TickingBlockEntity ticker : this.blockEntityTickers) {
              BlockPos blockPos = ticker.getPos();
@@ -96,10 +96,10 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 608b27fc7b59b4024b4e45944e3bd45f11fe0c80..14ded63c6fc44c70dc1aa493bf8ccd75bcc65e99 100644
+index 6356b502cd712d0eac8e84d059789b9b5a995785..7ec9fd0df02f88096a6de268a3a29e4d9ba7c272 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5080,6 +5080,18 @@ public abstract class Entity
+@@ -5063,6 +5063,18 @@ public abstract class Entity
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box
@@ -417,19 +417,19 @@ index 75220dba2aa0b0d2fddefaf237171c4abd9ca927..49dac8de38dfb60d39b71e8c9fda1912
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index fd2212fb14d4a596c4483d9a266d8e6acde705da..6b309af9e0923ac69f4dc115f755adf831aab648 100644
+index e3869eaac773a0c70c831d21bccd4d18f7bafb57..691e7992fb0155d9981dafd68b8421133f487d60 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1570,7 +1570,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-             final TickingBlockEntity ticker = this.blockEntityTickers.get(tickerIndex);
-             if (ticker.isRemoved()) {
-                 this.blockEntityTickers.markAsRemoved(tickerIndex); // DivineMC - optimize block entity removals - Fix MC-117075
--            } else if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
-+            } else if (tickBlockEntities && this.shouldTickBlockPosFilterNull(ticker.getPos())) { // DivineMC - lithium: sleeping_block_entity - sleeping tickers have a null pos
-                 ticker.tick();
-                 // DivineMC start - Parallel world ticking
-                 ++tickedEntities;
-@@ -2297,4 +2297,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1573,7 +1573,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+             while (scanIndex < this.blockEntityTickers.size()) {
+                 final TickingBlockEntity ticker = this.blockEntityTickers.get(scanIndex);
+                 if (!ticker.isRemoved()) {
+-                    if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
++                    if (tickBlockEntities && this.shouldTickBlockPosFilterNull(ticker.getPos())) { // DivineMC - lithium: sleeping_block_entity - sleeping tickers have a null pos
+                         ticker.tick();
+                         // DivineMC start - Parallel world ticking
+                         ++tickedEntities;
+@@ -2317,4 +2317,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option

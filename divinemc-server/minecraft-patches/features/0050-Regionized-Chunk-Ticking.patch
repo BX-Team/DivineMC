@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Mon, 9 Jun 2025 13:51:43 +0300
 Subject: [PATCH] Regionized Chunk Ticking
 
@@ -82,10 +82,10 @@ index 297a4a96beec0512b2fe7aa5cd87a63b91f415ef..24a9fcbc7516143bffa4edac7769aa68
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 7fe76cc5de38a4b63f5cb0044762ac24be801494..8d5ead87d61e3a7817c68ce0713ee7c27e5585f2 100644
+index 8872ade32f74fd127de3c6e423380f17dfd908bd..4ac87d0588ab64a33b4c792beeb0a7975015d094 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -748,25 +748,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -750,25 +750,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      }
      // Paper end - optimise chunk tick iteration
  
@@ -125,7 +125,7 @@ index 7fe76cc5de38a4b63f5cb0044762ac24be801494..8d5ead87d61e3a7817c68ce0713ee7c2
  
      void forEachBlockTickingChunk(final Consumer<LevelChunk> tickingChunkConsumer) {
          this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
-@@ -794,11 +797,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -796,11 +799,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      boolean anyPlayerCloseEnoughTo(final BlockPos pos, final int maxDistance) {
          Vec3 target = new Vec3(pos);
  
@@ -335,7 +335,7 @@ index 1cea4229db11113aab6f8d96004708b17604b1ca..9487bb3f88aacb0e2527245d9b426b70
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259625a0154 100644
+index f1b1a0197c7e926935eb56584d5384fe9b700d2a..8ed6cc4842617d31b285cbe47448b2edd885c3d3 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -207,7 +207,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -615,7 +615,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
          }
  
          profiler.push("entityManagement");
-@@ -1741,10 +1789,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1738,10 +1786,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -629,7 +629,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1947,7 +1998,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1944,7 +1995,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      }
  
      @Override
@@ -638,7 +638,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
          if (this.isUpdatingNavigations) {
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
-@@ -1961,22 +2012,16 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1958,22 +2009,16 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -669,7 +669,7 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
  
              try {
                  this.isUpdatingNavigations = true;
-@@ -1994,17 +2039,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1991,17 +2036,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -691,16 +691,17 @@ index b41ac21683a97dd9a43060e41e5344f5ac2deb1f..74e0e35eeccbb87fa889ed924673e259
      }
  
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 89294af580c17ee86a259d1fed658281240522b9..01a91c966b385519280998ec4cfb9c82712eb3e6 100644
+index 89294af580c17ee86a259d1fed658281240522b9..2faceab5b07a1225b9f59cdd48b47e1718d5d353 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -439,6 +439,10 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -439,6 +439,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
      private boolean compassBar = false; // Purpur - Add compass command
      private boolean ramBar = false; // Purpur - Implement rambar commands
      public boolean hasTickedAtLeastOnceInNewWorld = false; // DivineMC - Parallel world ticking
 +    // DivineMC start - Regionized Chunk Ticking
 +    public final org.bxteam.divinemc.async.rct.RollingLongBuffer avgTickTimeNanos = new org.bxteam.divinemc.async.rct.RollingLongBuffer(100);
 +    public int lastRegionChunkSize, lastRegionEntityAmount, regionHash;
++    public long regionBlockTickNanos;
 +    // DivineMC end - Regionized Chunk Ticking
  
      // Paper start - rewrite chunk system
@@ -823,12 +824,12 @@ index 68b41586b2d3c071c8ff44d8c1a43ae465f6c8bf..75220dba2aa0b0d2fddefaf237171c4a
  
          return result;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c6963b46222c 100644
+index ed65d2facceee09df1915077d376906840ff909f..e3869eaac773a0c70c831d21bccd4d18f7bafb57 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -120,7 +120,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          .build();
-     public final org.bxteam.divinemc.util.BlockEntityTickersList blockEntityTickers = new org.bxteam.divinemc.util.BlockEntityTickersList(); // DivineMC - optimize block entity removals - Fix MC-117075
+     public final it.unimi.dsi.fastutil.objects.ObjectArrayList<TickingBlockEntity> blockEntityTickers = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(); // DivineMC - compact block entity tickers in place - Fix MC-117075
      protected final CollectingNeighborUpdater neighborUpdater;
 -    private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
 +    private final List<TickingBlockEntity> pendingBlockEntityTickers = java.util.Collections.synchronizedList(Lists.newArrayList()); // DivineMC - Regionized Chunk Ticking
@@ -977,7 +978,7 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
  
          // Paper - Fix MC-117075 use removeAll - remove iterator in favour of indexed for loop, ensuring compile error if something uses iter incorrectly
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
-@@ -1741,10 +1753,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1761,10 +1773,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos) {
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // DivineMC - Parallel world ticking
          // Paper start - Perf: Optimize capturedTileEntities lookup
@@ -992,7 +993,7 @@ index b07defffda218d15d988869a249884be73b547e5..aaceccab0b15fc2f2699c6089a68c696
          // Paper end - Perf: Optimize capturedTileEntities lookup
          if (!this.isInValidBounds(pos)) {
              return null;
-@@ -1760,8 +1775,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1780,8 +1795,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
              // CraftBukkit start
@@ -1092,7 +1093,7 @@ index 590fb5905b12901dca750c48f6e7d36df282df7e..6d7bc348227d3a4240083e622e7e451e
              BlockState blockState = placedSkull.getBlockState();
              boolean correctBlock = blockState.is(Blocks.WITHER_SKELETON_SKULL) || blockState.is(Blocks.WITHER_SKELETON_WALL_SKULL);
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 5a11b9eac4938585ef5fa77f2d338ec0490c319c..db064ca8ea24d606150b38950d6d0a168f222523 100644
+index 3f5c67a84de77045c72dfefc655af86e8d03a911..fedcbf85ed4e0302dfc7d695f582e6e4990ee658 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -432,7 +432,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

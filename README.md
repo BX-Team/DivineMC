@@ -15,7 +15,8 @@ DivineMC is a multi-functional fork of [Purpur](https://github.com/PurpurMC/Purp
 - **Based on [Purpur](https://github.com/PurpurMC/Purpur)** - Adds a high customization level to your server
 - **Regionized Chunk Ticking** - Tick chunks in parallel, similar to how Folia does it
 - **Parallel World Ticking** - Leverage multiple CPU cores for world processing
-- **Async Operations** - Pathfinding, entity tracker, mob spawning and chunk sending
+- **Parallel Sensor Phase** - Run the expensive read-only part of mob AI (entity scans, line-of-sight checks) on a thread pool
+- **Async Operations** - Pathfinding, entity tracker, mob spawning, joining, chunk sending and portal pre-loading
 - **Secure Seed** - Enhanced 1024-bit seed system (vs standard 64-bit) for maximum security 
 - **Linear Region File Format** - Optimize your world with the old V1/V2 linear format and the new Buffered format
 - **Mod Protocols Support** - Compatible with Syncmatica, Apple Skin, Jade and Xaero's Map
@@ -82,7 +83,6 @@ DivineMC includes patches from other projects, and without these projects, Divin
 - [Leaves](https://github.com/LeavesMC/Leaves)
 - [SparklyPaper](https://github.com/SparklyPower/SparklyPaper)
 - [matter](https://github.com/plasmoapp/matter)
-- [Leaf](https://github.com/Winds-Studio/Leaf)
 - [C2ME](https://github.com/RelativityMC/C2ME-fabric)
 - [VMP](https://github.com/RelativityMC/VMP-fabric)
 - [EntityCulling](https://github.com/tr7zw/EntityCulling)

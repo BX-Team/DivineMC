@@ -1,198 +1,14 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Sat, 1 Feb 2025 16:05:57 +0300
 Subject: [PATCH] Optimize entities
 
 
-diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index b47f13e37598153c4c47bf2a53ecb50e158bb518..e9032b1ba09a676ac969c773b800d374d038abe5 100644
---- a/net/minecraft/world/entity/Entity.java
-+++ b/net/minecraft/world/entity/Entity.java
-@@ -1784,6 +1784,10 @@ public abstract class Entity
-         final int maxMovementIterations
-     ) {
-         AABB deflatedBoundingBoxAtTarget = this.makeBoundingBox(to).deflate(1.0E-5F);
-+        // DivineMC start - Optimize entities
-+        final net.minecraft.world.level.chunk.ChunkAccess[] cachedChunk = new  net.minecraft.world.level.chunk.ChunkAccess[] { null };
-+        final long[] lastChunkPos = { Long.MIN_VALUE };
-+        // DivineMC end - Optimize entities
-         boolean movedFar = from.distanceToSqr(to) > Mth.square(0.9999900000002526);
-         boolean debugEntityBlockIntersections = this.level instanceof ServerLevel serverLevel
-             && serverLevel.getServer().debugSubscribers().hasAnySubscriberFor(DebugSubscriptions.ENTITY_BLOCK_INTERSECTIONS);
-@@ -1802,7 +1806,21 @@ public abstract class Entity
-                 }
- 
-                 iterations.set(iteration);
--                BlockState state = this.level().getBlockState(blockIntersection);
-+                // DivineMC start - Optimize entities
-+                final int chunkX = blockIntersection.getX() >> 4;
-+                final int chunkZ = blockIntersection.getZ() >> 4;
-+                final long chunkLongPos = ((long) chunkZ << 32) | (chunkX & 0xFFFFFFFFL);
-+                if (lastChunkPos[0] != chunkLongPos) {
-+                    // update cache, this is a different chunk than previous
-+                    lastChunkPos[0] = chunkLongPos;
-+                    cachedChunk[0] = this.level.getChunkIfLoaded(chunkX, chunkZ);
-+                }
-+                net.minecraft.world.level.chunk.ChunkAccess chunk = cachedChunk[0];
-+                if (chunk == null) {
-+                    return true;
-+                }
-+                BlockState state = chunk.getBlockState(blockIntersection);
-+                // DivineMC end - Optimize entities
-                 if (state.isAir()) {
-                     if (debugEntityBlockIntersections) {
-                         this.debugBlockIntersection((ServerLevel)this.level(), blockIntersection.immutable(), false, false);
-diff --git a/net/minecraft/world/entity/InsideBlockEffectApplier.java b/net/minecraft/world/entity/InsideBlockEffectApplier.java
-index fc7cfc75e3e5c274f01498e4afd8693236b4e394..6a919fe1016c5f73b81c8a46531e20b15483a812 100644
---- a/net/minecraft/world/entity/InsideBlockEffectApplier.java
-+++ b/net/minecraft/world/entity/InsideBlockEffectApplier.java
-@@ -31,68 +31,115 @@ public interface InsideBlockEffectApplier {
- 
-     class StepBasedCollector implements InsideBlockEffectApplier {
-         private static final InsideBlockEffectType[] APPLY_ORDER = InsideBlockEffectType.values();
--        private static final int NO_STEP = -1;
--        private final Map<InsideBlockEffectType, Consumer<Entity>> effectsInStep = new java.util.EnumMap<>(InsideBlockEffectType.class); // Paper - track position inside effect was triggered on
--        private final Map<InsideBlockEffectType, List<Consumer<Entity>>> beforeEffectsInStep = Util.makeEnumMap(
--            InsideBlockEffectType.class, type -> new ArrayList<>()
--        );
--        private final Map<InsideBlockEffectType, List<Consumer<Entity>>> afterEffectsInStep = Util.makeEnumMap(
--            InsideBlockEffectType.class, type -> new ArrayList<>()
--        );
--        private final List<Consumer<Entity>> finalEffects = new ArrayList<>();
-+        // DivineMC start - Optimize entities
-+        private final Consumer<Entity>[] effectsInStep = new Consumer[APPLY_ORDER.length];
-+        private final it.unimi.dsi.fastutil.objects.ObjectArrayList<Consumer<Entity>>[] beforeEffectsInStep = new it.unimi.dsi.fastutil.objects.ObjectArrayList[APPLY_ORDER.length];
-+        private final it.unimi.dsi.fastutil.objects.ObjectArrayList<Consumer<Entity>>[] afterEffectsInStep = new it.unimi.dsi.fastutil.objects.ObjectArrayList[APPLY_ORDER.length];
-+        private final it.unimi.dsi.fastutil.objects.ObjectArrayList<Consumer<Entity>> finalEffects = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
-+        // DivineMC end - Optimize entities
-         private int lastStep = -1;
- 
--        public void advanceStep(final int step, net.minecraft.core.BlockPos pos) { // Paper - track position inside effect was triggered on
--            this.currentBlockPos = pos; // Paper - track position inside effect was triggered on
-+        // DivineMC start - Optimize entities
-+        public StepBasedCollector() {
-+            for (int i = 0; i < APPLY_ORDER.length; i++) {
-+                beforeEffectsInStep[i] = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(2);
-+                afterEffectsInStep[i] = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(2);
-+            }
-+        }
-+
-+        public void advanceStep(final int step, net.minecraft.core.BlockPos pos) {
-+            this.currentBlockPos = pos;
-             if (this.lastStep != step) {
-                 this.lastStep = step;
-                 this.flushStep();
-             }
-         }
-+        // DivineMC end - Optimize entities
- 
-         public void applyAndClear(final Entity entity) {
-             this.flushStep();
- 
--            for (Consumer<Entity> effect : this.finalEffects) {
-+            // DivineMC start - Optimize entities
-+            List<Consumer<Entity>> effects = this.finalEffects;
-+            int size = effects.size();
-+
-+            if (size == 0) {
-+                this.lastStep = -1;
-+                return;
-+            }
-+
-+            if (!entity.isAlive()) {
-+                effects.clear();
-+                this.lastStep = -1;
-+                return;
-+            }
-+
-+            int i = 0;
-+            while (i < size - 3) {
-+                effects.get(i++).accept(entity);
-+                effects.get(i++).accept(entity);
-+                effects.get(i++).accept(entity);
-+                effects.get(i++).accept(entity);
-                 if (!entity.isAlive()) {
-                     break;
-                 }
-+            }
- 
--                effect.accept(entity);
-+            if (entity.isAlive()) {
-+                for (; i < size; i++) {
-+                    effects.get(i).accept(entity);
-+                    if (!entity.isAlive()) {
-+                        break;
-+                    }
-+                }
-             }
- 
--            this.finalEffects.clear();
-+            effects.clear();
-+            // DivineMC end - Optimize entities
-             this.lastStep = -1;
-         }
- 
-         private void flushStep() {
--            for (InsideBlockEffectType type : APPLY_ORDER) {
--                List<Consumer<Entity>> beforeEffects = this.beforeEffectsInStep.get(type);
--                this.finalEffects.addAll(beforeEffects);
--                beforeEffects.clear();
--                if (this.effectsInStep.remove(type) instanceof final Consumer<Entity> recordedEffect) { // Paper - track position inside effect was triggered on - better than null check to avoid diff.
--                    this.finalEffects.add(recordedEffect); // Paper - track position inside effect was triggered on
-+            // DivineMC start - Optimize entities
-+            final int len = APPLY_ORDER.length;
-+            final Consumer<Entity>[] effectArr = this.effectsInStep;
-+            final List<Consumer<Entity>> finalList = this.finalEffects;
-+
-+            for (int i = 0; i < len; i++) {
-+                List<Consumer<Entity>> beforeList = this.beforeEffectsInStep[i];
-+                if (!beforeList.isEmpty()) {
-+                    finalList.addAll(beforeList);
-+                    beforeList.clear();
-                 }
- 
--                List<Consumer<Entity>> afterEffects = this.afterEffectsInStep.get(type);
--                this.finalEffects.addAll(afterEffects);
--                afterEffects.clear();
-+                Consumer<Entity> effect = effectArr[i];
-+                if (effect != null) {
-+                    finalList.add(effect);
-+                    effectArr[i] = null;
-+                }
-+
-+                List<Consumer<Entity>> afterList = this.afterEffectsInStep[i];
-+                if (!afterList.isEmpty()) {
-+                    finalList.addAll(afterList);
-+                    afterList.clear();
-+                }
-             }
-+            // DivineMC end - Optimize entities
-         }
- 
-         @Override
-         public void apply(final InsideBlockEffectType type) {
--            this.effectsInStep.put(type, recorded(type)); // Paper - track position inside effect was triggered on
-+            effectsInStep[type.ordinal()] = recorded(type); // DivineMC - Optimize entities
-         }
- 
-         @Override
-         public void runBefore(final InsideBlockEffectType type, final Consumer<Entity> effect) {
--            this.beforeEffectsInStep.get(type).add(effect);
-+            beforeEffectsInStep[type.ordinal()].add(effect); // DivineMC - Optimize entities
-         }
- 
-         @Override
-         public void runAfter(final InsideBlockEffectType type, final Consumer<Entity> effect) {
--            this.afterEffectsInStep.get(type).add(effect);
-+            afterEffectsInStep[type.ordinal()].add(effect); // DivineMC - Optimize entities
-         }
- 
-         // Paper start - track position inside effect was triggered on
 diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
-index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099519300cc 100644
+index f3b32c1bbe993d051699fe65d9979cc784d4717c..11fb56a0e49d9e0622376359f842453cd7b190e7 100644
 --- a/net/minecraft/world/entity/ai/Brain.java
 +++ b/net/minecraft/world/entity/ai/Brain.java
-@@ -37,16 +37,80 @@ import org.jspecify.annotations.Nullable;
+@@ -37,16 +37,96 @@ import org.jspecify.annotations.Nullable;
  
  public class Brain<E extends LivingEntity> {
      private static final int SCHEDULE_UPDATE_DELAY = 20;
@@ -209,6 +25,22 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
      private final Map<Activity, Set<MemoryModuleType<?>>> activityMemoriesToEraseWhenStopped = Maps.newHashMap();
      private Set<Activity> coreActivities = Sets.newHashSet();
      private final Set<Activity> activeActivities = Sets.newHashSet();
++    // DivineMC start - Optimize entities - activity bitsets
++    private long coreActivitiesBitset;
++    private long activeActivitiesBitset;
++
++    private static long activityBit(final Activity activity) {
++        return activity.id < 64 ? (1L << activity.id) : 0L; // ids >= 64 (unrealistic, vanilla has ~26) fall back to set lookups
++    }
++
++    private static long activityBitsetOf(final java.util.Collection<Activity> activities) {
++        long bits = 0L;
++        for (Activity activity : activities) {
++            bits |= activityBit(activity);
++        }
++        return bits;
++    }
++    // DivineMC end - Optimize entities - activity bitsets
      private Activity defaultActivity = Activity.IDLE;
      private long lastScheduleUpdate = -9999L;
 +    // DivineMC start - Optimize entities
@@ -234,7 +66,7 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
 +        for (Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {
 +            for (Map.Entry<Activity, Set<BehaviorControl<? super E>>> entry : map.entrySet()) {
 +                Activity activity = entry.getKey();
-+                if (!this.activeActivities.contains(activity)) {
++                if (!this.isActive(activity)) { // DivineMC - Optimize entities - activity bitsets
 +                    continue;
 +                }
 +                Set<BehaviorControl<? super E>> set = entry.getValue();
@@ -276,7 +108,7 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
  
      public static <E extends LivingEntity> Brain.Provider<E> provider(final Collection<? extends SensorType<? extends Sensor<? super E>>> sensorTypes) {
          return new Brain.Provider<>(ImmutableList.of(), sensorTypes, var0 -> List.of());
-@@ -158,6 +222,7 @@ public class Brain<E extends LivingEntity> {
+@@ -158,6 +238,7 @@ public class Brain<E extends LivingEntity> {
      public <U> void eraseMemory(final MemoryModuleType<U> type) {
          MemorySlot<U> slot = this.getMemorySlotIfPresent(type);
          if (slot != null) {
@@ -284,7 +116,7 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
              slot.clear();
          }
      }
-@@ -191,8 +256,10 @@ public class Brain<E extends LivingEntity> {
+@@ -191,8 +272,10 @@ public class Brain<E extends LivingEntity> {
              }
  
              if (value == null) {
@@ -295,7 +127,7 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
                  slot.set(value, tileToLive);
              }
          }
-@@ -206,8 +273,10 @@ public class Brain<E extends LivingEntity> {
+@@ -206,8 +289,10 @@ public class Brain<E extends LivingEntity> {
              }
  
              if (value == null) {
@@ -306,7 +138,15 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
                  slot.set(value);
              }
          }
-@@ -266,19 +335,7 @@ public class Brain<E extends LivingEntity> {
+@@ -255,6 +340,7 @@ public class Brain<E extends LivingEntity> {
+ 
+     public void setCoreActivities(final Set<Activity> activities) {
+         this.coreActivities = activities;
++        this.coreActivitiesBitset = activityBitsetOf(activities); // DivineMC - Optimize entities - activity bitsets
+     }
+ 
+     @Deprecated
+@@ -266,19 +352,7 @@ public class Brain<E extends LivingEntity> {
      @Deprecated
      @VisibleForDebug
      public List<BehaviorControl<? super E>> getRunningBehaviors() {
@@ -327,15 +167,25 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
      }
  
      public void useDefaultActivity() {
-@@ -309,6 +366,7 @@ public class Brain<E extends LivingEntity> {
+@@ -309,6 +383,8 @@ public class Brain<E extends LivingEntity> {
              this.activeActivities.clear();
              this.activeActivities.addAll(this.coreActivities);
              this.activeActivities.add(activity);
++            this.activeActivitiesBitset = this.coreActivitiesBitset | activityBit(activity); // DivineMC - Optimize entities - activity bitsets
 +            this.onPossibleActivitiesChanged(); // DivineMC - Optimize entities
          }
      }
  
-@@ -371,11 +429,13 @@ public class Brain<E extends LivingEntity> {
+@@ -329,7 +405,7 @@ public class Brain<E extends LivingEntity> {
+         if (gameTime - this.lastScheduleUpdate > 20L) {
+             this.lastScheduleUpdate = gameTime;
+             Activity scheduledActivity = this.schedule != null ? environmentAttributes.getValue(this.schedule, pos) : Activity.IDLE;
+-            if (!this.activeActivities.contains(scheduledActivity)) {
++            if (!this.isActive(scheduledActivity)) { // DivineMC - Optimize entities - activity bitsets
+                 this.setActiveActivityIfPossible(scheduledActivity);
+             }
+         }
+@@ -371,15 +447,17 @@ public class Brain<E extends LivingEntity> {
                  .computeIfAbsent(activity, key -> Sets.newLinkedHashSet())
                  .add(behavior);
          }
@@ -349,7 +199,12 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
      }
  
      public boolean isActive(final Activity activity) {
-@@ -396,7 +456,15 @@ public class Brain<E extends LivingEntity> {
+-        return this.activeActivities.contains(activity);
++        return activity.id < 64 ? (this.activeActivitiesBitset & (1L << activity.id)) != 0L : this.activeActivities.contains(activity); // DivineMC - Optimize entities - activity bitsets
+     }
+ 
+     public void tick(final ServerLevel level, final E body) {
+@@ -396,7 +474,15 @@ public class Brain<E extends LivingEntity> {
      }
  
      private void forgetOutdatedMemories() {
@@ -366,7 +221,7 @@ index f3b32c1bbe993d051699fe65d9979cc784d4717c..84d3d4d1d24f43ec277eb56c57f7f099
      }
  
      public void stopAll(final ServerLevel level, final E body) {
-@@ -404,31 +472,38 @@ public class Brain<E extends LivingEntity> {
+@@ -404,31 +490,38 @@ public class Brain<E extends LivingEntity> {
  
          for (BehaviorControl<? super E> behavior : this.getRunningBehaviors()) {
              behavior.doStop(level, body, timestamp);
@@ -523,48 +378,25 @@ index fe7403770b6c117cc2b9e5a3ab9f8554deed703c..eb8c1ed37d5133099d6fc75b1d4105a1
      private boolean isAcceptableLandingPosition(final ServerLevel level, final E body, final BlockPos targetPos) {
          BlockPos bodyPos = body.blockPosition();
 diff --git a/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java b/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
-index 3578ece216827fd5d8c1206c689fc608e97b50df..d5934daaf5afbc1165817cc19389a8c0083a62ea 100644
+index 3578ece216827fd5d8c1206c689fc608e97b50df..48477d2d246dc48ec2ac35dd24f668ccbd94face 100644
 --- a/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
-@@ -17,8 +17,8 @@ public class NearestLivingEntitySensor<T extends LivingEntity> extends Sensor<T>
+@@ -17,8 +17,14 @@ public class NearestLivingEntitySensor<T extends LivingEntity> extends Sensor<T>
      protected void doTick(final ServerLevel level, final T body) {
          double followRange = body.getAttributeValue(Attributes.FOLLOW_RANGE);
          AABB boundingBox = body.getBoundingBox().inflate(followRange, followRange, followRange);
--        List<LivingEntity> livingEntities = level.getEntitiesOfClass(LivingEntity.class, boundingBox, mob -> mob != body && mob.isAlive());
++        // DivineMC start - Optimize collections
+         List<LivingEntity> livingEntities = level.getEntitiesOfClass(LivingEntity.class, boundingBox, mob -> mob != body && mob.isAlive());
 -        livingEntities.sort(Comparator.comparingDouble(body::distanceToSqr));
-+        it.unimi.dsi.fastutil.objects.ObjectArrayList<LivingEntity> livingEntities = (it.unimi.dsi.fastutil.objects.ObjectArrayList<LivingEntity>) level.getEntitiesOfClass(LivingEntity.class, boundingBox, mob -> mob != body && mob.isAlive()); // DivineMC - Optimize collections
-+        livingEntities.unstableSort(Comparator.comparingDouble(body::distanceToSqr)); // DivineMC - Optimize collections
++        if (livingEntities instanceof it.unimi.dsi.fastutil.objects.ObjectArrayList<LivingEntity> fastList) {
++            fastList.unstableSort(Comparator.comparingDouble(body::distanceToSqr));
++        } else {
++            livingEntities.sort(Comparator.comparingDouble(body::distanceToSqr));
++        }
++        // DivineMC end - Optimize collections
          Brain<?> brain = body.getBrain();
          brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, livingEntities);
          brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(level, body, livingEntities));
-diff --git a/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java b/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
-index e3b2089e74d57ae8a15e9e5d29f43054ec6ec295..d69dbed3607561681c4a46d5c0700d2f98ac6f85 100644
---- a/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
-+++ b/net/minecraft/world/entity/ai/sensing/VillagerBabiesSensor.java
-@@ -21,9 +21,22 @@ public class VillagerBabiesSensor extends Sensor<LivingEntity> {
-         body.getBrain().setMemory(MemoryModuleType.VISIBLE_VILLAGER_BABIES, this.getNearestVillagerBabies(body));
-     }
- 
-+    // DivineMC start - Optimize baby villager sensor
-     private List<LivingEntity> getNearestVillagerBabies(final LivingEntity myBody) {
--        return ImmutableList.copyOf(this.getVisibleEntities(myBody).findAll(this::isVillagerBaby));
-+        NearestVisibleLivingEntities visibleEntities = this.getVisibleEntities(myBody);
-+        ImmutableList.Builder<LivingEntity> babies = ImmutableList.builder();
-+
-+        for (LivingEntity target : visibleEntities.nearbyEntities) {
-+            if (target.getType() == EntityType.VILLAGER
-+                && target.isBaby()
-+                && visibleEntities.lineOfSightTest.test(target)) {
-+                babies.add(target);
-+            }
-+        }
-+
-+        return babies.build();
-     }
-+    // DivineMC end - Optimize baby villager sensor
- 
-     private boolean isVillagerBaby(final LivingEntity entity) {
-         return entity.is(EntityType.VILLAGER) && entity.isBaby();
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
 index 88e672d51a8b7b74e7760529ed3fdb8835be795e..c793b06d8ed73fd8aef740dd87451e20402ca41e 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java

@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Sun, 23 Mar 2025 01:16:35 +0300
 Subject: [PATCH] Dynamic Activation of Brain
 
@@ -43,7 +43,7 @@ index 5cc887e7cb09d7c0222c7af1842e4289b9c9b41e..f0a43753d191cd9eabefe9e7a927e049
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  profiler.push("checkDespawn");
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index e9032b1ba09a676ac969c773b800d374d038abe5..2ca742bd8a77b2699bf458fac998657784fd809d 100644
+index a52c9e7631d8de1e68971a8140584d647c23a49b..578297a6e8f34dd42f1b1a139cbef00dcd5e0687 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -383,6 +383,8 @@ public abstract class Entity

@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Wed, 1 Oct 2025 01:49:00 +0300
 Subject: [PATCH] lithium: equipment_tracking
 
@@ -187,7 +187,7 @@ index 20041325ae77f16a5b77f5de7255788b52ebb3a5..5b89ec95b1d83c836ed9b89d13f9a6f2
 +    // DivineMC end - lithium: equipment_tracking
  }
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index ca1bb152589e4122d3237aab56dc2bcc9fd28738..24ab4cbe1871f09f70e216a3998867b65110de10 100644
+index 6c55796a5ff6f5fa833bb92743a4c46b44868ea2..ae47516392b252cf6067cb27d780ce8de1cf5f0b 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -436,9 +436,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin

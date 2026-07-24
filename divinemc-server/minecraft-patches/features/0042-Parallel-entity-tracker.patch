@@ -1,13 +1,13 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
-Date: Tue, 20 Jul 2025 12:21:41 +0300
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 20 Jul 2025 12:21:41 +0300
 Subject: [PATCH] Parallel entity tracker
 
 Derived from Petal's multithreaded tracker; rewritten into a three-phase
 scan/apply/send model with join barriers.
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704aafc7785d 100644
+index 5d636b392c87044678a92d86e0199a3200f26b13..37921a68642af7c7b1ddf01ce06c33cbf6fd94df 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -252,9 +252,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -46,52 +46,16 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704a
          // Paper start - optimise entity tracker
          if (true) {
              this.newTrackerTick();
-@@ -1208,7 +1225,45 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1208,7 +1225,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          private final Entity entity;
          private final int range;
          private SectionPos lastSectionPos;
 -        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
-+        // DivineMC start - Parallel entity tracker
-+        public static final ServerPlayerConnection[] EMPTY_OBJECT_ARRAY = new ServerPlayerConnection[0];
-+        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>() { // Paper - Perf: optimise map impl
-+            @Override
-+            public boolean add(ServerPlayerConnection serverPlayerConnection) {
-+                seenByUpdated = true;
-+                return super.add(serverPlayerConnection);
-+            }
-+
-+            @Override
-+            public boolean remove(Object k) {
-+                seenByUpdated = true;
-+                return super.remove(k);
-+            }
-+
-+            @Override
-+            public void clear() {
-+                seenByUpdated = true;
-+                super.clear();
-+            }
-+        };
-+        private volatile boolean seenByUpdated = true;
-+        private volatile ServerPlayerConnection[] seenByArray = EMPTY_OBJECT_ARRAY;
-+
-+        public ServerPlayerConnection[] seenBy() {
-+            if (!seenByUpdated) {
-+                return seenByArray;
-+            } else {
-+                return seenBy.toArray(EMPTY_OBJECT_ARRAY);
-+            }
-+        }
-+
-+        public void seenByUpdated() {
-+            this.seenByArray = this.seenBy.toArray(EMPTY_OBJECT_ARRAY);
-+            seenByUpdated = false;
-+        }
-+        // DivineMC end - Parallel entity tracker
++        public final Set<ServerPlayerConnection> seenBy = org.bxteam.divinemc.util.collections.PlatformCollections.referenceSet(); // Paper - Perf: optimise map impl // DivineMC - Parallel entity tracker
  
          // Paper start - optimise entity tracker
          private long lastChunkUpdate = -1L;
-@@ -1235,23 +1290,121 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1235,8 +1259,9 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              this.lastTrackedChunk = chunk;
  
              final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
@@ -102,24 +66,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704a
                  final ServerPlayer player = playersRaw[i];
                  this.updatePlayer(player);
              }
- 
-             if (lastChunkUpdate != currChunkUpdate || lastTrackedChunk != chunk) {
-                 // need to purge any players possible not in the chunk list
--                for (final ServerPlayerConnection conn : new java.util.ArrayList<>(this.seenBy)) {
-+                // DivineMC start - Parallel entity tracker
-+                boolean removed = false;
-+                for (final ServerPlayerConnection conn : this.seenBy()) {
-                     final ServerPlayer player = conn.getPlayer();
-                     if (!players.contains(player)) {
--                        this.removePlayer(player);
-+                        removed |= this.removePlayerMulti(player);
-                     }
-                 }
-+
-+                if (removed) {
-+                    this.seenByUpdated();
-+                }
-+                // DivineMC end - Parallel entity tracker
+@@ -1252,6 +1277,79 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              }
          }
  
@@ -160,7 +107,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704a
 +
 +            if (lastChunkUpdate != currChunkUpdate || lastTrackedChunk != chunk) {
 +                // need to purge any players possibly not in the chunk list
-+                for (final ServerPlayerConnection conn : this.seenBy()) {
++                for (final ServerPlayerConnection conn : this.seenBy) {
 +                    final ServerPlayer player = conn.getPlayer();
 +                    if (!players.contains(player) && (toRemove == null || !toRemove.contains(player))) {
 +                        if (toRemove == null) toRemove = new java.util.ArrayList<>(4);
@@ -189,12 +136,8 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704a
 +
 +            final java.util.List<ServerPlayer> toAdd = result.toAdd();
 +            if (toAdd != null) {
-+                boolean added = false;
 +                for (int i = 0, len = toAdd.size(); i < len; ++i) {
-+                    added |= this.addPlayer(toAdd.get(i));
-+                }
-+                if (added) {
-+                    this.seenByUpdated();
++                    this.addPlayer(toAdd.get(i));
 +                }
 +            }
 +        }
@@ -203,85 +146,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704a
          @Override
          public final void moonrise$removeNonTickThreadPlayers() {
              boolean foundToRemove = false;
-@@ -1266,12 +1419,13 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-                 return;
-             }
- 
--            for (final ServerPlayerConnection conn : new java.util.ArrayList<>(this.seenBy)) {
-+            for (final ServerPlayerConnection conn : this.seenBy()) { // DivineMC - Parallel entity tracker
-                 ServerPlayer player = conn.getPlayer();
-                 if (!ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(player)) {
--                    this.removePlayer(player);
-+                    this.removePlayerMulti(player); // DivineMC - Parallel entity tracker
-                 }
-             }
-+            this.seenByUpdated(); // DivineMC - Parallel entity tracker
-         }
- 
-         @Override
-@@ -1281,10 +1435,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-             if (this.seenBy.isEmpty()) {
-                 return;
-             }
--            for (final ServerPlayerConnection conn : new java.util.ArrayList<>(this.seenBy)) {
-+            for (final ServerPlayerConnection conn : this.seenBy()) { // DivineMC - Parallel entity tracker
-                 ServerPlayer player = conn.getPlayer();
--                this.removePlayer(player);
-+                this.removePlayerMulti(player); // DivineMC - Parallel entity tracker
-             }
-+            this.seenByUpdated(); // DivineMC - Parallel entity tracker
-         }
- 
-         @Override
-@@ -1312,7 +1467,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
- 
-         @Override
-         public void sendToTrackingPlayers(final Packet<? super ClientGamePacketListener> packet) {
--            for (ServerPlayerConnection connection : this.seenBy) {
-+            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Parallel entity tracker
-                 connection.send(packet);
-             }
-         }
-@@ -1327,7 +1482,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
- 
-         @Override
-         public void sendToTrackingPlayersFiltered(final Packet<? super ClientGamePacketListener> packet, final Predicate<ServerPlayer> targetPredicate) {
--            for (ServerPlayerConnection connection : this.seenBy) {
-+            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Parallel entity tracker
-                 if (targetPredicate.test(connection.getPlayer())) {
-                     connection.send(packet);
-                 }
-@@ -1335,11 +1475,22 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-         }
- 
-         public void broadcastRemoved() {
--            for (ServerPlayerConnection connection : this.seenBy) {
-+            for (ServerPlayerConnection connection : this.seenBy()) { // DivineMC - Parallel entity tracker
-                 this.serverEntity.removePairing(connection.getPlayer());
-             }
-         }
- 
-+        // DivineMC start - Parallel entity tracker
-+        public boolean removePlayerMulti(ServerPlayer player) {
-+            if (this.seenBy.remove(player.connection)) {
-+                this.serverEntity.removePairing(player);
-+                return true;
-+            } else {
-+                return false;
-+            }
-+        }
-+        // DivineMC end - Parallel entity tracker
-+
-         public void removePlayer(final ServerPlayer player) {
-             org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
-             if (this.seenBy.remove(player.connection)) {
-@@ -1348,57 +1499,75 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-                     ChunkMap.this.level.debugSynchronizers().dropEntity(this.entity);
-                 }
-             }
-+            this.seenByUpdated(); // DivineMC - Parallel entity tracker
-         }
- 
+@@ -1353,52 +1451,67 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          public void updatePlayer(final ServerPlayer player) {
              org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
              if (player != this.entity) {
@@ -325,16 +190,15 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704a
 -                        }
 -                        // Paper end - entity tracking events
 -                        this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
+-                    }
 +                if (player == null) return; // DivineMC - Parallel entity tracker - raw nearby-player arrays may contain nulls
 +                // DivineMC start - Parallel entity tracker - visibility check extracted into wantsToSee for the parallel scan phase
 +                if (this.wantsToSee(player)) {
-+                    if (this.addPlayer(player)) {
-+                        this.seenByUpdated();
-                     }
++                    this.addPlayer(player);
                  } else {
                      this.removePlayer(player);
                  }
-+                // DivineMC end - Parallel entity tracker
++                // DivineMC end - Parallel entity tracker - visibility check extracted into wantsToSee for the parallel scan phase
 +            }
 +        }
 +
@@ -387,7 +251,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..afa0ac4f5ce2fff0288447aef830704a
 +            this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
 +            return true;
          }
-+        // DivineMC end - Parallel entity tracker
++        // DivineMC end - Parallel entity tracker - split updatePlayer into a read-only predicate and a mutating apply
  
          private int scaledRange(final int range) {
              return ChunkMap.this.level.getServer().getScaledTrackingDistance(range);

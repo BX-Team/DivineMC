@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Sat, 1 Feb 2025 19:52:39 +0300
 Subject: [PATCH] SparklyPaper: Optimize "canSee" checks
 
@@ -14,7 +14,7 @@ This seems stupid, but it does seem that it improves the performance a bit, and 
 We also create a "canSee" method tailored for "ChunkMap#updatePlayer()", a method without the equals check (the "updatePlayer()" already checks if the entity is the same entity) because the CraftPlayer's `equals()` check is a *bit* expensive compared to only checking the object's identity, and because the identity has already been check, we don't need to check it twice.
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index ec73dc1e227dca7722274fc3f439b28ae258f699..d656019c665d1f02daf3e528f1d92bb032fecf06 100644
+index cc273d30cbec5cf9ae861d18be4d14073a052d06..49d81207b02ee8b3af9e03cd9013f96470a92178 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -236,7 +236,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa

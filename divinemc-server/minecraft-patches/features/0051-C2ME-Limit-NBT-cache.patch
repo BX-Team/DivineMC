@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Wed, 9 Jul 2025 04:37:59 +0300
 Subject: [PATCH] C2ME: Limit NBT cache
 
@@ -10,7 +10,7 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/world/level/chunk/storage/IOWorker.java b/net/minecraft/world/level/chunk/storage/IOWorker.java
-index 7adb4be57bd9fdc9980b5b7e91e9d9ca4d24a726..f91769a4239c320754f2bf72578ed42cb0e237ba 100644
+index cd2ac98e1910c8c6222db084a1d2dffc6f9519c9..52560dcfe979d36cb15ed8695db33281e55977d1 100644
 --- a/net/minecraft/world/level/chunk/storage/IOWorker.java
 +++ b/net/minecraft/world/level/chunk/storage/IOWorker.java
 @@ -213,7 +213,38 @@ public class IOWorker implements AutoCloseable, ChunkScanAccess {

@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Sun, 23 Feb 2025 01:14:54 +0300
 Subject: [PATCH] Catch update suppressors
 
@@ -20,7 +20,7 @@ index 408cb996fc8ff77785da8919f19baff2cf4bd789..f398d48910dff89c41d1344ebf7b793c
                      if (e instanceof ReportedException re && re.getCause() instanceof OutOfMemoryError) {
                          throw PacketUtils.makeReportedException(e, this.packet, this.listener);
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 020165c7b0a8b921d2bbb3e26b83092d4748a981..cae57ba77633d8211b67becb37fe7d8ea54abdf2 100644
+index afbdd91405c6f584ea05b82a9438e3646750ae59..7487f5f4d6abaf3f4fa666ac9e0d8299b0ec2581 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1860,6 +1860,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa

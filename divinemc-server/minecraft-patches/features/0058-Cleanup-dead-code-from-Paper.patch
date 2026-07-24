@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Sun, 13 Jul 2025 20:03:51 +0300
 Subject: [PATCH] Cleanup dead code from Paper
 
@@ -69,10 +69,10 @@ index f398d48910dff89c41d1344ebf7b793c27dcb6aa..aa5989ed22b3b72137c5d037c7e1315a
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 74e0e35eeccbb87fa889ed924673e259625a0154..4768682322e01e13db2a0be965a486cba99d4fb6 100644
+index 8ed6cc4842617d31b285cbe47448b2edd885c3d3..c528348cd6810d5a6d59a34f02bf282d504b9172 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1525,11 +1525,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1522,11 +1522,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      public void tickNonPassenger(final Entity entity) {
          // Paper start - log detailed entity tick information
          ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot tick an entity off-main");
@@ -84,7 +84,7 @@ index 74e0e35eeccbb87fa889ed924673e259625a0154..4768682322e01e13db2a0be965a486cb
          entity.setOldPosAndRot();
          ProfilerFiller profiler = Profiler.get();
          entity.tickCount++;
-@@ -1546,13 +1541,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1543,13 +1538,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          for (Entity passenger : entity.getPassengers()) {
              this.tickPassenger(entity, passenger, isActive); // Paper - EAR 2
          }
@@ -99,7 +99,7 @@ index 74e0e35eeccbb87fa889ed924673e259625a0154..4768682322e01e13db2a0be965a486cb
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 43c5670129322c667494ae96c50595746b581c9d..608b27fc7b59b4024b4e45944e3bd45f11fe0c80 100644
+index 8856043cf15d9008ff26124cd0d00989fad2dfae..6356b502cd712d0eac8e84d059789b9b5a995785 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1154,29 +1154,10 @@ public abstract class Entity
@@ -146,7 +146,7 @@ index 43c5670129322c667494ae96c50595746b581c9d..608b27fc7b59b4024b4e45944e3bd45f
      }
  
      private void applyMovementEmissionAndPlaySound(
-@@ -4967,9 +4941,7 @@ public abstract class Entity
+@@ -4950,9 +4924,7 @@ public abstract class Entity
  
      public void setDeltaMovement(final Vec3 deltaMovement) {
          if (deltaMovement.isFinite()) {
@@ -156,7 +156,7 @@ index 43c5670129322c667494ae96c50595746b581c9d..608b27fc7b59b4024b4e45944e3bd45f
          }
      }
  
-@@ -5074,9 +5046,7 @@ public abstract class Entity
+@@ -5057,9 +5029,7 @@ public abstract class Entity
          }
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {

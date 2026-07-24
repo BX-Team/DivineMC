@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Wed, 11 Jun 2025 19:12:00 +0300
 Subject: [PATCH] Reduce chunk loading & lookups
 
@@ -7,7 +7,7 @@ Original license: GPL v3
 Original project: https://github.com/pufferfish-gg/Pufferfish
 
 diff --git a/net/minecraft/world/entity/monster/EnderMan.java b/net/minecraft/world/entity/monster/EnderMan.java
-index 8979340756abaec961b2263146c1e1e79d144117..fad2bd015cae455cb18d6dba4a05a8e882f83a7b 100644
+index d1903b7804880c4b3b2ccf6a6dbc85a62975deb1..ba6d0c95ea24119f2142d21d682a13466402841e 100644
 --- a/net/minecraft/world/entity/monster/EnderMan.java
 +++ b/net/minecraft/world/entity/monster/EnderMan.java
 @@ -332,11 +332,28 @@ public class EnderMan extends Monster implements NeutralMob {

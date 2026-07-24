@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Sun, 6 Jul 2025 01:55:37 +0300
 Subject: [PATCH] C2ME: Optimize world gen math
 
@@ -13,7 +13,7 @@ Licensed under: MIT
 TODO: Drop NoiseBasedChunkGenerator, move to single patch
 
 diff --git a/net/minecraft/world/level/levelgen/Beardifier.java b/net/minecraft/world/level/levelgen/Beardifier.java
-index c19a4c65f6ef9a953440046f27a6e7bbee65eb8d..b49371604db8eff38738dc2bd7a5f231a3f1c259 100644
+index 6781da6102df878da9db986f2687fbc47efcc8be..e9b049e0c1f41962d481c44c568a92f21ffa1c51 100644
 --- a/net/minecraft/world/level/levelgen/Beardifier.java
 +++ b/net/minecraft/world/level/levelgen/Beardifier.java
 @@ -166,8 +166,14 @@ public class Beardifier implements DensityFunctions.BeardifierOrMarker {
@@ -34,7 +34,7 @@ index c19a4c65f6ef9a953440046f27a6e7bbee65eb8d..b49371604db8eff38738dc2bd7a5f231
  
      private static double getBeardContribution(final int dx, final int dy, final int dz, final int yToGround) {
 diff --git a/net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator.java b/net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator.java
-index 39e9a1c39b5312aaa2ca6d2a1ffd8ed17b9933e6..f1c00e35ba24768243d3907555f8cd53dab0f0bd 100644
+index 83bc0f6fa7624a0df546726fa8ccc9744173ff88..8d0c3f96097c42a257292ab27d9bae18f66d9bdf 100644
 --- a/net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator.java
 +++ b/net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator.java
 @@ -75,7 +75,10 @@ public final class NoiseBasedChunkGenerator extends ChunkGenerator {

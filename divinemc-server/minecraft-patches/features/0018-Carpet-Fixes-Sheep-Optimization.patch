@@ -1,5 +1,5 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+From: NONPLAYT <nonplay@bxteam.org>
 Date: Thu, 8 May 2025 16:49:29 +0300
 Subject: [PATCH] Carpet-Fixes: Sheep Optimization
 
@@ -19,7 +19,7 @@ we used a prebaked list of all the possible colors and combinations, however thi
 datapack to change it.
 
 diff --git a/net/minecraft/world/item/DyeColor.java b/net/minecraft/world/item/DyeColor.java
-index 5c18b33b358316d0619bc180beb6505a9571c3f3..ed06aeb373cf6b1f7111463bc2c7463a39e663d4 100644
+index ef70b94fbeed89a07c391a012ae2ad581264fc5b..aac8b999b3622f9b6a75f2b42c4da9f4957b7611 100644
 --- a/net/minecraft/world/item/DyeColor.java
 +++ b/net/minecraft/world/item/DyeColor.java
 @@ -118,6 +118,15 @@ public enum DyeColor implements StringRepresentable {
