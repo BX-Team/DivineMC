@@ -10,10 +10,10 @@ improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
 cannot see mobs, players or items through walls anymore).
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index eabfd55aa2486df8b60844260bd26ff6d2f8638a..6c818b1cc277fb34087c2eb8a7b704e1b9cf6194 100644
+index 08fad31bc0b3f79e5700eccb7baa43e75774fa87..bcac2b10e0efcdec60bc56648abc1e8fc8d9289d 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1496,6 +1496,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1489,6 +1489,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                  && this.entity.broadcastToPlayer(player)
                  && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
              // Paper end - Configurable entity tracking range by Y
@@ -54,7 +54,7 @@ index 854b08372687d578e90e8bfc6fa6d06f70775f7b..0ebc7d38224bcc8bc4cd5891e28e49b3
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index d74ba7ae431d5201db8d12dc46c57bddaf9dc4d2..78eb94b22581157d323dd82f7fd1326a9a32a13c 100644
+index 691e7992fb0155d9981dafd68b8421133f487d60..cf1f38bb8482855f194a643664d3085bb39adbe2 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1164,6 +1164,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -65,3 +65,15 @@ index d74ba7ae431d5201db8d12dc46c57bddaf9dc4d2..78eb94b22581157d323dd82f7fd1326a
          if (oldState == null) {
              // CraftBukkit start - remove blockstate if failed (or the same)
              if (captureBlockStates && captured) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture
+diff --git a/net/minecraft/world/waypoints/WaypointTransmitter.java b/net/minecraft/world/waypoints/WaypointTransmitter.java
+index 2866b750a28cc32c2913d3c1afee95f05956982c..7691a41a08263944ea19536f971ad77158cacbee 100644
+--- a/net/minecraft/world/waypoints/WaypointTransmitter.java
++++ b/net/minecraft/world/waypoints/WaypointTransmitter.java
+@@ -21,6 +21,7 @@ public interface WaypointTransmitter extends Waypoint {
+ 
+     static boolean doesSourceIgnoreReceiver(final LivingEntity source, final ServerPlayer receiver) {
+         if (!receiver.getBukkitEntity().canSee(source.getBukkitEntity())) return true; // Paper - ignore if entity is hidden from player
++        if (org.bxteam.divinemc.culling.EntityCullingManager.isCulled(receiver, source)) return true; // DivineMC - Raytrace Entity Culling - hide culled players from locator bar
+         if (receiver.isSpectator()) {
+             return false;
+         } else if (!source.isSpectator() && !source.hasIndirectPassenger(receiver)) {
