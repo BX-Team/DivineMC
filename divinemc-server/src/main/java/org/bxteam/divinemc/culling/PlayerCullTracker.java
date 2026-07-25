@@ -46,6 +46,8 @@ public final class PlayerCullTracker implements Runnable {
 
     // Published state, read from tick/scan/region threads
     private volatile IntOpenHashSet culled = EMPTY;
+    private volatile long culledVersion;
+    private volatile long seenCulledVersion;
     private volatile Vec3 lastCameraPos = Vec3.ZERO;
     private volatile ServerLevel lastLevel;
     private volatile boolean cacheDirty = true;
@@ -68,6 +70,22 @@ public final class PlayerCullTracker implements Runnable {
         return this.culled.contains(entityId);
     }
 
+    boolean pollCulledChanged() {
+        final long version = this.culledVersion;
+        if (version == this.seenCulledVersion) {
+            return false;
+        }
+        this.seenCulledVersion = version;
+        return true;
+    }
+
+    private void publish(IntOpenHashSet newCulled) {
+        if (!this.culled.equals(newCulled)) {
+            this.culled = newCulled;
+            ++this.culledVersion;
+        }
+    }
+
     void notifyBlockChange(net.minecraft.world.level.Level level, BlockPos pos, int traceDistance) {
         if (this.cacheDirty || this.lastLevel != level) {
             return;
@@ -86,19 +104,17 @@ public final class PlayerCullTracker implements Runnable {
             if (!DivineConfig.NetworkCategory.raytraceCullingEnabled
                 || this.player.hasDisconnected() || this.player.isRemoved()) {
                 EntityCullingManager.unregister(this.player, this);
-                this.culled = EMPTY;
+                this.publish(EMPTY);
                 return;
             }
             if (this.player.isSpectator()) {
-                if (this.culled != EMPTY) {
-                    this.culled = EMPTY;
-                }
+                this.publish(EMPTY);
                 this.visibleUntil.clear();
                 return;
             }
             this.runPass();
         } catch (Throwable throwable) {
-            this.culled = EMPTY;
+            this.publish(EMPTY);
             EntityCullingManager.LOGGER.warn("Entity culling pass failed for {}", this.player.getScoreboardName(), throwable);
         }
     }
@@ -173,7 +189,7 @@ public final class PlayerCullTracker implements Runnable {
             EntityCullingManager.LOGGER.debug("{} culling trace(s) failed for {} this pass (entities kept visible)", traceFailures, this.player.getScoreboardName(), lastTraceFailure);
         }
 
-        this.culled = newCulled == null ? EMPTY : newCulled;
+        this.publish(newCulled == null ? EMPTY : newCulled);
 
         for (final var iterator = this.visibleUntil.int2LongEntrySet().fastIterator(); iterator.hasNext(); ) {
             if (iterator.next().getLongValue() <= now) {

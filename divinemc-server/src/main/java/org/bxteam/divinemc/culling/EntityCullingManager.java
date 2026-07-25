@@ -40,10 +40,25 @@ public final class EntityCullingManager {
     }
 
     public static void tickPlayer(ServerPlayer player) {
-        if (!DivineConfig.NetworkCategory.raytraceCullingEnabled || player.cullTracker != null || !player.isRealPlayer) {
+        if (!DivineConfig.NetworkCategory.raytraceCullingEnabled || !player.isRealPlayer) {
             return;
         }
-        register(player);
+        final PlayerCullTracker tracker = player.cullTracker;
+        if (tracker == null) {
+            register(player);
+        } else if (tracker.pollCulledChanged()) {
+            refreshWaypoints(player);
+        }
+    }
+
+    private static void refreshWaypoints(ServerPlayer player) {
+        if (player.connection == null || !player.isReceivingWaypoints()) {
+            return;
+        }
+        final net.minecraft.server.waypoints.ServerWaypointManager waypoints = player.level().getWaypointManager();
+        if (waypoints.locatorBarEnabled) {
+            waypoints.updatePlayer(player);
+        }
     }
 
     private static synchronized void register(ServerPlayer player) {

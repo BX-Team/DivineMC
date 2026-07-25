@@ -7,7 +7,7 @@ Derived from Petal's multithreaded tracker; rewritten into a three-phase
 scan/apply/send model with join barriers.
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 5d636b392c87044678a92d86e0199a3200f26b13..37921a68642af7c7b1ddf01ce06c33cbf6fd94df 100644
+index 5d636b392c87044678a92d86e0199a3200f26b13..ad625ed118b8c8322fb7c4eecf43a3ac37ef1115 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -252,9 +252,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -55,7 +55,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..37921a68642af7c7b1ddf01ce06c33cb
  
          // Paper start - optimise entity tracker
          private long lastChunkUpdate = -1L;
-@@ -1235,8 +1259,9 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1235,8 +1252,9 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              this.lastTrackedChunk = chunk;
  
              final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
@@ -66,7 +66,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..37921a68642af7c7b1ddf01ce06c33cb
                  final ServerPlayer player = playersRaw[i];
                  this.updatePlayer(player);
              }
-@@ -1252,6 +1277,79 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1252,6 +1270,79 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              }
          }
  
@@ -146,7 +146,7 @@ index 5d636b392c87044678a92d86e0199a3200f26b13..37921a68642af7c7b1ddf01ce06c33cb
          @Override
          public final void moonrise$removeNonTickThreadPlayers() {
              boolean foundToRemove = false;
-@@ -1353,52 +1451,67 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1353,52 +1444,67 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          public void updatePlayer(final ServerPlayer player) {
              org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
              if (player != this.entity) {
