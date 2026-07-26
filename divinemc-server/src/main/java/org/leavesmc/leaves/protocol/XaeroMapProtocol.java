@@ -19,12 +19,12 @@ public class XaeroMapProtocol implements LeavesProtocol {
 
     @Contract("_ -> new")
     public static Identifier idMini(String path) {
-        return Identifier.tryBuild(PROTOCOL_ID_MINI, path);
+        return Identifier.fromNamespaceAndPath(PROTOCOL_ID_MINI, path);
     }
 
     @Contract("_ -> new")
     public static Identifier idWorld(String path) {
-        return Identifier.tryBuild(PROTOCOL_ID_WORLD, path);
+        return Identifier.fromNamespaceAndPath(PROTOCOL_ID_WORLD, path);
     }
 
     public static void onSendWorldInfo(@NotNull ServerPlayer player) {

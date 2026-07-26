@@ -386,7 +386,7 @@ index 41ef18dd82a27bd6abf2303a36587cb2676b2c8c..e3c89fcfce231196c7d8506889d698e2
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b358755edc99de2cf3cab9a113ed7236afb0e260..17dc7a1948db6471c80bf90e8a05998f48f339d4 100644
+index 05a6bc4d5b4b141b4bcb098de7c33b1d788db18b..249f065cb642a48b9a3b4d43fe8824e36e9eac21 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -196,6 +196,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -415,7 +415,7 @@ index b358755edc99de2cf3cab9a113ed7236afb0e260..17dc7a1948db6471c80bf90e8a05998f
          // Paper end - rewrite chunk system
      }
  
-@@ -2810,16 +2811,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2820,16 +2821,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      public boolean isPositionTickingWithEntitiesLoaded(final long key) {
          // Paper start - rewrite chunk system

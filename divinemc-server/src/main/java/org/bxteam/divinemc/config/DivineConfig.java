@@ -898,6 +898,7 @@ public class DivineConfig {
         public static String noChatReportsDisconnectDemandOnClientMessage = "You do not have No Chat Reports, and this server is configured to require it on client!";
 
         // Protocols
+        public static boolean protocolsStrictMode = false;
         public static boolean protocolsAppleSkinEnabled = false;
         public static int protocolsAppleSkinSyncTickInterval = 20;
         public static boolean protocolsJadeEnabled = false;
@@ -965,6 +966,8 @@ public class DivineConfig {
         }
 
         private static void protocols() {
+            protocolsStrictMode = getBoolean(ConfigCategory.NETWORK.key("protocols.strict-mode"), protocolsStrictMode);
+
             // AppleSkin
             protocolsAppleSkinEnabled = getBoolean(ConfigCategory.NETWORK.key("protocols.appleskin.appleskin-enable"), protocolsAppleSkinEnabled,
                 "Enables AppleSkin protocol support");

@@ -31,7 +31,7 @@ index 439e2663a297029efc77adef9e8d99a0d8c02f41..b2a42bf642d80df6fb02e2e2e72da585
  
      @Override
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 1862df44a3319e459b547cebffb16972674856d6..c8f1a7b0cb0b06bdfbd5cc4b03753342cc7a0f5f 100644
+index 975ece253a047204506448453ac86631edbfd463..b608c8f3dd165f96154193cb7af82a5ab84f8fbd 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -67,36 +67,31 @@ public class Main {
@@ -92,7 +92,7 @@ index 1862df44a3319e459b547cebffb16972674856d6..c8f1a7b0cb0b06bdfbd5cc4b03753342
              Path pidFilePath = (Path) options.valueOf("pidFile"); // CraftBukkit
              if (pidFilePath != null) {
                  writePidFile(pidFilePath);
-@@ -128,8 +123,6 @@ public class Main {
+@@ -137,8 +132,6 @@ public class Main {
              }
              // Paper end
              RegionFileVersion.configure(settings.getProperties().regionFileComression);
@@ -101,7 +101,7 @@ index 1862df44a3319e459b547cebffb16972674856d6..c8f1a7b0cb0b06bdfbd5cc4b03753342
              // Paper start - load config files early for access below if needed
              org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("bukkit-settings"));
              org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("spigot-settings"));
-@@ -148,19 +141,7 @@ public class Main {
+@@ -157,19 +150,7 @@ public class Main {
                  commandsConfiguration.setDefaults(org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(Main.class.getClassLoader().getResourceAsStream("configurations/commands.yml"), java.nio.charset.StandardCharsets.UTF_8)));
                  commandsConfiguration.save(commandFile);
                  // CraftBukkit end
@@ -123,7 +123,7 @@ index 1862df44a3319e459b547cebffb16972674856d6..c8f1a7b0cb0b06bdfbd5cc4b03753342
              }
  
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index b2862875e430a3a3c6c196999273b984911e4a80..18159ad14f72479f303ca9988e1a848b33062695 100644
+index d9d3443f37c8d0ace131c16be8ee8b8c0965145c..3db9ba7fff996a07c6d6a2845a464a1f0344c456 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1287,6 +1287,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa

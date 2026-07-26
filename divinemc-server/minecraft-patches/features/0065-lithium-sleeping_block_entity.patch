@@ -71,10 +71,10 @@ index f2c5a6ce769d8a5fdb4b836eae6a61a4da91cb3f..bde40b2c2d9a9fd8f4000a0c3dee7d5b
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 17dc7a1948db6471c80bf90e8a05998f48f339d4..8b55123a58606548fe39f8539bcaa9a759e0c17b 100644
+index 249f065cb642a48b9a3b4d43fe8824e36e9eac21..64b5799078eb5aad64183b6763309da9aee3ad71 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2671,6 +2671,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2672,6 +2672,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
          for (TickingBlockEntity ticker : this.blockEntityTickers) {
              BlockPos blockPos = ticker.getPos();
@@ -96,10 +96,10 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 1727b68ca37cc33261d61f7c20a63fc30902e0c9..6db16cc5eaebd773d0c405fac1fe00336ed542dc 100644
+index a24149748ac98fa3471dbdf66b5df0403f98f13e..fa85dd76e1cb92b4abcf29f2e01bf7faa5a702ac 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5155,6 +5155,18 @@ public abstract class Entity
+@@ -5145,6 +5145,18 @@ public abstract class Entity
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box
@@ -417,10 +417,10 @@ index c9f2155c4bb788f5e2304794e162d5322a287eee..6ea0d37320b990a5978603f99a9b639b
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index e3869eaac773a0c70c831d21bccd4d18f7bafb57..691e7992fb0155d9981dafd68b8421133f487d60 100644
+index 18bcd275208cef257ef3621307707216d281b20c..e39469d9876eee9ea571a8fc08bff3098a1b76dd 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1573,7 +1573,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1578,7 +1578,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              while (scanIndex < this.blockEntityTickers.size()) {
                  final TickingBlockEntity ticker = this.blockEntityTickers.get(scanIndex);
                  if (!ticker.isRemoved()) {
@@ -429,7 +429,7 @@ index e3869eaac773a0c70c831d21bccd4d18f7bafb57..691e7992fb0155d9981dafd68b842113
                          ticker.tick();
                          // DivineMC start - Parallel world ticking
                          ++tickedEntities;
-@@ -2317,4 +2317,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2322,4 +2322,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option
@@ -2366,7 +2366,7 @@ index 22cc900443644a65be570319779c536f6bee6e46..f99d9cf2ce3c950b30a01d4eb45633f7
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 90e6c1f2c01a69d3cae207c6c46d4ded9a657672..2d5bddf72196c6cd8c649cd44d4e2af648ecc68d 100644
+index cccfd67d2edb14e8584cba20b5b23598c1414273..823f273a2093a574cb7bb0b6d36a4c432fd3002b 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -922,10 +922,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

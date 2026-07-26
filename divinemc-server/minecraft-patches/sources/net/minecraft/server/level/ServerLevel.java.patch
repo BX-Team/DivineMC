@@ -15,7 +15,7 @@
          }
  
          return id;
-@@ -969,9 +_,10 @@
+@@ -981,9 +_,10 @@
      // Paper start - optimise random ticking
      private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
  
@@ -27,7 +27,7 @@
          final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
          final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
  
-@@ -980,42 +_,38 @@
+@@ -992,42 +_,38 @@
          final int offsetZ = cpos.z() << 4;
  
          for (int sectionIndex = 0, sectionsLen = sections.length; sectionIndex < sectionsLen; sectionIndex++) {
@@ -35,7 +35,7 @@
              final LevelChunkSection section = sections[sectionIndex];
 +            if (!section.isRandomlyTickingBlocks()) continue;
 +            final int offsetY = (sectionIndex + minSection) << 4;
-             final net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> states = section.states;
+             final net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> states = section.getStates();
 -            if (!section.isRandomlyTickingBlocks()) {
 -                continue;
 -            }

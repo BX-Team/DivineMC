@@ -5,10 +5,10 @@ Subject: [PATCH] Disable leaf decay
 
 
 diff --git a/net/minecraft/world/level/block/LeavesBlock.java b/net/minecraft/world/level/block/LeavesBlock.java
-index 2b8a06e55cb7395764159545f9fe1c1151f7b6e7..7d2c0b3773313ad2b5080e2a385915e1c0bbc8f2 100644
+index 0584467d66198dfb5efc1e68c97133882771f2de..fbcb55e8134a9faca597dd7191615e41a11878f5 100644
 --- a/net/minecraft/world/level/block/LeavesBlock.java
 +++ b/net/minecraft/world/level/block/LeavesBlock.java
-@@ -80,12 +80,29 @@ public abstract class LeavesBlock extends Block implements SimpleWaterloggedBloc
+@@ -86,13 +86,33 @@ public abstract class LeavesBlock extends Block implements SimpleWaterloggedBloc
      }
  
      protected boolean decaying(final BlockState state) {
@@ -19,8 +19,9 @@ index 2b8a06e55cb7395764159545f9fe1c1151f7b6e7..7d2c0b3773313ad2b5080e2a385915e1
      @Override
      protected void tick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
 -        level.setBlock(pos, updateDistance(state, level, pos), Block.UPDATE_ALL);
+-        if (level.purpurConfig.leavesInstantDecay) checkDecay(state, level, pos, random); // Purpur - Instant leaves decay
 +        // DivineMC start - Disable leaf decay
-+        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.disableLeafDecay) return; // DivineMC - Disable leaf decay
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.disableLeafDecay) return;
 +        int newValue = 7;
 +        int oldValue = state.getValue(DISTANCE);
 +        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
@@ -33,10 +34,14 @@ index 2b8a06e55cb7395764159545f9fe1c1151f7b6e7..7d2c0b3773313ad2b5080e2a385915e1
 +            }
 +        }
 +
++        BlockState newState = state;
 +        if (newValue != oldValue) {
-+            level.setBlock(pos, state.setValue(DISTANCE, newValue), Block.UPDATE_ALL);
++            newState = state.setValue(DISTANCE, newValue);
++            level.setBlock(pos, newState, Block.UPDATE_ALL);
 +        }
 +        // DivineMC end - Disable leaf decay
++
++        if (level.purpurConfig.leavesInstantDecay) checkDecay(newState, level, pos, random); // Purpur - Instant leaves decay // DivineMC - Disable leaf decay - use newState
      }
  
      @Override

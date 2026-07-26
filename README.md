@@ -17,7 +17,8 @@ DivineMC is a multi-functional fork of [Purpur](https://github.com/PurpurMC/Purp
 - **Parallel World Ticking** - Leverage multiple CPU cores for world processing
 - **Parallel Sensor Phase** - Run the expensive read-only part of mob AI (entity scans, line-of-sight checks) on a thread pool
 - **Async Operations** - Pathfinding, entity tracker, mob spawning, joining, chunk sending and portal pre-loading
-- **Secure Seed** - Enhanced 1024-bit seed system (vs standard 64-bit) for maximum security 
+- **Raytrace Entity Culling** - Stops sending entities a player provably cannot see, saving bandwidth and blinding entity-ESP cheats
+- **Secure Seed** - Enhanced 1024-bit seed system (vs standard 64-bit) for maximum security
 - **Linear Region File Format** - Optimize your world with the old V1/V2 linear format and the new Buffered format
 - **Mod Protocols Support** - Compatible with Syncmatica, Apple Skin, Jade and Xaero's Map
 - **Fully Compatible** - Works seamlessly with Bukkit, Spigot and Paper plugins

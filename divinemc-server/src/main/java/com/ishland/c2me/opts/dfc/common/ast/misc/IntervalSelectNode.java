@@ -1,56 +1,51 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2021-2026 ishland
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package com.ishland.c2me.opts.dfc.common.ast.misc;
 
 import com.ishland.c2me.opts.dfc.common.ast.AstNode;
 import com.ishland.c2me.opts.dfc.common.ast.AstTransformer;
-import com.ishland.c2me.opts.dfc.common.ast.EvalType;
-import com.ishland.c2me.opts.dfc.common.gen.BytecodeGen;
+
 import java.util.Arrays;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.InstructionAdapter;
+import java.util.Objects;
 
 public class IntervalSelectNode implements AstNode {
+
     public final AstNode input;
     public final double[] thresholds;
     public final AstNode[] functions;
 
     public IntervalSelectNode(AstNode input, double[] thresholds, AstNode[] functions) {
-        this.input = input;
-        this.thresholds = thresholds;
-        this.functions = functions;
-    }
-
-    public double evalSingle(int x, int y, int z, EvalType type) {
-        double v = this.input.evalSingle(x, y, z, type);
-
-        for(int i = 0; i < this.thresholds.length; ++i) {
-            if (v < this.thresholds[i]) {
-                return this.functions[i].evalSingle(x, y, z, type);
-            }
+        this.input = Objects.requireNonNull(input);
+        this.thresholds = Objects.requireNonNull(thresholds);
+        this.functions = Objects.requireNonNull(functions);
+        if (functions.length != thresholds.length + 1) {
+            throw new IllegalArgumentException("functions.length must be thresholds.length + 1");
         }
-
-        return this.functions[this.functions.length - 1].evalSingle(x, y, z, type);
     }
 
-    public void evalMulti(double[] res, int[] x, int[] y, int[] z, EvalType type) {
-        this.input.evalMulti(res, x, y, z, type);
-
-        for(int i = 0; i < res.length; ++i) {
-            res[i] = this.evalIndexed(res[i], x[i], y[i], z[i], type);
-        }
-
-    }
-
-    private double evalIndexed(double v, int x, int y, int z, EvalType type) {
-        for(int i = 0; i < this.thresholds.length; ++i) {
-            if (v < this.thresholds[i]) {
-                return this.functions[i].evalSingle(x, y, z, type);
-            }
-        }
-
-        return this.functions[this.functions.length - 1].evalSingle(x, y, z, type);
-    }
-
+    @Override
     public AstNode[] getChildren() {
         AstNode[] nodes = new AstNode[this.functions.length + 1];
         nodes[0] = this.input;
@@ -58,6 +53,7 @@ public class IntervalSelectNode implements AstNode {
         return nodes;
     }
 
+    @Override
     public AstNode transform(AstTransformer transformer) {
         boolean changed = false;
         AstNode transformedInput = this.input.transform(transformer);
@@ -65,9 +61,8 @@ public class IntervalSelectNode implements AstNode {
             changed = true;
         }
 
-        AstNode[] transformedFunctions = (AstNode[])this.functions.clone();
-
-        for(int i = 0; i < transformedFunctions.length; ++i) {
+        AstNode[] transformedFunctions = this.functions.clone();
+        for (int i = 0; i < transformedFunctions.length; i++) {
             AstNode transformedFunction = transformedFunctions[i];
             transformedFunctions[i] = transformedFunction.transform(transformer);
             if (transformedFunctions[i] != transformedFunction) {
@@ -75,97 +70,60 @@ public class IntervalSelectNode implements AstNode {
             }
         }
 
-        return !changed ? transformer.transform(this) : transformer.transform(new IntervalSelectNode(transformedInput, (double[])this.thresholds.clone(), transformedFunctions));
+        return !changed
+                ? transformer.transform(this)
+                : transformer.transform(new IntervalSelectNode(transformedInput, this.thresholds.clone(), transformedFunctions));
     }
 
-    public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String inputMethod = context.newSingleMethod(this.input);
-        Label endLabel = new Label();
-        context.callDelegateSingle(m, inputMethod);
-        String[] delegates = Arrays.stream(this.functions).map(context::newSingleMethod).toArray(String[]::new);
-        genBinarySearch(this.thresholds, delegates, context, m, endLabel, 0, this.thresholds.length);
-        m.visitLabel(endLabel);
-        m.areturn(Type.DOUBLE_TYPE);
-    }
-
-    private static void genBinarySearch(double[] thresholds, String[] delegates, BytecodeGen.Context context, InstructionAdapter m, Label endLabel, int fromIndex, int toIndex) {
-        int mid = fromIndex + toIndex - 1 >>> 1;
-        double midVal = thresholds[mid];
-        Label geLabel = new Label();
-        m.dup2();
-        m.dconst(midVal);
-        m.cmpg(Type.DOUBLE_TYPE);
-        m.ifge(geLabel);
-        if (fromIndex == mid) {
-            m.pop2();
-            context.callDelegateSingle(m, delegates[fromIndex]);
-            m.goTo(endLabel);
-        } else {
-            genBinarySearch(thresholds, delegates, context, m, endLabel, fromIndex, mid);
-        }
-
-        m.visitLabel(geLabel);
-        if (mid + 1 == toIndex) {
-            m.pop2();
-            context.callDelegateSingle(m, delegates[toIndex]);
-            m.goTo(endLabel);
-        } else {
-            genBinarySearch(thresholds, delegates, context, m, endLabel, mid + 1, toIndex);
-        }
-
-    }
-
-    public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        context.delegateToSingle(m, localVarConsumer, this);
-        m.areturn(Type.VOID_TYPE);
-    }
-
+    @Override
     public boolean equals(Object o) {
-        if (o != null && this.getClass() == o.getClass()) {
-            IntervalSelectNode that = (IntervalSelectNode)o;
-            return this.input.equals(that.input) && Arrays.equals(this.thresholds, that.thresholds) && Arrays.equals(this.functions, that.functions);
-        } else {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        IntervalSelectNode that = (IntervalSelectNode) o;
+        return this.input.equals(that.input)
+                && Arrays.equals(this.thresholds, that.thresholds)
+                && Arrays.equals(this.functions, that.functions);
     }
 
+    @Override
     public int hashCode() {
         int result = 1;
+
         result = 31 * result + this.getClass().hashCode();
         result = 31 * result + this.input.hashCode();
         result = 31 * result + Arrays.hashCode(this.thresholds);
         result = 31 * result + Arrays.hashCode(this.functions);
+
         return result;
     }
 
+    @Override
     public boolean relaxedEquals(AstNode o) {
-        if (o != null && this.getClass() == o.getClass()) {
-            IntervalSelectNode that = (IntervalSelectNode)o;
-            if (!this.input.relaxedEquals(that.input) || !Arrays.equals(this.thresholds, that.thresholds)) {
-                return false;
-            } else if (this.functions.length != that.functions.length) {
-                return false;
-            } else {
-                for(int i = 0; i < this.functions.length; ++i) {
-                    if (!this.functions[i].relaxedEquals(that.functions[i])) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-        } else {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        IntervalSelectNode that = (IntervalSelectNode) o;
+        if (!this.input.relaxedEquals(that.input) || !Arrays.equals(this.thresholds, that.thresholds)) {
             return false;
         }
+        if (this.functions.length != that.functions.length) {
+            return false;
+        }
+        for (int i = 0; i < this.functions.length; i++) {
+            if (!this.functions[i].relaxedEquals(that.functions[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
+    @Override
     public int relaxedHashCode() {
         int result = 1;
+
         result = 31 * result + this.getClass().hashCode();
         result = 31 * result + this.input.relaxedHashCode();
         result = 31 * result + Arrays.hashCode(this.thresholds);
-
-        for(AstNode function : this.functions) {
+        for (AstNode function : this.functions) {
             result = 31 * result + function.relaxedHashCode();
         }
 

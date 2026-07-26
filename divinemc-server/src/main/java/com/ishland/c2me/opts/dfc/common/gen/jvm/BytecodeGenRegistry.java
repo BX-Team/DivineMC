@@ -32,6 +32,7 @@ import com.ishland.c2me.opts.dfc.common.ast.misc.CoordinateNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.DelegateNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.EndIslandsNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.InterpolatedNoiseSamplerNode;
+import com.ishland.c2me.opts.dfc.common.ast.misc.IntervalSelectNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.RangeChoiceNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.RootNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.YClampedGradientNode;
@@ -45,6 +46,7 @@ import com.ishland.c2me.opts.dfc.common.gen.jvm.emitters.misc.ConstantNodeByteco
 import com.ishland.c2me.opts.dfc.common.gen.jvm.emitters.misc.CoordinateNodeBytecodeEmitter;
 import com.ishland.c2me.opts.dfc.common.gen.jvm.emitters.misc.DelegateNodeBytecodeEmitter;
 import com.ishland.c2me.opts.dfc.common.gen.jvm.emitters.misc.GenericShiftedNoiseNodeBytecodeEmitter;
+import com.ishland.c2me.opts.dfc.common.gen.jvm.emitters.misc.IntervalSelectNodeBytecodeEmitter;
 import com.ishland.c2me.opts.dfc.common.gen.jvm.emitters.misc.RangeChoiceNodeBytecodeEmitter;
 import com.ishland.c2me.opts.dfc.common.gen.jvm.emitters.misc.RootNodeBytecodeEmitter;
 import com.ishland.c2me.opts.dfc.common.gen.jvm.emitters.misc.SplineAstNodeBytecodeEmitter;
@@ -67,7 +69,7 @@ public class BytecodeGenRegistry {
         REGISTRY.registerExactMatch(RangeChoiceNode.class, RangeChoiceNodeBytecodeEmitter.INSTANCE);
         REGISTRY.registerExactMatch(RootNode.class, RootNodeBytecodeEmitter.INSTANCE);
         REGISTRY.registerExactMatch(YClampedGradientNode.class, YClampedGradientNodeBytecodeEmitter.INSTANCE);
-        // DivineMC - 26.1.2: no IntervalSelect density function (WeirdScaledSampler uses DelegateNode)
+        REGISTRY.registerExactMatch(IntervalSelectNode.class, IntervalSelectNodeBytecodeEmitter.INSTANCE); // DivineMC - 26.2: IntervalSelect replaces WeirdScaledSampler
         REGISTRY.registerExactMatch(SplineAstNode.class, SplineAstNodeBytecodeEmitter.INSTANCE);
 
         REGISTRY.registerExactMatch(DelegateNode.class, DelegateNodeBytecodeEmitter.instance());

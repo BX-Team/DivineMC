@@ -9,10 +9,10 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index c8f1a7b0cb0b06bdfbd5cc4b03753342cc7a0f5f..346ef78387aa0852bf02e1d606a81c9590d07285 100644
+index b608c8f3dd165f96154193cb7af82a5ab84f8fbd..4ddf7649872676c031eecbe5e9cd21388b51ccab 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -109,6 +109,26 @@ public class Main {
+@@ -112,6 +112,26 @@ public class Main {
              org.purpurmc.purpur.PurpurConfig.registerMinecraftDisabledCommands = purpurConfiguration.getBoolean("settings.register-minecraft-disabled-commands"); // Purpur - register disabled minecraft commands
              // Purpur end - Add toggle for enchant level clamping - load config files early
  
@@ -40,10 +40,10 @@ index c8f1a7b0cb0b06bdfbd5cc4b03753342cc7a0f5f..346ef78387aa0852bf02e1d606a81c95
              Bootstrap.bootStrap();
              Bootstrap.validate();
 diff --git a/net/minecraft/world/level/levelgen/DensityFunctions.java b/net/minecraft/world/level/levelgen/DensityFunctions.java
-index 36439c7812de847651ff6964cc121baaa3e7fa76..933a02b72f867e430717443affff9eabba44f6ee 100644
+index f1747cabca96f5ca47b985afab1fef68e1b3589b..e10a0e2d10fec6b02e43a94e99fd5aaa08a34907 100644
 --- a/net/minecraft/world/level/levelgen/DensityFunctions.java
 +++ b/net/minecraft/world/level/levelgen/DensityFunctions.java
-@@ -1017,6 +1017,30 @@ public final class DensityFunctions {
+@@ -1070,6 +1070,30 @@ public final class DensityFunctions {
  
          @Override
          public void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
@@ -74,7 +74,7 @@ index 36439c7812de847651ff6964cc121baaa3e7fa76..933a02b72f867e430717443affff9eab
              contextProvider.fillAllDirectly(output, this);
          }
  
-@@ -1130,6 +1154,16 @@ public final class DensityFunctions {
+@@ -1181,6 +1205,16 @@ public final class DensityFunctions {
              return this.compute(context.blockX(), context.blockY(), context.blockZ());
          }
  
@@ -89,9 +89,9 @@ index 36439c7812de847651ff6964cc121baaa3e7fa76..933a02b72f867e430717443affff9eab
 +        // DivineMC end - C2ME: native math optimization
 +
          @Override
-         public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
-             return visitor.apply(new DensityFunctions.Shift(visitor.visitNoise(this.offsetNoise)));
-@@ -1151,6 +1185,16 @@ public final class DensityFunctions {
+         public DensityFunction mapChildren(final DensityFunction.Visitor visitor) {
+             return new DensityFunctions.Shift(visitor.visitNoise(this.offsetNoise));
+@@ -1202,6 +1236,16 @@ public final class DensityFunctions {
              return this.compute(context.blockX(), 0.0, context.blockZ());
          }
  
@@ -106,9 +106,9 @@ index 36439c7812de847651ff6964cc121baaa3e7fa76..933a02b72f867e430717443affff9eab
 +        // DivineMC end - C2ME: native math optimization
 +
          @Override
-         public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
-             return visitor.apply(new DensityFunctions.ShiftA(visitor.visitNoise(this.offsetNoise)));
-@@ -1172,6 +1216,16 @@ public final class DensityFunctions {
+         public DensityFunction mapChildren(final DensityFunction.Visitor visitor) {
+             return new DensityFunctions.ShiftA(visitor.visitNoise(this.offsetNoise));
+@@ -1223,6 +1267,16 @@ public final class DensityFunctions {
              return this.compute(context.blockZ(), context.blockX(), 0.0);
          }
  
@@ -123,9 +123,9 @@ index 36439c7812de847651ff6964cc121baaa3e7fa76..933a02b72f867e430717443affff9eab
 +        // DivineMC end - C2ME: native math optimization
 +
          @Override
-         public DensityFunction mapAll(final DensityFunction.Visitor visitor) {
-             return visitor.apply(new DensityFunctions.ShiftB(visitor.visitNoise(this.offsetNoise)));
-@@ -1204,6 +1258,51 @@ public final class DensityFunctions {
+         public DensityFunction mapChildren(final DensityFunction.Visitor visitor) {
+             return new DensityFunctions.ShiftB(visitor.visitNoise(this.offsetNoise));
+@@ -1255,6 +1309,51 @@ public final class DensityFunctions {
          default void fillArray(final double[] output, final DensityFunction.ContextProvider contextProvider) {
              contextProvider.fillAllDirectly(output, this);
          }

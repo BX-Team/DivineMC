@@ -10,10 +10,10 @@ improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
 cannot see mobs, players or items through walls anymore).
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 08fad31bc0b3f79e5700eccb7baa43e75774fa87..bcac2b10e0efcdec60bc56648abc1e8fc8d9289d 100644
+index 18c98b0aae4a941251ce1e0b140701ab8c84a843..325996aaaf2c566f8ecfc79b3c9933c88b6817fe 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1489,6 +1489,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1493,6 +1493,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                  && this.entity.broadcastToPlayer(player)
                  && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
              // Paper end - Configurable entity tracking range by Y
@@ -22,10 +22,10 @@ index 08fad31bc0b3f79e5700eccb7baa43e75774fa87..bcac2b10e0efcdec60bc56648abc1e8f
              if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
                  visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 2faceab5b07a1225b9f59cdd48b47e1718d5d353..bb59aadabec58ac47c1a694402655af4d29cba2b 100644
+index f3aa83c6375dd42073ffbcb9414e45e9750c7967..e9db74e8d676652574d99ad8556c05a383e8bb79 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -433,6 +433,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -439,6 +439,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
      public boolean suppressTrackerForLogin = false; // Paper - Fire PlayerJoinEvent when Player is actually ready
      // CraftBukkit end
      public boolean isRealPlayer; // Paper
@@ -33,19 +33,19 @@ index 2faceab5b07a1225b9f59cdd48b47e1718d5d353..bb59aadabec58ac47c1a694402655af4
      public com.destroystokyo.paper.event.entity.@Nullable PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
      public org.bukkit.event.player.PlayerQuitEvent.@Nullable QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
      private boolean tpsBar = false; // Purpur - Implement TPSBar
-@@ -825,6 +826,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -824,6 +825,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
  
      public void doTick() {
          try {
 +            org.bxteam.divinemc.culling.EntityCullingManager.tickPlayer(this); // DivineMC - Raytrace Entity Culling
-             if (valid && !this.isSpectator() || !this.touchingUnloadedChunk()) { // Paper - don't tick dead players that are not in the world currently (pending respawn)
+             if (this.valid && (!this.isSpectator() || !this.touchingUnloadedChunk())) { // Paper - don't tick dead players that are not in the world currently (pending respawn)
                  super.tick();
                  if (!this.containerMenu.stillValid(this)) {
 diff --git a/net/minecraft/world/entity/EntityType.java b/net/minecraft/world/entity/EntityType.java
-index 854b08372687d578e90e8bfc6fa6d06f70775f7b..0ebc7d38224bcc8bc4cd5891e28e49b37aa83a0b 100644
+index 1461bafd3f2bac631e63cd3e0b0ef97c575a9c0d..b649b087b05ec326e73a5eade14bb2805de961ee 100644
 --- a/net/minecraft/world/entity/EntityType.java
 +++ b/net/minecraft/world/entity/EntityType.java
-@@ -1219,6 +1219,7 @@ public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>,
+@@ -67,6 +67,7 @@ public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>,
      private final int clientTrackingRange;
      private final int updateInterval;
      public boolean dabEnabled = false; // DivineMC - Dynamic Activation of Brain
@@ -54,12 +54,12 @@ index 854b08372687d578e90e8bfc6fa6d06f70775f7b..0ebc7d38224bcc8bc4cd5891e28e49b3
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 691e7992fb0155d9981dafd68b8421133f487d60..cf1f38bb8482855f194a643664d3085bb39adbe2 100644
+index e39469d9876eee9ea571a8fc08bff3098a1b76dd..c1399dd75c8f6ff2e530ca7831fbfefeab98d4ea 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1164,6 +1164,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-             }
-             // DivineMC end - Imanity: Raytrace AntiXraySDK integration
+@@ -1168,6 +1168,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         }
+         // DivineMC end - Imanity: Raytrace AntiXraySDK integration
          this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
 +        org.bxteam.divinemc.culling.EntityCullingManager.onBlockChange(this, pos); // DivineMC - Raytrace Entity Culling
          if (oldState == null) {

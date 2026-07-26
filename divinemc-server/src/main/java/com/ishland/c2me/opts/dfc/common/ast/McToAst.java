@@ -38,6 +38,7 @@ import com.ishland.c2me.opts.dfc.common.ast.misc.CoordinateNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.DelegateNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.EndIslandsNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.InterpolatedNoiseSamplerNode;
+import com.ishland.c2me.opts.dfc.common.ast.misc.IntervalSelectNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.RangeChoiceNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.YClampedGradientNode;
 import com.ishland.c2me.opts.dfc.common.ast.noise.GenericShiftedNoiseNode;
@@ -113,15 +114,16 @@ public class McToAst {
         });
         REGISTRY.registerExactMatch(DensityFunctions.RangeChoice.class, f -> new RangeChoiceNode(toAst(f.input()), f.minInclusive(), f.maxExclusive(), toAst(f.whenInRange()), toAst(f.whenOutOfRange())));
 
-        // DivineMC - 26.1.2: BlendDensity is a separate record, not a Marker type; with blending
-        // disabled (the only case DFC compiles) it is an identity transform, so erase it to its input
-        REGISTRY.registerExactMatch(DensityFunctions.BlendDensity.class, f -> toAst(f.input()));
-
         {
             AstEmitter<? extends IFastCacheLike> emitter = f -> {
                 return new CacheLikeNode(f, toAst(f.c2me$getDelegate()));
             };
-            REGISTRY.registerExactMatch(DensityFunctions.Marker.class, (AstEmitter<DensityFunctions.Marker>) (Object) emitter);
+            // DivineMC - 26.2: BlendDensity is a Marker type rather than a separate record; with blending
+            // disabled (the only case DFC compiles) it is an identity transform, so erase it to its input
+            REGISTRY.registerExactMatch(DensityFunctions.Marker.class, (AstEmitter<DensityFunctions.Marker>) f ->
+                f.type() == DensityFunctions.Marker.Type.BlendDensity
+                    ? toAst(f.wrapped())
+                    : new CacheLikeNode(f, toAst(f.c2me$getDelegate())));
             REGISTRY.registerExactMatch(NoiseChunk.Cache2D.class, (AstEmitter<NoiseChunk.Cache2D>) (Object) emitter);
             REGISTRY.registerExactMatch(NoiseChunk.CacheOnce.class, (AstEmitter<NoiseChunk.CacheOnce>) (Object) emitter);
             REGISTRY.registerExactMatch(NoiseChunk.NoiseInterpolator.class, (AstEmitter<NoiseChunk.NoiseInterpolator>) (Object) emitter);
@@ -178,7 +180,12 @@ public class McToAst {
             );
         });
         REGISTRY.registerExactMatch(DensityFunctions.YClampedGradient.class, f -> new YClampedGradientNode(f.fromY(), f.toY(), f.fromValue(), f.toValue()));
-        // DivineMC - 26.1.2: no IntervalSelect (WeirdScaledSampler falls back to DelegateNode) and no FindTopSurface
+        // DivineMC - 26.2: IntervalSelect replaces WeirdScaledSampler; no FindTopSurface
+        REGISTRY.registerExactMatch(DensityFunctions.IntervalSelect.class, f -> new IntervalSelectNode(
+                toAst(f.input()),
+                f.thresholds().toDoubleArray(),
+                f.functions().stream().map(McToAst::toAst).toArray(AstNode[]::new)
+        ));
         REGISTRY.registerExactMatch(DensityFunctions.Spline.class, f -> new SplineAstNode(f.spline()));
 
         // delegate nodes that have specialized OpenCL gen

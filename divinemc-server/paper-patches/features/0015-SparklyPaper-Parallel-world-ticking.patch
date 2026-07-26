@@ -250,10 +250,10 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 7fae4c7ff45f6e8ce2dbb8a2adb13ccc7a985bd2..efd1135d40c0592bfd21d020da56bc6c5c43f65a 100644
+index 8b0dfedb8c92cc6668fbab8a37040de367f1ec7a..317a6277008f1e511357dbd2075eda7cfa2420fb 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -3066,4 +3066,11 @@ public final class CraftServer implements Server {
+@@ -3065,4 +3065,11 @@ public final class CraftServer implements Server {
          return getServer().lagging;
      }
      // Purpur end - Lagging threshold

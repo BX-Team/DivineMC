@@ -3,15 +3,15 @@ package org.leavesmc.leaves.protocol.jade.provider.entity;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.entity.animal.armadillo.Armadillo;
+import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.entity.animal.sniffer.Sniffer;
 import org.jetbrains.annotations.NotNull;
 import org.leavesmc.leaves.protocol.jade.JadeProtocol;
 import org.leavesmc.leaves.protocol.jade.accessor.EntityAccessor;
-import org.leavesmc.leaves.protocol.jade.provider.IServerDataProvider;
+import org.leavesmc.leaves.protocol.jade.provider.ServerDataProvider;
 
-public enum NextEntityDropProvider implements IServerDataProvider<EntityAccessor> {
+public enum NextEntityDropProvider implements ServerDataProvider<EntityAccessor> {
     INSTANCE;
 
     private static final Identifier MC_NEXT_ENTITY_DROP = JadeProtocol.mc_id("next_entity_drop");

@@ -38,15 +38,15 @@ import java.util.Map;
 
 public class SplineAstNode implements AstNode {
 
-    public final CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline;
+    public final CubicSpline<DensityFunctions.Spline.Coordinate> spline;
     public final Reference2ReferenceOpenHashMap<DensityFunctions.Spline.Coordinate, AstNode> children = new Reference2ReferenceOpenHashMap<>();
 
-    public SplineAstNode(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline) {
+    public SplineAstNode(CubicSpline<DensityFunctions.Spline.Coordinate> spline) {
         this.spline = spline;
         this.populateChildrenMap(this.spline);
     }
 
-    private SplineAstNode(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline, Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> children) {
+    private SplineAstNode(CubicSpline<DensityFunctions.Spline.Coordinate> spline, Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> children) {
         this.spline = spline;
         this.children.putAll(children);
     }
@@ -75,11 +75,11 @@ public class SplineAstNode implements AstNode {
         }
     }
 
-    public static AstNode needOptimizeSameLocationFunction(SplineAstNode node, CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate>... splines) {
+    public static AstNode needOptimizeSameLocationFunction(SplineAstNode node, CubicSpline<DensityFunctions.Spline.Coordinate>... splines) {
         if (splines.length == 0) return null;
 
         AstNode a1Ast;
-        if (splines[0] instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline0) {
+        if (splines[0] instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> spline0) {
             a1Ast = node.children.get(spline0.coordinate());
             if (a1Ast instanceof ConstantNode) {
                 return null;
@@ -89,8 +89,8 @@ public class SplineAstNode implements AstNode {
         }
 
         for (int i = 1, splinesLength = splines.length; i < splinesLength; i++) {
-            CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b = splines[i];
-            if (b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
+            CubicSpline<DensityFunctions.Spline.Coordinate> b = splines[i];
+            if (b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> b1) {
                 AstNode b1Ast = node.children.get(b1.coordinate());
                 if (!a1Ast.equals(b1Ast)) {
                     return null;
@@ -103,25 +103,25 @@ public class SplineAstNode implements AstNode {
         return a1Ast;
     }
 
-    private void populateChildrenMap(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a) {
-        if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
-            for (CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline : a1.values()) {
+    private void populateChildrenMap(CubicSpline<DensityFunctions.Spline.Coordinate> a) {
+        if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1) {
+            for (CubicSpline<DensityFunctions.Spline.Coordinate> spline : a1.values()) {
                 populateChildrenMap(spline);
             }
             DensityFunctions.Spline.Coordinate locationFunction = a1.coordinate();
-            this.children.put(locationFunction, McToAst.toAst(locationFunction.function().value()));
+            this.children.put(locationFunction, McToAst.toAst(locationFunction.function()));
         }
     }
 
-    private static boolean deepEquals(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a,
+    private static boolean deepEquals(CubicSpline<DensityFunctions.Spline.Coordinate> a,
                                       Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> childrenA,
-                                      CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b,
+                                      CubicSpline<DensityFunctions.Spline.Coordinate> b,
                                       Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> childrenB) {
-        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1 &&
-                b instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
+        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> a1 &&
+                b instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> b1) {
             return a1.value() == b1.value();
-        } else if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1 &&
-                b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
+        } else if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1 &&
+                b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> b1) {
             boolean equals1 = Arrays.equals(a1.derivatives(), b1.derivatives()) &&
                     Arrays.equals(a1.locations(), b1.locations()) &&
                     a1.values().size() == b1.values().size() &&
@@ -140,15 +140,15 @@ public class SplineAstNode implements AstNode {
         }
     }
 
-    private static boolean deepRelaxedEquals(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a,
+    private static boolean deepRelaxedEquals(CubicSpline<DensityFunctions.Spline.Coordinate> a,
                                              Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> childrenA,
-                                             CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b,
+                                             CubicSpline<DensityFunctions.Spline.Coordinate> b,
                                              Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> childrenB) {
-        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1 &&
-                b instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
+        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> a1 &&
+                b instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> b1) {
             return a1.value() == b1.value();
-        } else if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1 &&
-                b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> b1) {
+        } else if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1 &&
+                b instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> b1) {
             boolean equals1 = Arrays.equals(a1.derivatives(), b1.derivatives()) &&
                     Arrays.equals(a1.locations(), b1.locations()) &&
                     a1.values().size() == b1.values().size() &&
@@ -167,15 +167,15 @@ public class SplineAstNode implements AstNode {
         }
     }
 
-    private static int deepHashcode(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a, Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> childrenA) {
-        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
+    private static int deepHashcode(CubicSpline<DensityFunctions.Spline.Coordinate> a, Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> childrenA) {
+        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> a1) {
             return Float.hashCode(a1.value());
-        } else if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
+        } else if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1) {
             int result = 1;
 
             result = 31 * result + Arrays.hashCode(a1.derivatives());
             result = 31 * result + Arrays.hashCode(a1.locations());
-            for (CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline : a1.values()) {
+            for (CubicSpline<DensityFunctions.Spline.Coordinate> spline : a1.values()) {
                 result = 31 * result + deepHashcode(spline, childrenA);
             }
             result = 31 * result + childrenA.get(a1.coordinate()).hashCode();
@@ -186,15 +186,15 @@ public class SplineAstNode implements AstNode {
         }
     }
 
-    private static int deepRelaxedHashcode(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a, Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> childrenA) {
-        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
+    private static int deepRelaxedHashcode(CubicSpline<DensityFunctions.Spline.Coordinate> a, Reference2ReferenceMap<DensityFunctions.Spline.Coordinate, AstNode> childrenA) {
+        if (a instanceof CubicSpline.Constant<DensityFunctions.Spline.Coordinate> a1) {
             return Float.hashCode(a1.value());
-        } else if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> a1) {
+        } else if (a instanceof CubicSpline.Multipoint<DensityFunctions.Spline.Coordinate> a1) {
             int result = 1;
 
             result = 31 * result + Arrays.hashCode(a1.derivatives());
             result = 31 * result + Arrays.hashCode(a1.locations());
-            for (CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline : a1.values()) {
+            for (CubicSpline<DensityFunctions.Spline.Coordinate> spline : a1.values()) {
                 result = 31 * result + deepRelaxedHashcode(spline, childrenA);
             }
             result = 31 * result + childrenA.get(a1.coordinate()).relaxedHashCode();

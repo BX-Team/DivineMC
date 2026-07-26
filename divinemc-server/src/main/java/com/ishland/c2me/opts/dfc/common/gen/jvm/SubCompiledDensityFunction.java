@@ -71,7 +71,7 @@ public class SubCompiledDensityFunction implements DensityFunction {
     @Override
     public double compute(FunctionContext pos) {
         if (pos instanceof NoiseChunk sampler) {
-            if (!sampler.getBlender().isEmpty()) {
+            if (!sampler.blender.isEmpty()) { // DivineMC - 26.2: FunctionContext.getBlender() removed
                 DensityFunction fallback = this.getFallback();
                 if (fallback == null) {
                     throw new IllegalStateException("blendingFallback is no more");
@@ -86,7 +86,7 @@ public class SubCompiledDensityFunction implements DensityFunction {
     @Override
     public void fillArray(double[] densities, ContextProvider applier) {
         if (applier instanceof NoiseChunk sampler) {
-            if (!sampler.getBlender().isEmpty()) {
+            if (!sampler.blender.isEmpty()) { // DivineMC - 26.2: FunctionContext.getBlender() removed
                 DensityFunction fallback = this.getFallback();
                 if (fallback == null) {
                     throw new IllegalStateException("blendingFallback is no more");
@@ -136,6 +136,35 @@ public class SubCompiledDensityFunction implements DensityFunction {
             }
         }
     }
+
+    // DivineMC start - 26.2: mapChildren is the abstract method, mapAll became a default
+    @Override
+    public DensityFunction mapChildren(Visitor visitor) {
+        if (this.getClass() != SubCompiledDensityFunction.class) {
+            throw new AbstractMethodError();
+        }
+        if (visitor instanceof IBlendingAwareVisitor blendingAwareVisitor && blendingAwareVisitor.c2me$isBlendingEnabled()) {
+            DensityFunction fallback1 = this.getFallback();
+            if (fallback1 == null) {
+                throw new IllegalStateException("blendingFallback is no more");
+            }
+            return visitor.apply(fallback1);
+        }
+        boolean modified = false;
+        Supplier<DensityFunction> fallback = this.blendingFallback != null ? Suppliers.memoize(() -> {
+            DensityFunction densityFunction = this.blendingFallback.get();
+            return densityFunction != null ? visitor.apply(densityFunction) : null;
+        }) : null;
+        if (fallback != this.blendingFallback) {
+            modified = true;
+        }
+        if (modified) {
+            return new SubCompiledDensityFunction(this.singleMethod, this.multiMethod, fallback);
+        } else {
+            return this;
+        }
+    }
+    // DivineMC end - 26.2: mapChildren is the abstract method, mapAll became a default
 
     @Override
     public DensityFunction mapAll(Visitor visitor) {

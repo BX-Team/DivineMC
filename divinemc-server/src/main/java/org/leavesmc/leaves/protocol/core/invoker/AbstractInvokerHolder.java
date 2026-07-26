@@ -1,12 +1,13 @@
 package org.leavesmc.leaves.protocol.core.invoker;
 
+import org.bxteam.divinemc.config.DivineConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.leavesmc.leaves.LeavesLogger;
 import org.leavesmc.leaves.protocol.core.LeavesProtocol;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 public abstract class AbstractInvokerHolder<T> {
 
@@ -15,7 +16,6 @@ public abstract class AbstractInvokerHolder<T> {
     protected final T handler;
     protected final Class<?> returnType;
     protected final Class<?>[] parameterTypes;
-    protected final boolean isStatic;
 
     protected AbstractInvokerHolder(LeavesProtocol owner, Method invoker, T handler, @Nullable Class<?> returnType, @NotNull Class<?>... parameterTypes) {
         this.owner = owner;
@@ -23,7 +23,6 @@ public abstract class AbstractInvokerHolder<T> {
         this.handler = handler;
         this.returnType = returnType;
         this.parameterTypes = parameterTypes;
-        this.isStatic = Modifier.isStatic(invoker.getModifiers());
 
         validateMethodSignature();
     }
@@ -61,15 +60,19 @@ public abstract class AbstractInvokerHolder<T> {
             return null;
         }
         try {
-            if (isStatic) {
-                return invoker.invoke(null, args);
-            } else {
-                return invoker.invoke(owner, args);
-            }
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e.getCause());
+            return invoker.invoke(owner, args);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throwOrLog(e);
         }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwOrLog(Exception e) throws T {
+        Throwable t = e instanceof InvocationTargetException ex ? ex.getTargetException() : e;
+        if (DivineConfig.NetworkCategory.protocolsStrictMode) {
+            throw (T) t;
+        }
+        LeavesLogger.LOGGER.error("Exception on invoking protocol ", t);
     }
 }

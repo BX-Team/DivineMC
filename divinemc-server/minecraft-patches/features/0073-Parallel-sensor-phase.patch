@@ -9,10 +9,10 @@ so the world can't mutate. Sensors unsafe off-thread opt out via
 divinemc$canRunAsync, and TargetingConditions are made thread-local.
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 9006ff1d179a2b46df09c1528a6a1fd6fb1cf106..be0305207c67aaea0607552314c323f2ae1828f5 100644
+index a2ff20d0ef511ab377f8501b236f0326c4db40a2..a35dcc41390a5ba56950ef2c9eb05003dbc7171d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -961,6 +961,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -979,6 +979,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  this.spigotConfig.currentPrimedTnt = 0; // Spigot
              } else {
                  io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -21,7 +21,7 @@ index 9006ff1d179a2b46df09c1528a6a1fd6fb1cf106..be0305207c67aaea0607552314c323f2
                      .forEach(
                          entity -> {
 diff --git a/net/minecraft/world/entity/ai/sensing/Sensor.java b/net/minecraft/world/entity/ai/sensing/Sensor.java
-index 535c7e0d369a6579eadb5d98be4d1409bca3d2ff..9ef88fa7d254636f02ad0ed08c1b7f0f33af546b 100644
+index 8b13b810f2265d2bbb7b69a47f5c5421235d19dc..a2438c3e9add401445cb608b00635a018f000a11 100644
 --- a/net/minecraft/world/entity/ai/sensing/Sensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/Sensor.java
 @@ -13,19 +13,21 @@ import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -119,4 +119,4 @@ index 535c7e0d369a6579eadb5d98be4d1409bca3d2ff..9ef88fa7d254636f02ad0ed08c1b7f0f
 +            : ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.get().test(level, body, target); // DivineMC - Parallel sensor phase
      }
  
-     static <T, U> BiPredicate<T, U> rememberPositives(final int invocations, final BiPredicate<T, U> predicate) {
+     public static <T, U> BiPredicate<T, U> rememberPositives(final int invocations, final BiPredicate<T, U> predicate) {

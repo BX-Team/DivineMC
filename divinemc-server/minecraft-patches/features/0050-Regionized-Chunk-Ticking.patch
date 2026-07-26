@@ -76,10 +76,10 @@ index 87dff5306c79b7f0fc940d9e85e523fa0c2f4ea6..80e46df1a18b66fff8abfc6d94b92a47
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index bf41f4db304b97c623fb097103f27b99772fe8fe..e589acdea83d4ff6548ca0fcee5617f0c4d0daf1 100644
+index 8562c9e80c222cada5ac460358181f3fd69be817..59cb0e471cc94d798db67156a5fe0093bab2e584 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -749,25 +749,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -751,25 +751,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      }
      // Paper end - optimise chunk tick iteration
  
@@ -119,7 +119,7 @@ index bf41f4db304b97c623fb097103f27b99772fe8fe..e589acdea83d4ff6548ca0fcee5617f0
  
      public void forEachBlockTickingChunk(final Consumer<LevelChunk> tickingChunkConsumer) {
          this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
-@@ -795,11 +798,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -797,11 +800,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      public boolean anyPlayerCloseEnoughTo(final BlockPos pos, final int maxDistance) {
          Vec3 target = new Vec3(pos);
  
@@ -331,7 +331,7 @@ index 070c5f3cb119f3b989d2430dc898a631d6c7924a..41ef18dd82a27bd6abf2303a36587cb2
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 2ba7322e996d12e0ed77966af95879177c2cbe49..15d70106defcac9d4c3d2d9216b593efffcb8c4a 100644
+index 252c5c1e6d753e12028ae1e0ba990104f3a6db68..25f7d0e684330bb445ae727344d20bbc45a0224e 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -208,7 +208,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -611,7 +611,7 @@ index 2ba7322e996d12e0ed77966af95879177c2cbe49..15d70106defcac9d4c3d2d9216b593ef
          }
  
          profiler.push("entityManagement");
-@@ -1757,10 +1805,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1754,10 +1802,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -625,7 +625,7 @@ index 2ba7322e996d12e0ed77966af95879177c2cbe49..15d70106defcac9d4c3d2d9216b593ef
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1963,7 +2014,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1960,7 +2011,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      }
  
      @Override
@@ -634,7 +634,7 @@ index 2ba7322e996d12e0ed77966af95879177c2cbe49..15d70106defcac9d4c3d2d9216b593ef
          if (this.isUpdatingNavigations) {
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
-@@ -1977,22 +2028,16 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1974,22 +2025,16 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -665,7 +665,7 @@ index 2ba7322e996d12e0ed77966af95879177c2cbe49..15d70106defcac9d4c3d2d9216b593ef
  
              try {
                  this.isUpdatingNavigations = true;
-@@ -2010,17 +2055,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2007,17 +2052,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -687,7 +687,7 @@ index 2ba7322e996d12e0ed77966af95879177c2cbe49..15d70106defcac9d4c3d2d9216b593ef
      }
  
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index c967db4f3510cdab80d7410afbbeadfd3b81cf7b..ae65853d8a2d42fa06a18674be13943439157c56 100644
+index c967db4f3510cdab80d7410afbbeadfd3b81cf7b..f3aa83c6375dd42073ffbcb9414e45e9750c7967 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -445,6 +445,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -767,7 +767,7 @@ index e163435f0e2d3a846330763e543fdc991507e5bb..c9f2155c4bb788f5e2304794e162d532
              // DivineMC start - Parallel world ticking
              treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 3d329ec1eeac11d5249efce81a7316b0d0a09c48..d3340bcfc50109b6f281d90445b3ce77aff8e778 100644
+index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216d281b20c 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -121,7 +121,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -921,7 +921,7 @@ index 3d329ec1eeac11d5249efce81a7316b0d0a09c48..d3340bcfc50109b6f281d90445b3ce77
  
          // Paper - Fix MC-117075 use removeAll - remove iterator in favour of indexed for loop, ensuring compile error if something uses iter incorrectly
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
-@@ -1746,10 +1758,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1766,10 +1778,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos) {
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // DivineMC - Parallel world ticking
          // Paper start - Perf: Optimize capturedTileEntities lookup
@@ -936,7 +936,7 @@ index 3d329ec1eeac11d5249efce81a7316b0d0a09c48..d3340bcfc50109b6f281d90445b3ce77
          // Paper end - Perf: Optimize capturedTileEntities lookup
          if (!this.isInValidBounds(pos)) {
              return null;
-@@ -1765,8 +1780,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1785,8 +1800,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
              // CraftBukkit start
@@ -1044,7 +1044,7 @@ index b5c9f0cdc830438cb9a966cee9d0504767e9f06d..b8affcbbd5a06f54d02b6fd4e299cf05
          }
      }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index cabb9220eb500d6a6b59dafdfe5ac2b455be6c3b..79e13958d3401324c6aee5946254360b1a37a549 100644
+index 3236fb6ebfe287c35e5b70da40e16415bcd7b789..2b0a444c9cf5ee87b64a70e7a8d648b9cc4eb4ec 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -432,7 +432,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

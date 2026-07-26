@@ -16,3 +16,15 @@ index 18159ad14f72479f303ca9988e1a848b33062695..f5d4d48ad2b8b33a0be52bf935e371ea
          if (this.willStartRecordingMetrics) {
              this.metricsRecorder = ActiveMetricsRecorder.createStarted(
                  new ServerMetricsSamplersProvider(Util.timeSource(), this.isDedicatedServer()),
+diff --git a/net/minecraft/util/profiling/Profiler.java b/net/minecraft/util/profiling/Profiler.java
+index ee9794784a53cbe4ec02ec4ad94923ce8381b5dd..8889aaa3fac7af6c50bd09b5dfc3b73c31bafecd 100644
+--- a/net/minecraft/util/profiling/Profiler.java
++++ b/net/minecraft/util/profiling/Profiler.java
+@@ -45,6 +45,7 @@ public final class Profiler {
+     }
+ 
+     public static ProfilerFiller get() {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.disableMethodProfiler) return net.minecraft.util.profiling.InactiveProfiler.INSTANCE; // DivineMC - Option to disable method profiler
+         return ACTIVE_COUNT.get() == 0 ? getDefaultFiller() : Objects.requireNonNullElseGet(ACTIVE.get(), Profiler::getDefaultFiller);
+     }
+ 

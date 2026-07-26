@@ -38,7 +38,7 @@ public class AppleSkinProtocol implements LeavesProtocol {
 
     @Contract("_ -> new")
     public static Identifier id(String path) {
-        return Identifier.tryBuild(PROTOCOL_ID, path);
+        return Identifier.fromNamespaceAndPath(PROTOCOL_ID, path);
     }
 
     @ProtocolHandler.PlayerJoin

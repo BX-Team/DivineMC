@@ -323,8 +323,8 @@ public class BytecodeGen {
         private int methodIdx = 0;
         private final Object2ReferenceOpenHashMap<AstNode, String> singleMethods = new Object2ReferenceOpenHashMap<>();
         private final Object2ReferenceOpenHashMap<AstNode, String> multiMethods = new Object2ReferenceOpenHashMap<>();
-        private final Object2ReferenceOpenHashMap<CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate>, String> splineMethods = new Object2ReferenceOpenHashMap<>();
-        private final Object2ReferenceOpenHashMap<CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate>, String> splineMethodsCache1 = new Object2ReferenceOpenHashMap<>();
+        private final Object2ReferenceOpenHashMap<CubicSpline<DensityFunctions.Spline.Coordinate>, String> splineMethods = new Object2ReferenceOpenHashMap<>();
+        private final Object2ReferenceOpenHashMap<CubicSpline<DensityFunctions.Spline.Coordinate>, String> splineMethodsCache1 = new Object2ReferenceOpenHashMap<>();
         private final ObjectLinkedOpenHashSet<String> postProcessMethods = new ObjectLinkedOpenHashSet<>();
         private final Reference2ObjectOpenHashMap<Object, FieldRecord> args = new Reference2ObjectOpenHashMap<>();
 
@@ -472,11 +472,11 @@ public class BytecodeGen {
             adapter.visitMaxs(0, 0);
         }
 
-        public String getCachedSplineMethod(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline, boolean cache1) {
+        public String getCachedSplineMethod(CubicSpline<DensityFunctions.Spline.Coordinate> spline, boolean cache1) {
             return (cache1 ? this.splineMethodsCache1 : this.splineMethods).get(spline);
         }
 
-        public void cacheSplineMethod(CubicSpline<DensityFunctions.Spline.Point, DensityFunctions.Spline.Coordinate> spline, String method, boolean cache1) {
+        public void cacheSplineMethod(CubicSpline<DensityFunctions.Spline.Coordinate> spline, String method, boolean cache1) {
             (cache1 ? this.splineMethodsCache1 : this.splineMethods).put(spline, method);
         }
 

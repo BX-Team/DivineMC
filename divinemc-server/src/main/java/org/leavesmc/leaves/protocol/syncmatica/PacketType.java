@@ -25,6 +25,6 @@ public enum PacketType {
     public final Identifier identifier;
 
     PacketType(final String id) {
-        identifier = Identifier.tryBuild(SyncmaticaProtocol.PROTOCOL_ID, id);
+        identifier = Identifier.fromNamespaceAndPath(SyncmaticaProtocol.PROTOCOL_ID, id);
     }
 }
