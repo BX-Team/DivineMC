@@ -60,7 +60,7 @@ echo "   Commits: $number"
 response=$(curl -X POST "$API_URL" \
   -H "Authorization: Bearer $API_KEY" \
   -F "file=@$jarName" \
-  -F "metadata=$metadata_json" \
+  -F "metadata=<metadata.json;type=application/json" \
   -w "\n%{http_code}" \
   -s)
 
