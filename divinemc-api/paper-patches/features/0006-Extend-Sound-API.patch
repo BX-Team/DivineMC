@@ -39,10 +39,10 @@ index 5c75b3d049f22573c4bc85ed06fc7f1efa31b361..36e59408f5e77f82a491252b7c6d90b6
 +    // DivineMC end - Extend Sound API
  }
 diff --git a/src/main/java/org/bukkit/entity/Entity.java b/src/main/java/org/bukkit/entity/Entity.java
-index 6952363d2e852d09856c51716de9dcf5c86f734f..2685a0d7c556feeda9538071ed0d11f8f1449914 100644
+index b7553d4aae7df7e492b6d4186beecd3d36658027..33d10133e3bbca374d2e37a11272242a02214a3a 100644
 --- a/src/main/java/org/bukkit/entity/Entity.java
 +++ b/src/main/java/org/bukkit/entity/Entity.java
-@@ -1387,4 +1387,35 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
+@@ -1400,4 +1400,35 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
       */
      void setImmuneToFire(@Nullable Boolean fireImmune);
      // Purpur end - Fire Immunity API
