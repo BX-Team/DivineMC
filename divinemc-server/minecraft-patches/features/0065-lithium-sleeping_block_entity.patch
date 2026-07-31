@@ -71,7 +71,7 @@ index f2c5a6ce769d8a5fdb4b836eae6a61a4da91cb3f..bde40b2c2d9a9fd8f4000a0c3dee7d5b
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 249f065cb642a48b9a3b4d43fe8824e36e9eac21..64b5799078eb5aad64183b6763309da9aee3ad71 100644
+index 2dfbf37e61f89c83f5edb0e3e988c81bd6db8dc1..928c71f6f47e8f8a2766e22f2ece3fefa5ed0964 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2672,6 +2672,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -96,10 +96,10 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a24149748ac98fa3471dbdf66b5df0403f98f13e..fa85dd76e1cb92b4abcf29f2e01bf7faa5a702ac 100644
+index 662e7ea7842b3f58b0b448aca2f6d464302813d4..aa3e6cf3dedb902a806e0a41b70c1833136c0fac 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5145,6 +5145,18 @@ public abstract class Entity
+@@ -5141,6 +5141,18 @@ public abstract class Entity
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box

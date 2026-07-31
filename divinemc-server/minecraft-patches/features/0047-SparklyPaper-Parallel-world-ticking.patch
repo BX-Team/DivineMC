@@ -561,7 +561,7 @@ index ad498d9f7cf27c465506976ad36ac273d2cb123d..070c5f3cb119f3b989d2430dc898a631
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 21ce9eb0ce90cb1cfd04dd4c357090bb6ec3eeca..ddb38818456c2a5e7adce6fe45e7be8e11085104 100644
+index 737412672348e8487902fd0edbdf7efdfa989289..6c740dad4d3e3d02c8218ae808dbecadd7c380b3 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -196,7 +196,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -836,10 +836,10 @@ index b9748a392c9f76e61a1b673085b4dd74c007c70d..3342bf3f8d0ed7b23d573f21b9e33735
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 75862ec9d9e616c8004aa4916ae3e49c3a37e47a..65a915e5c19edae2d77552d42f20df580b518540 100644
+index fa88b1233ae87bbf8d70bd9b1ebc0cd9e3ce0aa9..601ffcbecf9faffd8848cde73c5e8e1ff08db91a 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3649,13 +3649,32 @@ public abstract class Entity
+@@ -3645,13 +3645,32 @@ public abstract class Entity
                      ProfilerFiller profiler = Profiler.get();
                      profiler.push("portal");
                      this.setPortalCooldown();
@@ -877,7 +877,7 @@ index 75862ec9d9e616c8004aa4916ae3e49c3a37e47a..65a915e5c19edae2d77552d42f20df58
  
                      profiler.pop();
                  } else if (this.portalProcess.hasExpired()) {
-@@ -4240,6 +4259,7 @@ public abstract class Entity
+@@ -4236,6 +4255,7 @@ public abstract class Entity
      }
  
      private @Nullable Entity teleportCrossDimension(final ServerLevel oldLevel, final ServerLevel newLevel, final TeleportTransition transition) {

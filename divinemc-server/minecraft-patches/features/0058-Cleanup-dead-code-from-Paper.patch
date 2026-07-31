@@ -69,7 +69,7 @@ index f398d48910dff89c41d1344ebf7b793c27dcb6aa..aa5989ed22b3b72137c5d037c7e1315a
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 25f7d0e684330bb445ae727344d20bbc45a0224e..05a6bc4d5b4b141b4bcb098de7c33b1d788db18b 100644
+index a47a0b1e754758916c1bdd12d92a8abbe4878626..71115e95bfd253f0699d624018dbc786dfa15fc3 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1538,11 +1538,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -99,7 +99,7 @@ index 25f7d0e684330bb445ae727344d20bbc45a0224e..05a6bc4d5b4b141b4bcb098de7c33b1d
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 65a915e5c19edae2d77552d42f20df580b518540..a24149748ac98fa3471dbdf66b5df0403f98f13e 100644
+index 601ffcbecf9faffd8848cde73c5e8e1ff08db91a..662e7ea7842b3f58b0b448aca2f6d464302813d4 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1159,29 +1159,10 @@ public abstract class Entity
@@ -146,7 +146,7 @@ index 65a915e5c19edae2d77552d42f20df580b518540..a24149748ac98fa3471dbdf66b5df040
      }
  
      private void restituteMovementAfterCollisions(final BlockState effectState, final boolean xCollision, final boolean zCollision, final Vec3 movement) {
-@@ -5032,9 +5006,7 @@ public abstract class Entity
+@@ -5028,9 +5002,7 @@ public abstract class Entity
  
      public void setDeltaMovement(final Vec3 deltaMovement) {
          if (deltaMovement.isFinite()) {
@@ -156,7 +156,7 @@ index 65a915e5c19edae2d77552d42f20df580b518540..a24149748ac98fa3471dbdf66b5df040
          }
      }
  
-@@ -5139,9 +5111,7 @@ public abstract class Entity
+@@ -5135,9 +5107,7 @@ public abstract class Entity
          }
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {
