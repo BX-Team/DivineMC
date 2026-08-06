@@ -17,18 +17,3 @@ index cdb0d2f7133d96ba459af36a947a29231017f44c..9f93a81292f2565296a5ebe7b7838775
      private static void useAlternateKeepAlive() {
          useAlternateKeepAlive = getBoolean("settings.use-alternate-keepalive", useAlternateKeepAlive);
      }
-diff --git a/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java b/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
-index 66b127aaf8bd794e40f89d2a3ac732d18fa53a09..90002dbcae4e9c7a893cfbf80c05341881bda3c1 100644
---- a/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
-+++ b/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
-@@ -3465,8 +3465,8 @@ public class PurpurWorldConfig {
-     public boolean villagerDisplayTradeItem = true;
-     public int villagerSpawnIronGolemRadius = 0;
-     public int villagerSpawnIronGolemLimit = 0;
--    public int villagerAcquirePoiSearchRadius = AcquirePoi.SCAN_RANGE;
--    public int villagerNearestBedSensorSearchRadius = AcquirePoi.SCAN_RANGE;
-+    public int villagerAcquirePoiSearchRadius = 16; // DivineMC - Optimize default values for configs
-+    public int villagerNearestBedSensorSearchRadius = 16; // DivineMC - Optimize default values for configs
-     public Boolean villagerCanPickUpLoot = null;
-     private void villagerSettings() {
-         villagerRidable = getBoolean("mobs.villager.ridable", villagerRidable);
