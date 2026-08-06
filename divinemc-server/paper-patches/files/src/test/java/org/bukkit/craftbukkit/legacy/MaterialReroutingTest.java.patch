@@ -1,0 +1,12 @@
+--- a/src/test/java/org/bukkit/craftbukkit/legacy/MaterialReroutingTest.java
++++ b/src/test/java/org/bukkit/craftbukkit/legacy/MaterialReroutingTest.java
+@@ -59,6 +_,9 @@
+                 // Paper start - types that cannot be translated to ItemType/BlockType
+                 .filter(entry -> !entry.getName().equals("com/destroystokyo/paper/MaterialSetTag.class"))
+                 // Paper end - types that cannot be translated to ItemType/BlockType
++                // DivineMC start - third-party integration SDKs are not Bukkit API and must keep their descriptors stable
++                .filter(entry -> !entry.getName().startsWith("dev/imanity/antixray/sdk/"))
++                // DivineMC end - third-party integration SDKs are not Bukkit API and must keep their descriptors stable
+                 .map(entry -> {
+                     try {
+                         return MaterialReroutingTest.jarFile.getInputStream(entry);

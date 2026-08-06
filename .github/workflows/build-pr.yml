@@ -26,6 +26,17 @@ jobs:
       - name: Apply Patches
         run: ./gradlew applyAllPatches --stacktrace --no-daemon
 
+      - name: Build
+        run: ./gradlew build --stacktrace --no-daemon
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Test Results
+          path: |
+            **/build/test-results/test/TEST-*.xml
+
       - name: Build Paperclip Jar
         run: ./gradlew createMojmapPaperclipJar --stacktrace --no-daemon
 
@@ -34,3 +45,13 @@ jobs:
         with:
           path: divinemc-server/build/libs/divinemc-paperclip-*.jar
           archive: false
+
+  event_file:
+    name: "Event File"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: Event File
+          path: ${{ github.event_path }}
