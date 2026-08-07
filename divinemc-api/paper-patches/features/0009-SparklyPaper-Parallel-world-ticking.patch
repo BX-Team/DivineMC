@@ -10,10 +10,10 @@ Original project: https://github.com/SparklyPower/SparklyPaper
 This patch provides an API for performance monitoring plugins.
 
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index 2c895293585fede17057744dc230c0635778f83b..1007460972f25f56b0ad2153828d0c82d342200b 100644
+index d277417d2bd66b84f293e9b3858b5096a3a86fe4..22032e7af7ef0835fd3f44dd24e35205575d23bc 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
-@@ -2909,4 +2909,15 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+@@ -2907,4 +2907,15 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      @Deprecated
      void clearBlockHighlights();
      // Purpur end - Debug Marker API

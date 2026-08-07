@@ -51,10 +51,10 @@ index 225f58a46f7795ec37d339868267d4eaae580bfe..76f93033b6b71586407ed7187e46bbb5
  
      @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
-index 92f26971fa38ac78e2928f8c5b466373f4778c1a..4a35b1e95835adf6706e84cc4bffa5c3e4a62791 100644
+index dfe641682c2dbabc0801098ffd63d85b6cfe670d..81e833a7c75fa492c8691f9460e8ca760b7f14d6 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
-@@ -556,17 +556,18 @@ public class CraftBlock implements Block {
+@@ -569,17 +569,18 @@ public class CraftBlock implements Block {
          UseOnContext context = new UseOnContext(world, null, InteractionHand.MAIN_HAND, Items.BONE_MEAL.getDefaultInstance(), new BlockHitResult(Vec3.ZERO, direction, this.getPosition(), false));
  
          // SPIGOT-6895: Call StructureGrowEvent and BlockFertilizeEvent
@@ -78,7 +78,7 @@ index 92f26971fa38ac78e2928f8c5b466373f4778c1a..4a35b1e95835adf6706e84cc4bffa5c3
  
              // DivineMC start - Parallel world ticking
              treeType = SaplingBlock.getTreeTypeTL();
-@@ -587,12 +588,13 @@ public class CraftBlock implements Block {
+@@ -600,12 +601,13 @@ public class CraftBlock implements Block {
              Bukkit.getPluginManager().callEvent(event);
  
              if (!event.isCancelled()) {

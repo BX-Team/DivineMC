@@ -5,7 +5,7 @@ Subject: [PATCH] Lag compensation
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index f5d4d48ad2b8b33a0be52bf935e371ea98d9183a..863ba3ffcd49cf28aa43b59b9b76bbdd05411699 100644
+index be2213f9bb5f6d4fd5fc05dcd8854dc28b978e27..f9bcd0e12024cdad7ca0b2258cb7a9f5629fa628 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -338,6 +338,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -16,7 +16,7 @@ index f5d4d48ad2b8b33a0be52bf935e371ea98d9183a..863ba3ffcd49cf28aa43b59b9b76bbdd
      // Paper start - improve tick loop
      public final ca.spottedleaf.common.time.TickData tickTimes1s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
      public final ca.spottedleaf.common.time.TickData tickTimes5s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
-@@ -1660,6 +1661,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1659,6 +1660,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
  
          this.server.spark.tickStart(); // Paper - spark
@@ -25,7 +25,7 @@ index f5d4d48ad2b8b33a0be52bf935e371ea98d9183a..863ba3ffcd49cf28aa43b59b9b76bbdd
          this.tickCount++;
          this.tickRateManager.tick();
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index cfdb8598054bc99bb9542d4d2c217c474e1c5e42..d3f3dd9aba7676b43191db45bd48b63ddafbc0c1 100644
+index 1f4a7ed2ed2e1bbafa004e7bcf2ff3cb80f5d1d0..9ea28716f88da97b0acf91b1d5ce25e4008842f9 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -239,6 +239,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -46,7 +46,7 @@ index cfdb8598054bc99bb9542d4d2c217c474e1c5e42..d3f3dd9aba7676b43191db45bd48b63d
          if (runs) {
              this.tickTime();
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 7fa156e3ddfc1d7896915bb6e1cc4a1961e0baca..ba8c4f42438c3ea75136081173642262629c818c 100644
+index f5ea48d973e57d4a2ba38ea34d2d851208e7d933..5ad099e4bc5837aaf8ddb9305574a3dcd9d1a0a6 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -543,6 +543,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
@@ -192,7 +192,7 @@ index 720e6c9669ae0ca9fed7ff62de20f18203e2338b..22cc900443644a65be570319779c536f
  
      protected void spawnAfterBreak(final BlockState state, final ServerLevel level, final BlockPos pos, final ItemStack tool, final boolean dropExperience) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 4c0e247cb9a453c0554de68c0fa803bb94108895..4625cb804bec4330b2c228ed5b65db4b20891455 100644
+index 4b2d78c606f1c140a8a4ffd122b946ceb92d0186..ba9462e7f23221c56629ee092d03d7c9784edd6b 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -945,6 +945,19 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

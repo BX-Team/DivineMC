@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1380,7 +_,7 @@
+@@ -1402,7 +_,7 @@
                      && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
                  // Paper end - Configurable entity tracking range by Y
                  // CraftBukkit start - respect vanish API

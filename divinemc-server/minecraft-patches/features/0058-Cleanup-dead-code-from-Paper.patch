@@ -5,10 +5,10 @@ Subject: [PATCH] Cleanup dead code from Paper
 
 
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index a00ef5192fd63b0d2567efb2d9fd56867e5313f9..454ebf5c35676bfe2d9ef1a8d3a5b9ff9c2caea0 100644
+index 360880f702ff61035013184d4f0a12479b5fc06b..9641aa56bc000407cad52c5ad9f3412fd9102c00 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -583,13 +583,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -607,13 +607,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
              if (!(this.packetListener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl loginPacketListener)
                  || loginPacketListener.state != net.minecraft.server.network.ServerLoginPacketListenerImpl.State.VERIFYING
                  || Connection.joinAttemptsThisTick++ < MAX_PER_TICK) {
@@ -99,7 +99,7 @@ index a47a0b1e754758916c1bdd12d92a8abbe4878626..71115e95bfd253f0699d624018dbc786
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 601ffcbecf9faffd8848cde73c5e8e1ff08db91a..662e7ea7842b3f58b0b448aca2f6d464302813d4 100644
+index c4abddd69f15c7149d8ff34a67fea2d5445311a1..3861157a78751a622fa90ea3d45c49148f7d7f61 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1159,29 +1159,10 @@ public abstract class Entity
@@ -146,7 +146,7 @@ index 601ffcbecf9faffd8848cde73c5e8e1ff08db91a..662e7ea7842b3f58b0b448aca2f6d464
      }
  
      private void restituteMovementAfterCollisions(final BlockState effectState, final boolean xCollision, final boolean zCollision, final Vec3 movement) {
-@@ -5028,9 +5002,7 @@ public abstract class Entity
+@@ -5036,9 +5010,7 @@ public abstract class Entity
  
      public void setDeltaMovement(final Vec3 deltaMovement) {
          if (deltaMovement.isFinite()) {
@@ -156,7 +156,7 @@ index 601ffcbecf9faffd8848cde73c5e8e1ff08db91a..662e7ea7842b3f58b0b448aca2f6d464
          }
      }
  
-@@ -5135,9 +5107,7 @@ public abstract class Entity
+@@ -5143,9 +5115,7 @@ public abstract class Entity
          }
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {

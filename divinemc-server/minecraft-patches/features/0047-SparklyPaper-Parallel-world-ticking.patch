@@ -6,7 +6,7 @@ Subject: [PATCH] SparklyPaper: Parallel world ticking
 Original project: https://github.com/SparklyPower/SparklyPaper
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index 8d9ce3d301d5f7e4106587ae00adb8dd5b8b6f88..0af09f10fb1f9831159e625f3540b9bdc62dd1b5 100644
+index 5b7ed8e5067683143c99473a126e17baa531903c..8979af5fc081b756224b0fd80a5a316e5513fd18 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 @@ -225,11 +225,22 @@ public final class ChunkEntitySlices {
@@ -193,7 +193,7 @@ index 8d9ce3d301d5f7e4106587ae00adb8dd5b8b6f88..0af09f10fb1f9831159e625f3540b9bd
  
      public void getHardCollidingEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 05d374f679919d082064e8f2bb363a419bc9648e..3703fde2416f940b18028bf7373811a6e3215b01 100644
+index e418820359c430b91bb91eb65d137b9cdbe2db4b..8ac9b0b0cc782a1343b9b6cb3f26b4f9319e3766 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -1129,7 +1129,7 @@ public final class ChunkHolderManager {
@@ -298,7 +298,7 @@ index c1c4c7d6afd94da4f139d14e4a406e136039d03c..c4e7c02c51f7732eeba46fcfc6047a63
                  // Paper end
                  // CraftBukkit start
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 0af7830c88089bd656f70cdc9c0fb36afd485b5b..580c0bb7131e15669f60975e4746a14afc93fc7c 100644
+index 746da342661b4e4a6f3c1b7adb14f7802de76aa8..5c9f7fc79fc19d598c513b4a6a9c2988f569d7f9 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -340,6 +340,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -359,7 +359,7 @@ index 0af7830c88089bd656f70cdc9c0fb36afd485b5b..580c0bb7131e15669f60975e4746a14a
      }
  
      @Override
-@@ -1810,6 +1823,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1809,6 +1822,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList(); // Paper - optimise Folia entity scheduler
  
@@ -378,7 +378,7 @@ index 0af7830c88089bd656f70cdc9c0fb36afd485b5b..580c0bb7131e15669f60975e4746a14a
      protected void tickChildren(final BooleanSupplier haveTime) {
          ProfilerFiller profiler = Profiler.get();
          this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.suspendFlushing());
-@@ -1860,26 +1885,53 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1859,26 +1884,53 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          this.updateEffectiveRespawnData();
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
@@ -449,7 +449,7 @@ index 0af7830c88089bd656f70cdc9c0fb36afd485b5b..580c0bb7131e15669f60975e4746a14a
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
-@@ -1971,6 +2023,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1970,6 +2022,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
          Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
          newLevels.remove(level.dimension());
@@ -525,7 +525,7 @@ index ed7424cd5d53e5387939e20709683daa370f0852..4c73f07cac86dd18fbf24e207219aac8
          LOGGER.info("Default game type: {}", properties.gameMode.get());
          // Paper start - Unix domain socket support
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 50ae6b20f18a8b7ef836ef20eead6f647b83c6bf..8562c9e80c222cada5ac460358181f3fd69be817 100644
+index 058e1722bc24b2c9681cbac3d260e7caf319a87f..32c64076914d66c7c2af8892c3ca7a1a441ecda7 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -139,8 +139,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -836,10 +836,10 @@ index b9748a392c9f76e61a1b673085b4dd74c007c70d..3342bf3f8d0ed7b23d573f21b9e33735
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index fa88b1233ae87bbf8d70bd9b1ebc0cd9e3ce0aa9..601ffcbecf9faffd8848cde73c5e8e1ff08db91a 100644
+index 0ad9bd720974f84838e83963faf9c9d7cc3555d9..c4abddd69f15c7149d8ff34a67fea2d5445311a1 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3645,13 +3645,32 @@ public abstract class Entity
+@@ -3653,13 +3653,32 @@ public abstract class Entity
                      ProfilerFiller profiler = Profiler.get();
                      profiler.push("portal");
                      this.setPortalCooldown();
@@ -877,7 +877,7 @@ index fa88b1233ae87bbf8d70bd9b1ebc0cd9e3ce0aa9..601ffcbecf9faffd8848cde73c5e8e1f
  
                      profiler.pop();
                  } else if (this.portalProcess.hasExpired()) {
-@@ -4236,6 +4255,7 @@ public abstract class Entity
+@@ -4244,6 +4263,7 @@ public abstract class Entity
      }
  
      private @Nullable Entity teleportCrossDimension(final ServerLevel oldLevel, final ServerLevel newLevel, final TeleportTransition transition) {
@@ -1002,7 +1002,7 @@ index ba61762e09ace201173999b3984046f930ccfe57..18e8835597d6498128c62f734ae0c1f5
          body.getBrain().eraseMemory(MemoryModuleType.POTENTIAL_JOB_SITE);
      }
 diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
-index cfde2c29a3bc3c6256b4b7c20f1316c8d6fd2f72..debcd91f88ad4c4d4d3d9c5d6fe7f5fe20094a57 100644
+index b0eab813ecffa1faf3ff46a4f17ec5407adea471..cabc84eea05793d8cc12cff48970ce19ee7b73b6 100644
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
 @@ -796,13 +796,24 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re

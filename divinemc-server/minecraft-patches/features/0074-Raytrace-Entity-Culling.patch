@@ -10,10 +10,10 @@ improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
 cannot see mobs, players or items through walls anymore).
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 18c98b0aae4a941251ce1e0b140701ab8c84a843..325996aaaf2c566f8ecfc79b3c9933c88b6817fe 100644
+index e2fe8ed0c2284e3c109ad5d7ccca68f5cc581321..266e68729df8dae30cb6f080cc1f80e71103ef99 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1493,6 +1493,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1519,6 +1519,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                  && this.entity.broadcastToPlayer(player)
                  && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
              // Paper end - Configurable entity tracking range by Y
@@ -22,7 +22,7 @@ index 18c98b0aae4a941251ce1e0b140701ab8c84a843..325996aaaf2c566f8ecfc79b3c9933c8
              if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
                  visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index f3aa83c6375dd42073ffbcb9414e45e9750c7967..e9db74e8d676652574d99ad8556c05a383e8bb79 100644
+index 9cdd7c5c78b45d853a6a181bd7a7ea1991df968b..e22b567be32d5f2e6ed968679a8a3935107a7b35 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -439,6 +439,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -66,7 +66,7 @@ index e39469d9876eee9ea571a8fc08bff3098a1b76dd..c1399dd75c8f6ff2e530ca7831fbfefe
              // CraftBukkit start - remove blockstate if failed (or the same)
              if (captureBlockStates && captured) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture
 diff --git a/net/minecraft/world/waypoints/WaypointTransmitter.java b/net/minecraft/world/waypoints/WaypointTransmitter.java
-index 2866b750a28cc32c2913d3c1afee95f05956982c..7691a41a08263944ea19536f971ad77158cacbee 100644
+index 07af92310ee5c8bba04e6175b6faac629632e4de..5f3059c4342b59664fa2da97832815fa5024391e 100644
 --- a/net/minecraft/world/waypoints/WaypointTransmitter.java
 +++ b/net/minecraft/world/waypoints/WaypointTransmitter.java
 @@ -21,6 +21,7 @@ public interface WaypointTransmitter extends Waypoint {

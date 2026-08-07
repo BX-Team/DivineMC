@@ -5,7 +5,7 @@ Subject: [PATCH] Virtual Threads
 
 
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index 6ebc8dee865946e8858205a0b514c65067de983f..fd90c800897d58cc153e726ade25b38e9099318e 100644
+index 38bd5b119224f8e2c6423d298de27c098beadfdf..ea5120588b4cac639c3917a195817eef5c517560 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
 @@ -500,7 +500,7 @@ public class Commands {
@@ -18,10 +18,10 @@ index 6ebc8dee865946e8858205a0b514c65067de983f..fd90c800897d58cc153e726ade25b38e
          new java.util.concurrent.LinkedBlockingQueue<>(),
          new com.google.common.util.concurrent.ThreadFactoryBuilder()
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 863ba3ffcd49cf28aa43b59b9b76bbdd05411699..31fa9c86a38fac4e9ca674e522e2760c156ad7a9 100644
+index f9bcd0e12024cdad7ca0b2258cb7a9f5629fa628..c0fa57472bde8493c3085bf20452b0cf2e53b260 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -2925,8 +2925,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2924,8 +2924,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
  
@@ -36,7 +36,7 @@ index 863ba3ffcd49cf28aa43b59b9b76bbdd05411699..31fa9c86a38fac4e9ca674e522e2760c
  
      public ChatDecorator getChatDecorator() {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 8fdc58ba84967bb70606f0425488f1205983b4cd..99868013c88c1b645308201a723ec89f1da820f0 100644
+index e0d39370d4a4d2422ead0820c2b49107e9b1495a..4e8a85205d5d2e067142d1b1b01b490377f0cdae 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -861,8 +861,11 @@ public class ServerGamePacketListenerImpl

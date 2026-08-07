@@ -16,6 +16,21 @@
          final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
          ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
+@@ -1325,6 +_,14 @@
+                 restitution = !(-currentMovement.y < this.getEffectiveGravity()) && !this.isSuppressingBounce() && !effectState.is(BlockTags.SUPPRESSES_BOUNCE)
+                     ? Math.max(restitution, this.getBlockBounciness(effectState.getBlock()))
+                     : 0.0;
++                // DivineMC start - Carpet-Fixes: Fix Slime Block Bounce Logic
++                if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixIncorrectBounceLogic
++                    && restitution > 0.0
++                    && currentMovement.y < 0.0
++                    && effectState.is(Blocks.SLIME_BLOCK)) {
++                    this.setOnGround(currentMovement.y > -0.15);
++                }
++                // DivineMC end - Carpet-Fixes: Fix Slime Block Bounce Logic
+             }
+ 
+             double gravityCompensation;
 @@ -2758,6 +_,7 @@
              }
  

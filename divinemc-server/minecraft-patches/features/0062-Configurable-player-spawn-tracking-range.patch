@@ -18,7 +18,7 @@ index 6d1fe8028739145b11fce98ad62b2f8044299548..9f086ded18d1fc8850877c6be113d880
      // note: vanilla does not subtract 0.5 but the result is (luckily!) the same
      public static final int NARROW_SPAWN_TRACK_RANGE = (int)Math.floor(((double)PLAYER_SPAWN_TRACK_RANGE / Math.sqrt(2.0)) - 0.5);
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 59cb0e471cc94d798db67156a5fe0093bab2e584..18c98b0aae4a941251ce1e0b140701ab8c84a843 100644
+index 6fd48f8cae9d92f989afe89e5c974b5a108631b5..e2fe8ed0c2284e3c109ad5d7ccca68f5cc581321 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -867,10 +867,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -35,7 +35,7 @@ index 59cb0e471cc94d798db67156a5fe0093bab2e584..18c98b0aae4a941251ce1e0b140701ab
                  if (ret == null) {
                      ret = new ArrayList<>(len - i);
                      ret.add(player);
-@@ -1269,6 +1269,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1295,6 +1295,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
  
              for (int i = 0; i < playersLength; ++i) { // DivineMC - Parallel entity tracker
                  final ServerPlayer player = playersRaw[i];

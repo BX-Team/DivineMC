@@ -16,7 +16,7 @@
      }
  
      // Paper start - configuration phase API
-@@ -1128,6 +_,7 @@
+@@ -1129,6 +_,7 @@
  
              this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
              this.player.inventoryMenu.broadcastChanges();

@@ -67,10 +67,10 @@ index 5d24f049fa88ed619c7793cf57525aca641a6df7..ef4500a3aa6cb65ef4e3a37bddb1e945
      }
  }
 diff --git a/src/main/java/io/papermc/paper/PaperServerInternalAPIBridge.java b/src/main/java/io/papermc/paper/PaperServerInternalAPIBridge.java
-index 7109fb12117b53cae46fa6a3a4912d2e3f3999ac..7c287bc23234ae5e3b5bec0a5aa4afa328e0cee1 100644
+index 54ceceb083c3928246d1b34c8560336d2318be10..236cc5c90769307a62edf81054dcd77ef313db84 100644
 --- a/src/main/java/io/papermc/paper/PaperServerInternalAPIBridge.java
 +++ b/src/main/java/io/papermc/paper/PaperServerInternalAPIBridge.java
-@@ -181,7 +181,7 @@ public class PaperServerInternalAPIBridge implements InternalAPIBridge {
+@@ -188,7 +188,7 @@ public class PaperServerInternalAPIBridge implements InternalAPIBridge {
  
      @Override
      public VersionFetcher getVersionFetcher() {

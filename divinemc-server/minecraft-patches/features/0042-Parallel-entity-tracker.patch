@@ -7,7 +7,7 @@ Derived from Petal's multithreaded tracker; rewritten into a three-phase
 scan/apply/send model with join barriers.
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index f3d1707c53b2e6efd605f3fc4c59d4fbe559f3ac..50ae6b20f18a8b7ef836ef20eead6f647b83c6bf 100644
+index 130333d0a11acd9955223613f8deb6efcd1001b8..bb64dc7a42f7aed36654e46f62198eec8c64628e 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -252,9 +252,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -32,21 +32,25 @@ index f3d1707c53b2e6efd605f3fc4c59d4fbe559f3ac..50ae6b20f18a8b7ef836ef20eead6f64
      }
  
      // Paper start - per player mob count backoff
-@@ -1062,6 +1072,13 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1084,6 +1094,17 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      // Paper end - optimise entity tracker
  
      protected void tick() {
 +        // DivineMC start - Parallel entity tracker
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.parallelTrackerEnabled) {
-+            final ServerLevel level = this.level;
-+            org.bxteam.divinemc.async.tracking.ParallelEntityTracker.tick(level);
++            this.iteratingTrackerEntities = true;
++            try {
++                org.bxteam.divinemc.async.tracking.ParallelEntityTracker.tick(this.level, this.trackerEntities);
++            } finally {
++                this.iteratingTrackerEntities = false;
++            }
 +            return;
 +        }
 +        // DivineMC end - Parallel entity tracker
          // Paper start - optimise entity tracker
          if (true) {
              this.newTrackerTick();
-@@ -1212,7 +1229,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1234,7 +1255,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          private final Entity entity;
          private final int range;
          private SectionPos lastSectionPos;
@@ -55,7 +59,7 @@ index f3d1707c53b2e6efd605f3fc4c59d4fbe559f3ac..50ae6b20f18a8b7ef836ef20eead6f64
  
          // Paper start - optimise entity tracker
          private long lastChunkUpdate = -1L;
-@@ -1239,8 +1256,9 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1261,8 +1282,9 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              this.lastTrackedChunk = chunk;
  
              final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
@@ -66,7 +70,7 @@ index f3d1707c53b2e6efd605f3fc4c59d4fbe559f3ac..50ae6b20f18a8b7ef836ef20eead6f64
                  final ServerPlayer player = playersRaw[i];
                  this.updatePlayer(player);
              }
-@@ -1256,6 +1274,79 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1278,6 +1300,79 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              }
          }
  
@@ -146,7 +150,7 @@ index f3d1707c53b2e6efd605f3fc4c59d4fbe559f3ac..50ae6b20f18a8b7ef836ef20eead6f64
          @Override
          public final void moonrise$removeNonTickThreadPlayers() {
              boolean foundToRemove = false;
-@@ -1357,52 +1448,67 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1379,52 +1474,67 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          public void updatePlayer(final ServerPlayer player) {
              org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
              if (player != this.entity) {

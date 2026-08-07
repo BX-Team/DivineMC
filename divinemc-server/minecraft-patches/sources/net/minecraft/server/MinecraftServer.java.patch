@@ -14,7 +14,7 @@
          if (!this.hasLoggedStop && this.isDebugging()) io.papermc.paper.util.TraceUtil.dumpTraceForThread("Server stopped"); // Paper - Debugging
          this.shutdownThread = Thread.currentThread(); // Paper - Improved watchdog support
          org.spigotmc.WatchdogThread.doStop(); // Paper - Improved watchdog support
-@@ -1109,6 +_,7 @@
+@@ -1108,6 +_,7 @@
          // Paper end - rewrite chunk system
          // Paper start - Improved watchdog support - move final shutdown items here
          Util.shutdownExecutors();

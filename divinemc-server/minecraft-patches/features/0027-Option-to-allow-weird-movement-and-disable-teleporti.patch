@@ -6,7 +6,7 @@ Subject: [PATCH] Option to allow weird movement and disable teleporting
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 70a0984f551822dc12cf9a88e42db4fa7e866d16..8fdc58ba84967bb70606f0425488f1205983b4cd 100644
+index 7671725df5e588d44d34b0cd0213f808a9e2c2ca..e0d39370d4a4d2422ead0820c2b49107e9b1495a 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -639,7 +639,7 @@ public class ServerGamePacketListenerImpl
@@ -27,7 +27,7 @@ index 70a0984f551822dc12cf9a88e42db4fa7e866d16..8fdc58ba84967bb70606f0425488f120
                      fail = true;
                      LOGGER.warn("{} (vehicle of {}) moved wrongly! {}", vehicle.getPlainTextName(), this.player.getPlainTextName(), Math.sqrt(movedDist));
                  }
-@@ -1624,20 +1624,24 @@ public class ServerGamePacketListenerImpl
+@@ -1625,20 +1625,24 @@ public class ServerGamePacketListenerImpl
                                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                                          float metersPerTick = isFallFlying ? 300.0F : 100.0F;
                                          if (movedDist - expectedDist > Math.max(metersPerTick, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) deltaPackets * speed))) {
@@ -63,7 +63,7 @@ index 70a0984f551822dc12cf9a88e42db4fa7e866d16..8fdc58ba84967bb70606f0425488f120
                                          }
                                      }
                                  }
-@@ -1685,6 +1689,7 @@ public class ServerGamePacketListenerImpl
+@@ -1686,6 +1690,7 @@ public class ServerGamePacketListenerImpl
                                  movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
                                  boolean movedWrongly = false; // Paper - Add fail move event; rename
                                  if (!this.player.isChangingDimension()

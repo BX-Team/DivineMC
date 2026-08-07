@@ -4,7 +4,6 @@ import ca.spottedleaf.moonrise.common.list.ReferenceList;
 import ca.spottedleaf.moonrise.common.misc.NearbyPlayers;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity;
-import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup;
 import ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.FullChunkStatus;
@@ -49,10 +48,8 @@ public class ParallelEntityTracker {
 
     private record ScanBatch(@Nullable List<ScanResult> deltas, @Nullable List<Entity> tickThreadSends) { }
 
-    public static void tick(final ServerLevel level) {
+    public static void tick(final ServerLevel level, final ReferenceList<Entity> trackerEntities) {
         final NearbyPlayers nearbyPlayers = level.moonrise$getNearbyPlayers();
-        final ServerEntityLookup entityLookup = (ServerEntityLookup) level.moonrise$getEntityLookup();
-        final ReferenceList<Entity> trackerEntities = entityLookup.trackerEntities;
         final Entity[] scanEntitiesRaw = trackerEntities.getRawDataUnchecked();
         final int scanLen = Math.min(scanEntitiesRaw.length, trackerEntities.size());
         if (scanLen == 0) {

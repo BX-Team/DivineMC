@@ -71,20 +71,17 @@ index 7fed43a1e7bcf35c4d7fd3224837a47fedd59860..6c002ba690a8cc7335276e039f49c425
              private Entity lastRet;
              private int current;
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
-index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..c93a9d2de61c9aa789c0758de0bdafaa4af2c93f 100644
+index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..31038feaf9388384edb42d7bea12fca47928c7be 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
-@@ -1,142 +1,26 @@
+@@ -1,142 +1,33 @@
  package ca.spottedleaf.moonrise.common.list;
  
 -import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 -import java.util.Arrays;
 -import java.util.Iterator;
 -import java.util.NoSuchElementException;
-+// DivineMC start - Optimize Moonrise
-+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
-+import it.unimi.dsi.fastutil.objects.ReferenceLists;
- 
+-
 -public final class ReferenceList<E> implements Iterable<E> {
 -
 -    private static final Object[] EMPTY_LIST = new Object[0];
@@ -108,20 +105,26 @@ index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..c93a9d2de61c9aa789c0758de0bdafaa
 -        this.count = count;
 -        this.referenceToIndex = referenceToIndex;
 -    }
--
++// DivineMC start - Optimize Moonrise
++import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
++import it.unimi.dsi.fastutil.objects.ReferenceLists;
+ 
 -    public ReferenceList<E> copy() {
 -        return new ReferenceList<>(this.references.clone(), this.count, this.referenceToIndex.clone());
 -    }
--
++import java.util.Arrays;
+ 
 -    public int size() {
 -        return this.count;
--    }
--
--    public boolean contains(final E obj) {
--        return this.referenceToIndex.containsKey(obj);
 +public class ReferenceList<E> extends ReferenceLists.SynchronizedList<E> {
 +    public ReferenceList(E[] elements) {
 +        super(new RefListInner<>(elements));
+     }
+ 
+-    public boolean contains(final E obj) {
+-        return this.referenceToIndex.containsKey(obj);
++    public synchronized E[] getRawDataUnchecked() {
++        return ((RefListInner<E>) this.list).getRawDataUnchecked();
      }
  
 -    public boolean remove(final E obj) {
@@ -141,8 +144,9 @@ index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..c93a9d2de61c9aa789c0758de0bdafaa
 -        this.references[endIndex] = null;
 -
 -        return true;
-+    public synchronized E[] getRawDataUnchecked() {
-+        return ((RefListInner<E>) this.list).getRawDataUnchecked();
++    public synchronized ReferenceList<E> copy() {
++        final RefListInner<E> inner = (RefListInner<E>) this.list;
++        return new ReferenceList<>(Arrays.copyOf(inner.getRawDataUnchecked(), inner.size()));
      }
  
 -    public boolean add(final E obj) {
@@ -151,20 +155,18 @@ index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..c93a9d2de61c9aa789c0758de0bdafaa
 -
 -        if (currIndex != Integer.MIN_VALUE) {
 -            return false; // already in this list
-+    public static class RefListInner<A> extends ReferenceArrayList<A> {
-+        public RefListInner(A[] elements) {
-+            super(elements, true);
-         }
- 
+-        }
+-
 -        E[] list = this.references;
 -
 -        if (list.length == count) {
 -            // resize required
 -            list = this.references = Arrays.copyOf(list, (int)Math.max(4L, count * 2L)); // overflow results in negative
-+        public A[] getRawDataUnchecked() {
-+            return this.a;
++    public static class RefListInner<A> extends ReferenceArrayList<A> {
++        public RefListInner(A[] elements) {
++            super(elements, true);
          }
--
+ 
 -        list[count] = obj;
 -        this.count = count + 1;
 -
@@ -174,7 +176,9 @@ index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..c93a9d2de61c9aa789c0758de0bdafaa
 -    public E getChecked(final int index) {
 -        if (index < 0 || index >= this.count) {
 -            throw new IndexOutOfBoundsException("Index: " + index + " is out of bounds, size: " + this.count);
--        }
++        public A[] getRawDataUnchecked() {
++            return this.a;
+         }
 -        return this.references[index];
 -    }
 -
