@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -390,6 +_,7 @@
+@@ -391,6 +_,7 @@
      public long activatedTick = Integer.MIN_VALUE;
      public boolean isTemporarilyActive;
      public long activatedImmunityTick = Integer.MIN_VALUE;
@@ -8,7 +8,7 @@
  
      public void inactiveTick() {
      }
-@@ -1167,6 +_,7 @@
+@@ -1168,6 +_,7 @@
      // Paper end - detailed watchdog information
  
      public void move(final MoverType moverType, Vec3 delta) {
@@ -16,7 +16,7 @@
          final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
          ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
-@@ -1325,6 +_,14 @@
+@@ -1326,6 +_,14 @@
                  restitution = !(-currentMovement.y < this.getEffectiveGravity()) && !this.isSuppressingBounce() && !effectState.is(BlockTags.SUPPRESSES_BOUNCE)
                      ? Math.max(restitution, this.getBlockBounciness(effectState.getBlock()))
                      : 0.0;
@@ -31,7 +31,7 @@
              }
  
              double gravityCompensation;
-@@ -2758,6 +_,7 @@
+@@ -2764,6 +_,7 @@
              }
  
              this.addAdditionalSaveData(output, includeAll); // CraftBukkit - pass on includeAll
@@ -39,7 +39,7 @@
              if (this.isVehicle()) {
                  ValueOutput.ValueOutputList passengersList = output.childrenList("Passengers");
  
-@@ -2869,6 +_,7 @@
+@@ -2875,6 +_,7 @@
                  this.tags.clear();
                  input.read("Tags", TAG_LIST_CODEC).ifPresent(this.tags::addAll);
                  this.readAdditionalSaveData(input);
@@ -47,7 +47,7 @@
                  if (this.repositionEntityAfterLoad()) {
                      this.reapplyPosition();
                  }
-@@ -3622,6 +_,7 @@
+@@ -3628,6 +_,7 @@
          } else if (this.level.purpurConfig.entitiesCanUsePortals || this instanceof ServerPlayer) { // Purpur - Entities can use portals
              if (this.portalProcess == null || !this.portalProcess.isSamePortal(portal)) {
                  this.portalProcess = new PortalProcessor(portal, pos.immutable());
@@ -55,7 +55,7 @@
              } else if (!this.portalProcess.isInsidePortalThisTick()) {
                  this.portalProcess.updateEntryPosition(pos.immutable());
                  this.portalProcess.setAsInsidePortalThisTick(true);
-@@ -4376,6 +_,7 @@
+@@ -4382,6 +_,7 @@
      }
  
      public boolean canTeleport(final Level from, final Level to) {
@@ -63,7 +63,7 @@
          if (!this.isAlive() || !this.valid) return false; // Paper - Fix item duplication and teleport issues
          if (from.dimension() == Level.END && to.dimension() == Level.OVERWORLD) {
              for (Entity passenger : this.getPassengers()) {
-@@ -4641,6 +_,7 @@
+@@ -4647,6 +_,7 @@
      }
  
      public final void setBoundingBox(final AABB bb) {

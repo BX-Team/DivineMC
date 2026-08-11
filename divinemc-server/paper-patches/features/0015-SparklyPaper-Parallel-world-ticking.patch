@@ -588,10 +588,10 @@ index ec3343ecbe68b1c2a33f85edb3b527363affa9ba..672a1fc6cc23a03426dd9bd7bcaddb65
          net.minecraft.world.item.ItemStack item = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(tool);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
-index 4350723df06e75768a46e3bf6b8bb021ef8385bd..52ec55fbe663a47dd6002550de47429b37219511 100644
+index 6575e32fd37da7ce46c24ff4bfcf6832d0c3653a..44f6a21dadb9ae3e259fbecd4bd0fe6101a4d4dd 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
-@@ -197,14 +197,16 @@ public final class CraftBlockStates {
+@@ -198,14 +198,16 @@ public final class CraftBlockStates {
          BlockPos pos = craftBlock.getPosition();
          net.minecraft.world.level.block.state.BlockState state = craftBlock.getBlockState();
          BlockEntity blockEntity = craftBlock.getLevel().getBlockEntity(pos);

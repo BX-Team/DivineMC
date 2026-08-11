@@ -525,7 +525,7 @@ index ed7424cd5d53e5387939e20709683daa370f0852..4c73f07cac86dd18fbf24e207219aac8
          LOGGER.info("Default game type: {}", properties.gameMode.get());
          // Paper start - Unix domain socket support
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 058e1722bc24b2c9681cbac3d260e7caf319a87f..32c64076914d66c7c2af8892c3ca7a1a441ecda7 100644
+index bb64dc7a42f7aed36654e46f62198eec8c64628e..0fd34a424566a48221ecf0ff242b5c62bc098dce 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -139,8 +139,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -836,10 +836,10 @@ index b9748a392c9f76e61a1b673085b4dd74c007c70d..3342bf3f8d0ed7b23d573f21b9e33735
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 0ad9bd720974f84838e83963faf9c9d7cc3555d9..c4abddd69f15c7149d8ff34a67fea2d5445311a1 100644
+index ff2b0df6b4b5a63e12e259bb9d7d3a1d1a122cbc..96b4eb6e7b975547872c7d4d7db9a5b004765234 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3653,13 +3653,32 @@ public abstract class Entity
+@@ -3659,13 +3659,32 @@ public abstract class Entity
                      ProfilerFiller profiler = Profiler.get();
                      profiler.push("portal");
                      this.setPortalCooldown();
@@ -877,7 +877,7 @@ index 0ad9bd720974f84838e83963faf9c9d7cc3555d9..c4abddd69f15c7149d8ff34a67fea2d5
  
                      profiler.pop();
                  } else if (this.portalProcess.hasExpired()) {
-@@ -4244,6 +4263,7 @@ public abstract class Entity
+@@ -4250,6 +4269,7 @@ public abstract class Entity
      }
  
      private @Nullable Entity teleportCrossDimension(final ServerLevel oldLevel, final ServerLevel newLevel, final TeleportTransition transition) {

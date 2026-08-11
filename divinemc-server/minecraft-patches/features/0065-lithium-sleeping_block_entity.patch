@@ -96,10 +96,10 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 3861157a78751a622fa90ea3d45c49148f7d7f61..cff1ab94ab2f974e571974ab2ff49365aa876595 100644
+index ce38f1c75455ce11b68aeb02e8cf7b03337a81b5..0df9b181a158116e4660d32b2e8dac6a4531e584 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5149,6 +5149,18 @@ public abstract class Entity
+@@ -5155,6 +5155,18 @@ public abstract class Entity
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box

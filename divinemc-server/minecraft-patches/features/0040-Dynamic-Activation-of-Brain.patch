@@ -31,7 +31,7 @@ index db127a30400045d3fe5672464f2ff706efa49031..eb2d0f794c62e659722362759b428a64
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 7ae1030ecbde044070866304be47e85109cf295e..6cc8fe0436545f399b6494fbd382c0ad9afb3037 100644
+index 0ae5230e3e07ddbaccccfb934dd65a37707926c1..737412672348e8487902fd0edbdf7efdfa989289 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -914,6 +914,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -43,10 +43,10 @@ index 7ae1030ecbde044070866304be47e85109cf295e..6cc8fe0436545f399b6494fbd382c0ad
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  profiler.push("checkDespawn");
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 61fd8f195803ddd818411c865cfce3a7406d4c3e..6573a70d9c77c22705689a98abf0cf2b4198056b 100644
+index 9fe4b6f8e9ad40098ca84095e0b1018024ad2873..ff2b0df6b4b5a63e12e259bb9d7d3a1d1a122cbc 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -383,6 +383,8 @@ public abstract class Entity
+@@ -384,6 +384,8 @@ public abstract class Entity
      public boolean fixedPose = false; // Paper - Expand Pose API
      private final int despawnTime; // Paper - entity despawn time limit
      public int totalEntityAge; // Paper - age-like counter for all entities
@@ -459,7 +459,7 @@ index 4354b55e4aaca68a3f5be71cbf811255c1d5fc65..c414f299185acbb56922681da5799c7c
  
      @Override
 diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
-index a1ff5e589516bb46236ef1408f0f4f2f1387e72a..cfde2c29a3bc3c6256b4b7c20f1316c8d6fd2f72 100644
+index 590621a7b03d48a1721e1a1eed4d3bbeed2088fa..b0eab813ecffa1faf3ff46a4f17ec5407adea471 100644
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
 @@ -183,6 +183,8 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re

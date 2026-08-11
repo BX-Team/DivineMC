@@ -82,7 +82,7 @@ public class DivineSparkPlugin implements PaperSparkModule, SparkPlugin {
     }
 
     public Collection<String> getPermissions() {
-        return this.platform.getAllSparkPermissions();
+        return this.platform.getCommandManager().getAllSparkPermissions();
     }
 
     public void onServerTickStart() {

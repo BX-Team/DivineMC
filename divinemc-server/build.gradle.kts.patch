@@ -107,7 +107,7 @@
      implementation("com.googlecode.json-simple:json-simple:1.1.1") { // change to runtimeOnly once Timings is removed
          isTransitive = false // includes junit
 @@ -191,6 +_,16 @@
-     implementation("me.lucko:spark-paper:1.10.152")
+     implementation("me.lucko:spark-paper:1.10.172")
  }
  
 +// DivineMC start - Hide irrelevant compilation warnings

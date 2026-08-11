@@ -99,10 +99,10 @@ index a47a0b1e754758916c1bdd12d92a8abbe4878626..71115e95bfd253f0699d624018dbc786
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index c4abddd69f15c7149d8ff34a67fea2d5445311a1..3861157a78751a622fa90ea3d45c49148f7d7f61 100644
+index 96b4eb6e7b975547872c7d4d7db9a5b004765234..ce38f1c75455ce11b68aeb02e8cf7b03337a81b5 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1159,29 +1159,10 @@ public abstract class Entity
+@@ -1160,29 +1160,10 @@ public abstract class Entity
          return this.onGround;
      }
  
@@ -132,7 +132,7 @@ index c4abddd69f15c7149d8ff34a67fea2d5445311a1..3861157a78751a622fa90ea3d45c4914
          if (this.noPhysics) {
              this.setPos(this.getX() + delta.x, this.getY() + delta.y, this.getZ() + delta.z);
              this.horizontalCollision = false;
-@@ -1302,13 +1283,6 @@ public abstract class Entity
+@@ -1303,13 +1284,6 @@ public abstract class Entity
                  profiler.pop();
              }
          }
@@ -146,7 +146,7 @@ index c4abddd69f15c7149d8ff34a67fea2d5445311a1..3861157a78751a622fa90ea3d45c4914
      }
  
      private void restituteMovementAfterCollisions(final BlockState effectState, final boolean xCollision, final boolean zCollision, final Vec3 movement) {
-@@ -5036,9 +5010,7 @@ public abstract class Entity
+@@ -5042,9 +5016,7 @@ public abstract class Entity
  
      public void setDeltaMovement(final Vec3 deltaMovement) {
          if (deltaMovement.isFinite()) {
@@ -156,7 +156,7 @@ index c4abddd69f15c7149d8ff34a67fea2d5445311a1..3861157a78751a622fa90ea3d45c4914
          }
      }
  
-@@ -5143,9 +5115,7 @@ public abstract class Entity
+@@ -5149,9 +5121,7 @@ public abstract class Entity
          }
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {
