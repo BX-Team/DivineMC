@@ -5,22 +5,16 @@ Subject: [PATCH] Optimize Moonrise
 
 
 diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-index 93272808d94e81d31af728ebe85df9a2bc7aedab..b47be4b838f4c7f6c3fb62e4e18105c6b4972016 100644
+index 1b8193587814225c2ef2c5d9e667436eb50ff6c5..33b3f0bf3f5476be31dd3cec3add7180bc9c2775 100644
 --- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 +++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-@@ -59,7 +59,7 @@ public final class NearbyPlayers {
+@@ -59,12 +59,12 @@ public final class NearbyPlayers {
      public static final int GENERAL_REALLY_SMALL_AREA_VIEW_DISTANCE_BLOCKS = (GENERAL_REALLY_SMALL_VIEW_DISTANCE << 4);
  
      private final ServerLevel world;
 -    private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
 +    private final it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<ServerPlayer, TrackedPlayer[]> players = it.unimi.dsi.fastutil.objects.Reference2ReferenceMaps.synchronize(new Reference2ReferenceOpenHashMap<>()); // DivineMC - Optimize collections
-     // DivineMC start - Multithreaded Tracker
-     private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<TrackedChunk> byChunk;
-     {
-@@ -70,10 +70,10 @@ public final class NearbyPlayers {
-         }
-     }
-     // DivineMC end - Multithreaded Tracker
+     private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
 -    private final Long2ReferenceOpenHashMap<ReferenceList<ServerPlayer>>[] directByChunk = new Long2ReferenceOpenHashMap[TOTAL_MAP_TYPES];
 +    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<ReferenceList<ServerPlayer>>[] directByChunk = new it.unimi.dsi.fastutil.longs.Long2ReferenceMap[TOTAL_MAP_TYPES]; // DivineMC - Optimize collections
      {
@@ -440,7 +434,7 @@ index 8a5c37cf572abc6b9526648d3c8ec92b7af37e3d..0d0194fa48257168bdc23c50ea6b9332
      }
  
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 4526ec04f19f91445a4e1a178c4640c2bc0b7827..f22d4eaa4501aed85c2f80345fa4c6f41d7548be 100644
+index 12fc265a8b48510c4ab1d8529c9699d6fd364c09..86fb0a478a6599ca640ba23d815798e3b2329b2b 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -447,8 +447,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -454,7 +448,7 @@ index 4526ec04f19f91445a4e1a178c4640c2bc0b7827..f22d4eaa4501aed85c2f80345fa4c6f4
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 6b8e98d9314ee80e04af85b3ef757a2d20bfd1bd..bc88abf46953569552bbbd1a9b83d3792662ebc6 100644
+index 216d075963d5616e1a901080016e5e88d0062867..7b208b9ef2e933bc48edc59dd9bfa5a22622d9a9 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -194,6 +194,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -483,7 +477,7 @@ index 6b8e98d9314ee80e04af85b3ef757a2d20bfd1bd..bc88abf46953569552bbbd1a9b83d379
          // Paper end - rewrite chunk system
      }
  
-@@ -2758,16 +2759,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2759,16 +2760,13 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
  
      public boolean isPositionTickingWithEntitiesLoaded(long chunkPos) {
          // Paper start - rewrite chunk system

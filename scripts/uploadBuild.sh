@@ -47,7 +47,7 @@ metadata_json="{\"buildNumber\":$BUILD_NUMBER,\"channel\":\"$channel\",\"commits
 
 echo "$metadata_json" | jq . > metadata.json 2>/dev/null || echo "$metadata_json" > metadata.json
 
-API_URL="https://bxteam.org/api/v2/projects/divinemc/versions/$mcversion/builds/upload"
+API_URL="https://api.bxteam.org/atlas/projects/divinemc/versions/$mcversion/builds/upload"
 API_KEY="${API_KEY:-}"
 
 if [ -z "$API_KEY" ]; then
@@ -66,7 +66,7 @@ echo "   Commits: $number"
 response=$(curl -X POST "$API_URL" \
   -H "Authorization: Bearer $API_KEY" \
   -F "file=@$jarName" \
-  -F "metadata=$metadata_json" \
+  -F "metadata=<metadata.json;type=application/json" \
   -w "\n%{http_code}" \
   -s)
 

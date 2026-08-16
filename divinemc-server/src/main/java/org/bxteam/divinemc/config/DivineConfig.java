@@ -132,8 +132,45 @@ public class DivineConfig {
     }
 
     private static void ensureDefault(String key, Object defaultValue, String... comment) {
+        ensureDefault(key, null, defaultValue, comment);
+    }
+
+    private static void ensureDefault(String key, @Nullable String oldKey, Object defaultValue, String... comment) {
+        if (oldKey != null && config.contains(oldKey)) {
+            if (!config.contains(key)) {
+                config.set(key, config.get(oldKey));
+                LOGGER.info("Migrated config option {} -> {}", oldKey, key);
+            } else {
+                LOGGER.info("Removed obsolete config option {}", oldKey);
+            }
+            removeKey(oldKey);
+        }
         if (!config.contains(key)) config.set(key, defaultValue);
         if (comment.length > 0) config.setComment(key, String.join("\n", comment), CommentType.BLOCK);
+    }
+
+    private static void removeLegacy(String... keys) {
+        for (String key : keys) {
+            if (config.contains(key)) {
+                removeKey(key);
+                LOGGER.info("Removed obsolete config option {}", key);
+            }
+        }
+    }
+
+    private static void removeKey(String key) {
+        config.set(key, null);
+
+        int idx = key.lastIndexOf('.');
+        while (idx > 0) {
+            String parent = key.substring(0, idx);
+            org.simpleyaml.configuration.ConfigurationSection section = config.getConfigurationSection(parent);
+            if (section == null || !section.getKeys(false).isEmpty()) break;
+
+            config.set(parent, null);
+            key = parent;
+            idx = key.lastIndexOf('.');
+        }
     }
 
     private static boolean getBoolean(String key, boolean defaultValue, String... comment) {
@@ -141,7 +178,7 @@ public class DivineConfig {
     }
 
     private static boolean getBoolean(String key, @Nullable String oldKey, boolean defaultValue, String... comment) {
-        ensureDefault(key, defaultValue, comment);
+        ensureDefault(key, oldKey, defaultValue, comment);
         return config.getBoolean(key, defaultValue);
     }
 
@@ -150,7 +187,7 @@ public class DivineConfig {
     }
 
     private static int getInt(String key, @Nullable String oldKey, int defaultValue, String... comment) {
-        ensureDefault(key, defaultValue, comment);
+        ensureDefault(key, oldKey, defaultValue, comment);
         return config.getInt(key, defaultValue);
     }
 
@@ -159,7 +196,7 @@ public class DivineConfig {
     }
 
     private static double getDouble(String key, @Nullable String oldKey, double defaultValue, String... comment) {
-        ensureDefault(key, defaultValue, comment);
+        ensureDefault(key, oldKey, defaultValue, comment);
         return config.getDouble(key, defaultValue);
     }
 
@@ -168,7 +205,7 @@ public class DivineConfig {
     }
 
     private static long getLong(String key, @Nullable String oldKey, long defaultValue, String... comment) {
-        ensureDefault(key, defaultValue, comment);
+        ensureDefault(key, oldKey, defaultValue, comment);
         return config.getLong(key, defaultValue);
     }
 
@@ -177,7 +214,7 @@ public class DivineConfig {
     }
 
     private static String getOldString(String key, @Nullable String oldKey, String defaultValue, String... comment) {
-        ensureDefault(key, defaultValue, comment);
+        ensureDefault(key, oldKey, defaultValue, comment);
         return config.getString(key, defaultValue);
     }
 
@@ -186,7 +223,7 @@ public class DivineConfig {
     }
 
     private static List<String> getStringList(String key, @Nullable String oldKey, List<String> defaultValue, String... comment) {
-        ensureDefault(key, defaultValue, comment);
+        ensureDefault(key, oldKey, defaultValue, comment);
         return config.getStringList(key);
     }
 
@@ -215,12 +252,10 @@ public class DivineConfig {
         public static int asyncPathfindingQueueSize = 0;
         public static PathfindTaskRejectPolicy asyncPathfindingRejectPolicy = PathfindTaskRejectPolicy.CALLER_RUNS;
 
-        // Multithreaded tracker settings
-        public static boolean multithreadedEnabled = true;
-        public static boolean multithreadedCompatModeEnabled = false;
-        public static int asyncEntityTrackerMaxThreads = 1;
-        public static int asyncEntityTrackerKeepalive = 60;
-        public static int asyncEntityTrackerQueueSize = 0;
+        // Parallel entity tracker settings
+        public static boolean parallelTrackerEnabled = true;
+        public static int parallelTrackerThreads = 1;
+        public static int parallelTrackerKeepalive = 60;
 
         // Async chunk sending settings
         public static boolean asyncChunkSendingEnabled = true;
@@ -235,7 +270,7 @@ public class DivineConfig {
             parallelWorldTicking();
             regionizedChunkTicking();
             asyncPathfinding();
-            multithreadedTracker();
+            parallelEntityTracker();
             asyncChunkSending();
             asyncMobSpawning();
             autoAllocation();
@@ -359,32 +394,44 @@ public class DivineConfig {
             }
         }
 
-        private static void multithreadedTracker() {
-            multithreadedEnabled = getBoolean(ConfigCategory.ASYNC.key("multithreaded-tracker.enable"), multithreadedEnabled,
-                "Make entity tracking saving asynchronously, can improve performance significantly,",
-                "especially in some massive entities in small area situations.");
-            multithreadedCompatModeEnabled = getBoolean(ConfigCategory.ASYNC.key("multithreaded-tracker.compat-mode"), multithreadedCompatModeEnabled,
-                "Enable compat mode ONLY if Citizens or NPC plugins using real entity has installed.",
-                "Compat mode fixes visible issues with player type NPCs of Citizens.",
-                "But we recommend to use packet based / virtual entity NPC plugin, e.g. ZNPC Plus, Adyeshach, Fancy NPC and etc.");
+        private static void parallelEntityTracker() {
+            parallelTrackerEnabled = getBoolean(
+                ConfigCategory.ASYNC.key("parallel-entity-tracker.enable"),
+                ConfigCategory.ASYNC.key("multithreaded-tracker.enable"),
+                parallelTrackerEnabled,
+                "Runs the entity tracker across a thread pool: the read-only visibility scan and the",
+                "per-entity packet diffs run in parallel, while pairing changes and Bukkit events are",
+                "applied on the tick thread between them. Each phase is joined before the tick continues,",
+                "so tracking keeps vanilla ordering and works with entity-based NPC plugins (Citizens).");
 
-            asyncEntityTrackerMaxThreads = getInt(ConfigCategory.ASYNC.key("multithreaded-tracker.max-threads"), asyncEntityTrackerMaxThreads);
-            asyncEntityTrackerKeepalive = getInt(ConfigCategory.ASYNC.key("multithreaded-tracker.keepalive"), asyncEntityTrackerKeepalive);
-            asyncEntityTrackerQueueSize = getInt(ConfigCategory.ASYNC.key("multithreaded-tracker.queue-size"), asyncEntityTrackerQueueSize);
+            parallelTrackerThreads = getInt(
+                ConfigCategory.ASYNC.key("parallel-entity-tracker.threads"),
+                ConfigCategory.ASYNC.key("multithreaded-tracker.max-threads"),
+                parallelTrackerThreads,
+                "Worker threads used by the tracker.",
+                "0 = a quarter of available cores; negative = all cores minus that many.",
+                "At least 1 thread is always used.");
 
-            if (asyncEntityTrackerMaxThreads < 0) {
-                asyncEntityTrackerMaxThreads = Math.max(maxThreads + asyncEntityTrackerMaxThreads, 1);
-            } else if (asyncEntityTrackerMaxThreads == 0) {
-                asyncEntityTrackerMaxThreads = Math.max(maxThreads / 4, 1);
+            parallelTrackerKeepalive = getInt(
+                ConfigCategory.ASYNC.key("parallel-entity-tracker.keepalive"),
+                ConfigCategory.ASYNC.key("multithreaded-tracker.keepalive"),
+                parallelTrackerKeepalive,
+                "Seconds an idle worker thread is kept alive before being released.");
+
+            removeLegacy(
+                ConfigCategory.ASYNC.key("multithreaded-tracker.compat-mode"),
+                ConfigCategory.ASYNC.key("multithreaded-tracker.queue-size")
+            );
+
+            if (parallelTrackerThreads <= 0) {
+                parallelTrackerThreads = Math.max(parallelTrackerThreads == 0
+                    ? maxThreads / 4
+                    : maxThreads + parallelTrackerThreads, 1);
             }
 
-            if (!multithreadedEnabled) {
-                asyncEntityTrackerMaxThreads = 0;
-            } else {
-                LOGGER.info("Using {} threads for Async Entity Tracker", asyncEntityTrackerMaxThreads);
+            if (parallelTrackerEnabled) {
+                LOGGER.info("Using {} threads for the Parallel Entity Tracker", parallelTrackerThreads);
             }
-
-            if (asyncEntityTrackerQueueSize <= 0) asyncEntityTrackerQueueSize = asyncEntityTrackerMaxThreads * 384;
         }
 
         private static void asyncChunkSending() {

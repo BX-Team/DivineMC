@@ -5,10 +5,10 @@ Subject: [PATCH] Euclidean distance squared option
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-index cc0a7819dd4209141f36668a8ebf51f6db3b0cf4..db365a399b6e51f67105ecbb3e2f82d19d10a3fb 100644
+index 7a9f113e53a9528f1ddf8884e0d138162350b7e0..ee3ccd21c04b46c1df6e8ee0ca6174d535d59a03 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/player/RegionizedPlayerChunkLoader.java
-@@ -387,10 +387,19 @@ public final class RegionizedPlayerChunkLoader {
+@@ -383,10 +383,19 @@ public final class RegionizedPlayerChunkLoader {
              final int centerX = PlayerChunkLoaderData.this.lastChunkX;
              final int centerZ = PlayerChunkLoaderData.this.lastChunkZ;
  

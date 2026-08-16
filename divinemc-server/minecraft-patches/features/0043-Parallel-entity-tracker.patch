@@ -1,0 +1,253 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <76615486+NONPLAYT@users.noreply.github.com>
+Date: Tue, 28 Jan 2025 01:18:49 +0300
+Subject: [PATCH] Parallel entity tracker
+
+Derived from Petal's multithreaded tracker; rewritten into a three-phase
+scan/apply/send model with join barriers.
+
+diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
+index 21738241221f4fc1504678f76851702fea84a70b..3fe3d6f49d593326274ea034adb6884d7c0a2a99 100644
+--- a/net/minecraft/server/level/ChunkMap.java
++++ b/net/minecraft/server/level/ChunkMap.java
+@@ -261,9 +261,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+         }
+ 
+         final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
+-        for (int i = 0, len = inRange.size(); i < len; i++) {
+-            ++(backingSet[i].mobCounts[index]);
++        // DivineMC start - Parallel entity tracker
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.parallelTrackerEnabled) {
++            for (int i = 0, len = inRange.size(); i < len; i++) {
++                final ServerPlayer player = backingSet[i];
++                if (player == null) continue;
++                ++(player.mobCounts[index]);
++            }
++        } else {
++            for (int i = 0, len = inRange.size(); i < len; i++) {
++                ++(backingSet[i].mobCounts[index]);
++            }
+         }
++        // DivineMC end - Parallel entity tracker
+     }
+ 
+     // Paper start - per player mob count backoff
+@@ -1063,6 +1073,13 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+     // Paper end - optimise entity tracker
+ 
+     protected void tick() {
++        // DivineMC start - Parallel entity tracker
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.parallelTrackerEnabled) {
++            final ServerLevel level = this.level;
++            org.bxteam.divinemc.async.tracking.ParallelEntityTracker.tick(level);
++            return;
++        }
++        // DivineMC end - Parallel entity tracker
+         // Paper start - optimise entity tracker
+         if (true) {
+             this.newTrackerTick();
+@@ -1212,7 +1229,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+         final Entity entity;
+         private final int range;
+         SectionPos lastSectionPos;
+-        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
++        public final Set<ServerPlayerConnection> seenBy = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking ? java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>()) : new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl // DivineMC - Parallel entity tracker
+ 
+         // Paper start - optimise entity tracker
+         private long lastChunkUpdate = -1L;
+@@ -1239,8 +1256,9 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+             this.lastTrackedChunk = chunk;
+ 
+             final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
++            final int playersLength = Math.min(playersRaw.length, players.size()); // DivineMC - Parallel entity tracker
+ 
+-            for (int i = 0, len = players.size(); i < len; ++i) {
++            for (int i = 0; i < playersLength; ++i)  { // DivineMC - Parallel entity tracker
+                 final ServerPlayer player = playersRaw[i];
+                 this.updatePlayer(player);
+             }
+@@ -1256,6 +1274,79 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+             }
+         }
+ 
++        // DivineMC start - Parallel entity tracker
++        public final org.bxteam.divinemc.async.tracking.ParallelEntityTracker.@Nullable ScanResult scanPlayers(final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk chunk) {
++            final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> players =
++                chunk == null ? null : chunk.getPlayers(ca.spottedleaf.moonrise.common.misc.NearbyPlayers.NearbyMapType.VIEW_DISTANCE);
++            if (players == null) {
++                return this.seenBy.isEmpty() && this.lastTrackedChunk == null
++                    ? null
++                    : new org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult(this, null, null, true);
++            }
++
++            final long lastChunkUpdate = this.lastChunkUpdate;
++            final long currChunkUpdate = chunk.getUpdateCount();
++            final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk lastTrackedChunk = this.lastTrackedChunk;
++            this.lastChunkUpdate = currChunkUpdate;
++            this.lastTrackedChunk = chunk;
++
++            java.util.List<ServerPlayer> toAdd = null;
++            java.util.List<ServerPlayer> toRemove = null;
++
++            final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
++            final int playersLength = Math.min(playersRaw.length, players.size());
++            for (int i = 0; i < playersLength; ++i) {
++                final ServerPlayer player = playersRaw[i];
++                if (player == null || player == this.entity) continue;
++                final boolean wantsToSee = this.wantsToSee(player);
++                if (wantsToSee == this.seenBy.contains(player.connection)) continue;
++                if (wantsToSee) {
++                    if (toAdd == null) toAdd = new java.util.ArrayList<>(4);
++                    toAdd.add(player);
++                } else {
++                    if (toRemove == null) toRemove = new java.util.ArrayList<>(4);
++                    toRemove.add(player);
++                }
++            }
++
++            if (lastChunkUpdate != currChunkUpdate || lastTrackedChunk != chunk) {
++                // need to purge any players possibly not in the chunk list
++                for (final ServerPlayerConnection conn : this.seenBy) {
++                    final ServerPlayer player = conn.getPlayer();
++                    if (!players.contains(player) && (toRemove == null || !toRemove.contains(player))) {
++                        if (toRemove == null) toRemove = new java.util.ArrayList<>(4);
++                        toRemove.add(player);
++                    }
++                }
++            }
++
++            return toAdd == null && toRemove == null
++                ? null
++                : new org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult(this, toAdd, toRemove, false);
++        }
++
++        public final void applyScan(final org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult result) {
++            if (result.clearAll()) {
++                this.moonrise$clearPlayers();
++                return;
++            }
++
++            final java.util.List<ServerPlayer> toRemove = result.toRemove();
++            if (toRemove != null) {
++                for (int i = 0, len = toRemove.size(); i < len; ++i) {
++                    this.removePlayer(toRemove.get(i));
++                }
++            }
++
++            final java.util.List<ServerPlayer> toAdd = result.toAdd();
++            if (toAdd != null) {
++                for (int i = 0, len = toAdd.size(); i < len; ++i) {
++                    this.addPlayer(toAdd.get(i));
++                }
++            }
++        }
++        // DivineMC end - Parallel entity tracker
++
+         @Override
+         public final void moonrise$removeNonTickThreadPlayers() {
+             boolean foundToRemove = false;
+@@ -1357,50 +1448,65 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+         public void updatePlayer(ServerPlayer player) {
+             org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
+             if (player != this.entity) {
+-                // Paper start - remove allocation of Vec3D here
+-                // Vec3 vec3 = player.position().subtract(this.entity.position());
+-                double vec3_dx = player.getX() - this.entity.getX();
+-                double vec3_dz = player.getZ() - this.entity.getZ();
+-                // Paper end - remove allocation of Vec3D here
+-                int playerViewDistance = ChunkMap.this.getPlayerViewDistance(player);
+-                double d = Math.min(this.getEffectiveRange(), playerViewDistance * 16);
+-                double d1 = vec3_dx * vec3_dx + vec3_dz * vec3_dz; // Paper
+-                double d2 = d * d;
+-                // Paper start - Configurable entity tracking range by Y
+-                boolean flag = d1 <= d2;
+-                if (flag && level.paperConfig().entities.trackingRangeY.enabled) {
+-                    double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
+-                    if (rangeY != -1) {
+-                        double vec3_dy = player.getY() - this.entity.getY();
+-                        flag = vec3_dy * vec3_dy <= rangeY * rangeY;
+-                    }
+-                }
+-                flag = flag && this.entity.broadcastToPlayer(player) && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
+-                // Paper end - Configurable entity tracking range by Y
+-                // CraftBukkit start - respect vanish API
+-                if (flag && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
+-                    flag = false;
+-                }
+-                // CraftBukkit end
+-                if (flag) {
+-                    if (this.seenBy.add(player.connection)) {
+-                        // Paper start - entity tracking events
+-                        if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
+-                        this.serverEntity.addPairing(player);
+-                        if (this.seenBy.size() == 1) {
+-                            ChunkMap.this.level.debugSynchronizers().registerEntity(this.entity);
+-                        }
+-
+-                        ChunkMap.this.level.debugSynchronizers().startTrackingEntity(player, this.entity);
+-                        }
+-                        // Paper end - entity tracking events
+-                        this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
+-                    }
++                if (player == null) return; // DivineMC - Parallel entity tracker - raw nearby-player arrays may contain nulls
++                // DivineMC start - Parallel entity tracker - visibility check extracted into wantsToSee for the parallel scan phase
++                if (this.wantsToSee(player)) {
++                    this.addPlayer(player);
+                 } else {
+                     this.removePlayer(player);
+                 }
++                // DivineMC end - Parallel entity tracker - visibility check extracted into wantsToSee for the parallel scan phase
++            }
++        }
++
++        // DivineMC start - Parallel entity tracker - split updatePlayer into a read-only predicate and a mutating apply
++        private boolean wantsToSee(final ServerPlayer player) {
++            // Paper start - remove allocation of Vec3D here
++            // Vec3 vec3 = player.position().subtract(this.entity.position());
++            double vec3_dx = player.getX() - this.entity.getX();
++            double vec3_dz = player.getZ() - this.entity.getZ();
++            // Paper end - remove allocation of Vec3D here
++            int playerViewDistance = ChunkMap.this.getPlayerViewDistance(player);
++            double d = Math.min(this.getEffectiveRange(), playerViewDistance * 16);
++            double d1 = vec3_dx * vec3_dx + vec3_dz * vec3_dz; // Paper
++            double d2 = d * d;
++            // Paper start - Configurable entity tracking range by Y
++            boolean flag = d1 <= d2;
++            if (flag && level.paperConfig().entities.trackingRangeY.enabled) {
++                double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
++                if (rangeY != -1) {
++                    double vec3_dy = player.getY() - this.entity.getY();
++                    flag = vec3_dy * vec3_dy <= rangeY * rangeY;
++                }
++            }
++            flag = flag && this.entity.broadcastToPlayer(player) && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
++            // Paper end - Configurable entity tracking range by Y
++            // CraftBukkit start - respect vanish API
++            if (flag && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
++                flag = false;
++            }
++            // CraftBukkit end
++            return flag;
++        }
++
++        private boolean addPlayer(final ServerPlayer player) {
++            if (!this.seenBy.add(player.connection)) {
++                return false;
++            }
++            // Paper start - entity tracking events
++            if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
++            this.serverEntity.addPairing(player);
++            if (this.seenBy.size() == 1) {
++                ChunkMap.this.level.debugSynchronizers().registerEntity(this.entity);
++            }
++
++            ChunkMap.this.level.debugSynchronizers().startTrackingEntity(player, this.entity);
+             }
++            // Paper end - entity tracking events
++            this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
++            return true;
+         }
++        // DivineMC end - Parallel entity tracker - split updatePlayer into a read-only predicate and a mutating apply
+ 
+         private int scaledRange(int trackingDistance) {
+             return ChunkMap.this.level.getServer().getScaledTrackingDistance(trackingDistance);
