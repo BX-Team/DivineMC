@@ -25,7 +25,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..75ce9966db38f2970b704ddf21e46212
      }
  
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 3703fde2416f940b18028bf7373811a6e3215b01..3eb98d67038923e17ca64468a3dbd6e9bb890bfe 100644
+index 8ac9b0b0cc782a1343b9b6cb3f26b4f9319e3766..17307633d973c0aa8c00a57c88519037d103f683 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -84,28 +84,40 @@ public final class ChunkHolderManager {
@@ -386,7 +386,7 @@ index 41ef18dd82a27bd6abf2303a36587cb2676b2c8c..e3c89fcfce231196c7d8506889d698e2
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 05a6bc4d5b4b141b4bcb098de7c33b1d788db18b..249f065cb642a48b9a3b4d43fe8824e36e9eac21 100644
+index 71115e95bfd253f0699d624018dbc786dfa15fc3..2dfbf37e61f89c83f5edb0e3e988c81bd6db8dc1 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -196,6 +196,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet

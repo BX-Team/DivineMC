@@ -63,7 +63,7 @@ index c4e7c02c51f7732eeba46fcfc6047a63a7ffc0b2..6aec91364a2171a0ff3b5d4baaefe7ef
                      // DivineMC start - Parallel world ticking
                      treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 87dff5306c79b7f0fc940d9e85e523fa0c2f4ea6..80e46df1a18b66fff8abfc6d94b92a4767cac731 100644
+index 96900bee726db8a0b7d3072076e7b07f4a3492f4..634679a03c1edaf2217f83ff49b02e4cfafdc930 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
 @@ -303,7 +303,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
@@ -76,7 +76,7 @@ index 87dff5306c79b7f0fc940d9e85e523fa0c2f4ea6..80e46df1a18b66fff8abfc6d94b92a47
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 8562c9e80c222cada5ac460358181f3fd69be817..59cb0e471cc94d798db67156a5fe0093bab2e584 100644
+index 0fd34a424566a48221ecf0ff242b5c62bc098dce..6fd48f8cae9d92f989afe89e5c974b5a108631b5 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -751,25 +751,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -331,7 +331,7 @@ index 070c5f3cb119f3b989d2430dc898a631d6c7924a..41ef18dd82a27bd6abf2303a36587cb2
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 252c5c1e6d753e12028ae1e0ba990104f3a6db68..25f7d0e684330bb445ae727344d20bbc45a0224e 100644
+index 8de0f85102211dc683aef25242251eba4dc6b02c..a47a0b1e754758916c1bdd12d92a8abbe4878626 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -208,7 +208,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -687,7 +687,7 @@ index 252c5c1e6d753e12028ae1e0ba990104f3a6db68..25f7d0e684330bb445ae727344d20bbc
      }
  
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index c967db4f3510cdab80d7410afbbeadfd3b81cf7b..f3aa83c6375dd42073ffbcb9414e45e9750c7967 100644
+index a5bc607990735d3d23deb35471bbdf7a09eb6956..9cdd7c5c78b45d853a6a181bd7a7ea1991df968b 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -445,6 +445,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -1031,7 +1031,7 @@ index bf9b94eeed932504bbe3604111bbb576890f000c..63e397e54abc82b0e301b4ebd4d19cef
          }
      }
 diff --git a/net/minecraft/world/level/block/WitherSkullBlock.java b/net/minecraft/world/level/block/WitherSkullBlock.java
-index b5c9f0cdc830438cb9a966cee9d0504767e9f06d..b8affcbbd5a06f54d02b6fd4e299cf05fd7a194d 100644
+index e2526fc76a31c3877bce3005f3355af3979376fd..33f792593760cc393181d6b25f6776aabeb717bc 100644
 --- a/net/minecraft/world/level/block/WitherSkullBlock.java
 +++ b/net/minecraft/world/level/block/WitherSkullBlock.java
 @@ -43,7 +43,7 @@ public class WitherSkullBlock extends SkullBlock {

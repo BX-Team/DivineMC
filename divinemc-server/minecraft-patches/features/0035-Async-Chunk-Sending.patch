@@ -110,7 +110,7 @@ index a1018e9ca9dfb978d6e6633577abd7d5d0960fa6..b5e164f9f1b51b049aaaae4f158c182b
          this.x = input.readInt();
          this.z = input.readInt();
 diff --git a/net/minecraft/server/network/PlayerChunkSender.java b/net/minecraft/server/network/PlayerChunkSender.java
-index 196c01fe5f200ed57e6f23e0939cac616305571a..3a6c9ea3b0f6f2f7bed89379f1486ee33e49e654 100644
+index 196c01fe5f200ed57e6f23e0939cac616305571a..e2978937ee55488e97363b1711510af97ab0ecc9 100644
 --- a/net/minecraft/server/network/PlayerChunkSender.java
 +++ b/net/minecraft/server/network/PlayerChunkSender.java
 @@ -81,7 +81,22 @@ public class PlayerChunkSender {
@@ -138,7 +138,7 @@ index 196c01fe5f200ed57e6f23e0939cac616305571a..3a6c9ea3b0f6f2f7bed89379f1486ee3
          // Paper start - PlayerChunkLoadEvent
          if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunkSection.java b/net/minecraft/world/level/chunk/LevelChunkSection.java
-index a25b1747fe6bde428265f90eadfade81c0979400..dac6d56e604c1b5555a29becd16a3c90b3f4a0c1 100644
+index a25b1747fe6bde428265f90eadfade81c0979400..285c10c75f5723b5331c1a3536ca228a48166869 100644
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
 @@ -11,7 +11,7 @@ import net.minecraft.world.level.material.FluidState;

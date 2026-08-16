@@ -9,7 +9,7 @@ Original project: https://github.com/pufferfish-gg/Pufferfish
 This patch reduces the main-thread impact of mob spawning by moving spawning work to other threads
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 31fa9c86a38fac4e9ca674e522e2760c156ad7a9..36efaf87514f2657c9f44d82a7b833a2e2c29b52 100644
+index c0fa57472bde8493c3085bf20452b0cf2e53b260..746da342661b4e4a6f3c1b7adb14f7802de76aa8 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -339,6 +339,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
