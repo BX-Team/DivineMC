@@ -23,10 +23,26 @@ paperweight {
             outputFile = file("divinemc-api/build.gradle.kts")
             patchFile = file("divinemc-api/build.gradle.kts.patch")
         }
+        patchFile {
+            path = "purpur-checkstyle/build.gradle.kts"
+            outputFile = file("divinemc-checkstyle/build.gradle.kts")
+            patchFile = file("divinemc-checkstyle/build.gradle.kts.patch")
+        }
         patchRepo("paperApi") {
             upstreamPath = "paper-api"
             patchesDir = file("divinemc-api/paper-patches")
             outputDir = file("paper-api")
+        }
+        patchRepo("paperCheckstyle") {
+            upstreamPath = "paper-checkstyle"
+            excludes = listOf("build.gradle.kts")
+            patchesDir = file("divinemc-checkstyle/paper-patches")
+            outputDir = file("paper-checkstyle")
+        }
+        patchRepo("paperCheckstyleConfig") {
+            upstreamPath = ".checkstyle"
+            patchesDir = file("divinemc-checkstyle/config-patches")
+            outputDir = file(".checkstyle")
         }
         patchDir("purpurApi") {
             upstreamPath = "purpur-api"

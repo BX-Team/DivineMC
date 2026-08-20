@@ -34,7 +34,7 @@ if (!file(".git").exists()) {
 
 rootProject.name = "DivineMC"
 
-for (name in listOf("divinemc-api", "divinemc-server")) {
+for (name in listOf("divinemc-api", "divinemc-server", "divinemc-checkstyle")) {
     val projName = name.lowercase(Locale.ENGLISH)
     include(projName)
     findProject(":$projName")!!.projectDir = file(name)
