@@ -31,7 +31,7 @@ public final class MSPTCommand extends DivineSubCommandPermission {
     private static final Component SLASH = Component.text("/");
 
     public MSPTCommand() {
-        super(PERM, PermissionDefault.TRUE);
+        super(PERM, PermissionDefault.OP);
     }
 
     @Override
