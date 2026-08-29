@@ -113,6 +113,7 @@
              into("build/docs/javadoc")
          }
      }
+-}
 +
 +    options.addStringOption("Xdoclint:none", "-quiet") // DivineMC - Hide unnecessary javadoc warnings
 +    options.addStringOption("-add-modules", "jdk.incubator.vector") // DivineMC - Required for simd
@@ -125,7 +126,7 @@
 +    compilerArgs.add("-Xlint:-removal")
 +    compilerArgs.add("-Xlint:-dep-ann")
 +    compilerArgs.add("--add-modules=jdk.incubator.vector")
- }
++}
 +// DivineMC end - Hide unnecessary compilation warnings
  
  tasks.test {

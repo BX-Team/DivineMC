@@ -89,7 +89,7 @@
 +    implementation("net.objecthunter:exp4j:0.4.8")
 +    // DivineMC end - Dependencies
 +
-     implementation("ca.spottedleaf:leafpile:1.0.0")
+     implementation("ca.spottedleaf:leafpile:1.2.0")
      implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
      implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21
 @@ -170,7 +_,12 @@
@@ -107,7 +107,7 @@
      implementation("com.googlecode.json-simple:json-simple:1.1.1") { // change to runtimeOnly once Timings is removed
          isTransitive = false // includes junit
 @@ -191,6 +_,16 @@
-     implementation("me.lucko:spark-paper:1.10.172")
+     implementation("me.lucko:spark-paper:1.10.180")
  }
  
 +// DivineMC start - Hide irrelevant compilation warnings

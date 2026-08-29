@@ -5,10 +5,10 @@ Subject: [PATCH] Cleanup dead code from Paper
 
 
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 360880f702ff61035013184d4f0a12479b5fc06b..9641aa56bc000407cad52c5ad9f3412fd9102c00 100644
+index c25740f52e10f12f74b046ac2e4ef3b13c954d99..6682476895fbb7d6dcf2527624a07dcfc7471e07 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -607,13 +607,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -624,13 +624,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
              if (!(this.packetListener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl loginPacketListener)
                  || loginPacketListener.state != net.minecraft.server.network.ServerLoginPacketListenerImpl.State.VERIFYING
                  || Connection.joinAttemptsThisTick++ < MAX_PER_TICK) {

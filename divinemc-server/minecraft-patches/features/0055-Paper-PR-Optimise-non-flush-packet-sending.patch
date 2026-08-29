@@ -24,7 +24,7 @@ up on this optimisation before he came along.
 Locally this patch drops the entity tracker tick by a full 1.5x.
 
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 634679a03c1edaf2217f83ff49b02e4cfafdc930..360880f702ff61035013184d4f0a12479b5fc06b 100644
+index d7c26d0473c04a44f55faa07a939097496e59c97..c25740f52e10f12f74b046ac2e4ef3b13c954d99 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
 @@ -127,6 +127,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
@@ -43,7 +43,7 @@ index 634679a03c1edaf2217f83ff49b02e4cfafdc930..360880f702ff61035013184d4f0a1247
          this.address = this.channel.remoteAddress();
          this.preparing = false; // Spigot
          if (this.delayedDisconnect != null) {
-@@ -470,7 +472,13 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -487,7 +489,13 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, listener, flush);
          } else {
