@@ -38,7 +38,7 @@ jobs:
             **/build/test-results/test/TEST-*.xml
 
       - name: Build Paperclip Jar
-        run: ./gradlew createMojmapPaperclipJar --stacktrace --no-daemon
+        run: ./gradlew createPaperclipJar --stacktrace --parallel --no-daemon
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
