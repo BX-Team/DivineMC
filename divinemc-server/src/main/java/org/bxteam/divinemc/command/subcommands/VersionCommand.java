@@ -16,7 +16,7 @@ public final class VersionCommand extends DivineSubCommandPermission {
     public static final String PERM = DivineCommand.BASE_PERM + "." + LITERAL_ARGUMENT;
 
     public VersionCommand() {
-        super(PERM, PermissionDefault.TRUE);
+        super(PERM, PermissionDefault.OP);
     }
 
     @Override
