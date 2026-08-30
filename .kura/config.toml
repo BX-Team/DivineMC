@@ -1,0 +1,22 @@
+[repo]
+description = "A multi-functional fork of Purpur focused on server flexibility and optimization"
+topics = ["minecraft", "minecraft-server", "purpur", "paper", "performance", "java"]
+website = "https://bxteam.org/downloads/divinemc"
+
+[ui]
+readme = "README.md"
+language = "Java"
+
+[mirror.github]
+url = "https://github.com/BX-Team/DivineMC.git"
+push = ["refs/heads/*", "refs/tags/*"]
+secret = "github-mirror-token"
+enabled = true
+
+[[webhook]]
+url = "https://beacon.bxteam.org/hooks/kura"
+events = ["push", "tag", "job-finished"]
+secret = "beacon-hook-secret"
+
+[limits]
+job-timeout-minutes = 240

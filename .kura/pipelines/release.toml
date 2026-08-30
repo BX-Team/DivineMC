@@ -1,0 +1,60 @@
+# DivineMC 26.2.
+
+on-push = ["refs/heads/ver/26.2"]
+runs-on = ["nix"]
+
+# paperweight applies patches with `git am`, which will not write a commit without
+# an identity — and a build runner has no user to take one from.
+env = { DOWNLOADS = "https://git.bxteam.org", GIT_AUTHOR_NAME = "kura", GIT_AUTHOR_EMAIL = "kura@bxteam.org", GIT_COMMITTER_NAME = "kura", GIT_COMMITTER_EMAIL = "kura@bxteam.org" }
+
+[[jobs]]
+name = "publish"
+secrets = ["publish-token", "repo-username", "repo-password"]
+
+[[jobs.steps]]
+uses = "cache"
+with = { path = ".gradle-home", key = "gradle-home-${hash:gradle/wrapper/gradle-wrapper.properties}" }
+
+[[jobs.steps]]
+uses = "cache"
+with = { path = ".gradle", key = "gradle-patched-${hash:gradle.properties}" }
+
+[[jobs.steps]]
+name = "Resolve build number"
+nix-shell = ["curl", "jq"]
+run = '''
+curl -fsS "$DOWNLOADS/api/v1/builds/divinemc/26.2/latest" | jq '.build + 1' > .build-number || echo 1 > .build-number
+echo "DivineMC 26.2 build $(cat .build-number)"
+'''
+
+[[jobs.steps]]
+name = "Build"
+nix-shell = ["temurin-bin-25"]
+run = '''
+# Absolute: a single-use daemon is not started in this directory, and a relative
+# GRADLE_USER_HOME would resolve against whatever it does start in.
+export GRADLE_USER_HOME="$KURA_WORKSPACE/.gradle-home"
+export BUILD_NUMBER=$(cat .build-number)
+
+./gradlew applyAllPatches --stacktrace --parallel --build-cache --no-daemon --max-workers=$(( $(nproc) * 2 ))
+./gradlew build --stacktrace --parallel --no-daemon
+./gradlew createPaperclipJar --stacktrace --parallel --no-daemon
+
+mv divinemc-server/build/libs/divinemc-paperclip-*.jar "divinemc-26.2-$BUILD_NUMBER.jar"
+'''
+
+[[jobs.steps]]
+name = "Publish API and dev bundle"
+nix-shell = ["temurin-bin-25"]
+continue-on-error = true
+run = '''
+export GRADLE_USER_HOME="$KURA_WORKSPACE/.gradle-home"
+export BUILD_NUMBER=$(cat .build-number)
+
+./gradlew :divinemc-api:publish --no-daemon
+./gradlew publishDevBundlePublicationToDivinemcRepository -PpublishDevBundle=true --no-daemon
+'''
+
+[[jobs.steps]]
+uses = "publish"
+with = { project = "divinemc", version = "26.2", channel = "stable", path = "divinemc-*.jar" }

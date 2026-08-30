@@ -2,7 +2,7 @@ name: Test Results
 
 on:
   workflow_run:
-    workflows: [ "Build DivineMC 26.2", "Build Pull Request" ]
+    workflows: [ "Build Pull Request" ]
     types:
       - completed
 permissions: { }
