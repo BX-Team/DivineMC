@@ -13,7 +13,7 @@ the vanilla one, however this is far more advanced than what you need
 for all the vanilla recipes.
 
 diff --git a/net/minecraft/world/item/crafting/ShapelessRecipe.java b/net/minecraft/world/item/crafting/ShapelessRecipe.java
-index 53a818f14709d1978dbbc4aa7367be733a8ee47f..6b895fe0ca409bd62369d8338efc17bdf41904dd 100644
+index 53a818f14709d1978dbbc4aa7367be733a8ee47f..adb4605fef667aa68dfcc32a26f27a958174f167 100644
 --- a/net/minecraft/world/item/crafting/ShapelessRecipe.java
 +++ b/net/minecraft/world/item/crafting/ShapelessRecipe.java
 @@ -38,14 +38,22 @@ public class ShapelessRecipe extends NormalCraftingRecipe {
@@ -40,12 +40,27 @@ index 53a818f14709d1978dbbc4aa7367be733a8ee47f..6b895fe0ca409bd62369d8338efc17bd
  
      // CraftBukkit start
      @Override
-@@ -74,6 +82,27 @@ public class ShapelessRecipe extends NormalCraftingRecipe {
+@@ -72,8 +80,42 @@ public class ShapelessRecipe extends NormalCraftingRecipe {
+         return PlacementInfo.create(this.ingredients);
+     }
  
++    // DivineMC start - Pufferfish: Simpler ShapelessRecipes comparison for Vanilla
++    private static boolean isPlain(final List<Ingredient> ingredients) {
++        for (int i = 0; i < ingredients.size(); i++) {
++            final Ingredient ingredient = ingredients.get(i);
++            if (ingredient.stackPredicate != null || ingredient.predicate != null || ingredient.isExact()) {
++                return false;
++            }
++        }
++
++        return true;
++    }
++    // DivineMC end - Pufferfish: Simpler ShapelessRecipes comparison for Vanilla
++
      @Override
      public boolean matches(final CraftingInput input, final Level level) {
 +        // DivineMC start - Pufferfish: Simpler ShapelessRecipes comparison for Vanilla
-+        if (!this.isBukkit) {
++        if (!this.isBukkit && isPlain(this.ingredients)) {
 +            java.util.List<Ingredient> ingredients = com.google.common.collect.Lists.newArrayList(this.ingredients.toArray(new Ingredient[0]));
 +
 +            inventory: for (int index = 0; index < input.size(); index++) {
