@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize Raids
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 27407c8d66cae3a91d5fc7d86960ea5e2d3aad0a..1f4a7ed2ed2e1bbafa004e7bcf2ff3cb80f5d1d0 100644
+index be3f575596541eddb6360d986862a1753e9a357a..ecef7f700600fc7fccb4f826cfe6c037d976772e 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -238,6 +238,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -25,7 +25,7 @@ index 27407c8d66cae3a91d5fc7d86960ea5e2d3aad0a..1f4a7ed2ed2e1bbafa004e7bcf2ff3cb
  
      // Paper start
 diff --git a/net/minecraft/world/entity/raid/Raid.java b/net/minecraft/world/entity/raid/Raid.java
-index d6d3f8856decae3739972071939d34faab88037e..aa05acb6da6e5738a974c377bf7a4d5bd203292b 100644
+index 8c7ce5898fe6035bfc5342689605ae8c081cceb0..5598aac70ec98b296f86f07a9e08e52c490d2cf8 100644
 --- a/net/minecraft/world/entity/raid/Raid.java
 +++ b/net/minecraft/world/entity/raid/Raid.java
 @@ -132,6 +132,7 @@ public class Raid {
@@ -49,7 +49,7 @@ index d6d3f8856decae3739972071939d34faab88037e..aa05acb6da6e5738a974c377bf7a4d5b
          if (!this.isStopped()) {
              if (this.status == Raid.RaidStatus.ONGOING) {
                  boolean oldActive = this.active;
-@@ -616,7 +623,7 @@ public class Raid {
+@@ -617,7 +624,7 @@ public class Raid {
      }
  
      public void updateBossbar() {

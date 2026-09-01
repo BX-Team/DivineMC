@@ -31,7 +31,7 @@ index db127a30400045d3fe5672464f2ff706efa49031..eb2d0f794c62e659722362759b428a64
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 0ae5230e3e07ddbaccccfb934dd65a37707926c1..737412672348e8487902fd0edbdf7efdfa989289 100644
+index cc1ef420b1edc1b2e8bbaaee44a92bebcb394677..5854fea962febc56990af96458f0e2a13edd9480 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -914,6 +914,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -68,10 +68,10 @@ index 5d1f51c594300f05560cbfbd851a6b291a8d2f92..1461bafd3f2bac631e63cd3e0b0ef97c
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index ab73f2c3a2c74b1377ccdfb7b2bfd0869e8ba5a5..644b28ffda08895bcdc25027e3e2bcc37528e33e 100644
+index 31898cf5d8fa8323236e395944c9bf64e42a5932..92e13710af7339c7e3b1c52dfbf3729fddb14117 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -221,10 +221,10 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+@@ -222,10 +222,10 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
      public void inactiveTick() {
          super.inactiveTick();
          if (!this.aware) return; // Paper - Do not tick AI for inactive unaware mobs
@@ -84,7 +84,7 @@ index ab73f2c3a2c74b1377ccdfb7b2bfd0869e8ba5a5..644b28ffda08895bcdc25027e3e2bcc3
              this.targetSelector.tick();
          }
      }
-@@ -850,17 +850,17 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+@@ -851,17 +851,17 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
          int idBasedTickCount = this.tickCount + this.getId();
          if (idBasedTickCount % 2 != 0 && this.tickCount > 1) {
              profiler.push("targetSelector");
@@ -184,7 +184,7 @@ index 489e09f26aa3595317e70a26e14ff3018636911e..ef6d49d31862b0afa27e62bc9d52ad14
  
      @Override
 diff --git a/net/minecraft/world/entity/animal/axolotl/Axolotl.java b/net/minecraft/world/entity/animal/axolotl/Axolotl.java
-index 57b34d61c972123a2871da5abba851fbe656ff75..e4464533382fcd265722b44fd5e5e7115757c1e6 100644
+index adf937ea7225a546c3f41c37a70a4274041abe80..9e469569706750b194338200d801399ab05912b3 100644
 --- a/net/minecraft/world/entity/animal/axolotl/Axolotl.java
 +++ b/net/minecraft/world/entity/animal/axolotl/Axolotl.java
 @@ -114,6 +114,7 @@ public class Axolotl extends Animal implements Bucketable {
@@ -195,7 +195,7 @@ index 57b34d61c972123a2871da5abba851fbe656ff75..e4464533382fcd265722b44fd5e5e711
  
      public Axolotl(final EntityType<? extends Axolotl> type, final Level level) {
          super(type, level);
-@@ -416,16 +417,19 @@ public class Axolotl extends Animal implements Bucketable {
+@@ -433,16 +434,19 @@ public class Axolotl extends Animal implements Bucketable {
      protected void customServerAiStep(final ServerLevel level) {
          ProfilerFiller profiler = Profiler.get();
          profiler.push("axolotlBrain");
@@ -297,7 +297,7 @@ index c62021194a2675bf2f5c1fa618e0889caa7a7653..daedfef872b25d593abd13b2e63e679d
  
      public static AttributeSupplier.Builder createAttributes() {
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
-index e7208b8e4583c454dccf72bebe7593e38e110d4c..a2c315b5afa2a9567c5f2e82bbe53e850b875f22 100644
+index 75beb23d784425c259d382013941f3509b351001..c7b75ee57de65ebbaea015b4883ef537d2267d20 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
 @@ -87,6 +87,7 @@ public class Goat extends Animal {
@@ -308,7 +308,7 @@ index e7208b8e4583c454dccf72bebe7593e38e110d4c..a2c315b5afa2a9567c5f2e82bbe53e85
  
      public Goat(final EntityType<? extends Goat> type, final Level level) {
          super(type, level);
-@@ -221,13 +222,16 @@ public class Goat extends Animal {
+@@ -238,13 +239,16 @@ public class Goat extends Animal {
      protected void customServerAiStep(final ServerLevel level) {
          ProfilerFiller profiler = Profiler.get();
          profiler.push("goatBrain");
@@ -333,7 +333,7 @@ index e7208b8e4583c454dccf72bebe7593e38e110d4c..a2c315b5afa2a9567c5f2e82bbe53e85
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/hoglin/Hoglin.java b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
-index 103d7ac2e3fdb4629d94902c0b4080a7622ae744..afd39f1d9990ea4c272e0235cb98f7d14decccbf 100644
+index b2f048f6ac4c88b123ecdb0303b89760206525a9..59b17b3acc47426cb2516d5b8cf49794afc90055 100644
 --- a/net/minecraft/world/entity/monster/hoglin/Hoglin.java
 +++ b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
 @@ -75,6 +75,7 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
@@ -344,7 +344,7 @@ index 103d7ac2e3fdb4629d94902c0b4080a7622ae744..afd39f1d9990ea4c272e0235cb98f7d1
  
      public Hoglin(final EntityType<? extends Hoglin> type, final Level level) {
          super(type, level);
-@@ -190,19 +191,22 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
+@@ -207,19 +208,22 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
      protected void customServerAiStep(final ServerLevel level) {
          ProfilerFiller profiler = Profiler.get();
          profiler.push("hoglinBrain");
@@ -459,7 +459,7 @@ index 4354b55e4aaca68a3f5be71cbf811255c1d5fc65..c414f299185acbb56922681da5799c7c
  
      @Override
 diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
-index 590621a7b03d48a1721e1a1eed4d3bbeed2088fa..b0eab813ecffa1faf3ff46a4f17ec5407adea471 100644
+index 4f48dfcc8c83aca621f926b0fea4c058a2d2241b..0dbd2c0cfc61e017e0c888db382f110508db2e6a 100644
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
 @@ -183,6 +183,8 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
@@ -471,7 +471,7 @@ index 590621a7b03d48a1721e1a1eed4d3bbeed2088fa..b0eab813ecffa1faf3ff46a4f17ec540
  
      public Villager(final EntityType<? extends Villager> entityType, final Level level) {
          super(entityType, level);
-@@ -376,7 +378,7 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
+@@ -393,7 +395,7 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
          } else {
              this.isLobotomized = false;
          }

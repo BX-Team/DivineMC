@@ -5,7 +5,7 @@ Subject: [PATCH] Add missing purpur config options
 
 
 diff --git a/src/main/java/org/purpurmc/purpur/PurpurConfig.java b/src/main/java/org/purpurmc/purpur/PurpurConfig.java
-index d67ed2d997a541fb2b83b3fe477c38974ab5d7fb..cdb0d2f7133d96ba459af36a947a29231017f44c 100644
+index e04d3c5d1cdc4ce939e92a94d9f1c5c266e511b1..f011335cca3b52477acf3d33c50b018d28d7d8b2 100644
 --- a/src/main/java/org/purpurmc/purpur/PurpurConfig.java
 +++ b/src/main/java/org/purpurmc/purpur/PurpurConfig.java
 @@ -333,6 +333,7 @@ public class PurpurConfig {
@@ -25,10 +25,10 @@ index d67ed2d997a541fb2b83b3fe477c38974ab5d7fb..cdb0d2f7133d96ba459af36a947a2923
          org.bukkit.event.inventory.InventoryType.ENDER_CHEST.setDefaultSize(enderChestSixRows ? 54 : 27);
          enderChestPermissionRows = getBoolean("settings.blocks.ender_chest.use-permissions-for-rows", enderChestPermissionRows);
 diff --git a/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java b/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
-index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d18fa53a09 100644
+index 06723b12cbfa6fde72b9f38625a69e58eee7dbc6..ebe4058103d3503fb20a5209c08604306dcb0de8 100644
 --- a/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
 +++ b/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
-@@ -1304,6 +1304,10 @@ public class PurpurWorldConfig {
+@@ -1309,6 +1309,10 @@ public class PurpurWorldConfig {
      public double allayMaxHealth = 20.0D;
      public double allayScale = 1.0D;
      public Boolean allayCanPickUpLoot = null;
@@ -39,7 +39,7 @@ index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d1
      private void allaySettings() {
          allayRidable = getBoolean("mobs.allay.ridable", allayRidable);
          allayRidableInWater = getBoolean("mobs.allay.ridable-in-water", allayRidableInWater);
-@@ -1311,6 +1315,10 @@ public class PurpurWorldConfig {
+@@ -1316,6 +1320,10 @@ public class PurpurWorldConfig {
          allayMaxHealth = getDouble("mobs.allay.attributes.max_health", allayMaxHealth);
          allayScale = Mth.clamp(getDouble("mobs.allay.attributes.scale", allayScale), 0.0625D, 16.0D);
          allayCanPickUpLoot = getBooleanOrDefault("mobs.allay.can-pick-up-loot", allayCanPickUpLoot);
@@ -50,10 +50,10 @@ index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d1
      }
  
      public boolean armadilloRidable = false;
-@@ -1484,6 +1492,10 @@ public class PurpurWorldConfig {
-     public double camelMovementSpeedMin = 0.09D;
-     public double camelMovementSpeedMax = 0.09D;
-     public int camelBreedingTicks = 6000;
+@@ -1525,6 +1533,10 @@ public class PurpurWorldConfig {
+     public double camelBreedingChance = 0.0D;
+     public int camelBreedingMinOffspring = 1;
+     public int camelBreedingMaxOffspring = 1;
 +    // DivineMC start - Add missing purpur config options
 +    public boolean camelTakeDamageFromWater = false;
 +    public boolean camelAlwaysDropExp = false;
@@ -61,10 +61,10 @@ index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d1
      private void camelSettings() {
          camelRidableInWater = getBoolean("mobs.camel.ridable-in-water", camelRidableInWater);
          camelMaxHealthMin = getDouble("mobs.camel.attributes.max_health.min", camelMaxHealthMin);
-@@ -1493,6 +1505,10 @@ public class PurpurWorldConfig {
-         camelMovementSpeedMin = getDouble("mobs.camel.attributes.movement_speed.min", camelMovementSpeedMin);
-         camelMovementSpeedMax = getDouble("mobs.camel.attributes.movement_speed.max", camelMovementSpeedMax);
-         camelBreedingTicks = getInt("mobs.camel.breeding-delay-ticks", camelBreedingTicks);
+@@ -1542,6 +1554,10 @@ public class PurpurWorldConfig {
+         camelBreedingChance = getDouble("mobs.camel.breeding.offspring.chance", camelBreedingChance);
+         camelBreedingMinOffspring = getInt("mobs.camel.breeding.offspring.min", camelBreedingMinOffspring);
+         camelBreedingMaxOffspring = getInt("mobs.camel.breeding.offspring.max", camelBreedingMaxOffspring);
 +        // DivineMC start - Add missing purpur config options
 +        camelTakeDamageFromWater = getBoolean("mobs.camel.takes-damage-from-water", camelTakeDamageFromWater);
 +        camelAlwaysDropExp = getBoolean("mobs.camel.always-drop-exp", camelAlwaysDropExp);
@@ -72,10 +72,10 @@ index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d1
      }
  
      public boolean camelHuskRidableInWater = false;
-@@ -2024,12 +2040,22 @@ public class PurpurWorldConfig {
-     public boolean frogControllable = true;
-     public float frogRidableJumpHeight = 0.65F;
-     public int frogBreedingTicks = 6000;
+@@ -2131,6 +2147,11 @@ public class PurpurWorldConfig {
+     public double frogBreedingChance = 1.0D;
+     public int frogBreedingMinOffspring = FrogspawnBlock.MIN_TADPOLES_SPAWN;
+     public int frogBreedingMaxOffspring = FrogspawnBlock.MAX_TADPOLES_SPAWN;
 +    // DivineMC start - Add missing purpur config options
 +    public double frogMaxHealth = 10.0D;
 +    public boolean frogTakeDamageFromWater = false;
@@ -84,18 +84,19 @@ index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d1
      private void frogSettings() {
          frogRidable = getBoolean("mobs.frog.ridable", frogRidable);
          frogRidableInWater = getBoolean("mobs.frog.ridable-in-water", frogRidableInWater);
-         frogControllable = getBoolean("mobs.frog.controllable", frogControllable);
-         frogRidableJumpHeight = (float) getDouble("mobs.frog.ridable-jump-height", frogRidableJumpHeight);
-         frogBreedingTicks = getInt("mobs.frog.breeding-delay-ticks", frogBreedingTicks);
+@@ -2145,6 +2166,11 @@ public class PurpurWorldConfig {
+         frogBreedingChance = getDouble("mobs.frog.breeding.offspring.chance", frogBreedingChance);
+         frogBreedingMinOffspring = getInt("mobs.frog.breeding.offspring.min", frogBreedingMinOffspring);
+         frogBreedingMaxOffspring = getInt("mobs.frog.breeding.offspring.max", frogBreedingMaxOffspring);
 +        // DivineMC start - Add missing purpur config options
 +        frogMaxHealth = getDouble("mobs.frog.attributes.max_health", frogMaxHealth);
 +        frogTakeDamageFromWater = getBoolean("mobs.frog.takes-damage-from-water", frogTakeDamageFromWater);
 +        frogAlwaysDropExp = getBoolean("mobs.frog.always-drop-exp", frogAlwaysDropExp);
-+        // DivineMC end
++        // DivineMC end - Add missing purpur config options
      }
  
      public boolean ghastRidable = false;
-@@ -3167,6 +3193,10 @@ public class PurpurWorldConfig {
+@@ -3415,6 +3441,10 @@ public class PurpurWorldConfig {
      public double snifferMaxHealth = 14.0D;
      public double snifferScale = 1.0D;
      public int snifferBreedingTicks = 6000;
@@ -106,10 +107,10 @@ index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d1
      private void snifferSettings() {
          snifferRidable = getBoolean("mobs.sniffer.ridable", snifferRidable);
          snifferRidableInWater = getBoolean("mobs.sniffer.ridable-in-water", snifferRidableInWater);
-@@ -3174,6 +3204,10 @@ public class PurpurWorldConfig {
-         snifferMaxHealth = getDouble("mobs.sniffer.attributes.max_health", snifferMaxHealth);
-         snifferScale = Mth.clamp(getDouble("mobs.sniffer.attributes.scale", snifferScale), 0.0625D, 16.0D);
-         snifferBreedingTicks = getInt("mobs.sniffer.breeding-delay-ticks", snifferBreedingTicks);
+@@ -3427,6 +3457,10 @@ public class PurpurWorldConfig {
+             set("mobs.sniffer.breeding.cooldown-in-ticks", oldValue);
+         }
+         snifferBreedingTicks = getInt("mobs.sniffer.breeding.cooldown-in-ticks", snifferBreedingTicks);
 +        // DivineMC start - Add missing purpur config options
 +        snifferTakeDamageFromWater = getBoolean("mobs.sniffer.takes-damage-from-water", snifferTakeDamageFromWater);
 +        snifferAlwaysDropExp = getBoolean("mobs.sniffer.always-drop-exp", snifferAlwaysDropExp);
@@ -117,7 +118,7 @@ index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d1
      }
  
      public boolean squidRidable = false;
-@@ -3290,10 +3324,20 @@ public class PurpurWorldConfig {
+@@ -3554,10 +3588,20 @@ public class PurpurWorldConfig {
      public boolean tadpoleRidable = false;
      public boolean tadpoleRidableInWater = true;
      public boolean tadpoleControllable = true;
@@ -138,7 +139,7 @@ index 1254649c4ac549595ae2cef2e32f7db656cc548e..66b127aaf8bd794e40f89d2a3ac732d1
      }
  
      public boolean traderLlamaRidable = false;
-@@ -3533,12 +3577,22 @@ public class PurpurWorldConfig {
+@@ -3830,12 +3874,22 @@ public class PurpurWorldConfig {
      public boolean wardenControllable = true;
      public boolean wardenCanUseSonicBoom = true;
      public boolean wardenCanRideVehicles = false;

@@ -561,7 +561,7 @@ index ad498d9f7cf27c465506976ad36ac273d2cb123d..070c5f3cb119f3b989d2430dc898a631
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 737412672348e8487902fd0edbdf7efdfa989289..6c740dad4d3e3d02c8218ae808dbecadd7c380b3 100644
+index 5854fea962febc56990af96458f0e2a13edd9480..cd4e582bf646f45b1dd3b5f3760ea80d00bef4cc 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -196,7 +196,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -1002,10 +1002,10 @@ index ba61762e09ace201173999b3984046f930ccfe57..18e8835597d6498128c62f734ae0c1f5
          body.getBrain().eraseMemory(MemoryModuleType.POTENTIAL_JOB_SITE);
      }
 diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
-index b0eab813ecffa1faf3ff46a4f17ec5407adea471..cabc84eea05793d8cc12cff48970ce19ee7b73b6 100644
+index 0dbd2c0cfc61e017e0c888db382f110508db2e6a..43c6244409334a40b20139efa67ba1223256bb1e 100644
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
-@@ -796,13 +796,24 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
+@@ -813,13 +813,24 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
              this.brain.getMemory(memoryType).ifPresent(memory -> {
                  ServerLevel poiLevel = server.getLevel(memory.dimension());
                  if (poiLevel != null) {
