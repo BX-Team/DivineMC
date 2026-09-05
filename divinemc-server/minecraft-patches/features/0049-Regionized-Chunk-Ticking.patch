@@ -63,7 +63,7 @@ index c4e7c02c51f7732eeba46fcfc6047a63a7ffc0b2..6aec91364a2171a0ff3b5d4baaefe7ef
                      // DivineMC start - Parallel world ticking
                      treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index 96900bee726db8a0b7d3072076e7b07f4a3492f4..634679a03c1edaf2217f83ff49b02e4cfafdc930 100644
+index f518501cb80820e35c4fc81f1c25b9210f985f0c..d7c26d0473c04a44f55faa07a939097496e59c97 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
 @@ -303,7 +303,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
@@ -76,7 +76,7 @@ index 96900bee726db8a0b7d3072076e7b07f4a3492f4..634679a03c1edaf2217f83ff49b02e4c
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 0fd34a424566a48221ecf0ff242b5c62bc098dce..6fd48f8cae9d92f989afe89e5c974b5a108631b5 100644
+index 0fd34a424566a48221ecf0ff242b5c62bc098dce..54d69dbe85c87f780e37721983d5fc8d0966e55a 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -751,25 +751,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -138,6 +138,27 @@ index 0fd34a424566a48221ecf0ff242b5c62bc098dce..6fd48f8cae9d92f989afe89e5c974b5a
  
          return false;
      }
+@@ -1083,11 +1090,18 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+                 if (tracker == null) {
+                     continue;
+                 }
+-                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
++                // DivineMC start - Regionized Chunk Ticking
++                final ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData = ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData();
++                if (chunkData == null) {
++                    continue;
++                }
++                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(chunkData.nearbyPlayers);
++                final FullChunkStatus chunkStatus = ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus();
+                 if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
+-                    || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
++                    || (chunkStatus != null && chunkStatus.isOrAfter(FullChunkStatus.ENTITY_TICKING))) {
+                     tracker.serverEntity.sendChanges();
+                 }
++                // DivineMC end - Regionized Chunk Ticking
+             }
+         } finally {
+             this.iteratingTrackerEntities = false;
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
 index 070c5f3cb119f3b989d2430dc898a631d6c7924a..41ef18dd82a27bd6abf2303a36587cb2676b2c8c 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
@@ -331,7 +352,7 @@ index 070c5f3cb119f3b989d2430dc898a631d6c7924a..41ef18dd82a27bd6abf2303a36587cb2
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 8de0f85102211dc683aef25242251eba4dc6b02c..a47a0b1e754758916c1bdd12d92a8abbe4878626 100644
+index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..05924ccf4af0b5c38889d25599feb9b0649292f5 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -208,7 +208,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet

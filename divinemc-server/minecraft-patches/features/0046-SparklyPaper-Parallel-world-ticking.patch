@@ -6,14 +6,30 @@ Subject: [PATCH] SparklyPaper: Parallel world ticking
 Original project: https://github.com/SparklyPower/SparklyPaper
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index 5b7ed8e5067683143c99473a126e17baa531903c..8979af5fc081b756224b0fd80a5a316e5513fd18 100644
+index 5b7ed8e5067683143c99473a126e17baa531903c..1651698b79fd62b20c18a931849f8b4711d4d654 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-@@ -225,11 +225,22 @@ public final class ChunkEntitySlices {
+@@ -49,8 +49,10 @@ public final class ChunkEntitySlices {
+ 
+     private final EntityCollectionBySection allEntities;
+     private final EntityCollectionBySection hardCollidingEntities;
+-    private final Reference2ObjectOpenHashMap<Class<? extends Entity>, EntityCollectionBySection> entitiesByClass;
+-    private final Reference2ObjectOpenHashMap<EntityType<?>, EntityCollectionBySection> entitiesByType;
++    // DivineMC start - Entity Status Lock - copy-on-write lookup maps
++    private volatile Reference2ObjectOpenHashMap<Class<? extends Entity>, EntityCollectionBySection> entitiesByClass;
++    private volatile Reference2ObjectOpenHashMap<EntityType<?>, EntityCollectionBySection> entitiesByType;
++    // DivineMC end - Entity Status Lock - copy-on-write lookup maps
+     private final EntityList entities = new EntityList();
+ 
+     public FullChunkStatus status;
+@@ -225,11 +227,23 @@ public final class ChunkEntitySlices {
          }
      }
  
-+    private final java.util.concurrent.locks.ReentrantLock statusLock = new java.util.concurrent.locks.ReentrantLock(); // DivineMC - Entity Status Lock
++    // DivineMC start - Entity Status Lock
++    private final java.util.concurrent.locks.ReentrantLock statusLock = new java.util.concurrent.locks.ReentrantLock();
++    private final java.util.concurrent.locks.ReentrantLock collectionLock = new java.util.concurrent.locks.ReentrantLock();
++    // DivineMC end - Entity Status Lock
      private boolean preventStatusUpdates;
      public boolean startPreventingStatusUpdates() {
 +        // DivineMC start - Entity Status Lock
@@ -21,8 +37,6 @@ index 5b7ed8e5067683143c99473a126e17baa531903c..8979af5fc081b756224b0fd80a5a316e
          final boolean ret = this.preventStatusUpdates;
 -        this.preventStatusUpdates = true;
 +        if (ret) {
-+            // EntityLookup#entityStatusChange logs and returns early without calling stopPreventingStatusUpdates,
-+            // so we must release the lock here to avoid leaking it.
 +            this.statusLock.unlock();
 +        } else {
 +            this.preventStatusUpdates = true;
@@ -33,7 +47,7 @@ index 5b7ed8e5067683143c99473a126e17baa531903c..8979af5fc081b756224b0fd80a5a316e
      }
  
      public boolean isPreventingStatusUpdates() {
-@@ -238,85 +249,107 @@ public final class ChunkEntitySlices {
+@@ -238,85 +252,114 @@ public final class ChunkEntitySlices {
  
      public void stopPreventingStatusUpdates(final boolean prev) {
          this.preventStatusUpdates = prev;
@@ -80,6 +94,7 @@ index 5b7ed8e5067683143c99473a126e17baa531903c..8979af5fc081b756224b0fd80a5a316e
 -        final int sectionIndex = chunkSection - this.minSection;
 +        // DivineMC start - Entity Status Lock
 +        this.statusLock.lock();
++        this.collectionLock.lock();
 +        try {
 +            if (!this.entities.add(entity)) {
 +                return false;
@@ -120,17 +135,21 @@ index 5b7ed8e5067683143c99473a126e17baa531903c..8979af5fc081b756224b0fd80a5a316e
 -            this.entitiesByType.put(entity.getType(), byType = new EntityCollectionBySection(this));
 -            byType.addEntity(entity, sectionIndex);
 -        }
-+            EntityCollectionBySection byType = this.entitiesByType.get(entity.getType());
++            final Reference2ObjectOpenHashMap<EntityType<?>, EntityCollectionBySection> byTypeMap = this.entitiesByType;
++            EntityCollectionBySection byType = byTypeMap.get(entity.getType());
 +            if (byType != null) {
 +                byType.addEntity(entity, sectionIndex);
 +            } else {
-+                this.entitiesByType.put(entity.getType(), byType = new EntityCollectionBySection(this));
++                final Reference2ObjectOpenHashMap<EntityType<?>, EntityCollectionBySection> copy = new Reference2ObjectOpenHashMap<>(byTypeMap);
++                copy.put(entity.getType(), byType = new EntityCollectionBySection(this));
 +                byType.addEntity(entity, sectionIndex);
++                this.entitiesByType = copy;
 +            }
  
 -        return true;
 +            return true;
 +        } finally {
++            this.collectionLock.unlock();
 +            this.statusLock.unlock();
 +        }
 +        // DivineMC end - Entity Status Lock
@@ -145,6 +164,7 @@ index 5b7ed8e5067683143c99473a126e17baa531903c..8979af5fc081b756224b0fd80a5a316e
 -        final int sectionIndex = chunkSection - this.minSection;
 +        // DivineMC start - Entity Status Lock
 +        this.statusLock.lock();
++        this.collectionLock.lock();
 +        try {
 +            if (!this.entities.remove(entity)) {
 +                return false;
@@ -186,12 +206,83 @@ index 5b7ed8e5067683143c99473a126e17baa531903c..8979af5fc081b756224b0fd80a5a316e
 -        return true;
 +            return true;
 +        } finally {
++            this.collectionLock.unlock();
 +            this.statusLock.unlock();
 +        }
 +        // DivineMC end - Entity Status Lock
      }
  
      public void getHardCollidingEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
+@@ -335,7 +378,7 @@ public final class ChunkEntitySlices {
+ 
+     public <T extends Entity> void getEntities(final EntityType<?> type, final AABB box, final List<? super T> into,
+                                                final Predicate<? super T> predicate) {
+-        final EntityCollectionBySection byType = this.entitiesByType.get(type);
++        final EntityCollectionBySection byType = this.entitiesByType.get(type); // DivineMC - Entity Status Lock - volatile snapshot read
+ 
+         if (byType != null) {
+             byType.getEntities((Entity)null, box, (List)into, (Predicate) predicate);
+@@ -344,7 +387,7 @@ public final class ChunkEntitySlices {
+ 
+     public <T extends Entity> boolean getEntities(final EntityType<?> type, final AABB box, final List<? super T> into,
+                                                   final Predicate<? super T> predicate, final int maxCount) {
+-        final EntityCollectionBySection byType = this.entitiesByType.get(type);
++        final EntityCollectionBySection byType = this.entitiesByType.get(type); // DivineMC - Entity Status Lock - volatile snapshot read
+ 
+         if (byType != null) {
+             return byType.getEntitiesLimited((Entity)null, box, (List)into, (Predicate)predicate, maxCount);
+@@ -376,26 +419,39 @@ public final class ChunkEntitySlices {
+         return ret;
+     }
+ 
++    // DivineMC start - Entity Status Lock - copy-on-write lookup maps
++    private EntityCollectionBySection getOrCreateClassCollection(final Class<? extends Entity> clazz) {
++        this.collectionLock.lock();
++        try {
++            EntityCollectionBySection collection = this.entitiesByClass.get(clazz);
++            if (collection == null) {
++                final Reference2ObjectOpenHashMap<Class<? extends Entity>, EntityCollectionBySection> copy = new Reference2ObjectOpenHashMap<>(this.entitiesByClass);
++                copy.put(clazz, collection = this.initClass(clazz));
++                this.entitiesByClass = copy;
++            }
++            return collection;
++        } finally {
++            this.collectionLock.unlock();
++        }
++    }
++    // DivineMC end - Entity Status Lock - copy-on-write lookup maps
++
+     public <T extends Entity> void getEntities(final Class<? extends T> clazz, final Entity except, final AABB box, final List<? super T> into,
+                                                final Predicate<? super T> predicate) {
+         EntityCollectionBySection collection = this.entitiesByClass.get(clazz);
+-        if (collection != null) {
+-            collection.getEntities(except, box, (List)into, (Predicate)predicate);
+-        } else {
+-            this.entitiesByClass.put(clazz, collection = this.initClass(clazz));
+-            collection.getEntities(except, box, (List)into, (Predicate)predicate);
+-        }
++        // DivineMC start - Entity Status Lock - copy-on-write lookup maps
++        if (collection == null) collection = this.getOrCreateClassCollection(clazz);
++        collection.getEntities(except, box, (List)into, (Predicate)predicate);
++        // DivineMC end - Entity Status Lock - copy-on-write lookup maps
+     }
+ 
+     public <T extends Entity> boolean getEntities(final Class<? extends T> clazz, final Entity except, final AABB box, final List<? super T> into,
+                                                   final Predicate<? super T> predicate, final int maxCount) {
+         EntityCollectionBySection collection = this.entitiesByClass.get(clazz);
+-        if (collection != null) {
+-            return collection.getEntitiesLimited(except, box, (List)into, (Predicate)predicate, maxCount);
+-        } else {
+-            this.entitiesByClass.put(clazz, collection = this.initClass(clazz));
+-            return collection.getEntitiesLimited(except, box, (List)into, (Predicate)predicate, maxCount);
+-        }
++        // DivineMC start - Entity Status Lock - copy-on-write lookup maps
++        if (collection == null) collection = this.getOrCreateClassCollection(clazz);
++        return collection.getEntitiesLimited(except, box, (List)into, (Predicate)predicate, maxCount);
++        // DivineMC end - Entity Status Lock - copy-on-write lookup maps
+     }
+ 
+     private static final class BasicEntityList<E extends Entity> {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 index e418820359c430b91bb91eb65d137b9cdbe2db4b..8ac9b0b0cc782a1343b9b6cb3f26b4f9319e3766 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java

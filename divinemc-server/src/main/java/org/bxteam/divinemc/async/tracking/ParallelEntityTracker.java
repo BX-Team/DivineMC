@@ -120,7 +120,8 @@ public class ParallelEntityTracker {
         if (tracker == null) {
             return;
         }
-        if (!tracker.moonrise$hasPlayers() && !((ChunkSystemEntity) entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
+        final FullChunkStatus chunkStatus = ((ChunkSystemEntity) entity).moonrise$getChunkStatus();
+        if (!tracker.moonrise$hasPlayers() && (chunkStatus == null || !chunkStatus.isOrAfter(FullChunkStatus.ENTITY_TICKING))) {
             return;
         }
         try {
