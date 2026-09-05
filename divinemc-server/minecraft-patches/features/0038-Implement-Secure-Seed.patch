@@ -64,7 +64,7 @@ index fed28e34a8e8e342b668b0b89e8b2de241ea9f1a..8662fa5322af70f5c32763ced28ac867
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 9ea28716f88da97b0acf91b1d5ce25e4008842f9..0ae5230e3e07ddbaccccfb934dd65a37707926c1 100644
+index 8aa8d7246f2993cc6502390b13d8292c50c31abf..cc1ef420b1edc1b2e8bbaaee44a92bebcb394677 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -693,6 +693,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -126,10 +126,10 @@ index 170c98d8809b0e9493744faea172697aafbe4b2c..6be297beb1635a99db688ece9b600e91
  
      public @Nullable BlockState setBlockState(final BlockPos pos, final BlockState state) {
 diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
-index 1624d73d63a848b1eced1964193f14f7ab9c1bc2..3a067ce1bcb98e477a946ba41b6267f4bf7701e2 100644
+index 5287aab41baca813fa3b58fe9745568f22f92f97..b1d2dbefee69bc5ac8a17a7ceefef77c3b731191 100644
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -347,7 +347,11 @@ public abstract class ChunkGenerator {
+@@ -352,7 +352,11 @@ public abstract class ChunkGenerator {
              Map<Integer, List<Structure>> structuresByStep = structuresRegistry.stream()
                  .collect(Collectors.groupingBy(structure -> structure.step().ordinal()));
              List<FeatureSorter.StepFeatureData> featureList = this.featuresPerStep.get();
@@ -142,7 +142,7 @@ index 1624d73d63a848b1eced1964193f14f7ab9c1bc2..3a067ce1bcb98e477a946ba41b6267f4
              long decorationSeed = random.setDecorationSeed(level.getSeed(), origin.getX(), origin.getZ());
              Set<Holder<Biome>> possibleBiomes = new ObjectArraySet<>();
              ChunkPos.rangeClosed(sectionPos.chunk(), 1).forEach(chunkPos -> {
-@@ -571,8 +575,18 @@ public abstract class ChunkGenerator {
+@@ -576,8 +580,18 @@ public abstract class ChunkGenerator {
                              } else {
                                  ArrayList<StructureSet.StructureSelectionEntry> options = new ArrayList<>(structures.size());
                                  options.addAll(structures);

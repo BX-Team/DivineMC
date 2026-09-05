@@ -5,10 +5,10 @@ Subject: [PATCH] Async locate command
 
 
 diff --git a/net/minecraft/server/commands/LocateCommand.java b/net/minecraft/server/commands/LocateCommand.java
-index d018ec1c7876ddc883223d548fbe6a513e14bcfe..95fb4026f098a6db05aec838376d4eaeba698155 100644
+index d018ec1c7876ddc883223d548fbe6a513e14bcfe..c9633a4e09bebb9107351b7965b00831898d81b0 100644
 --- a/net/minecraft/server/commands/LocateCommand.java
 +++ b/net/minecraft/server/commands/LocateCommand.java
-@@ -93,47 +93,80 @@ public class LocateCommand {
+@@ -93,33 +93,57 @@ public class LocateCommand {
      }
  
      private static int locateStructure(final CommandSourceStack source, final ResourceOrTagKeyArgument.Result<Structure> resourceOrTag) throws CommandSyntaxException {
@@ -90,41 +90,7 @@ index d018ec1c7876ddc883223d548fbe6a513e14bcfe..95fb4026f098a6db05aec838376d4eae
      }
  
      private static int locatePoi(final CommandSourceStack source, final ResourceOrTagArgument.Result<PoiType> resourceOrTag) throws CommandSyntaxException {
--        BlockPos sourcePos = BlockPos.containing(source.getPosition());
--        ServerLevel serverLevel = source.getLevel();
--        Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
--        Optional<Pair<Holder<PoiType>, BlockPos>> closestWithType = serverLevel.getPoiManager()
--            .findClosestWithType(resourceOrTag, sourcePos, POI_SEARCH_RADIUS, PoiManager.Occupancy.ANY);
--        stopwatch.stop();
--        if (closestWithType.isEmpty()) {
--            throw ERROR_POI_NOT_FOUND.create(resourceOrTag.asPrintable());
--        } else {
--            return showLocateResult(source, resourceOrTag, sourcePos, closestWithType.get().swap(), "commands.locate.poi.success", false, stopwatch.elapsed());
--        }
-+        // DivineMC start - Async poi locate
-+        io.papermc.paper.util.MCUtil.scheduleAsyncTask(() -> {
-+            BlockPos sourcePos = BlockPos.containing(source.getPosition());
-+            ServerLevel serverLevel = source.getLevel();
-+            Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
-+            Optional<Pair<Holder<PoiType>, BlockPos>> closestWithType = serverLevel.getPoiManager().findClosestWithType(resourceOrTag, sourcePos, POI_SEARCH_RADIUS, PoiManager.Occupancy.ANY);
-+            stopwatch.stop();
-+            if (closestWithType.isEmpty()) {
-+                try {
-+                    throw ERROR_POI_NOT_FOUND.create(resourceOrTag.asPrintable());
-+                } catch (CommandSyntaxException e) {
-+                    source.sendFailure(Component.literal(e.getMessage()));
-+                }
-+            } else {
-+                showLocateResult(source, resourceOrTag, sourcePos, closestWithType.get().swap(), "commands.locate.poi.success", false, stopwatch.elapsed());
-+            }
-+        });
-+
-+        return 0;
-+        // DivineMC end - Async poi locate
-     }
- 
-     public static int showLocateResult(
-@@ -184,7 +217,7 @@ public class LocateCommand {
+@@ -184,7 +208,7 @@ public class LocateCommand {
                      .withHoverEvent(new HoverEvent.ShowText(Component.translatable("chat.coordinates.tooltip")))
              );
          source.sendSuccess(() -> Component.translatable(successMessageKey, foundName, coordinates, distance), false);
@@ -133,3 +99,21 @@ index d018ec1c7876ddc883223d548fbe6a513e14bcfe..95fb4026f098a6db05aec838376d4eae
          return distance;
      }
  
+diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
+index 1624d73d63a848b1eced1964193f14f7ab9c1bc2..5287aab41baca813fa3b58fe9745568f22f92f97 100644
+--- a/net/minecraft/world/level/chunk/ChunkGenerator.java
++++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
+@@ -143,7 +143,12 @@ public abstract class ChunkGenerator {
+         final List<org.bukkit.generator.structure.Structure> apiStructures = wantedStructures.stream().map(org.bukkit.craftbukkit.generator.structure.CraftStructure::minecraftHolderToBukkit).toList();
+         if (!apiStructures.isEmpty()) {
+             final io.papermc.paper.event.world.StructuresLocateEvent event = new io.papermc.paper.event.world.StructuresLocateEvent(bukkitWorld, origin, apiStructures, maxSearchRadius, createReference);
+-            if (!event.callEvent()) {
++            // DivineMC start - Async locate command
++            final Boolean callEventResult = ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()
++                ? Boolean.valueOf(event.callEvent())
++                : io.papermc.paper.util.MCUtil.ensureMain((java.util.function.Supplier<Boolean>) event::callEvent);
++            if (callEventResult == null || !callEventResult) {
++            // DivineMC end - Async locate command
+                 return null;
+             }
+             if (event.getResult() != null) {
