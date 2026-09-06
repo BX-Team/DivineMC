@@ -24,7 +24,7 @@ import static net.kyori.adventure.text.format.NamedTextColor.RED;
 public final class DivineCommand extends Command {
     public static final String COMMAND_LABEL = "divinemc";
     public static final String BASE_PERM = DivineCommands.COMMAND_BASE_PERM + "." + COMMAND_LABEL;
-    private static final Permission basePermission = new Permission(BASE_PERM, PermissionDefault.TRUE);
+    private static final Permission basePermission = new Permission(BASE_PERM, PermissionDefault.OP);
 
     private static final DivineSubCommand MSPT_SUBCOMMAND = new MSPTCommand();
     private static final DivineSubCommand RELOAD_SUBCOMMAND = new ReloadCommand();
