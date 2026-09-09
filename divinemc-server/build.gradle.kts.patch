@@ -53,7 +53,7 @@
      )
  }
  
-@@ -105,10 +_,18 @@
+@@ -105,10 +_,19 @@
      main {
          java { srcDir("../paper-server/src/main/java") }
          resources { srcDir("../paper-server/src/main/resources") }
@@ -69,6 +69,7 @@
 +        java { srcDir("../purpur-server/src/test/java") }
 +        resources { srcDir("../purpur-server/src/test/resources") }
 +        // DivineMC end - Rebrand
++        java { srcDir("src/test/java") } // DivineMC - Include own tests dir
      }
  }
  val log4jPlugins = sourceSets.create("log4jPlugins") {

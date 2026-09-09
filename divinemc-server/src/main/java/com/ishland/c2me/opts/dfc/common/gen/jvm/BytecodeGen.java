@@ -49,6 +49,10 @@ import net.minecraft.util.CubicSpline;
 import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.DensityFunctions;
 import org.objectweb.asm.ClassWriter;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
+import java.util.LinkedHashMap;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -72,86 +76,44 @@ public class BytecodeGen {
 
     private static final AtomicLong ordinal = new AtomicLong();
 
-    public static final Hash.Strategy<AstNode> RELAXED_STRATEGY = new Hash.Strategy<>() {
-        @Override
-        public int hashCode(AstNode o) {
-            return o.relaxedHashCode();
-        }
 
-        @Override
-        public boolean equals(AstNode a, AstNode b) {
-            return a.relaxedEquals(b);
-        }
-    };
-    private static final Object2ReferenceMap<AstNode, Class<?>> compilationCache = Object2ReferenceMaps.synchronize(new Object2ReferenceOpenCustomHashMap<>(RELAXED_STRATEGY));
-
-    public static DensityFunction compile(String name, DensityFunction densityFunction, Reference2ReferenceMap<DensityFunction, OptoPasses.AstPair> optoCache, Reference2ReferenceMap<DensityFunction, DensityFunction> tempCache) {
-        DensityFunction cached = tempCache.get(densityFunction);
-        if (cached != null) {
-            return cached;
-        }
-        OptoPasses.AstPair pair = optoCache.computeIfAbsent(densityFunction, (DensityFunction df) -> OptoPasses.optimize(McToAst.toAst(df)));
-        if (pair.optimized() instanceof ConstantNode constantNode) {
-            return DensityFunctions.constant(constantNode.getValue());
-        } else if (pair.optimized() instanceof YClampedGradientNode) {
-            return densityFunction;
-        }
-        CompiledDensityFunction compiled = new CompiledDensityFunction(compile0(name, pair), densityFunction);
-        tempCache.put(densityFunction, compiled);
-        return compiled;
+    public static Context initContext() {
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+        String name = String.format("DfcCompiled_%d", ordinal.getAndIncrement());
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL, name, null, Type.getInternalName(Object.class), new String[]{Type.getInternalName(CompiledEntry.class)});
+        return new Context(writer, name);
     }
 
-    public static synchronized CompiledEntry compile0(String dfName, OptoPasses.AstPair pair) {
-        AstNode node = pair.optimized();
-
-        Class<?> cached = compilationCache.get(node);
-
-        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-        String name = cached != null ? String.format("DfcCompiled_discarded_%s", dfName) : String.format("DfcCompiled_%d_%s", ordinal.getAndIncrement(), dfName);
-        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL, name, null, Type.getInternalName(Object.class), new String[]{Type.getInternalName(CompiledEntry.class)});
-
-        RootNode rootNode = new RootNode(node);
-
-        Context genContext = new Context(writer, name);
-        genContext.newSingleMethod0((adapter, localVarConsumer) -> BytecodeGenRegistry.doBytecodeGenSingle(rootNode, genContext, adapter, localVarConsumer), "evalSingle", true);
-        genContext.newMultiMethod0((adapter, localVarConsumer) -> BytecodeGenRegistry.doBytecodeGenMulti(rootNode, genContext, adapter, localVarConsumer), "evalMulti", true);
-
+    public static synchronized CompiledEntry finalizeCompilation(Context genContext) {
         Object[] args = genContext.args.entrySet().stream()
                 .sorted(Comparator.comparingInt(o -> o.getValue().ordinal()))
                 .map(Map.Entry::getKey)
                 .toArray(Object[]::new);
 
-        if (cached != null) {
-            try {
-                return (CompiledEntry) cached.getConstructor(Object[].class).newInstance(new Object[]{args});
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
         genConstructor(genContext);
         genGetArgs(genContext);
         genNewInstance(genContext);
-//        genFields(genContext);
+        genGetRootsUnsafe(genContext);
 
-//        ListIterator<Object> iterator = args.listIterator();
-//        while (iterator.hasNext()) {
-//            Object next = iterator.next();
-////            if (next instanceof DensityFunctions.Marker wrapping && wrapping.type() == DensityFunctions.Marker.Type.FlatCache) {
-////                iterator.set(new DensityFunctions.Marker(wrapping.type(), compile(wrapping.wrapped())));
-////            }
-//        }
-
-        byte[] bytes = writer.toByteArray();
+        byte[] bytes = genContext.classWriter.toByteArray();
         Path dumpedClass = GenDumper.dumpClass(genContext.className, bytes);
-        GenDumper.dumpDot(genContext.className, dumpedClass, Map.of("root", pair));
+        GenDumper.dumpDot(genContext.className, dumpedClass, genContext.toDump);
         Class<?> defined = defineClass(genContext.className, bytes);
-        compilationCache.put(node, defined);
+
+        CompiledEntry compiledEntry;
         try {
-            return (CompiledEntry) defined.getConstructor(Object[].class).newInstance(new Object[]{args});
+            compiledEntry = (CompiledEntry) defined.getConstructor(Object[].class, ArgumentVisitor.class)
+                    .newInstance(args, ArgumentVisitor.IDENTITY);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
+
+        for (CompiledDensityFunction delayedInit : genContext.delayedInits) {
+            delayedInit.initFrom(compiledEntry);
+        }
+        genContext.delayedInits.clear();
+
+        return compiledEntry;
     }
 
     private static void genConstructor(Context context) {
@@ -184,9 +146,12 @@ public class BytecodeGen {
             int ordinal = entry.getValue().ordinal();
 
             m.load(0, InstructionAdapter.OBJECT_TYPE);
+            m.load(2, InstructionAdapter.OBJECT_TYPE);
             m.load(1, InstructionAdapter.OBJECT_TYPE);
             m.iconst(ordinal);
             m.aload(InstructionAdapter.OBJECT_TYPE);
+            m.checkcast(Type.getType(type));
+            m.invokeinterface(Type.getInternalName(ArgumentVisitor.class), "apply", Type.getMethodDescriptor(Type.getType(Object.class), Type.getType(Object.class)));
             m.checkcast(Type.getType(type));
             m.putfield(context.className, name, Type.getDescriptor(type));
         }
@@ -196,10 +161,104 @@ public class BytecodeGen {
             m.invokevirtual(context.className, postProcessingMethod, Context.POSTPROCESSING_DESC, false);
         }
 
+        genRootsField(context, m);
+
         m.areturn(Type.VOID_TYPE);
         m.visitLabel(end);
         m.visitLocalVariable("this", context.classDesc, null, start, end, 0);
         m.visitLocalVariable("args", Type.getDescriptor(Object[].class), null, start, end, 1);
+        m.visitLocalVariable("visitor", Type.getDescriptor(ArgumentVisitor.class), null, start, end, 2);
+        m.visitMaxs(0, 0);
+    }
+
+    private static final Handle LMF_METAFACTORY = new Handle(
+            Opcodes.H_INVOKESTATIC,
+            "java/lang/invoke/LambdaMetafactory",
+            "metafactory",
+            "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
+            false
+    );
+
+    private static void genRootsField(Context context, InstructionAdapter m) {
+        context.classWriter.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "roots", Type.getDescriptor(SubCompiledDensityFunction[].class), null, null);
+
+        m.load(0, InstructionAdapter.OBJECT_TYPE);
+        m.iconst(context.roots.size());
+        m.newarray(Type.getType(SubCompiledDensityFunction.class));
+
+        for (int i = 0; i < context.roots.size(); i++) {
+            Context.MethodPair root = context.roots.get(i);
+            m.dup();
+            m.iconst(i);
+
+            m.anew(Type.getType(SubCompiledDensityFunction.class));
+            m.dup();
+
+            m.load(0, InstructionAdapter.OBJECT_TYPE);
+            m.invokedynamic(
+                    "evalSingle",
+                    Type.getMethodDescriptor(Type.getType(ISingleMethod.class), Type.getType(context.classDesc)),
+                    LMF_METAFACTORY,
+                    new Object[]{
+                            Type.getMethodType(Context.SINGLE_DESC),
+                            new Handle(Opcodes.H_INVOKEVIRTUAL, context.className, root.single(), Context.SINGLE_DESC, false),
+                            Type.getMethodType(Context.SINGLE_DESC)
+                    }
+            );
+
+            m.load(0, InstructionAdapter.OBJECT_TYPE);
+            m.invokedynamic(
+                    "evalMulti",
+                    Type.getMethodDescriptor(Type.getType(IMultiMethod.class), Type.getType(context.classDesc)),
+                    LMF_METAFACTORY,
+                    new Object[]{
+                            Type.getMethodType(Context.MULTI_DESC),
+                            new Handle(Opcodes.H_INVOKEVIRTUAL, context.className, root.multi(), Context.MULTI_DESC, false),
+                            Type.getMethodType(Context.MULTI_DESC)
+                    }
+            );
+
+            m.aconst(null);
+            m.checkcast(Type.getType(DensityFunction.class));
+
+            m.invokespecial(
+                    Type.getInternalName(SubCompiledDensityFunction.class),
+                    "<init>",
+                    Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(ISingleMethod.class), Type.getType(IMultiMethod.class), Type.getType(DensityFunction.class)),
+                    false
+            );
+
+            m.astore(Type.getType(SubCompiledDensityFunction.class));
+        }
+
+        m.putfield(context.className, "roots", Type.getDescriptor(SubCompiledDensityFunction[].class));
+    }
+
+    private static void genGetRootsUnsafe(Context context) {
+        InstructionAdapter m = new InstructionAdapter(
+                new AnalyzerAdapter(
+                        context.className,
+                        Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL,
+                        "getRootsUnsafe",
+                        Type.getMethodDescriptor(Type.getType(SubCompiledDensityFunction[].class)),
+                        context.classWriter.visitMethod(
+                                Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL,
+                                "getRootsUnsafe",
+                                Type.getMethodDescriptor(Type.getType(SubCompiledDensityFunction[].class)),
+                                null,
+                                null
+                        )
+                )
+        );
+
+        Label start = new Label();
+        Label end = new Label();
+        m.visitLabel(start);
+        m.load(0, InstructionAdapter.OBJECT_TYPE);
+        m.getfield(context.className, "roots", Type.getDescriptor(SubCompiledDensityFunction[].class));
+        m.areturn(InstructionAdapter.OBJECT_TYPE);
+        m.visitLabel(end);
+        m.visitLocalVariable("this", context.classDesc, null, start, end, 0);
         m.visitMaxs(0, 0);
     }
 
@@ -252,11 +311,11 @@ public class BytecodeGen {
                         context.className,
                         Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL,
                         "newInstance",
-                        Type.getMethodDescriptor(Type.getType(CompiledEntry.class), Type.getType(Object[].class)),
+                        Type.getMethodDescriptor(Type.getType(CompiledEntry.class), Type.getType(Object[].class), Type.getType(ArgumentVisitor.class)),
                         context.classWriter.visitMethod(
                                 Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL,
                                 "newInstance",
-                                Type.getMethodDescriptor(Type.getType(CompiledEntry.class), Type.getType(Object[].class)),
+                                Type.getMethodDescriptor(Type.getType(CompiledEntry.class), Type.getType(Object[].class), Type.getType(ArgumentVisitor.class)),
                                 null,
                                 null
                         )
@@ -269,7 +328,8 @@ public class BytecodeGen {
         m.anew(Type.getType(context.classDesc));
         m.dup();
         m.load(1, InstructionAdapter.OBJECT_TYPE);
-        m.invokespecial(context.className, "<init>", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(Object[].class)), false);
+        m.load(2, InstructionAdapter.OBJECT_TYPE);
+        m.invokespecial(context.className, "<init>", Context.CONSTRUCTOR_DESC, false);
         m.areturn(InstructionAdapter.OBJECT_TYPE);
 
         m.visitLabel(end);
@@ -316,7 +376,7 @@ public class BytecodeGen {
         public static final String SINGLE_DESC = Type.getMethodDescriptor(Type.getType(double.class), Type.getType(int.class), Type.getType(int.class), Type.getType(int.class), Type.getType(EvalType.class), Type.getType(DfcObjectCache.class));
         public static final String MULTI_DESC = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(double[].class), Type.getType(int[].class), Type.getType(int[].class), Type.getType(int[].class), Type.getType(EvalType.class), Type.getType(DfcObjectCache.class));
         public static final String POSTPROCESSING_DESC = Type.getMethodDescriptor(Type.VOID_TYPE);
-        public static final String CONSTRUCTOR_DESC = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(Object[].class));
+        public static final String CONSTRUCTOR_DESC = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(Object[].class), Type.getType(ArgumentVisitor.class));
         public final ClassWriter classWriter;
         public final String className;
         public final String classDesc;
@@ -327,6 +387,10 @@ public class BytecodeGen {
         private final Object2ReferenceOpenHashMap<CubicSpline<DensityFunctions.Spline.Coordinate>, String> splineMethodsCache1 = new Object2ReferenceOpenHashMap<>();
         private final ObjectLinkedOpenHashSet<String> postProcessMethods = new ObjectLinkedOpenHashSet<>();
         private final Reference2ObjectOpenHashMap<Object, FieldRecord> args = new Reference2ObjectOpenHashMap<>();
+        private final ReferenceArrayList<MethodPair> roots = new ReferenceArrayList<>();
+        private final ReferenceArrayList<CompiledDensityFunction> delayedInits = new ReferenceArrayList<>();
+        private final Reference2ReferenceMap<DensityFunction, OptoPasses.AstPair> optoCache = new Reference2ReferenceLinkedOpenHashMap<>();
+        private final Map<String, OptoPasses.AstPair> toDump = new LinkedHashMap<>();
 
         public Context(ClassWriter classWriter, String className) {
             this.classWriter = Objects.requireNonNull(classWriter);
@@ -615,8 +679,40 @@ public class BytecodeGen {
             this.postProcessMethods.add(name);
         }
 
+        private OptoPasses.AstPair optimizeCached(DensityFunction df) {
+            return this.optoCache.computeIfAbsent(df, (DensityFunction key) -> OptoPasses.optimize(McToAst.toAst(key)));
+        }
+
+        public int registerRoot(String suffix, AstNode node) {
+            int index = this.roots.size();
+            String single = String.format("evalSingle_%d_%s", index, suffix);
+            String multi = String.format("evalMulti_%d_%s", index, suffix);
+            RootNode rootNode = new RootNode(node);
+            this.newSingleMethod0((adapter, localVarConsumer) -> BytecodeGenRegistry.doBytecodeGenSingle(rootNode, this, adapter, localVarConsumer), single, true);
+            this.newMultiMethod0((adapter, localVarConsumer) -> BytecodeGenRegistry.doBytecodeGenMulti(rootNode, this, adapter, localVarConsumer), multi, true);
+            this.roots.add(new MethodPair(single, multi));
+            return index;
+        }
+
+        public DensityFunction compileDelayed(String suffix, DensityFunction df) {
+            OptoPasses.AstPair pair = this.optimizeCached(df);
+            if (pair.optimized() instanceof ConstantNode constantNode) {
+                return DensityFunctions.constant(constantNode.getValue());
+            } else if (pair.optimized() instanceof YClampedGradientNode) {
+                return df;
+            }
+            int index = this.registerRoot(suffix, pair.optimized());
+            CompiledDensityFunction compiled = new CompiledDensityFunction(index, df);
+            this.delayedInits.add(compiled);
+            this.toDump.put(suffix, pair);
+            return compiled;
+        }
+
         public static interface LocalVarConsumer {
             int createLocalVariable(String name, String descriptor);
+        }
+
+        private static record MethodPair(String single, String multi) {
         }
 
         private static record FieldRecord(String name, int ordinal, Class<?> type) {

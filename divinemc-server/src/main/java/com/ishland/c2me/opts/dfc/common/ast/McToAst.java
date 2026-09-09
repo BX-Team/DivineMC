@@ -38,6 +38,7 @@ import com.ishland.c2me.opts.dfc.common.ast.misc.CoordinateNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.DelegateNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.EndIslandsNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.InterpolatedNoiseSamplerNode;
+import com.ishland.c2me.opts.dfc.common.ast.misc.FindTopSurfaceNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.IntervalSelectNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.RangeChoiceNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.YClampedGradientNode;
@@ -180,13 +181,19 @@ public class McToAst {
             );
         });
         REGISTRY.registerExactMatch(DensityFunctions.YClampedGradient.class, f -> new YClampedGradientNode(f.fromY(), f.toY(), f.fromValue(), f.toValue()));
-        // DivineMC - 26.2: IntervalSelect replaces WeirdScaledSampler; no FindTopSurface
+        // DivineMC - 26.2: IntervalSelect replaces WeirdScaledSampler
         REGISTRY.registerExactMatch(DensityFunctions.IntervalSelect.class, f -> new IntervalSelectNode(
                 toAst(f.input()),
                 f.thresholds().toDoubleArray(),
                 f.functions().stream().map(McToAst::toAst).toArray(AstNode[]::new)
         ));
         REGISTRY.registerExactMatch(DensityFunctions.Spline.class, f -> new SplineAstNode(f.spline()));
+        REGISTRY.registerExactMatch(DensityFunctions.FindTopSurface.class, f -> new FindTopSurfaceNode( // DivineMC - 26.2: FindTopSurface
+                toAst(f.density()),
+                toAst(f.upperBound()),
+                new ConstantNode(f.lowerBound()),
+                f.cellHeight()
+        ));
 
         // delegate nodes that have specialized OpenCL gen
         REGISTRY.registerExactMatch(DensityFunctions.EndIslandDensityFunction.class, EndIslandsNode::new);

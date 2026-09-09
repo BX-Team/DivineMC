@@ -68,10 +68,45 @@ index 110e50665256d1bf9fe49c7769be927ec50168a9..e87c5c061ead272da25bd9e77da3ba9b
      }
  }
 diff --git a/net/minecraft/world/level/levelgen/DensityFunction.java b/net/minecraft/world/level/levelgen/DensityFunction.java
-index a8a7ef3ba147015d12d89e00c4f3e30da22546d7..62d3aa69ac8742805c2384669e8245b4ced01d35 100644
+index a8a7ef3ba147015d12d89e00c4f3e30da22546d7..d1fa9e3cf242167f3dc789d0537351b5f6ce4af6 100644
 --- a/net/minecraft/world/level/levelgen/DensityFunction.java
 +++ b/net/minecraft/world/level/levelgen/DensityFunction.java
-@@ -111,6 +111,27 @@ public interface DensityFunction {
+@@ -29,7 +29,7 @@ public interface DensityFunction {
+     DensityFunction mapChildren(final DensityFunction.Visitor visitor);
+ 
+     default DensityFunction mapAll(final DensityFunction.Visitor visitor) {
+-        class RecursiveVisitor implements DensityFunction.Visitor {
++        class RecursiveVisitor implements DensityFunction.Visitor, com.ishland.c2me.opts.dfc.common.ducks.IBlendingAwareVisitor, com.ishland.c2me.opts.dfc.common.ducks.ICompiledCachingAwareVisitor { // DivineMC - Density Function Compiler
+             @Override
+             public DensityFunction apply(final DensityFunction input) {
+                 return visitor.apply(input.mapChildren(this));
+@@ -39,6 +39,25 @@ public interface DensityFunction {
+             public DensityFunction.NoiseHolder visitNoise(final DensityFunction.NoiseHolder noise) {
+                 return visitor.visitNoise(noise);
+             }
++
++            // DivineMC start - Density Function Compiler
++            @Override
++            public boolean c2me$isBlendingEnabled() {
++                return visitor instanceof com.ishland.c2me.opts.dfc.common.ducks.IBlendingAwareVisitor blendingAwareVisitor
++                    && blendingAwareVisitor.c2me$isBlendingEnabled();
++            }
++
++            @Override
++            public com.ishland.c2me.opts.dfc.common.gen.jvm.CompiledEntry c2me$visitIfAbsent(
++                final com.ishland.c2me.opts.dfc.common.gen.jvm.CompiledEntry entry,
++                final com.ishland.c2me.opts.dfc.common.gen.jvm.ArgumentVisitor argumentVisitor
++            ) {
++                if (visitor instanceof com.ishland.c2me.opts.dfc.common.ducks.ICompiledCachingAwareVisitor cachingAwareVisitor) {
++                    return cachingAwareVisitor.c2me$visitIfAbsent(entry, argumentVisitor);
++                }
++                return entry.newInstance(entry.getArgs(), argumentVisitor);
++            }
++            // DivineMC end - Density Function Compiler
+         }
+ 
+         return new RecursiveVisitor().apply(this);
+@@ -111,6 +130,27 @@ public interface DensityFunction {
          public double maxValue() {
              return this.noise == null ? 2.0 : this.noise.maxValue();
          }
@@ -100,7 +135,7 @@ index a8a7ef3ba147015d12d89e00c4f3e30da22546d7..62d3aa69ac8742805c2384669e8245b4
  
      interface SimpleFunction extends DensityFunction {
 diff --git a/net/minecraft/world/level/levelgen/DensityFunctions.java b/net/minecraft/world/level/levelgen/DensityFunctions.java
-index 9f740bfbdddbdbdb729351574f1eb7169dc2e230..f1747cabca96f5ca47b985afab1fef68e1b3589b 100644
+index 9f740bfbdddbdbdb729351574f1eb7169dc2e230..ee1d0b9c7a95b836c0afd6e0faf7e7d8192e3860 100644
 --- a/net/minecraft/world/level/levelgen/DensityFunctions.java
 +++ b/net/minecraft/world/level/levelgen/DensityFunctions.java
 @@ -278,7 +278,7 @@ public final class DensityFunctions {
@@ -177,6 +212,15 @@ index 9f740bfbdddbdbdb729351574f1eb7169dc2e230..f1747cabca96f5ca47b985afab1fef68
          // Paper start - Perf: Optimize end generation
          private static final class NoiseCache {
              public long[] keys = new long[8192];
+@@ -579,7 +607,7 @@ public final class DensityFunctions {
+         }
+     }
+ 
+-    private record FindTopSurface(DensityFunction density, DensityFunction upperBound, int lowerBound, int cellHeight) implements DensityFunction {
++    public record FindTopSurface(DensityFunction density, DensityFunction upperBound, int lowerBound, int cellHeight) implements DensityFunction { // DivineMC - Density Function Compiler - private -> public (McToAst frontend registration)
+         private static final MapCodec<DensityFunctions.FindTopSurface> DATA_CODEC = RecordCodecBuilder.mapCodec(
+             i -> i.group(
+                     DensityFunction.CODEC.fieldOf("density").forGetter(DensityFunctions.FindTopSurface::density),
 @@ -828,7 +856,75 @@ public final class DensityFunctions {
          }
      }
@@ -285,7 +329,7 @@ index 9f740bfbdddbdbdb729351574f1eb7169dc2e230..f1747cabca96f5ca47b985afab1fef68
      ) implements DensityFunctions.TwoArgumentSimpleFunction, DensityFunctions.PureTransformer {
          @Override
 diff --git a/net/minecraft/world/level/levelgen/NoiseChunk.java b/net/minecraft/world/level/levelgen/NoiseChunk.java
-index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f7ea04c9f 100644
+index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..5673e0b0d510ddc0cfedae244f25934b32da1f45 100644
 --- a/net/minecraft/world/level/levelgen/NoiseChunk.java
 +++ b/net/minecraft/world/level/levelgen/NoiseChunk.java
 @@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
@@ -309,7 +353,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
 +import com.ishland.c2me.opts.dfc.common.ducks.IFastCacheLike;
 +import com.ishland.c2me.opts.dfc.common.ducks.IPreloadedCoordinates;
 +import com.ishland.c2me.opts.dfc.common.ducks.NoiseRouterExtension;
-+import com.ishland.c2me.opts.dfc.common.gen.DelegatingBlendingAwareVisitor;
++import com.ishland.c2me.opts.dfc.common.gen.DelegatingBlendingCachingAwareVisitor;
 +import com.ishland.c2me.opts.dfc.common.gen.jvm.util.DfcObjectCache;
 +import com.ishland.c2me.opts.dfc.common.gen.jvm.vif.EachApplierVanillaInterface;
 +import com.ishland.c2me.opts.dfc.common.gen.jvm.vif.NoisePosVanillaInterface;
@@ -319,7 +363,15 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
      private final int cellCountXZ;
      private final int cellCountY;
      private final int cellNoiseMinY;
-@@ -57,7 +70,88 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -32,6 +45,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+     private final List<NoiseChunk.NoiseInterpolator> interpolators;
+     private final List<NoiseChunk.CacheAllInCell> cellCaches;
+     private final Map<DensityFunction, DensityFunction> wrapped = new HashMap<>();
++    private final Map<com.ishland.c2me.opts.dfc.common.gen.jvm.CompiledEntry, com.ishland.c2me.opts.dfc.common.gen.jvm.CompiledEntry> c2me$compiledEntryCache = new HashMap<>(); // DivineMC - Density Function Compiler
+     private final Long2IntMap preliminarySurfaceLevelCache = new Long2IntOpenHashMap();
+     private final Aquifer aquifer;
+     private final DensityFunction preliminarySurfaceLevel;
+@@ -57,7 +71,88 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
      private long interpolationCounter;
      private long arrayInterpolationCounter;
      private int arrayIndex;
@@ -393,8 +445,8 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
 +        return this.c2me$cachedZArray;
 +    }
 +
-+    private @org.jetbrains.annotations.NotNull DelegatingBlendingAwareVisitor c2me$getDelegatingBlendingAwareVisitor(DensityFunction.Visitor visitor) {
-+        return new DelegatingBlendingAwareVisitor(visitor, !this.blender.isEmpty()); // DivineMC - 26.2: FunctionContext.getBlender() removed
++    private @org.jetbrains.annotations.NotNull DelegatingBlendingCachingAwareVisitor c2me$getDelegatingBlendingAwareVisitor(DensityFunction.Visitor visitor) {
++        return new DelegatingBlendingCachingAwareVisitor(visitor, this.c2me$compiledEntryCache, !this.blender.isEmpty());
 +    }
 +
 +    private DensityFunction.Visitor modifyVisitor1(DensityFunction.Visitor visitor) {
@@ -409,7 +461,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
          @Override
          public DensityFunction.FunctionContext forIndex(final int cellYIndex) {
              NoiseChunk.this.cellStartBlockY = (cellYIndex + NoiseChunk.this.cellNoiseMinY) * NoiseChunk.this.cellHeight;
-@@ -77,7 +171,23 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -77,7 +172,23 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
                  output[cellYIndex] = function.compute(NoiseChunk.this);
              }
          }
@@ -434,7 +486,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
  
      public static NoiseChunk forChunk(
          final ChunkAccess chunk,
-@@ -140,7 +250,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -140,7 +251,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
  
          NoiseRouter router = randomState.router();
@@ -443,7 +495,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
          this.preliminarySurfaceLevel = wrappedRouter.preliminarySurfaceLevel();
          if (!settings.isAquifersEnabled()) {
              this.aquifer = Aquifer.createDisabled(globalFluidPicker);
-@@ -153,10 +263,21 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -153,10 +264,21 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
  
          List<NoiseChunk.BlockStateFiller> builder = new ArrayList<>();
@@ -469,7 +521,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
          this.fullNoiseDensity = fullNoiseValue;
          builder.add(context -> this.aquifer.computeSubstance(context, fullNoiseValue.compute(context)));
          if (settings.oreVeinsEnabled()) {
-@@ -168,12 +289,14 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -168,12 +290,14 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
  
      protected Climate.Sampler cachedClimateSampler(final NoiseRouter noises, final List<Climate.ParameterPoint> spawnTarget) {
          return new Climate.Sampler(
@@ -490,7 +542,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
              spawnTarget
          );
      }
-@@ -311,10 +434,21 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -311,10 +435,21 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          this.fillingCell = false;
      }
  
@@ -513,7 +565,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
              i.updateForY(factorY);
          }
      }
-@@ -322,7 +456,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -322,7 +457,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
      public void updateForX(final int posX, final double factorX) {
          this.inCellX = posX - this.cellStartBlockX;
  
@@ -522,7 +574,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
              i.updateForX(factorX);
          }
      }
-@@ -331,7 +465,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -331,7 +466,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          this.inCellZ = posZ - this.cellStartBlockZ;
          this.interpolationCounter++;
  
@@ -531,7 +583,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
              i.updateForZ(factorZ);
          }
      }
-@@ -345,8 +479,11 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -345,8 +480,11 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
      }
  
      public void swapSlices() {
@@ -544,7 +596,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
  
      public Aquifer aquifer() {
          return this.aquifer;
-@@ -377,8 +514,19 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -377,8 +515,19 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
      }
  
      private DensityFunction wrapNew(final DensityFunction function) {
@@ -565,7 +617,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
                  switch (type) {
                      case Interpolated:
                          yield new NoiseChunk.NoiseInterpolator(wrapped);
-@@ -531,10 +679,58 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -531,10 +680,58 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          @Nullable BlockState calculate(final DensityFunction.FunctionContext context);
      }
  
@@ -625,7 +677,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
  
          private Cache2D(final DensityFunction function) {
              this.function = function;
-@@ -571,9 +767,93 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -571,9 +768,93 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
      }
  
@@ -721,7 +773,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
  
          private CacheAllInCell(final DensityFunction noiseFiller) {
              this.noiseFiller = noiseFiller;
-@@ -584,6 +864,24 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -584,6 +865,24 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          @Override
          public double compute(final DensityFunction.FunctionContext context) {
              if (context != NoiseChunk.this) {
@@ -746,7 +798,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
                  return this.noiseFiller.compute(context);
              }
  
-@@ -615,12 +913,93 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -615,12 +914,93 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
      }
  
@@ -841,7 +893,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
  
          private CacheOnce(final DensityFunction function) {
              this.function = function;
-@@ -628,26 +1007,76 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -628,26 +1008,76 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
  
          @Override
          public double compute(final DensityFunction.FunctionContext context) {
@@ -928,7 +980,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
              if (this.lastArray != null && this.lastArrayCounter == NoiseChunk.this.arrayInterpolationCounter) {
                  System.arraycopy(this.lastArray, 0, output, 0, output.length);
              } else {
-@@ -655,7 +1084,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -655,7 +1085,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
                  if (this.lastArray != null && this.lastArray.length == output.length) {
                      System.arraycopy(output, 0, this.lastArray, 0, output.length);
                  } else {
@@ -937,7 +989,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
                  }
  
                  this.lastArrayCounter = NoiseChunk.this.arrayInterpolationCounter;
-@@ -673,10 +1102,73 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -673,10 +1103,73 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
      }
  
@@ -1012,7 +1064,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
  
          private FlatCache(final DensityFunction noiseFiller, final boolean fill) {
              this.noiseFiller = noiseFiller;
-@@ -735,7 +1227,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -735,7 +1228,7 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          }
      }
  
@@ -1021,7 +1073,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
          private double[][] slice0;
          private double[][] slice1;
          private DensityFunction noiseFiller;
-@@ -754,6 +1246,114 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -754,6 +1247,114 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          private double valueZ0;
          private double valueZ1;
          private double value;
@@ -1136,7 +1188,7 @@ index 16a656a50ba2c39ca4f9facf7d71bf697ebc7658..11c97f273879be95f47884ab560ae88f
  
          private NoiseInterpolator(final DensityFunction noiseFiller) {
              this.noiseFiller = noiseFiller;
-@@ -804,15 +1404,37 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
+@@ -804,15 +1405,37 @@ public class NoiseChunk implements DensityFunction.FunctionContext, DensityFunct
          @Override
          public double compute(final DensityFunction.FunctionContext context) {
              if (context != NoiseChunk.this) {
@@ -1366,7 +1418,7 @@ index 04890a6423432bf506a7465693000fcee4d66f98..a4eb9e9325003fadbeba12036f891cc0
      }
  }
 diff --git a/net/minecraft/world/level/levelgen/RandomState.java b/net/minecraft/world/level/levelgen/RandomState.java
-index e0c84dc7364e3a068f1325a45dee8880e4091fbe..750b1cbbe0bd5d252fa8a3ffeeb9fd7d607f89b6 100644
+index e0c84dc7364e3a068f1325a45dee8880e4091fbe..cce42483a940d78b0f7c59e763a3cad864934cd6 100644
 --- a/net/minecraft/world/level/levelgen/RandomState.java
 +++ b/net/minecraft/world/level/levelgen/RandomState.java
 @@ -107,6 +107,49 @@ public final class RandomState {
@@ -1377,41 +1429,41 @@ index e0c84dc7364e3a068f1325a45dee8880e4091fbe..750b1cbbe0bd5d252fa8a3ffeeb9fd7d
 +        // DivineMC start - Density Function Compiler - compile the router and climate sampler to JVM bytecode (upstream MixinNoiseConfig)
 +        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableDensityFunctionCompiler) {
 +            com.google.common.base.Stopwatch stopwatch = com.google.common.base.Stopwatch.createStarted();
-+            it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<DensityFunction, com.ishland.c2me.opts.dfc.common.ast.opto.OptoPasses.AstPair> optoCache = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>();
-+            it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<DensityFunction, DensityFunction> tempCache = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>();
++            com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.Context genContext = com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.initContext();
 +            DensityFunction finalFinalDensity = DensityFunctions.add(this.router.finalDensity(), DensityFunctions.BeardifierMarker.INSTANCE);
 +            NoiseRouter original = this.router;
 +            original.c2me$setFinalFinalDensity(finalFinalDensity);
 +            this.router = new NoiseRouter(
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("barrier", this.router.barrierNoise(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("fluid_level_floodedness", this.router.fluidLevelFloodednessNoise(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("fluid_level_spread", this.router.fluidLevelSpreadNoise(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("lava", this.router.lavaNoise(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("temperature", this.router.temperature(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("vegetation", this.router.vegetation(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("continents", this.router.continents(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("erosion", this.router.erosion(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("depth", this.router.depth(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("ridges", this.router.ridges(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("preliminary_surface_level", this.router.preliminarySurfaceLevel(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("final_density", this.router.finalDensity(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("vein_toggle", this.router.veinToggle(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("vein_ridged", this.router.veinRidged(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("vein_gap", this.router.veinGap(), optoCache, tempCache)
++                genContext.compileDelayed("barrier", this.router.barrierNoise()),
++                genContext.compileDelayed("fluid_level_floodedness", this.router.fluidLevelFloodednessNoise()),
++                genContext.compileDelayed("fluid_level_spread", this.router.fluidLevelSpreadNoise()),
++                genContext.compileDelayed("lava", this.router.lavaNoise()),
++                genContext.compileDelayed("temperature", this.router.temperature()),
++                genContext.compileDelayed("vegetation", this.router.vegetation()),
++                genContext.compileDelayed("continents", this.router.continents()),
++                genContext.compileDelayed("erosion", this.router.erosion()),
++                genContext.compileDelayed("depth", this.router.depth()),
++                genContext.compileDelayed("ridges", this.router.ridges()),
++                genContext.compileDelayed("preliminary_surface_level", this.router.preliminarySurfaceLevel()),
++                genContext.compileDelayed("final_density", this.router.finalDensity()),
++                genContext.compileDelayed("vein_toggle", this.router.veinToggle()),
++                genContext.compileDelayed("vein_ridged", this.router.veinRidged()),
++                genContext.compileDelayed("vein_gap", this.router.veinGap())
 +            );
 +            this.router.c2me$setFinalFinalDensity(
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("final_final_density", finalFinalDensity, optoCache, tempCache)
++                genContext.compileDelayed("final_final_density", finalFinalDensity)
 +            );
 +            this.router.c2me$setOriginalNoiseRouter(original);
 +            this.sampler = new Climate.Sampler(
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_temperature", this.sampler.temperature(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_vegetation", this.sampler.humidity(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_continents", this.sampler.continentalness(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_erosion", this.sampler.erosion(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_depth", this.sampler.depth(), optoCache, tempCache),
-+                com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.compile("multiNoiseSampler_ridges", this.sampler.weirdness(), optoCache, tempCache),
++                genContext.compileDelayed("multiNoiseSampler_temperature", this.sampler.temperature()),
++                genContext.compileDelayed("multiNoiseSampler_vegetation", this.sampler.humidity()),
++                genContext.compileDelayed("multiNoiseSampler_continents", this.sampler.continentalness()),
++                genContext.compileDelayed("multiNoiseSampler_erosion", this.sampler.erosion()),
++                genContext.compileDelayed("multiNoiseSampler_depth", this.sampler.depth()),
++                genContext.compileDelayed("multiNoiseSampler_ridges", this.sampler.weirdness()),
 +                this.sampler.spawnTarget()
 +            );
++            com.ishland.c2me.opts.dfc.common.gen.jvm.BytecodeGen.finalizeCompilation(genContext);
 +            stopwatch.stop();
 +            org.slf4j.LoggerFactory.getLogger("DivineMC").info("Density function compilation finished in {}", stopwatch);
 +        }

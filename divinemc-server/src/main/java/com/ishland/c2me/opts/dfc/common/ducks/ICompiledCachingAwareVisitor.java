@@ -21,36 +21,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+package com.ishland.c2me.opts.dfc.common.ducks;
 
-package com.ishland.c2me.opts.dfc.common.gen;
-
-import com.ishland.c2me.opts.dfc.common.ducks.IBlendingAwareVisitor;
+import com.ishland.c2me.opts.dfc.common.gen.jvm.ArgumentVisitor;
+import com.ishland.c2me.opts.dfc.common.gen.jvm.CompiledEntry;
 import net.minecraft.world.level.levelgen.DensityFunction;
 
-import java.util.Objects;
+public interface ICompiledCachingAwareVisitor {
 
-public class DelegatingBlendingAwareVisitor implements IBlendingAwareVisitor, DensityFunction.Visitor {
+    CompiledEntry c2me$visitIfAbsent(CompiledEntry entry, ArgumentVisitor visitor);
 
-    private final DensityFunction.Visitor delegate;
-    private final boolean blendingEnabled;
-
-    public DelegatingBlendingAwareVisitor(DensityFunction.Visitor delegate, boolean blendingEnabled) {
-        this.delegate = Objects.requireNonNull(delegate);
-        this.blendingEnabled = blendingEnabled;
+    static ArgumentVisitor c2me$getArgumentVisitor(DensityFunction.Visitor visitor) {
+        return next -> {
+            if (next instanceof DensityFunction df) {
+                return df.mapAll(visitor);
+            }
+            if (next instanceof DensityFunction.NoiseHolder noise) {
+                return visitor.visitNoise(noise);
+            }
+            return next;
+        };
     }
 
-    @Override
-    public DensityFunction apply(DensityFunction densityFunction) {
-        return this.delegate.apply(densityFunction);
-    }
-
-    @Override
-    public DensityFunction.NoiseHolder visitNoise(DensityFunction.NoiseHolder noiseDensityFunction) {
-        return this.delegate.visitNoise(noiseDensityFunction);
-    }
-
-    @Override
-    public boolean c2me$isBlendingEnabled() {
-        return this.blendingEnabled;
-    }
 }

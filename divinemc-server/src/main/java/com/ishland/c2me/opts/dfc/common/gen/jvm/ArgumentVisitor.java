@@ -23,16 +23,10 @@
  */
 package com.ishland.c2me.opts.dfc.common.gen.jvm;
 
-public interface CompiledEntry {
+public interface ArgumentVisitor {
 
-    default SubCompiledDensityFunction[] getRoots() {
-        return this.getRootsUnsafe().clone();
-    }
+    ArgumentVisitor IDENTITY = o -> o;
 
-    SubCompiledDensityFunction[] getRootsUnsafe();
-
-    CompiledEntry newInstance(Object[] args, ArgumentVisitor visitor);
-
-    Object[] getArgs();
+    Object apply(Object operand);
 
 }
