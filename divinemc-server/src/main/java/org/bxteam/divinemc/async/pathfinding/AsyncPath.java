@@ -85,24 +85,32 @@ public final class AsyncPath extends Path {
     }
 
     private void complete(@NotNull Path completedPath) {
-        this.nodes = completedPath.nodes;
-        this.target = completedPath.getTarget();
-        this.distToTarget = completedPath.getDistToTarget();
-        this.canReach = completedPath.canReach();
+        final List<Consumer<Path>> callbacks;
+        synchronized (this.postProcessingCallbacks) {
+            if (this.ready) {
+                return;
+            }
 
-        this.pathFunction = null;
+            this.nodes = completedPath.nodes;
+            this.target = completedPath.getTarget();
+            this.distToTarget = completedPath.getDistToTarget();
+            this.canReach = completedPath.canReach();
 
-        this.ready = true;
+            this.pathFunction = null;
 
-        for (Consumer<Path> callback : this.postProcessingCallbacks) {
+            this.ready = true;
+
+            callbacks = List.copyOf(this.postProcessingCallbacks);
+            this.postProcessingCallbacks.clear();
+        }
+
+        for (Consumer<Path> callback : callbacks) {
             try {
                 callback.accept(this);
             } catch (Exception e) {
                 LOGGER.error("Error executing post-processing callback", e);
             }
         }
-
-        this.postProcessingCallbacks.clear();
     }
 
     private void process() {
@@ -137,15 +145,14 @@ public final class AsyncPath extends Path {
     }
 
     public void applyAfterProcessing(@NotNull Consumer<Path> callback) {
-        if (this.ready) {
-            callback.accept(this);
-        } else {
-            this.postProcessingCallbacks.add(callback);
-            if (this.ready && !this.postProcessingCallbacks.isEmpty()) {
-                callback.accept(this);
-                this.postProcessingCallbacks.remove(callback);
+        synchronized (this.postProcessingCallbacks) {
+            if (!this.ready) {
+                this.postProcessingCallbacks.add(callback);
+                return;
             }
         }
+
+        callback.accept(this);
     }
 
     public boolean hasSameTargetPositions(final Set<BlockPos> positions) {
