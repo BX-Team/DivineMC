@@ -71,10 +71,10 @@ index f2c5a6ce769d8a5fdb4b836eae6a61a4da91cb3f..bde40b2c2d9a9fd8f4000a0c3dee7d5b
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 2dfbf37e61f89c83f5edb0e3e988c81bd6db8dc1..928c71f6f47e8f8a2766e22f2ece3fefa5ed0964 100644
+index 3176323736839f3ec09abecd79c688f3456b22e1..18ffc7e002a007ecd6250980035a04452d9bb73d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2672,6 +2672,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2670,6 +2670,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
          for (TickingBlockEntity ticker : this.blockEntityTickers) {
              BlockPos blockPos = ticker.getPos();

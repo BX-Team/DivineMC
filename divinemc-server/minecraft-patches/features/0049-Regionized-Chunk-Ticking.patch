@@ -75,6 +75,19 @@ index f518501cb80820e35c4fc81f1c25b9210f985f0c..d7c26d0473c04a44f55faa07a9390974
          } catch (Exception e) {
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index 4e807060b0a62fef207290fa25590149c24d3932..5751743b639164384eb2be80634771a5b15b4d35 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -468,6 +468,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         // DivineMC start - Parallel world ticking
+         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.ServerLevelTickThread levelThread) {
+             return this.tickLevelMidTickTasks(levelThread.currentlyTickingServerLevel);
++        } else if (!this.isSameThread()) {
++            return false; // DivineMC - Regionized Chunk Ticking - chunk system tasks belong to the tick thread that owns the level
+         } else {
+             boolean executed = false;
+             for (final ServerLevel world : this.getAllLevels()) {
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
 index 0fd34a424566a48221ecf0ff242b5c62bc098dce..54d69dbe85c87f780e37721983d5fc8d0966e55a 100644
 --- a/net/minecraft/server/level/ChunkMap.java
@@ -352,18 +365,20 @@ index 070c5f3cb119f3b989d2430dc898a631d6c7924a..41ef18dd82a27bd6abf2303a36587cb2
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..05924ccf4af0b5c38889d25599feb9b0649292f5 100644
+index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..aa19462bf2b1bf32c65a86128d1adaa3da83803b 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -208,7 +208,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -208,8 +208,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      private final LevelTicks<Block> blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
      private final LevelTicks<Fluid> fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
      private final PathTypeCache pathTypesByPosCache = new PathTypeCache();
 -    private final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>();
-+    private final Set<Mob> navigatingMobs = java.util.Collections.synchronizedSet(new ObjectOpenHashSet<>()); // DivineMC - Regionized Chunk Ticking
-     private volatile boolean isUpdatingNavigations;
+-    private volatile boolean isUpdatingNavigations;
++    private final Set<Mob> navigatingMobs = java.util.concurrent.ConcurrentHashMap.newKeySet(); // DivineMC - Regionized Chunk Ticking
++    private final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> Boolean.FALSE); // DivineMC - Regionized Chunk Ticking
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
+     private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
 @@ -540,75 +540,88 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
     }
      // Paper end - rewrite chunk system
@@ -646,31 +661,25 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..05924ccf4af0b5c38889d25599feb9b0
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1960,7 +2011,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
-     }
+@@ -1961,7 +2012,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
--    public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
-+    public synchronized void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) { // DivineMC - Regionized Chunk Ticking - synchronized
-         if (this.isUpdatingNavigations) {
+     public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
+-        if (this.isUpdatingNavigations) {
++        if (this.isUpdatingNavigations.get()) { // DivineMC - Regionized Chunk Ticking - per-thread recursion guard
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
-@@ -1974,22 +2025,16 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+         }
+@@ -1974,31 +2025,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
 -            try { // Paper - catch CME see below why
--            for (Mob navigatingMob : this.navigatingMobs) {
--                PathNavigation pathNavigation = navigatingMob.getNavigation();
--                if (pathNavigation.shouldRecomputePath(pos)) {
--                    navigationsToUpdate.add(pathNavigation);
 +            // DivineMC start - Regionized Chunk Ticking
-+            synchronized (this.navigatingMobs) {
-+                for (Mob navigatingMob : this.navigatingMobs) {
-+                    PathNavigation pathNavigation = navigatingMob.getNavigation();
-+                    if (pathNavigation.shouldRecomputePath(pos)) {
-+                        navigationsToUpdate.add(pathNavigation);
-+                    }
+             for (Mob navigatingMob : this.navigatingMobs) {
+                 PathNavigation pathNavigation = navigatingMob.getNavigation();
+                 if (pathNavigation.shouldRecomputePath(pos)) {
+                     navigationsToUpdate.add(pathNavigation);
                  }
              }
 -            // Paper start - catch CME see below why
@@ -685,8 +694,19 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..05924ccf4af0b5c38889d25599feb9b0
 +            // DivineMC end - Regionized Chunk Ticking
  
              try {
-                 this.isUpdatingNavigations = true;
-@@ -2007,17 +2052,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+-                this.isUpdatingNavigations = true;
++                this.isUpdatingNavigations.set(Boolean.TRUE); // DivineMC - Regionized Chunk Ticking
+ 
+                 for (PathNavigation navigation : navigationsToUpdate) {
+                     navigation.recomputePath();
+                 }
+             } finally {
+-                this.isUpdatingNavigations = false;
++                this.isUpdatingNavigations.set(Boolean.FALSE); // DivineMC - Regionized Chunk Ticking
+             }
+         }
+         } // Paper - option to disable pathfinding updates
+@@ -2007,17 +2050,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -707,6 +727,24 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..05924ccf4af0b5c38889d25599feb9b0
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, null, orientation);
      }
  
+@@ -2977,7 +3020,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+             }
+ 
+             if (entity instanceof Mob mob) {
+-                if (false && ServerLevel.this.isUpdatingNavigations) { // Paper - Remove unnecessary onTrackingStart during navigation warning
++                if (false && ServerLevel.this.isUpdatingNavigations.get()) { // Paper - Remove unnecessary onTrackingStart during navigation warning // DivineMC - Regionized Chunk Ticking - thread-safe
+                     String message = "onTrackingStart called during navigation iteration";
+                     Util.logAndPauseIfInIde(
+                         "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
+@@ -3048,7 +3091,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+             }
+ 
+             if (entity instanceof Mob mob) {
+-                if (false && ServerLevel.this.isUpdatingNavigations) { // Paper - Remove unnecessary onTrackingStart during navigation warning
++                if (false && ServerLevel.this.isUpdatingNavigations.get()) { // Paper - Remove unnecessary onTrackingStart during navigation warning // DivineMC - Regionized Chunk Ticking - thread-safe
+                     String message = "onTrackingStart called during navigation iteration";
+                     Util.logAndPauseIfInIde(
+                         "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
 index a5bc607990735d3d23deb35471bbdf7a09eb6956..9cdd7c5c78b45d853a6a181bd7a7ea1991df968b 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
