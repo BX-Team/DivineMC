@@ -5,25 +5,137 @@ Subject: [PATCH] Optimize Moonrise
 
 
 diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-index fff7a796a61542213bdaa417d44e25cd05f7e774..75ce9966db38f2970b704ddf21e46212b850c8d0 100644
+index fff7a796a61542213bdaa417d44e25cd05f7e774..97207e837abe5838d30f366309fa5e317624c8d9 100644
 --- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 +++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-@@ -59,12 +59,12 @@ public final class NearbyPlayers {
+@@ -59,71 +59,90 @@ public final class NearbyPlayers {
      public static final int GENERAL_REALLY_SMALL_AREA_VIEW_DISTANCE_BLOCKS = (GENERAL_REALLY_SMALL_VIEW_DISTANCE << 4);
  
      private final ServerLevel world;
 -    private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
-+    private final it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<ServerPlayer, TrackedPlayer[]> players = it.unimi.dsi.fastutil.objects.Reference2ReferenceMaps.synchronize(new Reference2ReferenceOpenHashMap<>()); // DivineMC - Optimize collections
-     private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
+-    private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
 -    private final Long2ReferenceOpenHashMap<ReferenceList<ServerPlayer>>[] directByChunk = new Long2ReferenceOpenHashMap[TOTAL_MAP_TYPES];
-+    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<ReferenceList<ServerPlayer>>[] directByChunk = new it.unimi.dsi.fastutil.longs.Long2ReferenceMap[TOTAL_MAP_TYPES]; // DivineMC - Optimize collections
++    // DivineMC start - Optimize collections
++    private final Object mutex = new Object();
++    private final it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<ServerPlayer, TrackedPlayer[]> players = it.unimi.dsi.fastutil.objects.Reference2ReferenceMaps.synchronize(new Reference2ReferenceOpenHashMap<>(), this.mutex);
++    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<TrackedChunk> byChunk = it.unimi.dsi.fastutil.longs.Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>(), this.mutex);
++    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<ReferenceList<ServerPlayer>>[] directByChunk = new it.unimi.dsi.fastutil.longs.Long2ReferenceMap[TOTAL_MAP_TYPES];
      {
          for (int i = 0; i < this.directByChunk.length; ++i) {
 -            this.directByChunk[i] = new Long2ReferenceOpenHashMap<>();
-+            this.directByChunk[i] = it.unimi.dsi.fastutil.longs.Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>()); // DivineMC - Optimize collections
++            this.directByChunk[i] = it.unimi.dsi.fastutil.longs.Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>(), this.mutex);
          }
      }
++    // DivineMC end - Optimize collections
  
+     public NearbyPlayers(final ServerLevel world) {
+         this.world = world;
+     }
+ 
+     public void addPlayer(final ServerPlayer player) {
+-        final TrackedPlayer[] newTrackers = new TrackedPlayer[TOTAL_MAP_TYPES];
+-        if (this.players.putIfAbsent(player, newTrackers) != null) {
+-            throw new IllegalStateException("Already have player " + player);
+-        }
++        // DivineMC start - Optimize collections
++        synchronized (this.mutex) {
++            final TrackedPlayer[] newTrackers = new TrackedPlayer[TOTAL_MAP_TYPES];
++            if (this.players.putIfAbsent(player, newTrackers) != null) {
++                throw new IllegalStateException("Already have player " + player);
++            }
+ 
+-        final ChunkPos chunk = player.chunkPosition();
++            final ChunkPos chunk = player.chunkPosition();
+ 
+-        for (int i = 0; i < TOTAL_MAP_TYPES; ++i) {
+-            // use 0 for default, will be updated by tickPlayer
+-            (newTrackers[i] = new TrackedPlayer(player, MAP_TYPES[i])).add(chunk.x(), chunk.z(), 0);
+-        }
++            for (int i = 0; i < TOTAL_MAP_TYPES; ++i) {
++                // use 0 for default, will be updated by tickPlayer
++                (newTrackers[i] = new TrackedPlayer(player, MAP_TYPES[i])).add(chunk.x(), chunk.z(), 0);
++            }
+ 
+-        // update view distances
+-        this.tickPlayer(player);
++            // update view distances
++            this.tickPlayer(player);
++        }
++        // DivineMC end - Optimize collections
+     }
+ 
+     public void removePlayer(final ServerPlayer player) {
+-        final TrackedPlayer[] players = this.players.remove(player);
+-        if (players == null) {
+-            return; // May be called during teleportation before the player is actually placed
+-        }
++        // DivineMC start - Optimize collections
++        synchronized (this.mutex) {
++            final TrackedPlayer[] players = this.players.remove(player);
++            if (players == null) {
++                return; // May be called during teleportation before the player is actually placed
++            }
+ 
+-        for (final TrackedPlayer tracker : players) {
+-            tracker.remove();
++            for (final TrackedPlayer tracker : players) {
++                tracker.remove();
++            }
+         }
++        // DivineMC end - Optimize collections
+     }
+ 
+     public void clear() {
+-        if (this.players.isEmpty()) {
+-            return;
+-        }
++        // DivineMC start - Optimize collections
++        synchronized (this.mutex) {
++            if (this.players.isEmpty()) {
++                return;
++            }
+ 
+-        for (final ServerPlayer player : new ArrayList<>(this.players.keySet())) {
+-            this.removePlayer(player);
++            for (final ServerPlayer player : new ArrayList<>(this.players.keySet())) {
++                this.removePlayer(player);
++            }
+         }
++        // DivineMC end - Optimize collections
+     }
+ 
+     public void tickPlayer(final ServerPlayer player) {
+-        final TrackedPlayer[] players = this.players.get(player);
+-        if (players == null) {
+-            throw new IllegalStateException("Don't have player " + player);
+-        }
++        // DivineMC start - Optimize collections
++        synchronized (this.mutex) {
++            final TrackedPlayer[] players = this.players.get(player);
++            if (players == null) {
++                throw new IllegalStateException("Don't have player " + player);
++            }
+ 
+-        final ChunkPos chunk = player.chunkPosition();
++            final ChunkPos chunk = player.chunkPosition();
+ 
+-        players[NearbyMapType.GENERAL.ordinal()].update(chunk.x(), chunk.z(), GENERAL_AREA_VIEW_DISTANCE);
+-        players[NearbyMapType.GENERAL_SMALL.ordinal()].update(chunk.x(), chunk.z(), GENERAL_SMALL_VIEW_DISTANCE);
+-        players[NearbyMapType.GENERAL_REALLY_SMALL.ordinal()].update(chunk.x(), chunk.z(), GENERAL_REALLY_SMALL_VIEW_DISTANCE);
+-        players[NearbyMapType.TICK_VIEW_DISTANCE.ordinal()].update(chunk.x(), chunk.z(), PlatformHooks.get().getTickViewDistance(player));
+-        players[NearbyMapType.VIEW_DISTANCE.ordinal()].update(chunk.x(), chunk.z(), PlatformHooks.get().getViewDistance(player));
+-        players[NearbyMapType.SPAWN_RANGE.ordinal()].update(chunk.x(), chunk.z(), ChunkTickConstants.PLAYER_SPAWN_TRACK_RANGE); // Moonrise - chunk tick iteration
++            players[NearbyMapType.GENERAL.ordinal()].update(chunk.x(), chunk.z(), GENERAL_AREA_VIEW_DISTANCE);
++            players[NearbyMapType.GENERAL_SMALL.ordinal()].update(chunk.x(), chunk.z(), GENERAL_SMALL_VIEW_DISTANCE);
++            players[NearbyMapType.GENERAL_REALLY_SMALL.ordinal()].update(chunk.x(), chunk.z(), GENERAL_REALLY_SMALL_VIEW_DISTANCE);
++            players[NearbyMapType.TICK_VIEW_DISTANCE.ordinal()].update(chunk.x(), chunk.z(), PlatformHooks.get().getTickViewDistance(player));
++            players[NearbyMapType.VIEW_DISTANCE.ordinal()].update(chunk.x(), chunk.z(), PlatformHooks.get().getViewDistance(player));
++            players[NearbyMapType.SPAWN_RANGE.ordinal()].update(chunk.x(), chunk.z(), ChunkTickConstants.PLAYER_SPAWN_TRACK_RANGE); // Moonrise - chunk tick iteration
++        }
++        // DivineMC end - Optimize collections
+     }
+ 
+     public TrackedChunk getChunk(final ChunkPos pos) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 index 3703fde2416f940b18028bf7373811a6e3215b01..3eb98d67038923e17ca64468a3dbd6e9bb890bfe 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
