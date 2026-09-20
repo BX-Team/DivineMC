@@ -2,46 +2,65 @@
 
 set -e
 
+MAX_COMMITS=100
+FALLBACK_COMMITS=10
+
 prop() {
   grep "${1}" gradle.properties | cut -d'=' -f2 | sed 's/\r//'
 }
 
-commitid=$(git log --pretty='%h' -1)
+commitid=$(git rev-parse HEAD)
 mcversion=$(prop mcVersion)
 channel=$(prop channel)
-api_channel=$([ "$channel" = "EXPERIMENTAL" ] && echo "BETA" || echo "$channel")
+api_channel=$([ "$channel" = "EXPERIMENTAL" ] && echo "beta" || echo "${channel,,}")
 version="$mcversion.build.$BUILD_NUMBER-${channel,,}"
-tagid="$mcversion-$BUILD_NUMBER-$commitid"
 jarName="divinemc-$mcversion-$BUILD_NUMBER.jar"
-divinemcid="DivineMC-$tagid"
 
 mv divinemc-server/build/libs/divinemc-paperclip-"$version".jar "$jarName"
 
 echo "📦 Collecting commits..."
-last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-if [ -n "$last_tag" ]; then
-  number=$(git log --oneline "$last_tag"..HEAD | wc -l | tr -d ' ')
+
+latest=$(curl -fsS -H "Cache-Control: no-cache" \
+  "https://api.bxteam.org/v1/builds/divinemc/$mcversion/latest" 2>/dev/null || echo '{}')
+last_commit=$(echo "$latest" | jq -r '.commit // empty')
+
+range=""
+if [ -n "$last_commit" ] && git cat-file -e "$last_commit^{commit}" 2>/dev/null; then
+  range="$last_commit..HEAD"
+  echo "   Since build $(echo "$latest" | jq -r '.build') ($range)"
 else
-  number=10
+  last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+  if [ -n "$last_tag" ]; then
+    range="$last_tag..HEAD"
+    echo "   No commit on the previous build; falling back to tag $last_tag"
+  else
+    echo "   Nothing to compare against; taking the last $FALLBACK_COMMITS commits"
+  fi
 fi
 
-commits_json="[]"
-if [ "$number" -gt 0 ]; then
-  while IFS= read -r line; do
-    commit_sha=$(echo "$line" | awk '{print $1}')
-    commit_message=$(echo "$line" | cut -d' ' -f2-)
-    commit_time=$(git show -s --format=%cI "$commit_sha")
-    commits_json=$(echo "$commits_json" | jq --arg sha "$commit_sha" --arg msg "$commit_message" --arg time "$commit_time" \
-      '. + [{"sha": $sha, "message": $msg, "time": $time}]')
-  done < <(git log --pretty='%h %s' "-$number")
+range_args=()
+if [ -n "$range" ]; then
+  total=$(git rev-list --count "$range")
+  range_args=("$range")
+else
+  total=$FALLBACK_COMMITS
 fi
 
-metadata_json=$(jq -n --argjson bn "$BUILD_NUMBER" --arg ch "$api_channel" --argjson commits "$commits_json" \
-  '{"buildNumber": $bn, "channel": $ch, "commits": $commits}')
+number=$total
+if [ "$number" -gt "$MAX_COMMITS" ]; then
+  number=$MAX_COMMITS
+  echo "   $total commits in range, sending the newest $MAX_COMMITS"
+fi
+
+commits_json=$(git log --pretty=format:'%H%x1f%s%x1f%cI' -n "$number" "${range_args[@]}" | jq -R -s '
+  split("\n") | map(select(length > 0) | split("\u001f")) | map({sha: .[0], summary: .[1], at: .[2]})')
+
+metadata_json=$(jq -n --argjson build "$BUILD_NUMBER" --arg ch "$api_channel" --arg commit "$commitid" --argjson commits "$commits_json" \
+  '{"build": $build, "channel": $ch, "commit": $commit, "commits": $commits}')
 
 echo "$metadata_json" | jq . > metadata.json 2>/dev/null || echo "$metadata_json" > metadata.json
 
-API_URL="https://api.bxteam.org/atlas/projects/divinemc/versions/$mcversion/builds/upload"
+API_URL="https://api.bxteam.org/v1/publish/builds/divinemc/$mcversion"
 API_KEY="${API_KEY:-}"
 
 if [ -z "$API_KEY" ]; then
@@ -60,7 +79,7 @@ echo "   Commits: $number"
 response=$(curl -X POST "$API_URL" \
   -H "Authorization: Bearer $API_KEY" \
   -F "file=@$jarName" \
-  -F "metadata=$metadata_json" \
+  -F "metadata=<metadata.json;type=application/json" \
   -w "\n%{http_code}" \
   -s)
 
