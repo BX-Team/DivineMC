@@ -37,7 +37,10 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     private final AvgTimeLogger avgTimeLogger;
     public final RollingLongBuffer avgTime = new RollingLongBuffer(100);
     private final LongOpenHashSet tickedChunkKeys = new LongOpenHashSet(8192);
+    private static final int SERIAL_HOLD_TICKS = 100;
+    private static final double DOMINANT_REGION_SHARE = 0.9;
     private int i = 0;
+    private int serialTicksLeft;
     private TickPair pendingEntityTick;
     private long blockPhaseNanos;
 
@@ -61,12 +64,26 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
 
     @Override
     protected void iterateTickingChunksFaster(final @NotNull CompletableFuture<Void> spawns) {
+        if (this.serialTicksLeft > 0) {
+            this.serialTicksLeft--;
+            super.iterateTickingChunksFaster(spawns);
+            return;
+        }
+
         final long start = System.nanoTime();
         final ServerLevel world = this.level;
-        final int randomTickSpeed = world.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
-        final LevelChunk[] raw = world.moonrise$getEntityTickingChunks().toArray(new LevelChunk[0]);
         final TickPair tickPair = computePlayerRegions();
         final RegionData[] regions = tickPair.regions();
+
+        if (!isWorthParallel(regions)) {
+            this.serialTicksLeft = SERIAL_HOLD_TICKS;
+            logRegions(tickPair, "Ticking serially for " + SERIAL_HOLD_TICKS + " ticks\n");
+            super.iterateTickingChunksFaster(spawns);
+            return;
+        }
+
+        final int randomTickSpeed = world.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
+        final LevelChunk[] raw = world.moonrise$getEntityTickingChunks().toArray(new LevelChunk[0]);
 
         ActivationRange.activateEntities(level); // Paper - EAR
 
@@ -83,6 +100,26 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
 
         this.pendingEntityTick = tickPair;
         this.blockPhaseNanos = System.nanoTime() - start;
+    }
+
+    private static boolean isWorthParallel(final RegionData[] regions) {
+        int nonEmpty = 0;
+        long total = 0;
+        long largest = 0;
+        for (final RegionData region : regions) {
+            if (region == null || region.isEmpty()) {
+                continue;
+            }
+            nonEmpty++;
+            final int chunks = region.chunks().size();
+            total += chunks;
+            largest = Math.max(largest, chunks);
+        }
+        return nonEmpty >= 2 && largest < total * DOMINANT_REGION_SHARE;
+    }
+
+    public boolean hasPendingEntityTick() {
+        return this.pendingEntityTick != null;
     }
 
     public void tickEntitiesParallel() {
@@ -160,21 +197,8 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             }
         }
 
-        if (i++ % 100 == 0 && tickPair.regions().length > 0) {
-            REGION_EXECUTOR.execute(() -> {
-                StringBuilder sb = new StringBuilder();
-                for (RegionData regionData : tickPair.regions()) {
-                    sb.append("Region with ").append(regionData.chunks().size()).append(" chunks and ").append(regionData.entities().size()).append(" entities ticked for Players:\n");
-                    for (ServerPlayer player : regionData.players()) {
-                        long avgNanos = Math.round(player.avgTickTimeNanos.average().orElse(0));
-                        long ms = avgNanos / 1_000_000;
-                        long us = (avgNanos % 1_000_000) / 1_000;
-                        long ns = avgNanos % 1_000;
-                        sb.append("- ").append(player.displayName).append(" avg region tick time: ").append(ms).append(" ms ").append(us).append(" us ").append(ns).append(" ns").append("\n");
-                    }
-                }
-                avgTimeLogger.logTickTime(sb.toString());
-            });
+        if (i++ % 100 == 0) {
+            logRegions(tickPair, "");
         }
 
         for (LevelChunk chunk : raw) {
@@ -182,6 +206,27 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                 level.tickChunk(chunk, randomTickSpeed);
             }
         }
+    }
+
+    private void logRegions(final TickPair tickPair, final String suffix) {
+        if (tickPair.regions().length == 0) {
+            return;
+        }
+        REGION_EXECUTOR.execute(() -> {
+            StringBuilder sb = new StringBuilder();
+            for (RegionData regionData : tickPair.regions()) {
+                sb.append("Region with ").append(regionData.chunks().size()).append(" chunks and ").append(regionData.entities().size()).append(" entities ticked for Players:\n");
+                for (ServerPlayer player : regionData.players()) {
+                    long avgNanos = Math.round(player.avgTickTimeNanos.average().orElse(0));
+                    long ms = avgNanos / 1_000_000;
+                    long us = (avgNanos % 1_000_000) / 1_000;
+                    long ns = avgNanos % 1_000;
+                    sb.append("- ").append(player.displayName).append(" avg region tick time: ").append(ms).append(" ms ").append(us).append(" us ").append(ns).append(" ns").append("\n");
+                }
+            }
+            sb.append(suffix);
+            avgTimeLogger.logTickTime(sb.toString());
+        });
     }
 
     private void finishEntityTicking(final ObjectArrayList<CompletableFuture<Void>> ticked, final TickPair tickPair) {
