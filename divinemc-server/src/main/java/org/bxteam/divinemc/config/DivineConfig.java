@@ -744,6 +744,7 @@ public class DivineConfig {
         public static boolean fixMc183990 = false;
         public static boolean fixMc118740 = false;
         public static boolean fixMc28289 = false;
+        public static boolean fixMc73719 = false;
 
         public static void load() {
             gameplayFixes();
@@ -790,6 +791,9 @@ public class DivineConfig {
             fixMc28289 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-28289"), fixMc28289,
                 "Fixes MC-28289: https://bugs.mojang.com/browse/MC-28289",
                 "Switching items at the same time as attacking carries over the attributes and enchantments of the previously held item.");
+            fixMc73719 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-73719"), fixMc73719,
+                "Fixes MC-73719: https://bugs.mojang.com/browse/MC-73719",
+                "Ender dragons with NoAI don't visually move on the client and keep their hitboxes at the old position.");
         }
     }
 

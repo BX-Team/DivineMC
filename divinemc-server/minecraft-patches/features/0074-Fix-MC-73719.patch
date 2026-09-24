@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 24 Sep 2026 03:37:35 +0300
+Subject: [PATCH] Fix MC-73719
+
+
+diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
+index 44fb0965ed33cda1e628285163dcf11233a2ee4c..b06c8f1353be8a52e023e28772f03e285cbe793d 100644
+--- a/net/minecraft/server/level/ServerEntity.java
++++ b/net/minecraft/server/level/ServerEntity.java
+@@ -176,6 +176,18 @@ public class ServerEntity {
+                 long ya = this.positionCodec.encodeY(currentPosition);
+                 long za = this.positionCodec.encodeZ(currentPosition);
+                 boolean deltaTooBig = xa < -32768L || xa > 32767L || ya < -32768L || ya > 32767L || za < -32768L || za > 32767L;
++                // DivineMC start - Fix MC-73719
++                if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc73719
++                    && this.entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon dragon
++                    && dragon.isNoAi()) {
++                    if (positionChanged || shouldSendRotation || this.forceStateResync || this.teleportDelay > 400) {
++                        this.teleportDelay = 0;
++                        packet = this.snapNoAiDragon(base);
++                        sentPosition = true;
++                        sentRotation = true;
++                    }
++                } else
++                // DivineMC end - Fix MC-73719
+                 if (this.forceStateResync || this.entity.getRequiresPrecisePosition() // Paper - fix desync when a player is added to the tracker
+                     || deltaTooBig
+                     || this.teleportDelay > 400
+@@ -383,6 +395,23 @@ public class ServerEntity {
+         }
+     }
+ 
++    // DivineMC start - Fix MC-73719
++    private Packet<ClientGamePacketListener> snapNoAiDragon(final Vec3 lastSent) {
++        Vec3 target = this.entity.trackingPosition();
++        float yRot = this.entity.getYRot();
++        float xRot = this.entity.getXRot();
++        Vec3 detour = target.add(0.0, lastSent.y > target.y ? -128.0 : 128.0, 0.0);
++        return new ClientboundBundlePacket(
++            List.of(
++                new ClientboundEntityPositionSyncPacket(
++                    this.entity.getId(), new net.minecraft.world.entity.PositionMoveRotation(detour, Vec3.ZERO, yRot, xRot), this.entity.onGround()
++                ),
++                ClientboundEntityPositionSyncPacket.of(this.entity)
++            )
++        );
++    }
++    // DivineMC end - Fix MC-73719
++
+     public Vec3 getPositionBase() {
+         return this.positionCodec.getBase();
+     }
+diff --git a/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java b/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
+index 773351cd6c40e57a9c81d3d1b25161f282ad09c2..a8adb9a4797c3ed1ec68a3472e606d0e9afc8cb4 100644
+--- a/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
++++ b/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
+@@ -308,6 +308,11 @@ public class EnderDragon extends Mob implements Enemy {
+             this.setYRot(Mth.wrapDegrees(this.getYRot()));
+             if (this.isNoAi()) {
+                 this.flapTime = 0.5F;
++                // DivineMC start - Fix MC-73719
++                if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc73719 && !this.level().isClientSide()) {
++                    this.positionPartsWithoutAi();
++                }
++                // DivineMC end - Fix MC-73719
+             } else {
+                 this.flightHistory.record(this.getY(), this.getYRot());
+                 if (this.level() instanceof ServerLevel level && !hasRider) { // Purpur - Ridables
+@@ -449,6 +454,36 @@ public class EnderDragon extends Mob implements Enemy {
+         }
+     }
+ 
++    // DivineMC start - Fix MC-73719
++    private void positionPartsWithoutAi() {
++        float tilt = (float)(this.flightHistory.get(5).y() - this.flightHistory.get(10).y()) * 10.0F * Mth.DEG_TO_RAD;
++        float ccTilt = Mth.cos(tilt);
++        float ssTilt = Mth.sin(tilt);
++        float rot1 = this.getYRot() * Mth.DEG_TO_RAD;
++        float ss1 = Mth.sin(rot1);
++        float cc1 = Mth.cos(rot1);
++        this.tickPart(this.body, ss1 * 0.5F, 0.0, -cc1 * 0.5F);
++        this.tickPart(this.wing1, cc1 * 4.5F, 2.0, ss1 * 4.5F);
++        this.tickPart(this.wing2, cc1 * -4.5F, 2.0, ss1 * -4.5F);
++        float ss2 = Mth.sin(this.getYRot() * Mth.DEG_TO_RAD - this.yRotA * 0.01F);
++        float cc2 = Mth.cos(this.getYRot() * Mth.DEG_TO_RAD - this.yRotA * 0.01F);
++        float yOffset = this.getHeadYOffset();
++        this.tickPart(this.head, ss2 * 6.5F * ccTilt, yOffset + ssTilt * 6.5F, -cc2 * 6.5F * ccTilt);
++        this.tickPart(this.neck, ss2 * 5.5F * ccTilt, yOffset + ssTilt * 5.5F, -cc2 * 5.5F * ccTilt);
++        DragonFlightHistory.Sample p1 = this.flightHistory.get(5);
++        EnderDragonPart[] tails = {this.tail1, this.tail2, this.tail3};
++
++        for (int i = 0; i < tails.length; i++) {
++            DragonFlightHistory.Sample p0 = this.flightHistory.get(12 + i * 2);
++            float rot = this.getYRot() * Mth.DEG_TO_RAD + this.rotWrap(p0.yRot() - p1.yRot()) * Mth.DEG_TO_RAD;
++            float ss = Mth.sin(rot);
++            float cc = Mth.cos(rot);
++            float dd = (i + 1) * 2.0F;
++            this.tickPart(tails[i], -(ss1 * 1.5F + ss * dd) * ccTilt, p0.y() - p1.y() - (dd + 1.5F) * ssTilt + 1.5, (cc1 * 1.5F + cc * dd) * ccTilt);
++        }
++    }
++    // DivineMC end - Fix MC-73719
++
+     private void tickPart(final EnderDragonPart part, final double x, final double y, final double z) {
+         part.setPos(this.getX() + x, this.getY() + y, this.getZ() + z);
+     }
