@@ -76,14 +76,14 @@ index f518501cb80820e35c4fc81f1c25b9210f985f0c..d7c26d0473c04a44f55faa07a9390974
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 4e807060b0a62fef207290fa25590149c24d3932..5751743b639164384eb2be80634771a5b15b4d35 100644
+index 4e807060b0a62fef207290fa25590149c24d3932..3a8ec75583cb196feaf3773dc95f42e3d075854a 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -468,6 +468,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          // DivineMC start - Parallel world ticking
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.ServerLevelTickThread levelThread) {
              return this.tickLevelMidTickTasks(levelThread.currentlyTickingServerLevel);
-+        } else if (!this.isSameThread()) {
++        } else if (Thread.currentThread() != this.getRunningThread()) {
 +            return false; // DivineMC - Regionized Chunk Ticking - chunk system tasks belong to the tick thread that owns the level
          } else {
              boolean executed = false;
