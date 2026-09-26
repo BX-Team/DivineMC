@@ -1,20 +1,21 @@
 package org.bxteam.divinemc.async.rct;
 
 import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
+import ca.spottedleaf.moonrise.common.list.ReferenceList;
 import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import com.mojang.datafixers.DataFixer;
 import io.papermc.paper.entity.activation.ActivationRange;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
@@ -27,22 +28,56 @@ import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public final class RegionizedChunkTicking extends ServerChunkCache {
     public static final Executor REGION_EXECUTOR = Executors.newFixedThreadPool(DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount,
         new NamedAgnosticThreadFactory<>("Region Ticking", TickThread::new, DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority));
+    public static final boolean CHECK_OWNERSHIP = Boolean.getBoolean("divinemc.rct.checkOwnership");
+    private static final int TILE_SHIFT = 3;
+    private static final int COLORS = 4;
+    private static final int SERIAL_HOLD_TICKS = 100;
+    private static final double DOMINANT_UNIT_SHARE = 0.9;
+    private static final long MIN_PARALLEL_WORK_NANOS = 1_000_000L;
+    private static final int TILE_EVICT_TICKS = 200;
+    private static final int PROBE_INTERVAL_TICKS = 1200;
+    private static final int PROBE_WARMUP_TICKS = 10;
+    private static final int PROBE_TICKS = 100;
+    private static final double SWITCH_MARGIN = 0.95;
+    private static final ThreadLocal<Tile> CURRENT_TILE = new ThreadLocal<>();
+    private static final ConcurrentHashMap<String, Boolean> REPORTED_VIOLATIONS = new ConcurrentHashMap<>();
+
     private final AvgTimeLogger avgTimeLogger;
     public final RollingLongBuffer avgTime = new RollingLongBuffer(100);
-    private final LongOpenHashSet tickedChunkKeys = new LongOpenHashSet(8192);
-    private static final int SERIAL_HOLD_TICKS = 100;
-    private static final double DOMINANT_REGION_SHARE = 0.9;
-    private int i = 0;
+    private final Long2ObjectOpenHashMap<Tile> tiles = new Long2ObjectOpenHashMap<>();
+    @SuppressWarnings("unchecked")
+    private final ObjectArrayList<Tile>[] tilesByColor = new ObjectArrayList[COLORS];
+    private final ObjectArrayList<Tile> regionUnits = new ObjectArrayList<>();
+    @SuppressWarnings("unchecked")
+    private final ObjectArrayList<Tile>[] regionPhases = new ObjectArrayList[] {this.regionUnits};
+    private final Long2IntOpenHashMap tileOwner = new Long2IntOpenHashMap();
+    private final ObjectArrayList<Tile> mainThreadTiles = new ObjectArrayList<>();
+    private final ObjectArrayList<Tile> phaseUnits = new ObjectArrayList<>();
+    private final ObjectArrayList<Entity> mainThreadEntities = new ObjectArrayList<>();
+    private final RollingLongBuffer tileTimes = new RollingLongBuffer(PROBE_TICKS);
+    private final RollingLongBuffer regionTimes = new RollingLongBuffer(PROBE_TICKS);
+    private ObjectArrayList<Tile>[] phases;
+    private int tickCount;
     private int serialTicksLeft;
-    private TickPair pendingEntityTick;
+    private boolean pendingEntityTick;
     private long blockPhaseNanos;
+    private boolean regionMode;
+    private boolean preferRegions;
+    private boolean probing;
+    private int probeTick;
+    private int parallelTicksSinceProbe;
 
     public RegionizedChunkTicking(
         ServerLevel level,
@@ -60,10 +95,16 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     ) {
         super(level, levelStorageAccess, fixerUpper, structureTemplateManager, executor, generator, viewDistance, simulationDistance, sync, chunkStatusListener, overworldDataStorage, savedDataStorage);
         this.avgTimeLogger = new AvgTimeLogger(level.serverLevelData.getLevelName());
+        for (int color = 0; color < COLORS; color++) {
+            this.tilesByColor[color] = new ObjectArrayList<>();
+        }
+        this.phases = this.tilesByColor;
+        this.tileOwner.defaultReturnValue(-1);
     }
 
     @Override
     protected void iterateTickingChunksFaster(final @NotNull CompletableFuture<Void> spawns) {
+        this.tickCount++;
         if (this.serialTicksLeft > 0) {
             this.serialTicksLeft--;
             super.iterateTickingChunksFaster(spawns);
@@ -71,292 +112,432 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         }
 
         final long start = System.nanoTime();
-        final ServerLevel world = this.level;
-        final TickPair tickPair = computePlayerRegions();
-        final RegionData[] regions = tickPair.regions();
+        this.assignTiles();
+        this.regionMode = this.chooseRegionMode();
+        if (this.regionMode) {
+            this.groupTilesIntoRegions();
+            if (!this.isWorthParallel()) {
+                this.abandonRegionMode();
+            }
+        }
+        if (!this.regionMode) {
+            this.phases = this.tilesByColor;
+            this.mainThreadTiles.clear();
+        }
 
-        if (!isWorthParallel(regions)) {
+        if (!this.isWorthParallel()) {
             this.serialTicksLeft = SERIAL_HOLD_TICKS;
-            logRegions(tickPair, "Ticking serially for " + SERIAL_HOLD_TICKS + " ticks\n");
+            for (final Tile tile : this.tiles.values()) {
+                tile.lastCost = 0;
+            }
+            this.logUnits("Ticking serially for " + SERIAL_HOLD_TICKS + " ticks\n");
             super.iterateTickingChunksFaster(spawns);
             return;
         }
 
-        final int randomTickSpeed = world.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
-        final LevelChunk[] raw = world.moonrise$getEntityTickingChunks().toArray(new LevelChunk[0]);
+        ActivationRange.activateEntities(this.level); // Paper - EAR
 
-        ActivationRange.activateEntities(level); // Paper - EAR
-
-        ObjectArrayList<CompletableFuture<LongOpenHashSet>> blockFutures = new ObjectArrayList<>(regions.length);
-        for (final RegionData region : regions) {
-            if (region == null || region.isEmpty()) {
-                continue;
-            }
-            blockFutures.add(tickBlocks(region, randomTickSpeed));
+        final int randomTickSpeed = this.level.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
+        for (final ObjectArrayList<Tile> phase : this.phases) {
+            this.runPhase(phase, false, randomTickSpeed);
         }
-        finishBlockTicking(blockFutures, randomTickSpeed, raw, tickPair);
+        for (final Tile tile : this.mainThreadTiles) {
+            this.tickTileBlocks(tile, randomTickSpeed);
+        }
 
         spawns.join();
 
-        this.pendingEntityTick = tickPair;
+        this.pendingEntityTick = true;
         this.blockPhaseNanos = System.nanoTime() - start;
     }
 
-    private static boolean isWorthParallel(final RegionData[] regions) {
-        int nonEmpty = 0;
-        long total = 0;
-        long largest = 0;
-        for (final RegionData region : regions) {
-            if (region == null || region.isEmpty()) {
-                continue;
-            }
-            nonEmpty++;
-            final int chunks = region.chunks().size();
-            total += chunks;
-            largest = Math.max(largest, chunks);
-        }
-        return nonEmpty >= 2 && largest < total * DOMINANT_REGION_SHARE;
-    }
-
     public boolean hasPendingEntityTick() {
-        return this.pendingEntityTick != null;
+        return this.pendingEntityTick;
     }
 
     public void tickEntitiesParallel() {
-        final TickPair tickPair = this.pendingEntityTick;
-        if (tickPair == null) {
+        if (!this.pendingEntityTick) {
             return;
         }
-        this.pendingEntityTick = null;
-
-        org.bxteam.divinemc.async.sensing.ParallelSensorTicker.preTickSensors(this.level);
+        this.pendingEntityTick = false;
 
         final long start = System.nanoTime();
-        ObjectArrayList<CompletableFuture<Void>> entityFutures = new ObjectArrayList<>(tickPair.regions().length);
-        for (final RegionData region : tickPair.regions()) {
-            if (region == null || region.entities().isEmpty()) {
-                continue;
-            }
-            entityFutures.add(tickEntities(region));
+        org.bxteam.divinemc.async.sensing.ParallelSensorTicker.preTickSensors(this.level);
+
+        this.assignEntities();
+        for (final ObjectArrayList<Tile> phase : this.phases) {
+            this.runPhase(phase, true, 0);
         }
-        finishEntityTicking(entityFutures, tickPair);
-
-        avgTime.add(this.blockPhaseNanos + (System.nanoTime() - start));
-    }
-
-    private CompletableFuture<LongOpenHashSet> tickBlocks(RegionData region, int randomTickSpeed) {
-        return CompletableFuture.supplyAsync(() -> {
-            final long start = System.nanoTime();
-            final LongOpenHashSet regionChunksIDs = new LongOpenHashSet(region.chunks().size());
-            for (final long key : region.chunks()) {
-                final LevelChunk chunk = fullChunks.get(key);
-                if (chunk != null) {
-                    level.tickChunk(chunk, randomTickSpeed);
-                    regionChunksIDs.add(key);
-                }
-            }
-
-            final long time = System.nanoTime() - start;
-            final int regionHash = region.hashCode();
-            final int chunks = regionChunksIDs.size();
-            for (ServerPlayer player : region.players()) {
-                player.regionBlockTickNanos = time;
-                player.lastRegionChunkSize = chunks;
-                player.regionHash = regionHash;
-            }
-            return regionChunksIDs;
-        }, REGION_EXECUTOR);
-    }
-
-    private CompletableFuture<Void> tickEntities(RegionData region) {
-        return CompletableFuture.runAsync(() -> {
-            final long start = System.nanoTime();
-            for (Entity entity : region.entities()) {
-                tickEntity(entity);
-            }
-
-            final long time = System.nanoTime() - start;
-            final int entities = region.entities().size();
-            for (ServerPlayer player : region.players()) {
-                player.avgTickTimeNanos.add(player.regionBlockTickNanos + time);
-                player.lastRegionEntityAmount = entities;
-            }
-        }, REGION_EXECUTOR);
-    }
-
-    private void finishBlockTicking(final ObjectArrayList<CompletableFuture<LongOpenHashSet>> ticked, final int randomTickSpeed, final LevelChunk[] raw, final TickPair tickPair) {
-        tickedChunkKeys.clear();
-        for (CompletableFuture<LongOpenHashSet> future : ticked) {
-            try {
-                LongOpenHashSet result = future.join();
-                if (result != null) {
-                    tickedChunkKeys.addAll(result);
-                }
-            } catch (Exception e) {
-                LOGGER.error("Exception retrieving region ticking result", e);
-            }
+        for (final Tile tile : this.mainThreadTiles) {
+            this.tickTileEntities(tile);
         }
-
-        if (i++ % 100 == 0) {
-            logRegions(tickPair, "");
+        for (final Entity entity : this.mainThreadEntities) {
+            this.tickEntity(entity);
         }
+        this.mainThreadEntities.clear();
 
-        for (LevelChunk chunk : raw) {
-            if (!tickedChunkKeys.contains(chunk.coordinateKey)) {
-                level.tickChunk(chunk, randomTickSpeed);
-            }
+        this.finishUnits();
+        final long total = this.blockPhaseNanos + (System.nanoTime() - start);
+        this.avgTime.add(total);
+        if (!this.probing || this.probeTick > PROBE_WARMUP_TICKS) {
+            (this.regionMode ? this.regionTimes : this.tileTimes).add(total);
         }
     }
 
-    private void logRegions(final TickPair tickPair, final String suffix) {
-        if (tickPair.regions().length == 0) {
-            return;
-        }
-        REGION_EXECUTOR.execute(() -> {
-            StringBuilder sb = new StringBuilder();
-            for (RegionData regionData : tickPair.regions()) {
-                sb.append("Region with ").append(regionData.chunks().size()).append(" chunks and ").append(regionData.entities().size()).append(" entities ticked for Players:\n");
-                for (ServerPlayer player : regionData.players()) {
-                    long avgNanos = Math.round(player.avgTickTimeNanos.average().orElse(0));
-                    long ms = avgNanos / 1_000_000;
-                    long us = (avgNanos % 1_000_000) / 1_000;
-                    long ns = avgNanos % 1_000;
-                    sb.append("- ").append(player.displayName).append(" avg region tick time: ").append(ms).append(" ms ").append(us).append(" us ").append(ns).append(" ns").append("\n");
-                }
+    private boolean chooseRegionMode() {
+        if (this.probing) {
+            if (++this.probeTick <= PROBE_WARMUP_TICKS + PROBE_TICKS) {
+                return !this.preferRegions;
             }
-            sb.append(suffix);
-            avgTimeLogger.logTickTime(sb.toString());
-        });
+            this.finishProbe();
+            return this.preferRegions;
+        }
+        if (++this.parallelTicksSinceProbe >= PROBE_INTERVAL_TICKS) {
+            this.probing = true;
+            this.probeTick = 1;
+            (this.preferRegions ? this.tileTimes : this.regionTimes).clear();
+            return !this.preferRegions;
+        }
+        return this.preferRegions;
     }
 
-    private void finishEntityTicking(final ObjectArrayList<CompletableFuture<Void>> ticked, final TickPair tickPair) {
-        for (CompletableFuture<Void> future : ticked) {
-            try {
-                future.join();
-            } catch (Exception e) {
-                LOGGER.error("Exception during region entity ticking", e);
-            }
-        }
-
-        for (Entity entity : tickPair.entities()) {
-            tickEntity(entity);
+    private void finishProbe() {
+        this.probing = false;
+        this.parallelTicksSinceProbe = 0;
+        final double tileNanos = this.tileTimes.average().orElse(Double.MAX_VALUE);
+        final double regionNanos = this.regionTimes.average().orElse(Double.MAX_VALUE);
+        final boolean switchToRegions = !this.preferRegions && regionNanos < tileNanos * SWITCH_MARGIN;
+        final boolean switchToTiles = this.preferRegions && tileNanos < regionNanos * SWITCH_MARGIN;
+        if (switchToRegions || switchToTiles) {
+            this.preferRegions = switchToRegions;
+            this.logLayoutSwitch(tileNanos, regionNanos);
         }
     }
 
-    private TickPair computePlayerRegions() {
-        List<ServerPlayer> players = new ArrayList<>(level.players());
-        final int defaultTickDist = level.moonrise$getViewDistanceHolder().getViewDistances().tickViewDistance();
-        final int defaultAmountOfChunks = (2 * defaultTickDist + 1) * (2 * defaultTickDist + 1);
-        final int playerCount = players.size();
+    private void abandonRegionMode() {
+        this.regionMode = false;
+        if (this.probing) {
+            this.probing = false;
+            this.parallelTicksSinceProbe = 0;
+        } else if (this.preferRegions) {
+            this.preferRegions = false;
+            this.logLayoutSwitch(this.tileTimes.average().orElse(0), Double.MAX_VALUE);
+        }
+    }
 
-        Rectangle[] boundaries = new Rectangle[playerCount];
-        int[] playerTickDistances = new int[playerCount];
+    private void logLayoutSwitch(final double tileNanos, final double regionNanos) {
+        final String text = "Switched to " + (this.preferRegions ? "player regions" : "tiles")
+            + " (tiles " + Math.round(tileNanos / 1000.0) + " us, player regions "
+            + (regionNanos == Double.MAX_VALUE ? "degenerate" : Math.round(regionNanos / 1000.0) + " us") + ")\n";
+        REGION_EXECUTOR.execute(() -> this.avgTimeLogger.logTickTime(text));
+    }
 
-        for (int i = 0; i < playerCount; i++) {
-            ServerPlayer player = players.get(i);
-            ChunkPos pos = player.chunkPosition();
-            int tickDist = player.moonrise$getViewDistanceHolder().getViewDistances().tickViewDistance();
-            if (tickDist == -1) tickDist = defaultTickDist;
-
-            playerTickDistances[i] = tickDist;
-
-            boundaries[i] = new Rectangle(
-                pos.x() - tickDist, pos.z() - tickDist,
-                pos.x() + tickDist, pos.z() + tickDist
-            );
+    private void assignTiles() {
+        for (int color = 0; color < COLORS; color++) {
+            this.tilesByColor[color].clear();
         }
 
-        UnionFind uf = new UnionFind(playerCount);
-        for (int i = 0; i < playerCount; i++) {
-            for (int j = i + 1; j < playerCount; j++) {
-                if (boundaries[i].intersects(boundaries[j])) {
-                    uf.union(i, j);
+        final ReferenceList<LevelChunk> tickingChunks = this.level.moonrise$getEntityTickingChunks();
+        final LevelChunk[] raw = tickingChunks.getRawDataUnchecked();
+        final int size = tickingChunks.size();
+        for (int i = 0; i < size; i++) {
+            final LevelChunk chunk = raw[i];
+            final int tileX = chunk.getPos().x() >> TILE_SHIFT;
+            final int tileZ = chunk.getPos().z() >> TILE_SHIFT;
+            final long key = CoordinateUtils.getChunkKey(tileX, tileZ);
+            Tile tile = this.tiles.get(key);
+            if (tile == null) {
+                tile = new Tile(this.level, key, color(tileX, tileZ));
+                this.tiles.put(key, tile);
+            }
+            if (tile.lastAssigned != this.tickCount) {
+                tile.lastAssigned = this.tickCount;
+                tile.chunks.clear();
+                tile.entities.clear();
+                tile.players.clear();
+                this.tilesByColor[tile.color].add(tile);
+            }
+            tile.chunks.add(chunk);
+        }
+
+        if (this.tickCount % TILE_EVICT_TICKS == 0) {
+            for (final ObjectIterator<Tile> iterator = this.tiles.values().iterator(); iterator.hasNext(); ) {
+                if (this.tickCount - iterator.next().lastAssigned > TILE_EVICT_TICKS) {
+                    iterator.remove();
                 }
             }
         }
+    }
 
-        Int2IntOpenHashMap rootToGroup = new Int2IntOpenHashMap(playerCount);
-        rootToGroup.defaultReturnValue(-1);
-        ObjectArrayList<IntArrayList> groups = new ObjectArrayList<>();
+    private void groupTilesIntoRegions() {
+        this.phases = this.regionPhases;
+        this.regionUnits.clear();
+        this.mainThreadTiles.clear();
+        this.tileOwner.clear();
 
-        for (int i = 0; i < playerCount; i++) {
-            int root = uf.find(i);
-            int groupIdx = rootToGroup.get(root);
-            if (groupIdx == -1) {
-                groupIdx = groups.size();
-                rootToGroup.put(root, groupIdx);
-                groups.add(new IntArrayList(1));
-            }
-            groups.get(groupIdx).add(i);
-        }
-
-        ObjectArrayList<RegionData> regions = new ObjectArrayList<>(groups.size());
-
-        int totalEstimatedChunks = 0;
-
-        for (IntArrayList group : groups) {
-            if (group.isEmpty()) continue;
-
-            LongOpenHashSet groupChunks = new LongOpenHashSet(defaultAmountOfChunks);
-
-            for (int i = 0; i < group.size(); i++) {
-                int playerIdx = group.getInt(i);
-                ServerPlayer player = players.get(playerIdx);
-                ChunkPos center = player.chunkPosition();
-                int dist = playerTickDistances[playerIdx];
-
-                for (int dx = -dist; dx <= dist; dx++) {
-                    for (int dz = -dist; dz <= dist; dz++) {
-                        groupChunks.add(CoordinateUtils.getChunkKey(center.x() + dx, center.z() + dz));
+        final List<ServerPlayer> players = this.level.players();
+        final int count = players.size();
+        final int defaultDistance = this.level.moonrise$getViewDistanceHolder().getViewDistances().tickViewDistance();
+        final UnionFind groups = new UnionFind(count);
+        for (int i = 0; i < count; i++) {
+            final ServerPlayer player = players.get(i);
+            final int playerDistance = player.moonrise$getViewDistanceHolder().getViewDistances().tickViewDistance();
+            final int distance = playerDistance == -1 ? defaultDistance : playerDistance;
+            final int chunkX = player.chunkPosition().x();
+            final int chunkZ = player.chunkPosition().z();
+            for (int tileX = (chunkX - distance) >> TILE_SHIFT, maxX = (chunkX + distance) >> TILE_SHIFT; tileX <= maxX; tileX++) {
+                for (int tileZ = (chunkZ - distance) >> TILE_SHIFT, maxZ = (chunkZ + distance) >> TILE_SHIFT; tileZ <= maxZ; tileZ++) {
+                    final long key = CoordinateUtils.getChunkKey(tileX, tileZ);
+                    final Tile tile = this.tiles.get(key);
+                    if (tile == null || tile.lastAssigned != this.tickCount) {
+                        continue;
+                    }
+                    final int owner = this.tileOwner.putIfAbsent(key, i);
+                    if (owner != -1) {
+                        groups.union(owner, i);
                     }
                 }
             }
-
-            regions.add(new RegionData(groupChunks, ConcurrentHashMap.newKeySet(100), ConcurrentHashMap.newKeySet(4)));
-            totalEstimatedChunks += groupChunks.size();
         }
 
-        Long2IntOpenHashMap chunkToRegion = new Long2IntOpenHashMap(totalEstimatedChunks);
-        chunkToRegion.defaultReturnValue(-1);
+        final int[] unitByRoot = new int[count];
+        Arrays.fill(unitByRoot, -1);
+        for (final ObjectIterator<Long2IntMap.Entry> iterator = this.tileOwner.long2IntEntrySet().fastIterator(); iterator.hasNext(); ) {
+            final Long2IntMap.Entry entry = iterator.next();
+            final int root = groups.find(entry.getIntValue());
+            if (unitByRoot[root] == -1) {
+                unitByRoot[root] = this.regionUnits.size();
+                this.regionUnits.add(Tile.region(this.level, this.regionUnits.size()));
+            }
+            this.regionUnits.get(unitByRoot[root]).members.add(this.tiles.get(entry.getLongKey()));
+        }
 
-        for (int idx = 0; idx < regions.size(); idx++) {
-            for (long key : regions.get(idx).chunks()) {
-                chunkToRegion.put(key, idx);
+        for (final ObjectArrayList<Tile> colorTiles : this.tilesByColor) {
+            for (final Tile tile : colorTiles) {
+                if (!this.tileOwner.containsKey(tile.key)) {
+                    this.mainThreadTiles.add(tile);
+                }
             }
         }
+    }
 
-        final Set<Entity> firstTick = ConcurrentHashMap.newKeySet();
+    private boolean isWorthParallel() {
+        int nonEmpty = 0;
+        long totalChunks = 0;
+        long largestChunks = 0;
+        long lastWork = 0;
+        for (final ObjectArrayList<Tile> phase : this.phases) {
+            for (final Tile unit : phase) {
+                final int chunks = unit.chunkCount();
+                if (chunks == 0) {
+                    continue;
+                }
+                nonEmpty++;
+                totalChunks += chunks;
+                largestChunks = Math.max(largestChunks, chunks);
+                lastWork += unit.lastCost;
+            }
+        }
+        if (nonEmpty < 2 || largestChunks >= totalChunks * DOMINANT_UNIT_SHARE) {
+            return false;
+        }
+        return lastWork == 0 || lastWork >= MIN_PARALLEL_WORK_NANOS;
+    }
 
-        IteratorSafeOrderedReferenceSet<Entity> entities;
-        synchronized (entities = getEntityTickList().entities) {
+    private void assignEntities() {
+        final IteratorSafeOrderedReferenceSet<Entity> entities = this.getEntityTickList().entities;
+        synchronized (entities) {
             entities.createRawIterator();
-
             try {
-                final Entity[] rawList = entities.getListRaw();
+                final Entity[] raw = entities.getListRaw();
                 final int limit = entities.getListSize();
-                Arrays.stream(rawList, 0, limit)
-                    .parallel()
-                    .filter(Objects::nonNull)
-                    .forEach(entity -> {
-                        long chunkKey = entity.chunkPosition().pack();
-                        int regionIndex = chunkToRegion.get(chunkKey);
-                        if (regionIndex != -1 && !mustTickOnMainThread(entity)) {
-                            RegionData targetRegion = regions.get(regionIndex);
-                            targetRegion.entities().add(entity);
-                            if (entity instanceof ServerPlayer player) {
-                                targetRegion.players().add(player);
-                            }
-                        } else {
-                            firstTick.add(entity);
-                        }
-                    });
+                for (int i = 0; i < limit; i++) {
+                    final Entity entity = raw[i];
+                    if (entity == null) {
+                        continue;
+                    }
+                    final Tile tile = this.tiles.get(CoordinateUtils.getChunkKey(entity.chunkPosition().x() >> TILE_SHIFT, entity.chunkPosition().z() >> TILE_SHIFT));
+                    if (tile == null || tile.lastAssigned != this.tickCount || mustTickOnMainThread(entity)) {
+                        this.mainThreadEntities.add(entity);
+                        continue;
+                    }
+                    tile.entities.add(entity);
+                    if (entity instanceof ServerPlayer player) {
+                        tile.players.add(player);
+                    }
+                }
             } finally {
                 entities.finishRawIterator();
             }
         }
+    }
 
-        regions.sort(Comparator.<RegionData>comparingDouble(r -> r.players().stream().map(p -> p.avgTickTimeNanos.average().orElse(-1)).max(Comparator.naturalOrder()).orElse(-1d)).reversed());
-        return new TickPair(regions.toArray(new RegionData[0]), firstTick);
+    private void runPhase(final ObjectArrayList<Tile> units, final boolean entities, final int randomTickSpeed) {
+        final ObjectArrayList<Tile> work = this.phaseUnits;
+        work.clear();
+        for (final Tile unit : units) {
+            if (entities ? unit.entityCount() > 0 : unit.chunkCount() > 0) {
+                work.add(unit);
+            }
+        }
+        final int count = work.size();
+        if (count == 0) {
+            return;
+        }
+        work.unstableSort((a, b) -> Long.compare(b.lastCost, a.lastCost));
+
+        final Tile[] ordered = work.toArray(new Tile[0]);
+        final boolean checkOwnership = CHECK_OWNERSHIP && !this.regionMode;
+        final AtomicInteger next = new AtomicInteger();
+        final int workers = Math.min(count, DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount);
+        final CompletableFuture<?>[] futures = new CompletableFuture<?>[workers];
+        for (int worker = 0; worker < workers; worker++) {
+            futures[worker] = CompletableFuture.runAsync(() -> {
+                int index;
+                while ((index = next.getAndIncrement()) < ordered.length) {
+                    final Tile unit = ordered[index];
+                    if (checkOwnership) {
+                        CURRENT_TILE.set(unit);
+                    }
+                    try {
+                        if (entities) {
+                            this.tickTileEntities(unit);
+                        } else {
+                            this.tickTileBlocks(unit, randomTickSpeed);
+                        }
+                    } catch (final Throwable throwable) {
+                        LOGGER.error("Exception while ticking region unit {}", unit.describe(), throwable);
+                    } finally {
+                        if (checkOwnership) {
+                            CURRENT_TILE.remove();
+                        }
+                    }
+                }
+            }, REGION_EXECUTOR);
+        }
+        for (final CompletableFuture<?> future : futures) {
+            future.join();
+        }
+    }
+
+    private void tickTileBlocks(final Tile unit, final int randomTickSpeed) {
+        final long start = System.nanoTime();
+        if (unit.members == null) {
+            for (final LevelChunk chunk : unit.chunks) {
+                this.level.tickChunk(chunk, randomTickSpeed);
+            }
+        } else {
+            for (final Tile tile : unit.members) {
+                for (final LevelChunk chunk : tile.chunks) {
+                    this.level.tickChunk(chunk, randomTickSpeed);
+                }
+            }
+        }
+        unit.blockNanos = System.nanoTime() - start;
+    }
+
+    private void tickTileEntities(final Tile unit) {
+        final long start = System.nanoTime();
+        if (unit.members == null) {
+            for (final Entity entity : unit.entities) {
+                this.tickEntity(entity);
+            }
+        } else {
+            for (final Tile tile : unit.members) {
+                for (final Entity entity : tile.entities) {
+                    this.tickEntity(entity);
+                }
+            }
+        }
+        unit.entityNanos = System.nanoTime() - start;
+    }
+
+    private void finishUnits() {
+        for (final ObjectArrayList<Tile> phase : this.phases) {
+            for (final Tile unit : phase) {
+                final int chunks = unit.chunkCount();
+                final int entities = unit.entityCount();
+                final long cost = unit.blockNanos + (entities == 0 ? 0 : unit.entityNanos);
+                unit.lastCost = cost;
+                final int hash = unit.members == null ? Long.hashCode(unit.key) : ~Long.hashCode(unit.key);
+                if (unit.members == null) {
+                    this.recordPlayers(unit, unit, hash, chunks, entities, cost);
+                } else {
+                    for (final Tile tile : unit.members) {
+                        this.recordPlayers(tile, unit, hash, chunks, entities, cost);
+                    }
+                }
+                unit.entityNanos = 0;
+            }
+        }
+        if (this.tickCount % 100 == 0) {
+            this.logUnits("");
+        }
+    }
+
+    private void recordPlayers(final Tile tile, final Tile unit, final int hash, final int chunks, final int entities, final long cost) {
+        for (final ServerPlayer player : tile.players) {
+            player.regionBlockTickNanos = unit.blockNanos;
+            player.lastRegionChunkSize = chunks;
+            player.lastRegionEntityAmount = entities;
+            player.regionHash = hash;
+            player.avgTickTimeNanos.add(cost);
+        }
+    }
+
+    private void logUnits(final String suffix) {
+        final StringBuilder sb = new StringBuilder();
+        for (final ObjectArrayList<Tile> phase : this.phases) {
+            for (final Tile unit : phase) {
+                sb.append("Region with ").append(unit.chunkCount()).append(" chunks and ").append(unit.entityCount()).append(" entities ticked for Players:\n");
+                if (unit.members == null) {
+                    this.appendPlayers(sb, unit);
+                } else {
+                    for (final Tile tile : unit.members) {
+                        this.appendPlayers(sb, tile);
+                    }
+                }
+            }
+        }
+        if (sb.isEmpty()) {
+            return;
+        }
+        sb.append(suffix);
+        final String text = sb.toString();
+        REGION_EXECUTOR.execute(() -> this.avgTimeLogger.logTickTime(text));
+    }
+
+    private void appendPlayers(final StringBuilder sb, final Tile tile) {
+        for (final ServerPlayer player : tile.players) {
+            final long avgNanos = Math.round(player.avgTickTimeNanos.average().orElse(0));
+            sb.append("- ").append(player.displayName).append(" avg region tick time: ")
+                .append(avgNanos / 1_000_000).append(" ms ")
+                .append((avgNanos % 1_000_000) / 1_000).append(" us ")
+                .append(avgNanos % 1_000).append(" ns\n");
+        }
+    }
+
+    public static void checkOwnership(final Level level, final int chunkX, final int chunkZ) {
+        final Tile own = CURRENT_TILE.get();
+        if (own == null || own.level != level) {
+            return;
+        }
+        final int tileX = chunkX >> TILE_SHIFT;
+        final int tileZ = chunkZ >> TILE_SHIFT;
+        if (CoordinateUtils.getChunkKey(tileX, tileZ) == own.key || color(tileX, tileZ) != own.color) {
+            return;
+        }
+        final Throwable trace = new Throwable("write from tile " + own.describe()
+            + " into tile " + tileX + "," + tileZ + " of the same colour phase in " + level);
+        final StackTraceElement[] stack = trace.getStackTrace();
+        final String site = stack.length > 2 ? stack[1] + " <- " + stack[2] : String.valueOf(stack.length);
+        if (REPORTED_VIOLATIONS.putIfAbsent(site, Boolean.TRUE) == null) {
+            LOGGER.warn("Regionized chunk ticking ownership violation", trace);
+        }
+    }
+
+    private static int color(final int tileX, final int tileZ) {
+        return (tileX & 1) | ((tileZ & 1) << 1);
     }
 
     private static boolean mustTickOnMainThread(Entity entity) {
@@ -391,21 +572,60 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         super.close();
     }
 
-    record RegionData(LongOpenHashSet chunks, Set<Entity> entities, Set<ServerPlayer> players) {
-        public boolean isEmpty() {
-            return chunks.isEmpty();
-        }
-    }
+    private static final class Tile {
+        private final ServerLevel level;
+        private final long key;
+        private final int color;
+        private final ObjectArrayList<LevelChunk> chunks = new ObjectArrayList<>();
+        private final ObjectArrayList<Entity> entities = new ObjectArrayList<>();
+        private final ObjectArrayList<ServerPlayer> players = new ObjectArrayList<>();
+        private final ObjectArrayList<Tile> members;
+        private int lastAssigned = -1;
+        private long blockNanos;
+        private long entityNanos;
+        private long lastCost;
 
-    record Rectangle(int minX, int minZ, int maxX, int maxZ) {
-        boolean intersects(Rectangle other) {
-            return !(this.maxX < other.minX ||
-                this.minX > other.maxX ||
-                this.maxZ < other.minZ ||
-                this.minZ > other.maxZ);
+        private Tile(final ServerLevel level, final long key, final int color) {
+            this(level, key, color, null);
         }
-    }
 
-    record TickPair(RegionData[] regions, Set<Entity> entities) {
+        private Tile(final ServerLevel level, final long key, final int color, final ObjectArrayList<Tile> members) {
+            this.level = level;
+            this.key = key;
+            this.color = color;
+            this.members = members;
+        }
+
+        private static Tile region(final ServerLevel level, final int index) {
+            return new Tile(level, index, -1, new ObjectArrayList<>());
+        }
+
+        private int chunkCount() {
+            if (this.members == null) {
+                return this.chunks.size();
+            }
+            int count = 0;
+            for (final Tile tile : this.members) {
+                count += tile.chunks.size();
+            }
+            return count;
+        }
+
+        private int entityCount() {
+            if (this.members == null) {
+                return this.entities.size();
+            }
+            int count = 0;
+            for (final Tile tile : this.members) {
+                count += tile.entities.size();
+            }
+            return count;
+        }
+
+        private String describe() {
+            return this.members == null
+                ? CoordinateUtils.getChunkX(this.key) + "," + CoordinateUtils.getChunkZ(this.key)
+                : "player region " + this.key + " (" + this.members.size() + " tiles)";
+        }
     }
 }

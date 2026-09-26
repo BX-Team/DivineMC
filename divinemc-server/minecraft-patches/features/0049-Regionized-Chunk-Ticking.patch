@@ -365,7 +365,7 @@ index 070c5f3cb119f3b989d2430dc898a631d6c7924a..41ef18dd82a27bd6abf2303a36587cb2
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..75c6895c2cbd2642802abbdf8380dec358992bab 100644
+index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..0fa33e821040cd487ce643805d8339aa7c3a6149 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -208,8 +208,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -647,7 +647,15 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..75c6895c2cbd2642802abbdf8380dec3
          }
  
          profiler.push("entityManagement");
-@@ -1754,10 +1802,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1733,6 +1781,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+ 
+     // CraftBukkit start
+     private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
++        if (org.bxteam.divinemc.async.rct.RegionizedChunkTicking.CHECK_OWNERSHIP) org.bxteam.divinemc.async.rct.RegionizedChunkTicking.checkOwnership(this, entity.getBlockX() >> 4, entity.getBlockZ() >> 4); // DivineMC - Regionized Chunk Ticking
+         // DivineMC start - Parallel world ticking
+         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
+             ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot add entity off-main");
+@@ -1754,10 +1803,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -661,7 +669,7 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..75c6895c2cbd2642802abbdf8380dec3
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1961,7 +2012,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1961,7 +2013,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
@@ -670,7 +678,7 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..75c6895c2cbd2642802abbdf8380dec3
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
          }
-@@ -1974,31 +2025,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1974,31 +2026,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -706,7 +714,7 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..75c6895c2cbd2642802abbdf8380dec3
              }
          }
          } // Paper - option to disable pathfinding updates
-@@ -2007,17 +2050,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2007,17 +2051,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -727,7 +735,7 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..75c6895c2cbd2642802abbdf8380dec3
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, null, orientation);
      }
  
-@@ -2977,7 +3020,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2977,7 +3021,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -736,7 +744,7 @@ index d0176d435edf507cfb6bd977fd5c9bd2773a3e68..75c6895c2cbd2642802abbdf8380dec3
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -3048,7 +3091,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3048,7 +3092,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -826,7 +834,7 @@ index e163435f0e2d3a846330763e543fdc991507e5bb..c9f2155c4bb788f5e2304794e162d532
              // DivineMC start - Parallel world ticking
              treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216d281b20c 100644
+index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..bd3d3da7ea7f42e701e8dcf9b3752db084c3da26 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -121,7 +121,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -878,9 +886,11 @@ index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216
              if (previous != null) {
                  return previous.getHandle();
              }
-@@ -1113,20 +1114,23 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1112,21 +1113,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     @Override
      public boolean setBlock(final BlockPos pos, final BlockState blockState, final @Block.UpdateFlags int updateFlags, final int updateLimit) {
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // DivineMC - Parallel world ticking (additional concurrency issues logs)
++        if (org.bxteam.divinemc.async.rct.RegionizedChunkTicking.CHECK_OWNERSHIP) org.bxteam.divinemc.async.rct.RegionizedChunkTicking.checkOwnership(this, pos.getX() >> 4, pos.getZ() >> 4); // DivineMC - Regionized Chunk Ticking
          // CraftBukkit start - tree generation
 -        if (this.captureTreeGeneration) {
 +        // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
@@ -905,7 +915,7 @@ index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216
          // CraftBukkit end
          if (!this.isInValidBounds(pos)) {
              return false;
-@@ -1140,17 +1144,21 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1140,17 +1145,21 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          Block block = blockState.getBlock();
          // CraftBukkit start - capture blockstates
          boolean captured = false;
@@ -931,7 +941,7 @@ index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216
          // CraftBukkit end - capture blockstates
          BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
          // DivineMC start - Imanity: Raytrace AntiXraySDK integration
-@@ -1162,8 +1170,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1162,8 +1171,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
          if (oldState == null) {
              // CraftBukkit start - remove blockstate if failed (or the same)
@@ -942,7 +952,7 @@ index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216
              }
              // CraftBukkit end
              return false;
-@@ -1201,7 +1209,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1201,7 +1210,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          */ // CraftBukkit
  
          // CraftBukkit start
@@ -951,7 +961,7 @@ index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216
              // Modularize client and physic updates
              // Spigot start
              try {
-@@ -1373,8 +1381,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1373,8 +1382,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Override
      public BlockState getBlockState(final BlockPos pos) {
          // CraftBukkit start - tree generation
@@ -962,7 +972,7 @@ index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216
              if (previous != null) {
                  return previous.getHandle();
              }
-@@ -1550,10 +1558,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1550,10 +1559,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
      public void tickBlockEntities() {
          this.tickingBlockEntities = true;
@@ -980,7 +990,7 @@ index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216
  
          // Paper - Fix MC-117075 use removeAll - remove iterator in favour of indexed for loop, ensuring compile error if something uses iter incorrectly
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
-@@ -1766,10 +1778,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1766,10 +1779,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos) {
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // DivineMC - Parallel world ticking
          // Paper start - Perf: Optimize capturedTileEntities lookup
@@ -995,7 +1005,7 @@ index ca9bf3bcdb60bc99b815f3df219af11ae1177c77..18bcd275208cef257ef3621307707216
          // Paper end - Perf: Optimize capturedTileEntities lookup
          if (!this.isInValidBounds(pos)) {
              return null;
-@@ -1785,8 +1800,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1785,8 +1801,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
              // CraftBukkit start
