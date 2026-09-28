@@ -1185,3 +1185,111 @@ index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..05a9b7e75d158c845f18f953ce00a95a
          try {
              while (!this.stack.isEmpty() || !this.addedThisLayer.isEmpty()) {
                  for (int i = this.addedThisLayer.size() - 1; i >= 0; i--) {
+diff --git a/net/minecraft/world/ticks/LevelTicks.java b/net/minecraft/world/ticks/LevelTicks.java
+index 59b3911ad089b06c8be162aea40d81d934149eef..9accbd86b0e8ae035774ca3527ad9b04d9ad58fd 100644
+--- a/net/minecraft/world/ticks/LevelTicks.java
++++ b/net/minecraft/world/ticks/LevelTicks.java
+@@ -55,7 +55,11 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+         this.allContainers.put(posKey, container);
+         ScheduledTick<T> nextTick = container.peek();
+         if (nextTick != null) {
+-            this.nextTickForContainer.put(posKey, nextTick.triggerTick());
++            // DivineMC start - Regionized Chunk Ticking
++            synchronized (this.nextTickForContainer) {
++                this.nextTickForContainer.put(posKey, nextTick.triggerTick());
++            }
++            // DivineMC end - Regionized Chunk Ticking
+         }
+ 
+         container.setOnTickAdded(this.chunkScheduleUpdater);
+@@ -64,7 +68,11 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     public void removeContainer(final ChunkPos pos) {
+         long chunkKey = pos.pack();
+         LevelChunkTicks<T> removedContainer = this.allContainers.remove(chunkKey);
+-        this.nextTickForContainer.remove(chunkKey);
++        // DivineMC start - Regionized Chunk Ticking
++        synchronized (this.nextTickForContainer) {
++            this.nextTickForContainer.remove(chunkKey);
++        }
++        // DivineMC end - Regionized Chunk Ticking
+         if (removedContainer != null) {
+             removedContainer.setOnTickAdded(null);
+         }
+@@ -101,29 +109,33 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     }
+ 
+     private void sortContainersToTick(final long currentTick) {
+-        ObjectIterator<Entry> it = Long2LongMaps.fastIterator(this.nextTickForContainer);
+-
+-        while (it.hasNext()) {
+-            Entry entry = it.next();
+-            long chunkPos = entry.getLongKey();
+-            long nextTick = entry.getLongValue();
+-            if (nextTick <= currentTick) {
+-                LevelChunkTicks<T> candidateContainer = this.allContainers.get(chunkPos);
+-                if (candidateContainer == null) {
+-                    it.remove();
+-                } else {
+-                    ScheduledTick<T> scheduledTick = candidateContainer.peek();
+-                    if (scheduledTick == null) {
++        // DivineMC start - Regionized Chunk Ticking
++        synchronized (this.nextTickForContainer) {
++            ObjectIterator<Entry> it = Long2LongMaps.fastIterator(this.nextTickForContainer);
++
++            while (it.hasNext()) {
++                Entry entry = it.next();
++                long chunkPos = entry.getLongKey();
++                long nextTick = entry.getLongValue();
++                if (nextTick <= currentTick) {
++                    LevelChunkTicks<T> candidateContainer = this.allContainers.get(chunkPos);
++                    if (candidateContainer == null) {
+                         it.remove();
+-                    } else if (scheduledTick.triggerTick() > currentTick) {
+-                        entry.setValue(scheduledTick.triggerTick());
+-                    } else if (this.tickCheck.test(chunkPos)) {
+-                        it.remove();
+-                        this.containersToTick.add(candidateContainer);
++                    } else {
++                        ScheduledTick<T> scheduledTick = candidateContainer.peek();
++                        if (scheduledTick == null) {
++                            it.remove();
++                        } else if (scheduledTick.triggerTick() > currentTick) {
++                            entry.setValue(scheduledTick.triggerTick());
++                        } else if (this.tickCheck.test(chunkPos)) {
++                            it.remove();
++                            this.containersToTick.add(candidateContainer);
++                        }
+                     }
+                 }
+             }
+         }
++        // DivineMC end - Regionized Chunk Ticking
+     }
+ 
+     private void drainContainers(final long currentTick, final int maxTicksToProcess) {
+@@ -150,7 +162,11 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     }
+ 
+     private void updateContainerScheduling(final ScheduledTick<T> nextTick) {
+-        this.nextTickForContainer.put(ChunkPos.pack(nextTick.pos()), nextTick.triggerTick());
++        // DivineMC start - Regionized Chunk Ticking
++        synchronized (this.nextTickForContainer) {
++            this.nextTickForContainer.put(ChunkPos.pack(nextTick.pos()), nextTick.triggerTick());
++        }
++        // DivineMC end - Regionized Chunk Ticking
+     }
+ 
+     private void drainFromCurrentContainer(
+@@ -250,7 +266,11 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+                 if (newTop != null) {
+                     this.updateContainerScheduling(newTop);
+                 } else {
+-                    this.nextTickForContainer.remove(pos);
++                    // DivineMC start - Regionized Chunk Ticking
++                    synchronized (this.nextTickForContainer) {
++                        this.nextTickForContainer.remove(pos);
++                    }
++                    // DivineMC end - Regionized Chunk Ticking
+                 }
+             }
+         });
