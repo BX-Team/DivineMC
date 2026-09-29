@@ -1,8 +1,8 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -270,6 +_,26 @@
+@@ -261,6 +_,26 @@
          org.purpurmc.purpur.PurpurConfig.registerCommands();
-         */// Purpur end - Purpur config files // Purpur end - Migrate Setting to reintroduce end void rings
+         // Purpur end - Purpur config files
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
 + 
 +        // DivineMC start - Pufferfish: SIMD Support
@@ -27,7 +27,7 @@
  
          // this.worldData.setGameType(properties.gameMode.get()); // CraftBukkit - moved to world loading
          LOGGER.info("Default game type: {}", properties.gameMode.get());
-@@ -346,7 +_,7 @@
+@@ -337,7 +_,7 @@
          String proxyFlavor = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "Velocity" : "BungeeCord";
          String proxyLink = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "https://docs.papermc.io/velocity/security" : "http://www.spigotmc.org/wiki/firewall-guide/";
          // Paper end - Add Velocity IP Forwarding Support
@@ -36,7 +36,7 @@
              LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
              LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
              // Spigot start
-@@ -360,7 +_,11 @@
+@@ -351,7 +_,11 @@
              }
              // Spigot end
              LOGGER.warn("To change this, set \"online-mode\" to \"true\" in the server.properties file.");

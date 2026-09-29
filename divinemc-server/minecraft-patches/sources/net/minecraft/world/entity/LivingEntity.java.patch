@@ -1,14 +1,14 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -771,6 +_,7 @@
- 
+@@ -773,6 +_,7 @@
          super.remove(reason, eventCause); // CraftBukkit
          this.brain.clearMemories();
+         this.getCombatTracker().recheckStatus();
 +        this.combatTracker.resetCombatState(); // DivineMC - Fix MC-298464 (by HaHaWTH)
      }
  
      @Override
-@@ -1444,7 +_,7 @@
+@@ -1437,7 +_,7 @@
                  player.setRealHealth(health);
              }
  
@@ -17,15 +17,15 @@
              return;
          }
          // CraftBukkit end
-@@ -2853,6 +_,7 @@
+@@ -2363,6 +_,7 @@
      }
  
-     protected void updateSwingTime() {
+     protected void playBlockFallSound() {
 +        if (!this.swinging && this.swingTime == 0) return; // DivineMC - lithium: entity.fast_hand_swing
-         int currentSwingDuration = this.getCurrentSwingDuration();
-         if (this.swinging) {
-             this.swingTime++;
-@@ -3431,7 +_,13 @@
+         if (!this.isSilent()) {
+             int xx = Mth.floor(this.getX());
+             int yy = Mth.floor(this.getY() - 0.2F);
+@@ -3420,7 +_,13 @@
      }
  
      protected float getFlyingSpeed() {
@@ -40,7 +40,7 @@
      }
  
      public float getSpeed() {
-@@ -3971,6 +_,7 @@
+@@ -3952,6 +_,7 @@
      protected void updateFallFlying() {
          this.checkFallDistanceAccumulation();
          if (!this.level().isClientSide()) {

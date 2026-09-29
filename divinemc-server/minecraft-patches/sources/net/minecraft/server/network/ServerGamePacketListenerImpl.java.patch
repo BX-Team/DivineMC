@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -328,6 +_,7 @@
+@@ -335,6 +_,7 @@
      private static final int MAX_SIGN_LINE_LENGTH = Integer.getInteger("Paper.maxSignLength", 80); // Paper - Limit client sign length
      private final io.papermc.paper.event.packet.ClientTickEndEvent tickEndEvent; // Paper - add client tick end event
      public final io.papermc.paper.connection.PaperPlayerGameConnection playerGameConnection; // Paper
@@ -8,15 +8,15 @@
  
      public ServerGamePacketListenerImpl(final MinecraftServer server, final Connection connection, final ServerPlayer player, final CommonListenerCookie cookie) {
          super(server, connection, cookie);
-@@ -342,6 +_,7 @@
-         this.chatMessageChain = new FutureChain(server.chatExecutor); // CraftBukkit - async chat
+@@ -350,6 +_,7 @@
+         this.commandSuggestionsProvider = new ServerCommandSuggestionsProvider(player);
          this.tickEndEvent = new io.papermc.paper.event.packet.ClientTickEndEvent(player.getBukkitEntity()); // Paper - add client tick end event
          this.playerGameConnection = new io.papermc.paper.connection.PaperPlayerGameConnection(this); // Paper
 +        this.exchangeTarget = new org.leavesmc.leaves.protocol.syncmatica.exchange.ExchangeTarget(this); // DivineMC - Leaves: Syncmatica Protocol
      }
  
      // Paper start - configuration phase API
-@@ -1129,6 +_,7 @@
+@@ -1134,6 +_,7 @@
  
              this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
              this.player.inventoryMenu.broadcastChanges();

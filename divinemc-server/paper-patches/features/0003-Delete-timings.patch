@@ -4,17 +4,6 @@ Date: Mon, 27 Jan 2025 18:42:29 +0300
 Subject: [PATCH] Delete timings
 
 
-diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-index 2a298ec2c95e9cc913926324dbbf192caa38b05f..a1c9726d25479b5326fe2fa2b0f5a98d6b2da4c5 100644
---- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-+++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-@@ -1,6 +1,5 @@
- package io.papermc.paper.plugin.manager;
- 
--import co.aikar.timings.TimedEventExecutor;
- import com.destroystokyo.paper.event.server.ServerExceptionEvent;
- import com.destroystokyo.paper.exception.ServerEventException;
- import com.google.common.collect.Sets;
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperPluginManagerImpl.java b/src/main/java/io/papermc/paper/plugin/manager/PaperPluginManagerImpl.java
 index 097500a59336db1bbfffcd1aa4cff7a8586e46ec..69341cb3b11409e41b9ff756b11d9bd1b9e6da10 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperPluginManagerImpl.java

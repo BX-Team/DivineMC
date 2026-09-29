@@ -7,7 +7,7 @@
 +val bxTeamMavenPublicUrl = "https://repo.bxteam.org/snapshots/"
  
  dependencies {
-     mache("io.papermc:mache:26.2+build.1")
+     mache("io.papermc:mache:26.3+build.1")
 @@ -26,6 +_,7 @@
  
      // Purpur start - Rebrand
@@ -42,9 +42,9 @@
 +    activeFork = divinemc
 +    // DivineMC end - Rebrand
 +
-     /*updatingMinecraft { // Purpur start - TODO - snapshot - we don't need this
-         // oldPaperCommit = "d4fe85375af18bfa88f44d7c1e6a61904ae550cc"
-     }*/ // Purpur end - TODO - snapshot - we don't need this
+     /*updatingMinecraft { // Purpur start - Rebrand - we don't need this
+         //oldPaperCommit = "e5fe71723e2ffde7cc9fafc085ac3bb73e63175e"
+     }*/ // Purpur end - Rebrand - we don't need this
 @@ -45,6 +_,7 @@
      libraryRepositories.addAll(
          "https://repo.maven.apache.org/maven2/",
@@ -90,10 +90,10 @@
 +    implementation("net.objecthunter:exp4j:0.4.8")
 +    // DivineMC end - Dependencies
 +
-     implementation("ca.spottedleaf:leafpile:1.2.0")
-     implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
-     implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21
-@@ -170,7 +_,12 @@
+     implementation(platform("ca.spottedleaf.leafpile:bom:1.2.4"))
+     implementation("ca.spottedleaf.leafpile:common")
+     implementation("ca.spottedleaf.leafpile:concurrentutil")
+@@ -173,7 +_,12 @@
      // Deps that were previously in the API but have now been moved here for backwards compat, eventually to be removed
      runtimeOnly("commons-lang:commons-lang:2.6")
      runtimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
@@ -107,7 +107,7 @@
      runtimeOnly("com.lmax:disruptor:3.4.4")
      implementation("com.googlecode.json-simple:json-simple:1.1.1") { // change to runtimeOnly once Timings is removed
          isTransitive = false // includes junit
-@@ -191,6 +_,16 @@
+@@ -194,6 +_,16 @@
      implementation("me.lucko:spark-paper:1.10.180")
  }
  
@@ -124,7 +124,7 @@
  tasks.jar {
      manifest {
          val git = Git(rootProject.layout.projectDirectory.path)
-@@ -201,20 +_,22 @@
+@@ -204,20 +_,22 @@
          val implementationVersion = "$mcVersion-${build ?: "DEV"}-$gitHash"
          val date = git.exec(providers, "show", "-s", "--format=%ci", gitHash).get().trim()
          val gitBranch = git.exec(providers, "rev-parse", "--abbrev-ref", "HEAD").get().trim()

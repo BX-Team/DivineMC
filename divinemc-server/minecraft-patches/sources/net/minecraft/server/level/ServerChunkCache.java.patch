@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -583,8 +_,10 @@
+@@ -595,8 +_,10 @@
              this.chunkMap.collectSpawningChunks(spawningChunks);
              profiler.popPush("shuffleSpawningChunks");
              // Paper start - chunk tick iteration optimisation

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -119,7 +_,7 @@
+@@ -117,7 +_,7 @@
          .add(new ExplosionParticleInfo(ParticleTypes.POOF, 0.5F, 1.0F))
          .add(new ExplosionParticleInfo(ParticleTypes.SMOKE, 1.0F, 1.0F))
          .build();
@@ -9,7 +9,7 @@
      protected final CollectingNeighborUpdater neighborUpdater;
      private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
      private boolean tickingBlockEntities;
-@@ -265,7 +_,7 @@
+@@ -263,7 +_,7 @@
      @Override
      public final <T extends Entity> List<T> getEntitiesOfClass(final Class<T> entityClass, final AABB boundingBox, final Predicate<? super T> predicate) {
          Profiler.get().incrementCounter("getEntities");
@@ -18,7 +18,7 @@
  
          ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(entityClass, null, boundingBox, ret, predicate);
  
-@@ -275,7 +_,7 @@
+@@ -273,7 +_,7 @@
      @Override
      public final List<Entity> moonrise$getHardCollidingEntities(final Entity entity, final AABB box, final Predicate<? super Entity> predicate) {
          Profiler.get().incrementCounter("getEntities");
@@ -27,7 +27,7 @@
  
          ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getHardCollidingEntities(entity, box, ret, predicate);
  
-@@ -1541,26 +_,42 @@
+@@ -1542,26 +_,42 @@
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
  
          int tickedEntities = 0; // Paper - rewrite chunk system

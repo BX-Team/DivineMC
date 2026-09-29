@@ -14,10 +14,10 @@ This seems stupid, but it does seem that it improves the performance a bit, and 
 We also create a "canSee" method tailored for "ChunkMap#updatePlayer()", a method without the equals check (the "updatePlayer()" already checks if the entity is the same entity) because the CraftPlayer's `equals()` check is a *bit* expensive compared to only checking the object's identity, and because the identity has already been check, we don't need to check it twice.
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index b2130df877227bd25a1c6b824a300ea147ec4eb7..e879d3527ff2fa55721ef483d4a753a4c88a0fd5 100644
+index 21c8826a04c515e0ee9bce5bb61473157b894d9b..3aa9b1db2759e25aa777ebc06080808b4cf609ad 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -236,7 +236,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
+@@ -241,7 +241,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
      private long lastPlayed = 0;
      private boolean hasPlayedBefore = false;
      private final ConversationTracker conversationTracker = new ConversationTracker();

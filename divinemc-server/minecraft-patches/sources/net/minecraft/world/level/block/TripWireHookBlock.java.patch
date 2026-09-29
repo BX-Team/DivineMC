@@ -1,20 +1,20 @@
 --- a/net/minecraft/world/level/block/TripWireHookBlock.java
 +++ b/net/minecraft/world/level/block/TripWireHookBlock.java
-@@ -187,7 +_,6 @@
+@@ -180,7 +_,6 @@
              if (!cancelledEmitterHook) { // Paper - Call BlockRedstoneEvent
              emitState(level, pos, attached, powered, wasAttached, wasPowered);
              if (!isBeingDestroyed) {
 -                if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.skipTripwireHookPlacementValidation || level.getBlockState(pos).is(Blocks.TRIPWIRE_HOOK)) // Paper - Validate tripwire hook placement before update
-                 level.setBlock(pos, newState.setValue(FACING, direction), Block.UPDATE_ALL);
+                 level.setBlockAndUpdate(pos, newState.setValue(FACING, direction));
                  if (canUpdate) {
                      notifyNeighbors(block, level, pos, direction);
-@@ -200,10 +_,18 @@
+@@ -193,10 +_,18 @@
                      BlockPos testPos = pos.relative(direction, i);
                      BlockState wireData = wireStates[i];
                      if (wireData != null) {
 -                        BlockState testPosState = level.getBlockState(testPos);
 -                        if (testPosState.is(Blocks.TRIPWIRE) || testPosState.is(Blocks.TRIPWIRE_HOOK)) {
--                            if (!io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates || !testPosState.is(Blocks.TRIPWIRE)) level.setBlock(testPos, wireData.trySetValue(ATTACHED, attached), Block.UPDATE_ALL); // Paper - prevent tripwire from updating
+-                            if (!io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates || !testPosState.is(Blocks.TRIPWIRE)) level.setBlockAndUpdate(testPos, wireData.trySetValue(ATTACHED, attached)); // Paper - prevent tripwire from updating
 +                        // DivineMC start - Configurable MC-59471
 +                        if (level.divineConfig.allowTripwireDupe) {
 +                            level.setBlock(testPos, wireData.trySetValue(ATTACHED, attached), Block.UPDATE_ALL);

@@ -1,10 +1,12 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -2728,7 +_,11 @@
+@@ -2963,8 +_,12 @@
      @Override
-     public void swing(final InteractionHand hand) {
-         super.swing(hand);
--        this.resetAttackStrengthTicker();
+     public void handleExtraItemsCreatedOnUse(final ItemStack extraItems) {
+         if (!this.getInventory().add(extraItems)) {
+-            this.drop(extraItems, false, Prediction.PREDICTED);
+-        }
++        }
 +        // DivineMC start - Fix MC-118740
 +        if (hand == InteractionHand.MAIN_HAND && org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc118740) {
 +            this.resetAttackStrengthTicker();
@@ -12,4 +14,4 @@
 +        // DivineMC end - Fix MC-118740
      }
  
-     public boolean isChangingDimension() {
+     public boolean allowsListing() {
