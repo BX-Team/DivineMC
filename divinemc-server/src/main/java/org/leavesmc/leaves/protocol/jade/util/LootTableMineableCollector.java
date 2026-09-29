@@ -20,7 +20,6 @@ import org.leavesmc.leaves.protocol.jade.tool.ShearsToolHandler;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 public class LootTableMineableCollector {
 
@@ -60,8 +59,8 @@ public class LootTableMineableCollector {
             ItemPredicate itemPredicate = predicate.orElse(null);
             return itemPredicate != null && itemPredicate.test(toolItem);
         } else if (condition instanceof AnyOfCondition anyOfCondition) {
-            for (LootItemCondition child : anyOfCondition.terms) {
-                if (isCorrectConditions(List.of(child), toolItem)) {
+            for (Holder<LootItemCondition> child : anyOfCondition.terms) {
+                if (isCorrectConditions(List.of(child.value()), toolItem)) {
                     return true;
                 }
             }
@@ -99,10 +98,13 @@ public class LootTableMineableCollector {
                 }
             }
         } else if (entry instanceof NestedLootTable nestedLootTable) {
-            LootTable lootTable = nestedLootTable.contents.map($ -> lootRegistry.get($).map(Holder::value).orElse(null), Function.identity());
-            return doLootTable(lootTable);
+            for (Holder<LootTable> lootTable : nestedLootTable.value) {
+                if (doLootTable(lootTable.value())) {
+                    return true;
+                }
+            }
         } else {
-            return isCorrectConditions(entry.conditions, toolItem);
+            return entry.condition.isPresent() && isCorrectConditions(List.of(entry.condition.get().value()), toolItem);
         }
         return false;
     }

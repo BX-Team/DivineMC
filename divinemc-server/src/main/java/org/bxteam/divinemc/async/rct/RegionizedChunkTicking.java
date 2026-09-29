@@ -90,10 +90,9 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         int simulationDistance,
         boolean sync,
         ChunkStatusUpdateListener chunkStatusListener,
-        Supplier<SavedDataStorage> overworldDataStorage,
         final SavedDataStorage savedDataStorage
     ) {
-        super(level, levelStorageAccess, fixerUpper, structureTemplateManager, executor, generator, viewDistance, simulationDistance, sync, chunkStatusListener, overworldDataStorage, savedDataStorage);
+        super(level, levelStorageAccess, fixerUpper, structureTemplateManager, executor, generator, viewDistance, simulationDistance, sync, chunkStatusListener, savedDataStorage);
         this.avgTimeLogger = new AvgTimeLogger(level.serverLevelData.getLevelName());
         for (int color = 0; color < COLORS; color++) {
             this.tilesByColor[color] = new ObjectArrayList<>();

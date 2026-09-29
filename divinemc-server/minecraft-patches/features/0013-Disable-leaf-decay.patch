@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 6 Jul 2025 03:03:04 +0300
+Subject: [PATCH] Disable leaf decay
+
+
+diff --git a/net/minecraft/world/level/block/LeavesBlock.java b/net/minecraft/world/level/block/LeavesBlock.java
+index 186492b2264d9042a534ce6e71a1686d7e773390..0434375ee128c1082c7267fe18eaa2c7799c49dc 100644
+--- a/net/minecraft/world/level/block/LeavesBlock.java
++++ b/net/minecraft/world/level/block/LeavesBlock.java
+@@ -83,13 +83,33 @@ public class LeavesBlock extends Block implements SimpleWaterloggedBlock {
+     }
+ 
+     protected boolean decaying(final BlockState state) {
+-        return !state.getValue(PERSISTENT) && state.getValue(DISTANCE) == 7;
++        return !org.bxteam.divinemc.config.DivineConfig.FixesCategory.disableLeafDecay && !state.getValue(PERSISTENT) && state.getValue(DISTANCE) == 7; // DivineMC - Disable leaf decay
+     }
+ 
+     @Override
+     protected void tick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
+-        level.setBlockAndUpdate(pos, updateDistance(state, level, pos));
+-        if (level.purpurConfig.leavesInstantDecay) checkDecay(state, level, pos, random); // Purpur - Instant leaves decay
++        // DivineMC start - Disable leaf decay
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.disableLeafDecay) return;
++        int newValue = 7;
++        int oldValue = state.getValue(DISTANCE);
++        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
++
++        for (Direction direction : Direction.values()) {
++            mutable.setWithOffset(pos, direction);
++            newValue = Math.min(newValue, getDistanceAt(level.getBlockState(mutable)) + 1);
++            if (newValue == 1) {
++                break;
++            }
++        }
++
++        BlockState newState = state;
++        if (newValue != oldValue) {
++            newState = state.setValue(DISTANCE, newValue);
++            level.setBlock(pos, newState, Block.UPDATE_ALL);
++        }
++        // DivineMC end - Disable leaf decay
++
++        if (level.purpurConfig.leavesInstantDecay) checkDecay(newState, level, pos, random); // Purpur - Instant leaves decay // DivineMC - Disable leaf decay - use newState
+     }
+ 
+     @Override

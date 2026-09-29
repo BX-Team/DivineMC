@@ -1,17 +1,11 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -2963,8 +_,12 @@
-     @Override
-     public void handleExtraItemsCreatedOnUse(final ItemStack extraItems) {
-         if (!this.getInventory().add(extraItems)) {
--            this.drop(extraItems, false, Prediction.PREDICTED);
--        }
-+        }
-+        // DivineMC start - Fix MC-118740
-+        if (hand == InteractionHand.MAIN_HAND && org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc118740) {
-+            this.resetAttackStrengthTicker();
-+        }
-+        // DivineMC end - Fix MC-118740
-     }
+@@ -3157,7 +_,7 @@
  
-     public boolean allowsListing() {
+     @Override
+     public void swingAndResetAttackStrength(final InteractionHand hand, final SwingAnimation animation, final boolean sendToSwingingEntity) {
+-        if (this.swing(hand, animation, sendToSwingingEntity)) {
++        if (this.swing(hand, animation, sendToSwingingEntity) && (hand == InteractionHand.MAIN_HAND || !org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc118740)) { // DivineMC - Fix MC-118740
+             this.resetAttackStrengthTicker();
+         }
+     }

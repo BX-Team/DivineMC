@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Wed, 11 Jun 2025 19:12:00 +0300
+Subject: [PATCH] Reduce chunk loading & lookups
+
+Original license: GPL v3
+Original project: https://github.com/pufferfish-gg/Pufferfish
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index a60ca55b479d490ee977d4b4014418e62280d4b3..03610aaba134f0f379b6d13e5ac7b542a06e2ac8 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -4663,10 +4663,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         WorldBorder worldBorder = level.getWorldBorder();
+         Vec3 clamped = worldBorder.clampVec3ToBound(xx, y, zz);
+         BlockPos.MutableBlockPos pos = BlockPos.containing(clamped).mutable();
+-        if (level.hasChunkAt(pos)) {
++        // DivineMC start - Reduce chunk loading & lookups
++        final net.minecraft.world.level.chunk.@org.jspecify.annotations.Nullable LevelChunk chunk = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.reduceChuckLoadAndLookup ? level.getChunkIfLoaded(pos) : null;
++        if (chunk != null || level.hasChunkAt(pos)) {
+             while (pos.getY() > level.getMinY()) {
+                 pos.move(Direction.DOWN);
+-                BlockState state = level.getBlockState(pos);
++                BlockState state = chunk != null ? chunk.getBlockState(pos) : level.getBlockState(pos);
++                // DivineMC end - Reduce chunk loading & lookups
+                 if (state.is(BlockTags.ENTITIES_CAN_TELEPORT_TO)) {
+                     return this.checkPositionAndTeleport(clamped.x, y, clamped.z, showParticles, isInvalidPosition, state, level, cause); // Paper - teleport cause API
+                 }

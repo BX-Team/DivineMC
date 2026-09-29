@@ -1,0 +1,172 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 13 Jul 2025 20:03:51 +0300
+Subject: [PATCH] Cleanup dead code from Paper
+
+
+diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
+index dc007dacb76fab856c429cd4986892bebf0a5511..1879523b56f47b3ec093781901dff78947eb55a8 100644
+--- a/net/minecraft/network/Connection.java
++++ b/net/minecraft/network/Connection.java
+@@ -635,13 +635,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+             if (!(this.packetListener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl loginPacketListener)
+                 || loginPacketListener.state != net.minecraft.server.network.ServerLoginPacketListenerImpl.State.VERIFYING
+                 || Connection.joinAttemptsThisTick++ < MAX_PER_TICK) {
+-            // Paper start - detailed watchdog information
+-            net.minecraft.network.PacketProcessor.packetProcessing.push(this.packetListener);
+-            try {
+             tickable.tick();
+-            } finally {
+-                net.minecraft.network.PacketProcessor.packetProcessing.pop();
+-            } // Paper end - detailed watchdog information
+             } // Paper end - Buffer joins to world
+         }
+ 
+diff --git a/net/minecraft/network/PacketProcessor.java b/net/minecraft/network/PacketProcessor.java
+index f398d48910dff89c41d1344ebf7b793c27dcb6aa..aa5989ed22b3b72137c5d037c7e1315a0e18b2d7 100644
+--- a/net/minecraft/network/PacketProcessor.java
++++ b/net/minecraft/network/PacketProcessor.java
+@@ -70,28 +70,8 @@ public class PacketProcessor implements AutoCloseable {
+         this.closed = true;
+     }
+ 
+-    // Paper start - detailed watchdog information
+-    public static final java.util.concurrent.ConcurrentLinkedDeque<PacketListener> packetProcessing = new java.util.concurrent.ConcurrentLinkedDeque<>();
+-    static final java.util.concurrent.atomic.AtomicLong totalMainThreadPacketsProcessed = new java.util.concurrent.atomic.AtomicLong();
+-
+-    public static long getTotalProcessedPackets() {
+-        return totalMainThreadPacketsProcessed.get();
+-    }
+-
+-    public static java.util.List<PacketListener> getCurrentPacketProcessors() {
+-        java.util.List<PacketListener> listeners = new java.util.ArrayList<>(4);
+-        for (PacketListener listener : packetProcessing) {
+-            listeners.add(listener);
+-        }
+-
+-        return listeners;
+-    }
+-    // Paper end - detailed watchdog information
+-
+     private record ListenerAndPacket<T extends PacketListener>(T listener, Packet<T> packet) {
+         public void handle() {
+-            packetProcessing.push(this.listener); // Paper - detailed watchdog information
+-            try { // Paper - detailed watchdog information
+             if (this.listener.shouldHandleMessage(this.packet)) {
+                 try {
+                     this.packet.handle(this.listener);
+@@ -109,12 +89,6 @@ public class PacketProcessor implements AutoCloseable {
+             } else {
+                 PacketProcessor.LOGGER.debug("Ignoring packet due to disconnection: {}", this.packet);
+             }
+-            // Paper start - detailed watchdog information
+-            } finally {
+-                totalMainThreadPacketsProcessed.getAndIncrement();
+-                packetProcessing.pop();
+-            }
+-            // Paper end - detailed watchdog information
+         }
+     }
+ }
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index 174f13bcde765148754d3cd71b4ee69e7a772b73..9c236c90a8025be303e80a4a58cd0ab662641989 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -1545,11 +1545,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+     public void tickNonPassenger(final Entity entity) {
+         // Paper start - log detailed entity tick information
+         ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot tick an entity off-main");
+-        try {
+-            if (currentlyTickingEntity.get() == null) {
+-                currentlyTickingEntity.lazySet(entity);
+-            }
+-            // Paper end - log detailed entity tick information
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push(entity.typeHolder()::getRegisteredName);
+         profiler.incrementCounter("tickNonPassenger");
+@@ -1564,13 +1559,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+         for (Entity passenger : entity.getPassengers()) {
+             this.tickPassenger(entity, passenger, isActive); // Paper - EAR 2
+         }
+-        // Paper start - log detailed entity tick information
+-        } finally {
+-            if (currentlyTickingEntity.get() == entity) {
+-                currentlyTickingEntity.lazySet(null);
+-            }
+-        }
+-        // Paper end - log detailed entity tick information
+     }
+ 
+     private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index 57a86604fcd7abf3bb60007d895535fbc72c01b3..a438e0ab363040f4cb695316639cffd26dbd4757 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -1179,16 +1179,6 @@ public abstract class Entity
+         return this.onGround;
+     }
+ 
+-    // Paper start - detailed watchdog information
+-    public final Object posLock = new Object(); // Paper - log detailed entity tick information
+-
+-    @Nullable
+-    private Vec3 moveVector;
+-    private double moveStartX;
+-    private double moveStartY;
+-    private double moveStartZ;
+-    // Paper end - detailed watchdog information
+-
+     public void move(final MoverType moverType, Vec3 delta) {
+         if (SharedConstants.IS_RUNNING_IN_IDE && !moverType.isServerAndClientSimulated() && !this.canSimulateMovement()) {
+             throw (IllegalStateException)Util.pauseInIde(
+@@ -1198,16 +1188,7 @@ public abstract class Entity
+ 
+         if (!this.boundingBoxChanged && delta.equals(Vec3.ZERO)) return; // DivineMC - VMP: skip entity move if movement is zero
+         final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
+-        // Paper start - detailed watchdog information
+         ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
+-        synchronized (this.posLock) {
+-            this.moveStartX = this.getX();
+-            this.moveStartY = this.getY();
+-            this.moveStartZ = this.getZ();
+-            this.moveVector = delta;
+-        }
+-        try {
+-        // Paper end - detailed watchdog information
+         if (this.noPhysics) {
+             this.setPos(this.getX() + delta.x, this.getY() + delta.y, this.getZ() + delta.z);
+             this.recordMovement(moverType, delta);
+@@ -1330,13 +1311,6 @@ public abstract class Entity
+                 profiler.pop();
+             }
+         }
+-        // Paper start - detailed watchdog information
+-        } finally {
+-            synchronized (this.posLock) { // Paper
+-                this.moveVector = null;
+-            } // Paper
+-        }
+-        // Paper end - detailed watchdog information
+     }
+ 
+     public void recordMovement(final MoverType moverType, final Vec3 movement) {
+@@ -5174,9 +5148,7 @@ public abstract class Entity
+ 
+     public void setDeltaMovement(final Vec3 deltaMovement) {
+         if (deltaMovement.isFinite()) {
+-            synchronized (this.posLock) { // Paper - detailed watchdog information
+             this.deltaMovement = deltaMovement;
+-            } // Paper - detailed watchdog information
+         }
+     }
+ 
+@@ -5281,9 +5253,7 @@ public abstract class Entity
+         }
+         // Paper end - Block invalid positions and bounding box
+         if (this.position.x != x || this.position.y != y || this.position.z != z) {
+-            synchronized (this.posLock) { // Paper - detailed watchdog information
+             this.position = new Vec3(x, y, z);
+-            } // Paper - detailed watchdog information
+             int fx = Mth.floor(x);
+             int fy = Mth.floor(y);
+             int fz = Mth.floor(z);

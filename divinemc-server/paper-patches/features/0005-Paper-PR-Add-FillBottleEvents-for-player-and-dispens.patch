@@ -5,7 +5,7 @@ Subject: [PATCH] Paper PR: Add FillBottleEvents for player and dispenser
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index 0ca9566a87386f6d1f2e5c9fbd292a501991dcbc..81a9e42f5b87ea9495684ec0a5720f352b081366 100644
+index 0ca9566a87386f6d1f2e5c9fbd292a501991dcbc..27edd5d5f2cee2089248e843076d1dcbaa9dc4da 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -2436,4 +2436,18 @@ public class CraftEventFactory {
@@ -15,13 +15,13 @@ index 0ca9566a87386f6d1f2e5c9fbd292a501991dcbc..81a9e42f5b87ea9495684ec0a5720f35
 +
 +    // DivineMC start - Paper PR: Add FillBottleEvents for player and dispenser
 +    public static io.papermc.paper.event.player.PlayerFillBottleEvent callPlayerFillBottleEvent(net.minecraft.world.entity.player.Player player, InteractionHand hand, ItemStack glassBottle, ItemStack resultItem) {
-+        final io.papermc.paper.event.player.PlayerFillBottleEvent event = new io.papermc.paper.event.player.PlayerFillBottleEvent(((org.bukkit.entity.Player) player.getBukkitEntity()), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand), CraftItemStack.asBukkitCopy(glassBottle), CraftItemStack.asCraftMirror(resultItem));
++        final io.papermc.paper.event.player.PlayerFillBottleEvent event = new io.papermc.paper.event.player.PlayerFillBottleEvent(((org.bukkit.entity.Player) player.getBukkitEntity()), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand), CraftItemStack.asBukkitCopy(glassBottle), CraftItemStack.asBukkitMirror(resultItem));
 +        event.callEvent();
 +        return event;
 +    }
 +
 +    public static io.papermc.paper.event.block.BlockFillBottleEvent callBlockFillBottleEvent(LevelAccessor level, BlockPos blockPos, ItemStack glassBottle, ItemStack resultItem) {
-+        final io.papermc.paper.event.block.BlockFillBottleEvent event = new io.papermc.paper.event.block.BlockFillBottleEvent(CraftBlock.at(level, blockPos), CraftItemStack.asBukkitCopy(glassBottle), CraftItemStack.asCraftMirror(resultItem));
++        final io.papermc.paper.event.block.BlockFillBottleEvent event = new io.papermc.paper.event.block.BlockFillBottleEvent(CraftBlock.at(level, blockPos), CraftItemStack.asBukkitCopy(glassBottle), CraftItemStack.asBukkitMirror(resultItem));
 +        event.callEvent();
 +        return event;
 +    }

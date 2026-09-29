@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/levelgen/material/condition/SteepCondition.java
++++ b/net/minecraft/world/level/levelgen/material/condition/SteepCondition.java
+@@ -18,6 +_,11 @@
+         return new MaterialRuleContext.LazyXZCondition(context) {
+             @Override
+             protected boolean compute() {
++                // DivineMC start - Fix MC-258859
++                if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc258859) {
++                    return Math.abs(this.context.surfaceGradientX()) >= 4 || Math.abs(this.context.surfaceGradientZ()) >= 4;
++                }
++                // DivineMC end - Fix MC-258859
+                 return this.context.surfaceGradientX() <= -4 || this.context.surfaceGradientZ() >= 4;
+             }
+         };

@@ -1,0 +1,205 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Wed, 19 Mar 2025 23:24:32 +0300
+Subject: [PATCH] Pufferfish: Optimize mob spawning
+
+Original license: GPL v3
+Original project: https://github.com/pufferfish-gg/Pufferfish
+
+This patch reduces the main-thread impact of mob spawning by moving spawning work to other threads
+
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index 277ef0fe54551dd5a1d13b0a9a30446a838fc974..93ab3290e074c728c73e6c5acc5887b3cf22b3b9 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -334,6 +334,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public boolean lagging = false; // Purpur - Lagging threshold
+     protected boolean upnp = false; // Purpur - UPnP Port Forwarding
+     public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
++    public gg.pufferfish.pufferfish.util.AsyncExecutor mobSpawnExecutor = new gg.pufferfish.pufferfish.util.AsyncExecutor("Mob Spawning"); // DivineMC - Pufferfish: Optimize mob spawning
+     // Paper start - improve tick loop
+     public final ca.spottedleaf.common.time.TickData tickTimes1s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
+     public final ca.spottedleaf.common.time.TickData tickTimes5s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index c04b5370935f8eed8923e5c2d90d0ea0e6f63639..81a5dd6899f84d62bb1d15e47d536393b006ea41 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -430,7 +430,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+ 
+         org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur - Implement TPSBar
+         if (org.purpurmc.purpur.PurpurConfig.beeCountPayload) org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur - Give bee counts in beehives to Purpur clients
+-
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) mobSpawnExecutor.start(); // DivineMC - Pufferfish: Optimize mob spawning
+         this.saveEverything(false, true, true);
+         this.notificationManager().serverStarted();
+         return true;
+diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
+index 0c35e5d0ff00636856f6b41c73bc404ce2076d47..0731834a28db1278fc72eda0ae2be469e68749a9 100644
+--- a/net/minecraft/server/level/ServerChunkCache.java
++++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -74,6 +74,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+     private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
+     @VisibleForDebug
+     private NaturalSpawner.@Nullable SpawnState lastSpawnState;
++    // DivineMC start - Pufferfish: Optimize mob spawning
++    public boolean firstRunSpawnCounts = true;
++    public final java.util.concurrent.atomic.AtomicBoolean spawnCountsReady = new java.util.concurrent.atomic.AtomicBoolean(false);
++    // DivineMC end - Pufferfish: Optimize mob spawning
+     // Paper start
+     public final ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<>();
+     public int getFullChunksCount() {
+@@ -528,6 +532,48 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+             this.broadcastChangedChunks(profiler);
+             profiler.pop();
+         }
++
++        // DivineMC start - Pufferfish: Optimize mob spawning
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
++            for (ServerPlayer player : this.level.players()) {
++                for (int ii = 0; ii < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; ii++) {
++                    player.mobCounts[ii] = 0;
++
++                    int newBackoff = Math.max(0, player.mobBackoffCounts[ii] - 1);
++                    player.mobBackoffCounts[ii] = newBackoff;
++                }
++            }
++
++            if (firstRunSpawnCounts) {
++                firstRunSpawnCounts = false;
++                spawnCountsReady.set(true);
++            }
++
++            if (spawnCountsReady.getAndSet(false)) {
++                net.minecraft.server.MinecraftServer.getServer().mobSpawnExecutor.submit(() -> {
++                    int mapped = distanceManager.getNaturalSpawnChunkCount();
++                    ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.Iterator<Entity> objectiterator = level.entityTickList.entities.iterator(ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.ITERATOR_FLAG_SEE_ADDITIONS);
++
++                    try {
++                        gg.pufferfish.pufferfish.util.IterableWrapper<Entity> wrappedIterator = new gg.pufferfish.pufferfish.util.IterableWrapper<>(objectiterator);
++                        LocalMobCapCalculator mobCapCalculator = !level.paperConfig().entities.spawning.perPlayerMobSpawns ? new LocalMobCapCalculator(chunkMap) : null;
++
++                        lastSpawnState = NaturalSpawner.createState(
++                            mapped,
++                            level,
++                            wrappedIterator,
++                            ServerChunkCache.this::getFullChunk,
++                            mobCapCalculator,
++                            level.paperConfig().entities.spawning.perPlayerMobSpawns
++                        );
++                    } finally {
++                        objectiterator.finishedIterating();
++                    }
++                    spawnCountsReady.set(true);
++                });
++            }
++        }
++        // DivineMC end - Pufferfish: Optimize mob spawning
+     }
+ 
+     private void broadcastChangedChunks(final ProfilerFiller profiler) {
+@@ -548,28 +594,31 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+         profiler.push("naturalSpawnCount");
+         int chunkCount = this.distanceManager.getNaturalSpawnChunkCount();
+         // Paper start - Optional per player mob spawns
+-        NaturalSpawner.SpawnState spawnCookie;
++        // DivineMC start - Pufferfish: Optimize mob spawning
+         if ((this.spawnFriendlies || this.spawnEnemies) && this.level.paperConfig().entities.spawning.perPlayerMobSpawns) { // don't count mobs when animals and monsters are disabled
+-            // re-set mob counts
+-            for (ServerPlayer player : this.level.players()) {
+-                // Paper start - per player mob spawning backoff
+-                for (int j = 0; j < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; j++) {
+-                    player.mobCounts[j] = 0;
+-
+-                    int newBackoff = player.mobBackoffCounts[j] - 1; // TODO make configurable bleed // TODO use nonlinear algorithm?
+-                    if (newBackoff < 0) {
+-                        newBackoff = 0;
++            if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
++                // re-set mob counts
++                for (ServerPlayer player : this.level.players()) {
++                    // Paper start - per player mob spawning backoff
++                    for (int j = 0; j < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; j++) {
++                        player.mobCounts[j] = 0;
++
++                        int newBackoff = player.mobBackoffCounts[j] - 1; // TODO make configurable bleed // TODO use nonlinear algorithm?
++                        if (newBackoff < 0) {
++                            newBackoff = 0;
++                        }
++                        player.mobBackoffCounts[j] = newBackoff;
+                     }
+-                    player.mobBackoffCounts[j] = newBackoff;
++                    // Paper end - per player mob spawning backoff
+                 }
+-                // Paper end - per player mob spawning backoff
++                this.lastSpawnState = NaturalSpawner.createState(chunkCount, this.level, this::getFullChunk, null, true);
+             }
+-            spawnCookie = NaturalSpawner.createState(chunkCount, this.level, this::getFullChunk, null, true);
+         } else {
+-            spawnCookie = NaturalSpawner.createState(chunkCount, this.level, this::getFullChunk, !this.level.paperConfig().entities.spawning.perPlayerMobSpawns ? new LocalMobCapCalculator(this.chunkMap) : null, false);
++            this.lastSpawnState = NaturalSpawner.createState(chunkCount, this.level, this::getFullChunk, !this.level.paperConfig().entities.spawning.perPlayerMobSpawns ? new LocalMobCapCalculator(this.chunkMap) : null, false);
++            spawnCountsReady.set(true);
+         }
++        // DivineMC end - Pufferfish: Optimize mob spawning
+         // Paper end - Optional per player mob spawns
+-        this.lastSpawnState = spawnCookie;
+         boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS) && !this.level.players().isEmpty(); // CraftBukkit
+         int tickSpeed = this.level.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
+         List<MobCategory> spawningCategories;
+@@ -583,7 +632,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+             }
+             // Paper end - PlayerNaturallySpawnCreaturesEvent
+             boolean spawnPersistent = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
+-            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, this.spawnFriendlies, this.spawnEnemies, spawnPersistent, this.level); // CraftBukkit
++            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(this.lastSpawnState, this.spawnFriendlies, this.spawnEnemies, spawnPersistent, this.level); // CraftBukkit // DivineMC - Pufferfish: Optimize mob spawning
+         } else {
+             spawningCategories = List.of();
+         }
+@@ -603,7 +652,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+             profiler.popPush("tickSpawningChunks");
+ 
+             for (LevelChunk chunk : spawningChunks) {
+-                this.tickSpawningChunk(chunk, spawningCategories, spawnCookie);
++                this.tickSpawningChunk(chunk, spawningCategories, this.lastSpawnState); // DivineMC - Pufferfish: Optimize mob spawning
+             }
+         } finally {
+             spawningChunks.clear();
+@@ -626,11 +675,11 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+             this.level.tickThunder(chunk);
+         }
+ 
+-        if (!spawningCategories.isEmpty()) {
+-            if (this.level.getWorldBorder().isWithinBounds(chunkPos)) { // Paper - rewrite chunk system
+-                NaturalSpawner.spawnForChunk(this.level, chunk, spawnCookie, spawningCategories);
+-            }
++        // DivineMC start - Pufferfish: Optimize mob spawning
++        if (!spawningCategories.isEmpty() && this.level.getWorldBorder().isWithinBounds(chunkPos) && (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning || spawnCountsReady.get())) { // Paper - rewrite chunk system
++            NaturalSpawner.spawnForChunk(this.level, chunk, spawnCookie, spawningCategories);
+         }
++        // DivineMC end - Pufferfish: Optimize mob spawning
+     }
+ 
+     private void getFullChunk(final long chunkKey, final Consumer<LevelChunk> output) {
+diff --git a/net/minecraft/world/level/NaturalSpawner.java b/net/minecraft/world/level/NaturalSpawner.java
+index 68dac7de497d8f396cf8e92c03c30274256fba46..99aec13322ff30aea4d8e2059401f481b635d780 100644
+--- a/net/minecraft/world/level/NaturalSpawner.java
++++ b/net/minecraft/world/level/NaturalSpawner.java
+@@ -80,7 +80,19 @@ public final class NaturalSpawner {
+         final boolean countMobs
+     ) {
+         // Paper end - Optional per player mob spawns
+-        Iterable<Entity> entities = level.getAllEntities();
++        // DivineMC start - Pufferfish: Optimize mob spawning
++        return createState(spawnableChunkCount, level, level.getAllEntities(), chunkGetter, localMobCapCalculator, countMobs);
++    }
++
++    public static NaturalSpawner.SpawnState createState(
++        final int spawnableChunkCount,
++        final ServerLevel level,
++        final Iterable<Entity> entities,
++        final NaturalSpawner.ChunkGetter chunkGetter,
++        final LocalMobCapCalculator localMobCapCalculator,
++        final boolean countMobs
++    ) {
++        // DivineMC end - Pufferfish: Optimize mob spawning
+         PotentialCalculator spawnPotential = new PotentialCalculator();
+         Object2IntOpenHashMap<MobCategory> mobCounts = new Object2IntOpenHashMap<>();
+ 

@@ -3,7 +3,8 @@ package org.bxteam.divinemc.math.isa;
 import org.bxteam.divinemc.math.ISATarget;
 
 public enum ISA_aarch64 implements ISATarget {
-    GENERIC("_generic", true);
+    GENERIC("_generic", true)
+    ;
 
     private final String suffix;
     private final boolean nativelySupported;

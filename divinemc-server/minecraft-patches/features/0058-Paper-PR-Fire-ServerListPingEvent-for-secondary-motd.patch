@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 20 Jul 2025 16:09:38 +0300
+Subject: [PATCH] Paper PR: Fire ServerListPingEvent for secondary motd send
+
+Original license: GPLv3
+Original project: https://github.com/PaperMC/Paper
+Paper pull request: https://github.com/PaperMC/Paper/pull/8074
+
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index d373ae06067b16434a25488c1fdaaa3a4800de2c..6a9118f4a39f4c343cfda4e4a2b5122e861c5ebd 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -219,10 +219,15 @@ public abstract class PlayerList {
+         component.withStyle(ChatFormatting.YELLOW);
+         Component joinMessage = component; // Paper - Adventure
+         playerConnection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
+-        ServerStatus status = this.server.getStatus();
+-        if (status != null && !cookie.transferred()) {
+-            player.sendServerStatus(status);
+-        }
++        // DivineMC start - Paper PR: Fire ServerListPingEvent for secondary motd send
++        if (!cookie.transferred()) {
++            io.papermc.paper.util.MCUtil.scheduleAsyncTask(() -> {
++                if (player.hasDisconnected()) return;
++                net.minecraft.network.protocol.status.ServerStatus status = com.destroystokyo.paper.network.StandardPaperServerListPingEventImpl.getEventResponse(this.server, player.connection.connection);
++                if (status != null) player.sendServerStatus(status);
++            });
++        }
++        // DivineMC end - Paper PR: Fire ServerListPingEvent for secondary motd send
+ 
+         // player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(this.players)); // CraftBukkit - replaced with loop below
+         this.players.add(player);

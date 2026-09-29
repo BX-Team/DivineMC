@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Wed, 10 Dec 2025 22:45:49 +0300
+Subject: [PATCH] Configurable movement speed for entities
+
+
+diff --git a/net/minecraft/world/entity/monster/zombie/Drowned.java b/net/minecraft/world/entity/monster/zombie/Drowned.java
+index 60fea788880d30fdae55f0e54149d6816bcdd0c5..4f4c08f949a5315cf631d5619c53e63407fa327b 100644
+--- a/net/minecraft/world/entity/monster/zombie/Drowned.java
++++ b/net/minecraft/world/entity/monster/zombie/Drowned.java
+@@ -111,6 +111,7 @@ public class Drowned extends Zombie implements RangedAttackMob {
+     public void initAttributes() {
+         this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.drownedMaxHealth);
+         this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.drownedScale);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.drownedMovementSpeed); // DivineMC - Configurable movement speed for entities
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/zombie/Husk.java b/net/minecraft/world/entity/monster/zombie/Husk.java
+index 753d5296fa1e49eb2629424fcf8cd7f533ffc32b..3eb517011c3cbfdc3878e49152b1dd6e83be5a22 100644
+--- a/net/minecraft/world/entity/monster/zombie/Husk.java
++++ b/net/minecraft/world/entity/monster/zombie/Husk.java
+@@ -60,6 +60,7 @@ public class Husk extends Zombie {
+     @Override
+     public void initAttributes() {
+         this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.huskMaxHealth);
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.huskMovementSpeed); // DivineMC - Configurable movement speed for entities
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/zombie/Zombie.java b/net/minecraft/world/entity/monster/zombie/Zombie.java
+index 8705b576dd95af7c34293762d7aaab584a03e06b..ff999d5d008652b52f1327bcf19823f515a559ec 100644
+--- a/net/minecraft/world/entity/monster/zombie/Zombie.java
++++ b/net/minecraft/world/entity/monster/zombie/Zombie.java
+@@ -147,6 +147,7 @@ public class Zombie extends Monster {
+     public void initAttributes() {
+         this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.zombieMaxHealth);
+         this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.zombieScale);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.zombieMovementSpeed); // DivineMC - Configurable movement speed for entities
+     }
+     // Purpur end - Configurable entity base attributes
+ 
+@@ -222,7 +223,6 @@ public class Zombie extends Monster {
+     public static AttributeSupplier.Builder createAttributes() {
+         return Monster.createMonsterAttributes()
+             .add(Attributes.FOLLOW_RANGE, 35.0)
+-            .add(Attributes.MOVEMENT_SPEED, 0.23F)
+             .add(Attributes.ATTACK_DAMAGE, 3.0)
+             .add(Attributes.ARMOR, 2.0)
+             .add(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
+diff --git a/net/minecraft/world/entity/monster/zombie/ZombieVillager.java b/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
+index db660eed07cf29ef13343ad3ffb271a7b8cc3449..e56a126da8bfb7b708c84a6e694e808c26004101 100644
+--- a/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
++++ b/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
+@@ -107,6 +107,7 @@ public class ZombieVillager extends Zombie implements VillagerDataHolder {
+     @Override
+     public void initAttributes() {
+         this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.zombieVillagerMaxHealth);
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.zombieVillagerMovementSpeed); // DivineMC - Configurable movement speed for entities
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java b/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java
+index 8245dcf59c17d98a01ee509350bd79efca2b1bb3..f55dcef7828d470ff7f185f282f8414f4cc84e90 100644
+--- a/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java
++++ b/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java
+@@ -90,6 +90,7 @@ public class ZombifiedPiglin extends Zombie implements NeutralMob {
+     public void initAttributes() {
+         this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.zombifiedPiglinMaxHealth);
+         this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.zombifiedPiglinScale);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.zombifiedPiglinMovementSpeed); // DivineMC - Configurable movement speed for entities
+     }
+     // Purpur end - Configurable entity base attributes
+ 
+@@ -144,7 +145,6 @@ public class ZombifiedPiglin extends Zombie implements NeutralMob {
+     public static AttributeSupplier.Builder createAttributes() {
+         return Zombie.createAttributes()
+             .add(Attributes.SPAWN_REINFORCEMENTS_CHANCE, 0.0)
+-            .add(Attributes.MOVEMENT_SPEED, 0.23F)
+             .add(Attributes.ATTACK_DAMAGE, 5.0);
+     }
+ 

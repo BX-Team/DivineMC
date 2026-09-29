@@ -3,9 +3,6 @@ package org.bxteam.divinemc.util.structure;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntComparators;
-import net.minecraft.core.FrontAndTop;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Util;
 import net.minecraft.world.level.block.JigsawBlock;
@@ -17,24 +14,9 @@ import java.util.List;
 public final class GeneralUtils {
     private GeneralUtils() {}
 
-    // More optimized with checking if the jigsaw blocks can connect
+    // Since 26.3 JigsawBlockInfo is pre-parsed, so vanilla no longer reads NBT here and is already optimal
     public static boolean canJigsawsAttach(StructureTemplate.@NotNull JigsawBlockInfo jigsaw1, StructureTemplate.@NotNull JigsawBlockInfo jigsaw2) {
-        FrontAndTop prop1 = jigsaw1.info().state().getValue(JigsawBlock.ORIENTATION);
-        FrontAndTop prop2 = jigsaw2.info().state().getValue(JigsawBlock.ORIENTATION);
-
-        return prop1.front() == prop2.front().getOpposite() &&
-            (prop1.top() == prop2.top() || isRollableJoint(jigsaw1, prop1)) &&
-            getStringMicroOptimised(jigsaw1.info().nbt(), "target").equals(getStringMicroOptimised(jigsaw2.info().nbt(), "name"));
-    }
-
-    private static boolean isRollableJoint(StructureTemplate.@NotNull JigsawBlockInfo jigsaw1, FrontAndTop prop1) {
-        String joint = getStringMicroOptimised(jigsaw1.info().nbt(), "joint");
-        if(!joint.equals("rollable") && !joint.equals("aligned")) {
-            return !prop1.front().getAxis().isHorizontal();
-        }
-        else {
-            return joint.equals("rollable");
-        }
+        return JigsawBlock.canAttach(jigsaw1, jigsaw2);
     }
 
     public static void shuffleAndPrioritize(@NotNull List<StructureTemplate.JigsawBlockInfo> list, RandomSource random) {
@@ -42,10 +24,7 @@ public final class GeneralUtils {
 
         // Add entries to the bucket
         for (StructureTemplate.JigsawBlockInfo structureBlockInfo : list) {
-            int key = 0;
-            if (structureBlockInfo.info().nbt() != null) {
-                key = structureBlockInfo.info().nbt().getIntOr("selection_priority", 0);
-            }
+            int key = structureBlockInfo.selectionPriority();
 
             buckets.computeIfAbsent(key, k -> new ArrayList<>()).add(structureBlockInfo);
         }
@@ -70,10 +49,6 @@ public final class GeneralUtils {
                 copyAll(buckets.get(keys.getInt(i)), list);
             }
         }
-    }
-
-    public static @NotNull String getStringMicroOptimised(@NotNull CompoundTag tag, String key) {
-        return tag.get(key) instanceof StringTag stringTag ? stringTag.value() : "";
     }
 
     public static <T> void copyAll(@NotNull List<T> src, List<T> dest) {

@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Mon, 24 Feb 2025 19:29:58 +0300
+Subject: [PATCH] Virtual Threads
+
+
+diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
+index cd88ff57b5fefb41a6ce37239f3a362750a059be..f56f2ff96d24296437a90942f7b70f69e9cbf59d 100644
+--- a/net/minecraft/commands/Commands.java
++++ b/net/minecraft/commands/Commands.java
+@@ -504,7 +504,7 @@ public class Commands {
+     }
+ 
+     // Fixed pool, but with discard policy
+-    public static final java.util.concurrent.ExecutorService COMMAND_SENDING_POOL = new java.util.concurrent.ThreadPoolExecutor(
++    public static final java.util.concurrent.ExecutorService COMMAND_SENDING_POOL = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualThreadsEnabled && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualCommandBuilderScheduler ? java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor() : new java.util.concurrent.ThreadPoolExecutor( // DivineMC - Virtual Threads
+         2, 2, 0, java.util.concurrent.TimeUnit.MILLISECONDS,
+         new java.util.concurrent.LinkedBlockingQueue<>(),
+         new com.google.common.util.concurrent.ThreadFactoryBuilder()
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index 5a22b666525248615fdd435e892729e308db5d5e..277ef0fe54551dd5a1d13b0a9a30446a838fc974 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -2891,8 +2891,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         }
+     }
+ 
+-    public final java.util.concurrent.ExecutorService chatExecutor = java.util.concurrent.Executors.newCachedThreadPool(
+-        new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build()); // Paper
++    // DivineMC start - Virtual Threads
++    public final java.util.concurrent.ExecutorService chatExecutor = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualThreadsEnabled && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualChatScheduler
++        ? java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()
++        : java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build()); // Paper
++    // DivineMC end - Virtual Threads
+     public final ChatDecorator improvedChatDecorator = new io.papermc.paper.adventure.ImprovedChatDecorator(this); // Paper - adventure
+ 
+     public ChatDecorator getChatDecorator() {
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index e50476645e7f3599874962b424f2dababee1daa9..34fa841b6dee423c97688b751a73d97fc144a9ef 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -880,8 +880,11 @@ public class ServerGamePacketListenerImpl
+     }
+ 
+     // Paper start - AsyncTabCompleteEvent
+-    private static final java.util.concurrent.ExecutorService TAB_COMPLETE_EXECUTOR = java.util.concurrent.Executors.newFixedThreadPool(4,
+-        new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Tab Complete Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(MinecraftServer.LOGGER)).build());
++    // DivineMC start - Virtual Threads
++    private static final java.util.concurrent.ExecutorService TAB_COMPLETE_EXECUTOR = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualThreadsEnabled && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualTabCompleteScheduler
++        ? java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()
++        : java.util.concurrent.Executors.newFixedThreadPool(4, new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Tab Complete Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(MinecraftServer.LOGGER)).build());
++    // DivineMC end - Virtual Threads
+     // Paper end - AsyncTabCompleteEvent
+ 
+     @Override
+diff --git a/net/minecraft/server/network/ServerTextFilter.java b/net/minecraft/server/network/ServerTextFilter.java
+index 7cab67757b4a7f3f3a3ff373b20bc75176497e1d..de225462700672ba2e386ef5331a53a289481c7f 100644
+--- a/net/minecraft/server/network/ServerTextFilter.java
++++ b/net/minecraft/server/network/ServerTextFilter.java
+@@ -44,7 +44,11 @@ public abstract class ServerTextFilter implements AutoCloseable {
+     private final ExecutorService workerPool;
+ 
+     protected static ExecutorService createWorkerPool(final int maxConcurrentRequests) {
+-        return Executors.newFixedThreadPool(maxConcurrentRequests, THREAD_FACTORY);
++        // DivineMC start - Virtual Threads
++        return org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualThreadsEnabled && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.virtualServerTextFilterPool
++            ? Executors.newVirtualThreadPerTaskExecutor()
++            : Executors.newFixedThreadPool(maxConcurrentRequests, THREAD_FACTORY);
++        // DivineMC end - Virtual Threads
+     }
+ 
+     protected ServerTextFilter(

@@ -69,10 +69,10 @@ index e3524e706e02683d891a8de1e552a0bd0595b0f4..438cb0f2523461b39b9b09e3d834440f
      public static final AxisCycle[] VALUES = values();
  
 diff --git a/net/minecraft/core/Direction.java b/net/minecraft/core/Direction.java
-index 46547155b817a89a8afe2f8d1a30bf881efc07bc..0cdd9ce56170ae363a3acc3675e6f721a41675f7 100644
+index c0fdc0a577f34159dc7d047790e26a7c0d4a0d79..c6f8856d798d0c48be93ecf42678b28c8a5910d2 100644
 --- a/net/minecraft/core/Direction.java
 +++ b/net/minecraft/core/Direction.java
-@@ -223,7 +223,7 @@ public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.pa
+@@ -223,7 +223,7 @@ public enum Direction implements Directional, StringRepresentable, ca.spottedlea
      }
  
      public Direction getOpposite() {
@@ -81,7 +81,7 @@ index 46547155b817a89a8afe2f8d1a30bf881efc07bc..0cdd9ce56170ae363a3acc3675e6f721
      }
  
      public Direction getClockWise(final Direction.Axis axis) {
-@@ -355,7 +355,7 @@ public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.pa
+@@ -363,7 +363,7 @@ public enum Direction implements Directional, StringRepresentable, ca.spottedlea
      }
  
      public static Direction getRandom(final RandomSource random) {
@@ -91,7 +91,7 @@ index 46547155b817a89a8afe2f8d1a30bf881efc07bc..0cdd9ce56170ae363a3acc3675e6f721
  
      public static Direction getApproximateNearest(final double dx, final double dy, final double dz) {
 diff --git a/net/minecraft/world/phys/AABB.java b/net/minecraft/world/phys/AABB.java
-index 4262d099e4352978311747953f7f99831a86022c..26871a1fcb9706a4ffead9944ecdae1399f63339 100644
+index 36780d280c96f44be0e7d0dcd3467fff5e843824..42c610a37facd01676c2610a0007bc46c543432b 100644
 --- a/net/minecraft/world/phys/AABB.java
 +++ b/net/minecraft/world/phys/AABB.java
 @@ -19,6 +19,15 @@ public class AABB {

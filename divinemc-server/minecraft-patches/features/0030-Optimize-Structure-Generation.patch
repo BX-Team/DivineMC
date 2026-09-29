@@ -1,0 +1,268 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Tue, 4 Feb 2025 19:52:24 +0300
+Subject: [PATCH] Optimize Structure Generation
+
+Original project: https://github.com/TelepathicGrunt/StructureLayoutOptimizer
+Original license: MIT
+
+diff --git a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
+index bc519bd6472959addac4d66a35c1a92a7fadc780..bcb5d2e1fb9fce73bfe2913912de47d45f412919 100644
+--- a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
++++ b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
+@@ -302,6 +302,108 @@ public class JigsawPlacement {
+             this.random = random;
+         }
+ 
++        // DivineMC start - Optimize Structure Generation
++        private boolean structureLayoutOptimizer$optimizeJigsawConnecting(StructureTemplate.JigsawBlockInfo jigsaw1, StructureTemplate.JigsawBlockInfo jigsaw2) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
++                return JigsawBlock.canAttach(jigsaw1, jigsaw2);
++            }
++            return org.bxteam.divinemc.util.structure.GeneralUtils.canJigsawsAttach(jigsaw1, jigsaw2);
++        }
++
++        private void structureLayoutOptimizer$replaceVoxelShape3(MutableObject<VoxelShape> instance, BoundingBox pieceBounds) {
++            org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape = new org.bxteam.divinemc.util.structure.TrojanVoxelShape(new org.bxteam.divinemc.util.structure.BoxOctree(AABB.of(pieceBounds)));
++            instance.setValue(trojanVoxelShape);
++        }
++
++        private void structureLayoutOptimizer$replaceVoxelShape4(MutableObject<VoxelShape> instance, BoundingBox pieceBounds) {
++            if (instance.getValue() instanceof org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape) {
++                trojanVoxelShape.boxOctree.addBox(AABB.of(pieceBounds));
++            }
++        }
++
++        private List<StructurePoolElement> structureLayoutOptimizer$removeDuplicateTemplatePoolElementLists(StructureTemplatePool instance, RandomSource random) {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer || !org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.deduplicateShuffledTemplatePoolElementList) {
++                return instance.getShuffledTemplates(random);
++            }
++
++            // Linked hashset keeps order of elements.
++            java.util.LinkedHashSet<StructurePoolElement> uniquePieces = new java.util.LinkedHashSet<>((instance).rawTemplates.size());
++
++            // Don't use addAll. Want to keep it simple in case of inefficiency in collection's addAll.
++            // Set will ignore duplicates after first appearance of an element.
++            for (StructurePoolElement piece : instance.getShuffledTemplates(random)) {
++                //noinspection UseBulkOperation
++                uniquePieces.add(piece);
++            }
++
++            // Move the elements from set to the list in the same order.
++            int uniquePiecesFound = uniquePieces.size();
++            List<StructurePoolElement> deduplicatedListOfPieces = new java.util.ArrayList<>(uniquePiecesFound);
++            for (int i = 0; i < uniquePiecesFound; i++) {
++                deduplicatedListOfPieces.add(uniquePieces.removeFirst());
++            }
++
++            return deduplicatedListOfPieces;
++        }
++
++        private java.util.ArrayList<StructurePoolElement> structureLayoutOptimizer$skipDuplicateTemplatePoolElementLists1() {
++            // Swap with trojan list, so we can record what pieces we visited
++            return org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.deduplicateShuffledTemplatePoolElementList ? Lists.newArrayList() : new org.bxteam.divinemc.util.structure.TrojanArrayList<>();
++        }
++
++        private List structureLayoutOptimizer$skipBlockedJigsaws(
++            List original,
++            boolean useExpansionHack,
++            MutableObject<VoxelShape> voxelShapeMutableObject,
++            StructurePoolElement structurePoolElement,
++            StructureTemplate.JigsawBlockInfo parentJigsawBlockInfo,
++            BlockPos parentTargetPosition)
++        {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
++                return original;
++            }
++            if (voxelShapeMutableObject.getValue() instanceof org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape) {
++                // If rigid and target position is already an invalid spot, do not run rest of logic.
++                StructureTemplatePool.Projection candidatePlacementBehavior = structurePoolElement.getProjection();
++                boolean isCandidateRigid = candidatePlacementBehavior == StructureTemplatePool.Projection.RIGID;
++                if (isCandidateRigid && (!trojanVoxelShape.boxOctree.boundaryContains(parentTargetPosition) || trojanVoxelShape.boxOctree.withinAnyBox(parentTargetPosition))) {
++                    return new java.util.ArrayList<>();
++                }
++            }
++            return original;
++        }
++
++        private List<Rotation> structureLayoutOptimizer$skipDuplicateTemplatePoolElementLists2(List<Rotation> original,
++                                                                                               List<StructurePoolElement> list,
++                                                                                               StructurePoolElement structurepoolelement1)
++        {
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
++                return original;
++            }
++            if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.deduplicateShuffledTemplatePoolElementList && list instanceof org.bxteam.divinemc.util.structure.TrojanArrayList<net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement> trojanArrayList) {
++                // Do not run this piece's logic since we already checked its 4 rotations in the past.
++                if (trojanArrayList.elementsAlreadyParsed.contains(structurepoolelement1)) {
++
++                    // Prime the random with the random calls we would've skipped.
++                    // Maintains vanilla compat.
++                    for (Rotation rotation1 : original) {
++                        structurepoolelement1.getShuffledJigsawBlocks(this.structureTemplateManager, BlockPos.ZERO, rotation1, this.random);
++                    }
++
++                    // Short circuit the Rotation loop
++                    return new java.util.ArrayList<>();
++                }
++                // Record piece as it will go through the 4 rotation checks for spawning.
++                else {
++                    trojanArrayList.elementsAlreadyParsed.add(structurepoolelement1);
++                }
++            }
++
++            // Allow the vanilla code to run normally.
++            return original;
++        }
++        // DivineMC end - Optimize Structure Generation
++
+         private void tryPlacingChildren(
+             final PoolElementStructurePiece sourcePiece,
+             final MutableObject<VoxelShape> contextFree,
+@@ -358,9 +460,9 @@ public class JigsawPlacement {
+                                 childrenFree = contextFree;
+                             }
+ 
+-                            List<StructurePoolElement> targetPieces = Lists.newArrayList();
++                            List<StructurePoolElement> targetPieces = structureLayoutOptimizer$skipDuplicateTemplatePoolElementLists1(); // DivineMC - Optimize Structure Generation
+                             if (depth != this.maxDepth) {
+-                                targetPieces.addAll(targetPool.value().getShuffledTemplates(this.random));
++                                targetPieces.addAll(structureLayoutOptimizer$removeDuplicateTemplatePoolElementLists(targetPool.value(), this.random)); // DivineMC - Optimize Structure Generation
+                             }
+ 
+                             targetPieces.addAll(fallback.value().getShuffledTemplates(this.random));
+@@ -371,10 +473,14 @@ public class JigsawPlacement {
+                                     break;
+                                 }
+ 
+-                                for (Rotation targetRotation : Rotation.getShuffled(this.random)) {
+-                                    List<StructureTemplate.JigsawBlockInfo> targetJigsaws = targetElement.getShuffledJigsawBlocks(
+-                                        this.structureTemplateManager, BlockPos.ZERO, targetRotation, this.random
++                                // DivineMC start - Optimize Structure Generation
++                                for (Rotation targetRotation : structureLayoutOptimizer$skipDuplicateTemplatePoolElementLists2(Rotation.getShuffled(this.random), targetPieces, targetElement)) {
++                                    List<StructureTemplate.JigsawBlockInfo> targetJigsaws = structureLayoutOptimizer$skipBlockedJigsaws(
++                                        targetElement.getShuffledJigsawBlocks(
++                                            this.structureTemplateManager, BlockPos.ZERO, targetRotation, this.random
++                                        ), doExpansionHack, childrenFree, targetElement, sourceJigsaw, targetJigsawPos
+                                     );
++                                // DivineMC end - Optimize Structure Generation
+                                     BoundingBox hackBox = targetElement.getBoundingBox(this.structureTemplateManager, BlockPos.ZERO, targetRotation);
+                                     int expandTo;
+                                     if (doExpansionHack && hackBox.getYSpan() <= 16) {
+@@ -404,7 +510,7 @@ public class JigsawPlacement {
+                                     }
+ 
+                                     for (StructureTemplate.JigsawBlockInfo targetJigsaw : targetJigsaws) {
+-                                        if (JigsawBlock.canAttach(sourceJigsaw, targetJigsaw)) {
++                                        if (structureLayoutOptimizer$optimizeJigsawConnecting(sourceJigsaw, targetJigsaw)) { // DivineMC - Optimize Structure Generation
+                                             BlockPos targetJigsawLocalPos = targetJigsaw.pos();
+                                             BlockPos rawTargetBoxPos = targetJigsawPos.subtract(targetJigsawLocalPos);
+                                             BoundingBox rawTargetBB = targetElement.getBoundingBox(
+@@ -441,9 +547,26 @@ public class JigsawPlacement {
+                                                 targetBB.encapsulate(new BlockPos(targetBB.minX(), targetBB.minY() + newSize, targetBB.minZ()));
+                                             }
+ 
+-                                            if (!Shapes.joinIsNotEmpty(
+-                                                childrenFree.get(), Shapes.create(AABB.of(targetBB).deflate(0.25)), BooleanOp.ONLY_SECOND
+-                                            )) {
++                                            // DivineMC start - Optimize Structure Generation
++                                            boolean internal$joinIsNotEmpty;
++                                            VoxelShape parentBounds = childrenFree.get();
++                                            java.util.function.Supplier<Boolean> original = () -> Shapes.joinIsNotEmpty(
++                                                parentBounds, Shapes.create(AABB.of(targetBB).deflate(0.25)), BooleanOp.ONLY_SECOND
++                                            );
++                                            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
++                                                if (parentBounds instanceof org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape) {
++                                                    AABB pieceAABB = AABB.of(targetBB).deflate(0.25D);
++
++                                                    // Have to inverse because of an ! outside our wrap
++                                                    internal$joinIsNotEmpty = !trojanVoxelShape.boxOctree.withinBoundsButNotIntersectingChildren(pieceAABB);
++                                                } else {
++                                                    internal$joinIsNotEmpty = original.get();
++                                                }
++                                            } else {
++                                                internal$joinIsNotEmpty = original.get();
++                                            }
++                                            if (!internal$joinIsNotEmpty) {
++                                            // DivineMC end - Optimize Structure Generation
+                                                 childrenFree.setValue(
+                                                     Shapes.joinUnoptimized(childrenFree.get(), Shapes.create(AABB.of(targetBB)), BooleanOp.ONLY_FIRST)
+                                                 );
+diff --git a/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java b/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
+index 7a352bf170c5f004d35c3de89b152129c1124be0..e1d21dbb8a3e90d7cb7f2b25bb5e40daf36b54bb 100644
+--- a/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
++++ b/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
+@@ -117,8 +117,15 @@ public class SinglePoolElement extends StructurePoolElement {
+         final StructureTemplateManager structureTemplateManager, final BlockPos position, final Rotation rotation, final RandomSource random
+     ) {
+         List<StructureTemplate.JigsawBlockInfo> jigsaws = this.getTemplate(structureTemplateManager).getJigsaws(position, rotation);
+-        Util.shuffle(jigsaws, random);
+-        sortBySelectionPriority(jigsaws);
++        // DivineMC start - Optimize Structure Generation
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
++            structureLayoutOptimizer$fasterJigsawListShuffling1(jigsaws, random);
++            structureLayoutOptimizer$fasterJigsawListShuffling2(jigsaws);
++        } else {
++            Util.shuffle(jigsaws, random);
++            sortBySelectionPriority(jigsaws);
++        }
++        // DivineMC end - Optimize Structure Generation
+         return jigsaws;
+     }
+ 
+@@ -196,4 +203,12 @@ public class SinglePoolElement extends StructurePoolElement {
+     public Identifier getTemplateLocation() {
+         return this.template.orThrow();
+     }
++
++    // DivineMC start - Optimize Structure Generation
++    private void structureLayoutOptimizer$fasterJigsawListShuffling1(List<StructureTemplate.JigsawBlockInfo> list, RandomSource randomSource) {
++        org.bxteam.divinemc.util.structure.GeneralUtils.shuffleAndPrioritize(list, randomSource);
++    }
++
++    private void structureLayoutOptimizer$fasterJigsawListShuffling2(List<StructureTemplate.JigsawBlockInfo> structureBlockInfos) { }
++    // DivineMC end - Optimize Structure Generation
+ }
+diff --git a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
+index 43cb206216179cde09ee340b69b77b8b8848940b..21f19ff305a34f0d70f391d4435b195bc1255068 100644
+--- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
++++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
+@@ -242,6 +242,12 @@ public class StructureTemplate {
+         return transform(pos, settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
+     }
+ 
++    // DivineMC start - Optimize Structure Generation
++    private List<StructureTemplate.StructureBlockInfo> structureLayoutOptimizer$shrinkStructureTemplateBlocksList(StructureTemplate.Palette palette, BlockPos offset, StructurePlaceSettings settings) {
++        return org.bxteam.divinemc.util.structure.StructureTemplateOptimizer.getStructureBlockInfosInBounds(palette, offset, settings);
++    }
++    // DivineMC end - Optimize Structure Generation
++
+     public boolean placeInWorld(
+         ServerLevelAccessor level, // Paper - make non-final
+         final BlockPos position,
+@@ -267,7 +273,11 @@ public class StructureTemplate {
+             }
+         }
+         // CraftBukkit end
+-        List<StructureTemplate.StructureBlockInfo> blockInfoList = settings.getRandomPalette(this.palettes, position).blocks();
++            // DivineMC start - Optimize Structure Generation
++            List<StructureTemplate.StructureBlockInfo> blockInfoList = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer
++                ? structureLayoutOptimizer$shrinkStructureTemplateBlocksList(settings.getRandomPalette(this.palettes, position), position, settings)
++                : settings.getRandomPalette(this.palettes, position).blocks();
++            // DivineMC end - Optimize Structure Generation
+         if ((!blockInfoList.isEmpty() || !settings.isIgnoreEntities() && !this.entityInfoList.isEmpty())
+             && this.size.getX() >= 1
+             && this.size.getY() >= 1
+@@ -870,7 +880,11 @@ public class StructureTemplate {
+         private @Nullable List<StructureTemplate.JigsawBlockInfo> cachedJigsaws;
+ 
+         private Palette(final List<StructureTemplate.StructureBlockInfo> blocks) {
+-            this.blocks = blocks;
++            // DivineMC start - Optimize Structure Generation
++            this.blocks = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer
++                ? new org.bxteam.divinemc.util.structure.PalettedStructureBlockInfoList(blocks)
++                : blocks;
++            // DivineMC end - Optimize Structure Generation
+         }
+ 
+         public List<StructureTemplate.JigsawBlockInfo> jigsaws() {

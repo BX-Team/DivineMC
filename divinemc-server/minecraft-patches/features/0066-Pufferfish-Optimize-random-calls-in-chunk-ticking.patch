@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 15 Jan 2026 00:16:29 +0300
+Subject: [PATCH] Pufferfish: Optimize random calls in chunk ticking
+
+This patch is based on the following patch:
+"Optimize random calls in chunk ticking"
+By: Paul Sauve <paul@technove.co>
+As part of: Airplane (https://github.com/TECHNOVE/Airplane)
+Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
+
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index f8a0217404e1d935ad5c393c6e7ada99ec483d7d..60dde229a9492c585e21825f0dcd6d99c5196a4c 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -1146,7 +1146,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+         int minZ = chunkPos.getMinBlockZ();
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("thunder");
+-        if (!this.paperConfig().environment.disableThunder && raining && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot // Paper - Option to disable thunder
++        if (!this.paperConfig().environment.disableThunder && raining && this.isThundering() && this.spigotConfig.thunderChance > 0 && chunk.shouldDoLightning(this.random)) { // Spigot // Paper - Option to disable thunder // DivineMC - Pufferfish: Optimize random calls in chunk ticking
+             BlockPos pos = this.findLightningTargetAround(this.getBlockRandomPos(minX, 0, minZ, 15));
+             if (this.isRainingAt(pos)) {
+                 DifficultyInstance difficulty = this.getCurrentDifficultyAt(pos);
+diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
+index 658d77e089be1790b67c87710524419bc88ae5c9..9186faffd3a04c3f243cf72b7974a404d0b0e80e 100644
+--- a/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -134,6 +134,18 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+         return this.getBlockStateFinal(x, y, z);
+     }
+     // Paper end - get block chunk optimisation
++    // DivineMC start - Pufferfish: Optimize random calls in chunk ticking
++    private int lightningTick;
++
++    public final boolean shouldDoLightning(net.minecraft.util.RandomSource random) {
++        if (this.lightningTick-- <= 0) {
++            this.lightningTick = random.nextInt(this.level.spigotConfig.thunderChance) << 1;
++            return true;
++        }
++
++        return false;
++    }
++    // DivineMC end - Pufferfish: Optimize random calls in chunk ticking
+ 
+     public LevelChunk(final Level level, final ChunkPos pos) {
+         this(level, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
+@@ -171,6 +183,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+         this.debug = !empty && this.level.isDebug();
+         this.defaultBlockState = empty ? VOID_AIR_BLOCKSTATE : AIR_BLOCKSTATE;
+         // Paper end - get block chunk optimisation
++        this.lightningTick = new java.util.Random().nextInt(100000) << 1; // DivineMC - Pufferfish: Optimize random calls in chunk ticking
+     }
+ 
+     public LevelChunk(final ServerLevel level, final ProtoChunk protoChunk, final LevelChunk.@Nullable PostLoadProcessor postLoad) {

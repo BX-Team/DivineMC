@@ -31,7 +31,7 @@ index 439e2663a297029efc77adef9e8d99a0d8c02f41..b2a42bf642d80df6fb02e2e2e72da585
  
      @Override
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 78dc12164734ddd6781459e3824ee78e924777f3..60c17885349b3dcf66a2898166895d55a0a1556d 100644
+index 455302161c8b24a1c953005e0597f3c69f764e1e..e788312524ad186722c4b133f476499ca1c14bde 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -67,36 +67,31 @@ public class Main {
@@ -123,10 +123,10 @@ index 78dc12164734ddd6781459e3824ee78e924777f3..60c17885349b3dcf66a2898166895d55
              }
  
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 0628144b50c81e969356b99a652b0519056b110e..8d7d2957c2cec4fa37e295c658080edbfa59ce09 100644
+index 6f7ad2cec1310e5e1d9cc3a7bfadd467e25e6f91..021d726fcc57e148ee328e6375276c2c254043d1 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1286,6 +1286,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1268,6 +1268,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      protected void runServer() {
          try {
@@ -166,14 +166,14 @@ index 960454a167ef52eb867da40af1fc5b3de4ea307c..e9b38ad8b9da0d8e502f157de00c9170
                      gui.runFinalizers();
                  }
 diff --git a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-index d00c0cd57fec367acc17c15f247e22990c5bdf7c..84cdf7d5427d7a61894d70980fcfa2897dca99d2 100644
+index 154b571b33c868c6520ab563d8cd5482f1c288c3..04c5fcb3166e2670b4d24f48bd4256446852042c 100644
 --- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-@@ -309,7 +309,7 @@ public class RegionFileStorage implements AutoCloseable, ca.spottedleaf.moonrise
+@@ -297,7 +297,7 @@ public class RegionFileStorage implements AutoCloseable, ca.spottedleaf.moonrise
  
      // Paper start
      private static void printOversizedLog(String msg, Path file, int x, int z) {
--        LOGGER.error("{} ({} - {},{}) Go clean it up to remove this message. /minecraft:tp {} 128 {} - DO NOT REPORT THIS TO PURPUR - You may ask for help on Discord, but do not file an issue. These error messages can not be removed.", msg, file.toString().replaceAll(".+[\\\\/]", ""), x, z, x << 4, z << 4); // Purpur - Rebrand
+-        LOGGER.error("{} ({} - {},{}) Go clean it up to remove this message. /minecraft:tp {} 128 {} - DO NOT REPORT THIS TO PAPER - You may ask for help on Discord, but do not file an issue. These error messages can not be removed.", msg, file.toString().replaceAll(".+[\\\\/]", ""), x, z, x << 4, z << 4);
 +        LOGGER.error("{} ({} - {},{}) Go clean it up to remove this message. /minecraft:tp {} 128 {} - DO NOT REPORT THIS TO DIVINEMC - You may ask for help on Discord, but do not file an issue. These error messages can not be removed.", msg, file.toString().replaceAll(".+[\\\\/]", ""), x, z, x << 4, z << 4); // DivineMC - Rebrand
      }
  

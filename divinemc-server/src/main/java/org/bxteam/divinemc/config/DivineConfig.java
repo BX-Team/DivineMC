@@ -515,7 +515,6 @@ public class DivineConfig {
         public static boolean endBiomeCacheEnabled = false;
         public static int endBiomeCacheCapacity = 1024;
         public static boolean smoothBedrockLayer = false;
-        public static boolean enableDensityFunctionCompiler = false;
         public static boolean enableStructureLayoutOptimizer = true;
         public static boolean deduplicateShuffledTemplatePoolElementList = false;
 
@@ -578,12 +577,23 @@ public class DivineConfig {
                 "",
                 "Read more about AVX512: https://en.wikipedia.org/wiki/AVX-512");
             isaTargetLevelOverride = getInt(ConfigCategory.PERFORMANCE.key("chunks.native-acceleration.isa-target-level-override"), isaTargetLevelOverride,
-                "Overrides the ISA target located by the native loader, which allows forcing AVX512 (must be a value between 6-9 for AVX512 support).",
-                "Value must be between 1-9, and -1 to disable override");
+                "Overrides the ISA target located by the native loader, which allows forcing AVX512 (x86_64: 8-10 for AVX512, 12-13 for AVX10.2).",
+                "Value must be between 0-13, and -1 to disable override");
 
-            if (isaTargetLevelOverride < -1 || isaTargetLevelOverride > 9) {
+            if (isaTargetLevelOverride < -1 || isaTargetLevelOverride > 13) {
                 LOGGER.warn("Invalid ISA target level override: {}, resetting to -1", isaTargetLevelOverride);
                 isaTargetLevelOverride = -1;
+            }
+
+            if (nativeAccelerationEnabled) {
+                try {
+                    if (org.bxteam.divinemc.math.NativeLoader.currentMachineTarget == null) {
+                        nativeAccelerationEnabled = false;
+                    }
+                } catch (Throwable t) {
+                    LOGGER.error("Failed to initialize native math acceleration, continuing without it", t);
+                    nativeAccelerationEnabled = false;
+                }
             }
 
             chunkDataCacheSoftLimit = getLong(ConfigCategory.PERFORMANCE.key("chunks.chunk-data-cache-soft-limit"), chunkDataCacheSoftLimit);
@@ -613,15 +623,6 @@ public class DivineConfig {
             smoothBedrockLayer = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer"), smoothBedrockLayer,
                 "Smoothens the bedrock layer at the bottom of overworld, and on the top of nether during the world generation.");
 
-            enableDensityFunctionCompiler = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.experimental.enable-density-function-compiler"), enableDensityFunctionCompiler,
-                "Whether to use density function compiler to accelerate world generation",
-                "",
-                "Density function: https://minecraft.wiki/w/Density_function",
-                "",
-                "This functionality compiles density functions from world generation",
-                "datapacks (including vanilla generation) to JVM bytecode to increase",
-                "performance by allowing JVM JIT to better optimize the code.",
-                "All functions provided by vanilla are implemented.");
             enableStructureLayoutOptimizer = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.experimental.enable-structure-layout-optimizer"), enableStructureLayoutOptimizer,
                 "Enables a port of the mod StructureLayoutOptimizer, which optimizes general Jigsaw structure generation");
             deduplicateShuffledTemplatePoolElementList = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.experimental.deduplicate-shuffled-template-pool-element-list"), deduplicateShuffledTemplatePoolElementList,

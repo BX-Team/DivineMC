@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 23 Feb 2025 01:04:29 +0300
+Subject: [PATCH] Option to disable saving of snowball and firework
+
+
+diff --git a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+index 5b61c20fcac6825a1891c674870f40074eff22d3..31ccddfd24eba5d4a60ab731699ed1891a651b8d 100644
+--- a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
++++ b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+@@ -350,4 +350,14 @@ public class FireworkRocketEntity extends Projectile implements ItemSupplier {
+         double dz = hurtEntity.position().z - this.position().z;
+         return DoubleDoubleImmutablePair.of(dx, dz);
+     }
++
++    // DivineMC start - Option to disable saving firework
++    @Override
++    public boolean shouldBeSaved() {
++        if (this.level().divineConfig.disableFireworkSaving) {
++            return false;
++        }
++        return super.shouldBeSaved();
++    }
++    // DivineMC end - Option to disable saving firework
+ }
+diff --git a/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java b/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
+index fdf11fa854b26ee31c862c3c3d9c158539048fb7..3e0822dab24e4d7f99338e240184311a9382d60f 100644
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
+@@ -97,4 +97,14 @@ public class Snowball extends ThrowableItemProjectile {
+             this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+         }
+     }
++
++    // DivineMC start - Option to disable snowball saving
++    @Override
++    public boolean shouldBeSaved() {
++        if (this.level().divineConfig.disableSnowballSaving) {
++            return false;
++        }
++        return super.shouldBeSaved();
++    }
++    // DivineMC end - Option to disable snowball saving
+ }

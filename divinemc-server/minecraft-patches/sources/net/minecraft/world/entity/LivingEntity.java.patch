@@ -17,14 +17,6 @@
              return;
          }
          // CraftBukkit end
-@@ -2363,6 +_,7 @@
-     }
- 
-     protected void playBlockFallSound() {
-+        if (!this.swinging && this.swingTime == 0) return; // DivineMC - lithium: entity.fast_hand_swing
-         if (!this.isSilent()) {
-             int xx = Mth.floor(this.getX());
-             int yy = Mth.floor(this.getY() - 0.2F);
 @@ -3420,7 +_,13 @@
      }
  

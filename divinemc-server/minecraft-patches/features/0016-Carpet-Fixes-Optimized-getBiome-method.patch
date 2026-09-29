@@ -1,0 +1,120 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 6 Jul 2025 03:24:48 +0300
+Subject: [PATCH] Carpet-Fixes: Optimized getBiome method
+
+Original license: MIT
+Original project: https://github.com/fxmorin/carpet-fixes
+
+diff --git a/net/minecraft/world/level/biome/BiomeManager.java b/net/minecraft/world/level/biome/BiomeManager.java
+index 65ac39fd0e481b83cb9fad00b6482051dce20759..99b4cf3529c973c154277e07108fc6d2d0bead76 100644
+--- a/net/minecraft/world/level/biome/BiomeManager.java
++++ b/net/minecraft/world/level/biome/BiomeManager.java
+@@ -14,6 +14,10 @@ public class BiomeManager {
+     private static final int ZOOM_MASK = 3;
+     private final BiomeResolver noiseBiomeSource;
+     private final long biomeZoomSeed;
++    // DivineMC start - Carpet-Fixes: Optimized getBiome method
++    private static final double maxOffset = 0.45D;
++    private static final double PRUNE_EPSILON = 1.0E-9D;
++    // DivineMC end - Carpet-Fixes: Optimized getBiome method
+ 
+     public BiomeManager(final BiomeResolver noiseBiomeSource, final long seed) {
+         this.noiseBiomeSource = noiseBiomeSource;
+@@ -32,40 +36,65 @@ public class BiomeManager {
+         return this.getBiome(pos.getX(), pos.getY(), pos.getZ());
+     }
+ 
+-    public Holder<Biome> getBiome(final int x, final int y, final int z) {
+-        int absX = x - 2;
+-        int absY = y - 2;
+-        int absZ = z - 2;
+-        int parentX = absX >> 2;
+-        int parentY = absY >> 2;
+-        int parentZ = absZ >> 2;
+-        double fractX = (absX & 3) / 4.0;
+-        double fractY = (absY & 3) / 4.0;
+-        double fractZ = (absZ & 3) / 4.0;
+-        int minI = 0;
+-        double minFiddledDistance = Double.POSITIVE_INFINITY;
+-
+-        for (int i = 0; i < 8; i++) {
+-            boolean xEven = (i & 4) == 0;
+-            boolean yEven = (i & 2) == 0;
+-            boolean zEven = (i & 1) == 0;
+-            int cornerX = xEven ? parentX : parentX + 1;
+-            int cornerY = yEven ? parentY : parentY + 1;
+-            int cornerZ = zEven ? parentZ : parentZ + 1;
+-            double distanceX = xEven ? fractX : fractX - 1.0;
+-            double distanceY = yEven ? fractY : fractY - 1.0;
+-            double distanceZ = zEven ? fractZ : fractZ - 1.0;
+-            double next = getFiddledDistance(this.biomeZoomSeed, cornerX, cornerY, cornerZ, distanceX, distanceY, distanceZ);
+-            if (minFiddledDistance > next) {
+-                minI = i;
+-                minFiddledDistance = next;
++    public Holder<Biome> getBiome(final int blockX, final int blockY, final int blockZ) { // DivineMC - Carpet-Fixes: Optimized getBiome method - rename params
++        // DivineMC start - Carpet-Fixes: Optimized getBiome method
++        int xMinus2 = blockX - 2;
++        int yMinus2 = blockY - 2;
++        int zMinus2 = blockZ - 2;
++        int x = xMinus2 >> 2;
++        int y = yMinus2 >> 2;
++        int z = zMinus2 >> 2;
++        double quartX = (double) (xMinus2 & 3) / 4.0;
++        double quartY = (double) (yMinus2 & 3) / 4.0;
++        double quartZ = (double) (zMinus2 & 3) / 4.0;
++        int smallestX = 0;
++        double smallestDist = Double.POSITIVE_INFINITY;
++
++        for (int biomeX = 0; biomeX < 8; ++biomeX) {
++            boolean everyOtherQuad = (biomeX & 4) == 0;
++            boolean everyOtherPair = (biomeX & 2) == 0;
++            boolean everyOther = (biomeX & 1) == 0;
++            double quartXX = everyOtherQuad ? quartX : quartX - 1.0;
++            double quartYY = everyOtherPair ? quartY : quartY - 1.0;
++            double quartZZ = everyOther ? quartZ : quartZ - 1.0;
++
++            // Lower bound of each axis' contribution: the fiddle offset lies in [-0.45, 0.45), so a corner
++            // can only win if |quart| - 0.45 still leaves it closer than the current best (vanilla uses strict >).
++            double minQuartYY = Mth.square(Math.max(0.0, Math.abs(quartYY) - maxOffset));
++            double minQuartZZ = Mth.square(Math.max(0.0, Math.abs(quartZZ) - maxOffset));
++            if (biomeX != 0 && smallestDist < Mth.square(Math.max(0.0, Math.abs(quartXX) - maxOffset)) + minQuartYY + minQuartZZ - PRUNE_EPSILON) continue;
++
++            int xx = everyOtherQuad ? x : x + 1;
++            int yy = everyOtherPair ? y : y + 1;
++            int zz = everyOther ? z : z + 1;
++
++            long seed = LinearCongruentialGenerator.next(this.biomeZoomSeed, xx);
++            seed = LinearCongruentialGenerator.next(seed, yy);
++            seed = LinearCongruentialGenerator.next(seed, zz);
++            seed = LinearCongruentialGenerator.next(seed, xx);
++            seed = LinearCongruentialGenerator.next(seed, yy);
++            seed = LinearCongruentialGenerator.next(seed, zz);
++            double offsetX = getFiddle(seed);
++            double sqrX = Mth.square(quartXX + offsetX);
++            if (biomeX != 0 && smallestDist < sqrX + minQuartYY + minQuartZZ - PRUNE_EPSILON) continue;
++            seed = LinearCongruentialGenerator.next(seed, this.biomeZoomSeed);
++            double offsetY = getFiddle(seed);
++            seed = LinearCongruentialGenerator.next(seed, this.biomeZoomSeed);
++            double offsetZ = getFiddle(seed);
++            double biomeDist = Mth.square(quartZZ + offsetZ) + Mth.square(quartYY + offsetY) + sqrX; // same summation order as vanilla
++
++            if (smallestDist > biomeDist) {
++                smallestX = biomeX;
++                smallestDist = biomeDist;
+             }
+         }
+ 
+-        int biomeX = (minI & 4) == 0 ? parentX : parentX + 1;
+-        int biomeY = (minI & 2) == 0 ? parentY : parentY + 1;
+-        int biomeZ = (minI & 1) == 0 ? parentZ : parentZ + 1;
+-        return this.noiseBiomeSource.getNoiseBiome(biomeX, biomeY, biomeZ);
++        return this.noiseBiomeSource.getNoiseBiome(
++            (smallestX & 4) == 0 ? x : x + 1,
++            (smallestX & 2) == 0 ? y : y + 1,
++            (smallestX & 1) == 0 ? z : z + 1
++        );
++        // DivineMC end - Carpet-Fixes: Optimized getBiome method
+     }
+ 
+     public Holder<Biome> getNoiseBiomeAtPosition(final double x, final double y, final double z) {

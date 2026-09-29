@@ -1,18 +1,22 @@
 --- a/net/minecraft/core/BlockPos.java
 +++ b/net/minecraft/core/BlockPos.java
-@@ -332,7 +_,18 @@
+@@ -332,7 +_,22 @@
          return manhattanOrdered(origin, reachX, reachY, reachZ, reachX + reachY + reachZ);
      }
  
 +    // DivineMC start - lithium: cached_iterate_outwards
 +    private static final org.bxteam.divinemc.util.cache.IterateOutwardsCache ITERATE_OUTWARDS_CACHE = new org.bxteam.divinemc.util.cache.IterateOutwardsCache(50);
-+    private static final it.unimi.dsi.fastutil.longs.LongList HOGLIN_PIGLIN_CACHE = ITERATE_OUTWARDS_CACHE.getOrCompute(8, 4, 8);
++    private static final it.unimi.dsi.fastutil.longs.LongList HOGLIN_PIGLIN_CACHE = ITERATE_OUTWARDS_CACHE.getOrCompute(8, 4, 8, 8 + 4 + 8);
++
++    public static Iterable<BlockPos> manhattanOrderedFromZeroUncached(final int reachX, final int reachY, final int reachZ, final int maxDepth) {
++        return manhattanOrdered(org.bxteam.divinemc.util.cache.IterateOutwardsCache.POS_ZERO, reachX, reachY, reachZ, maxDepth);
++    }
 +    // DivineMC end - lithium: cached_iterate_outwards
 +
      private static Iterable<BlockPos> manhattanOrdered(final BlockPos origin, final int reachX, final int reachY, final int reachZ, final int maxDepth) {
 +        // DivineMC start - lithium: cached_iterate_outwards
 +        if (origin != org.bxteam.divinemc.util.cache.IterateOutwardsCache.POS_ZERO) {
-+            final it.unimi.dsi.fastutil.longs.LongList positions = reachX == 8 && reachY == 4 && reachZ == 8 ? HOGLIN_PIGLIN_CACHE : ITERATE_OUTWARDS_CACHE.getOrCompute(reachX, reachY, reachZ);
++            final it.unimi.dsi.fastutil.longs.LongList positions = reachX == 8 && reachY == 4 && reachZ == 8 && maxDepth == 8 + 4 + 8 ? HOGLIN_PIGLIN_CACHE : ITERATE_OUTWARDS_CACHE.getOrCompute(reachX, reachY, reachZ, maxDepth);
 +            return new org.bxteam.divinemc.util.cache.LongList2BlockPosMutableIterable(origin, positions);
 +        }
 +        // DivineMC end - lithium: cached_iterate_outwards

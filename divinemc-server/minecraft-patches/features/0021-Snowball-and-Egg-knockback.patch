@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sat, 1 Feb 2025 19:24:47 +0300
+Subject: [PATCH] Snowball and Egg knockback
+
+
+diff --git a/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java b/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
+index 3e0822dab24e4d7f99338e240184311a9382d60f..305cd00f158772215d20a99e2cb03737be7ef093 100644
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
+@@ -57,6 +57,12 @@ public class Snowball extends ThrowableItemProjectile {
+         Entity entity = hitResult.getEntity();
+         int damage = entity.level().purpurConfig.snowballDamage >= 0 ? entity.level().purpurConfig.snowballDamage : entity instanceof Blaze ? 3 : 0; // Purpur - Add configurable snowball damage
+         entity.hurt(this.damageSources().thrown(this, this.getOwner()), damage);
++        // DivineMC start - Make snowball can knockback player
++        if (this.level().divineConfig.snowballCanKnockback && entity instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
++            entity.hurt(this.damageSources().thrown(this, this.getOwner()), 0.0000001F);
++            serverPlayer.knockback(0.4000000059604645D, this.getX() - entity.getX(), this.getZ() - entity.getZ(), this.damageSources().thrown(this, this.getOwner()), 0.0F);
++        }
++        // DivineMC end - Make snowball can knockback player
+     }
+ 
+     // Purpur start - options to extinguish fire blocks with snowballs - borrowed and modified code from ThrownPotion#onHitBlock and ThrownPotion#dowseFire
+diff --git a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEgg.java b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEgg.java
+index 1d5449090d0649cb03cf87a0175aebedded20132..28c568ac5cdd6a562a062790cd056cb370eadbec 100644
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEgg.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEgg.java
+@@ -60,7 +60,14 @@ public class ThrownEgg extends ThrowableItemProjectile {
+     @Override
+     protected void onHitEntity(final EntityHitResult hitResult) {
+         super.onHitEntity(hitResult);
++        net.minecraft.world.entity.Entity entity = hitResult.getEntity(); // DivineMC - make egg can knockback player
+         hitResult.getEntity().hurt(this.damageSources().thrown(this, this.getOwner()), 0.0F);
++        // DivineMC start - Make egg can knockback player
++        if (this.level().divineConfig.eggCanKnockback && entity instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
++            entity.hurt(this.damageSources().thrown(this, this.getOwner()), 0.0000001F);
++            serverPlayer.knockback(0.4000000059604645D, this.getX() - entity.getX(), this.getZ() - entity.getZ(), this.damageSources().thrown(this, this.getOwner()), 0.0F);
++        }
++        // DivineMC end - Make egg can knockback player
+     }
+ 
+     @Override

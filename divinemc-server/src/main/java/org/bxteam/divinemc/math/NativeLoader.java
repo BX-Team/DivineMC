@@ -43,13 +43,13 @@ public class NativeLoader {
                         ValueLayout.JAVA_BOOLEAN
                     )
                 ).invokeExact(DivineConfig.PerformanceCategory.allowAVX512);
-                ISATarget target;
-                if (DivineConfig.PerformanceCategory.isaTargetLevelOverride != -1) {
-                    target = (ISATarget) ISATarget.getInstance().getEnumConstants()[DivineConfig.PerformanceCategory.isaTargetLevelOverride];
-                } else {
-                    target = (ISATarget) ISATarget.getInstance().getEnumConstants()[level];
-                    while (!target.isNativelySupported()) target = (ISATarget) ISATarget.getInstance().getEnumConstants()[target.ordinal() - 1];
+                final Enum<? extends ISATarget>[] targets = ISATarget.getInstance().getEnumConstants();
+                final int override = DivineConfig.PerformanceCategory.isaTargetLevelOverride;
+                if (override >= targets.length) {
+                    LOGGER.warn("ISA target level override {} is out of range (max {}), ignoring", override, targets.length - 1);
                 }
+                ISATarget target = (ISATarget) targets[override >= 0 && override < targets.length ? override : Math.min(level, targets.length - 1)];
+                while (!target.isNativelySupported()) target = (ISATarget) targets[target.ordinal() - 1];
                 currentMachineTarget = target;
                 LOGGER.info("Detected maximum supported ISA target: {}", currentMachineTarget);
             } catch (Throwable e) {

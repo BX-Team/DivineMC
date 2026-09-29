@@ -1,0 +1,519 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Tue, 28 Jan 2025 00:54:57 +0300
+Subject: [PATCH] Implement Secure Seed
+
+Original license: GPLv3
+Original project: https://github.com/plasmoapp/matter
+
+diff --git a/net/minecraft/server/commands/SeedCommand.java b/net/minecraft/server/commands/SeedCommand.java
+index 86ee3b3ae028597576b9549bc4954dfcbaa6732c..a1e39841125b229f3f20ab8919c18cc0aefa85a2 100644
+--- a/net/minecraft/server/commands/SeedCommand.java
++++ b/net/minecraft/server/commands/SeedCommand.java
+@@ -13,6 +13,17 @@ public class SeedCommand {
+                 long seed = c.getSource().getLevel().getSeed();
+                 Component seedText = ComponentUtils.copyOnClickText(String.valueOf(seed));
+                 c.getSource().sendSuccess(() -> Component.translatable("commands.seed.success", seedText), false);
++
++                // DivineMC start - Implement Secure Seed
++                if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++                    su.plo.matter.Globals.setupGlobals(c.getSource().getLevel());
++                    String seedStr = su.plo.matter.Globals.seedToString(su.plo.matter.Globals.worldSeed);
++                    Component featureSeedComponent = ComponentUtils.copyOnClickText(seedStr);
++
++                    c.getSource().sendSuccess(() -> Component.translatable(("Feature seed: %s"), featureSeedComponent), false);
++                }
++                // DivineMC end - Implement Secure Seed
++
+                 return (int)seed;
+             })
+         );
+diff --git a/net/minecraft/server/dedicated/DedicatedServerProperties.java b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+index f743902c9c2e040b58f6b071ccc853880248e9a2..a1f7fcf6acf6714f1ebe785c2dde0fefddb12e9d 100644
+--- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
++++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+@@ -140,7 +140,17 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
+         String levelSeed = this.get("level-seed", "");
+         boolean generateStructures = this.get("generate-structures", true);
+         long seed = WorldOptions.parseSeed(levelSeed).orElse(WorldOptions.randomSeed());
+-        this.worldOptions = new WorldOptions(seed, generateStructures, false);
++        // DivineMC start - Implement Secure Seed
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++            String featureSeedStr = this.get("feature-level-seed", "");
++            long[] featureSeed = su.plo.matter.Globals.parseSeed(featureSeedStr)
++                    .orElse(su.plo.matter.Globals.createRandomWorldSeed());
++
++            this.worldOptions = new WorldOptions(seed, featureSeed, generateStructures, false);
++        } else {
++            this.worldOptions = new WorldOptions(seed, generateStructures, false);
++        }
++        // DivineMC end - Implement Secure Seed
+         this.worldDimensionData = new DedicatedServerProperties.WorldDimensionData(
+             this.get("generator-settings", s -> GsonHelper.parse(!s.isEmpty() ? s : "{}"), new JsonObject()),
+             this.get("level-type", v -> v.toLowerCase(Locale.ROOT), WorldPresets.NORMAL.identifier().toString())
+diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
+index c26a0a9018c7593107dfc81961414913d93db09f..0c35e5d0ff00636856f6b41c73bc404ce2076d47 100644
+--- a/net/minecraft/server/level/ServerChunkCache.java
++++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -654,6 +654,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+     }
+ 
+     public ChunkGenerator getGenerator() {
++        su.plo.matter.Globals.setupGlobals(level); // DivineMC - Implement Secure Seed
+         return this.chunkMap.generator();
+     }
+ 
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index 75299f298621d592c62ae9e81a1a458da0fd81ae..c1fee0420e417a408d1fd12e2d59394810fc33e1 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -695,6 +695,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+             generator = new org.bukkit.craftbukkit.generator.CustomChunkGenerator(this, generator, gen);
+         }
+         // CraftBukkit end
++        su.plo.matter.Globals.setupGlobals(this); // DivineMC - Implement Secure Seed
+         boolean syncWrites = server.forceSynchronousWrites();
+         DataFixer fixerUpper = server.getFixerUpper();
+         // Paper - rewrite chunk system
+diff --git a/net/minecraft/world/entity/monster/cubemob/Slime.java b/net/minecraft/world/entity/monster/cubemob/Slime.java
+index 5a2858526aaed35f3b2f0cd93652490c9357f937..3530bd64bff6d6a3cec15b652ee716271ad367f0 100644
+--- a/net/minecraft/world/entity/monster/cubemob/Slime.java
++++ b/net/minecraft/world/entity/monster/cubemob/Slime.java
+@@ -169,7 +169,11 @@ public class Slime extends AbstractCubeMob implements Enemy {
+             }
+ 
+             ChunkPos chunkPos = ChunkPos.containing(pos);
+-            boolean slimeChunk = level.getMinecraftWorld().paperConfig().entities.spawning.allChunksAreSlimeChunks || WorldgenRandom.seedSlimeChunk(chunkPos.x(), chunkPos.z(), worldGenLevel.getSeed(), level.getMinecraftWorld().spigotConfig.slimeSeed).nextInt(10) == 0; // Paper
++            // DivineMC start - Implement Secure Seed
++            boolean slimeChunk =  level.getMinecraftWorld().paperConfig().entities.spawning.allChunksAreSlimeChunks || org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed
++                ? level.getChunk(chunkPos.x(), chunkPos.z()).isSlimeChunk()
++                : WorldgenRandom.seedSlimeChunk(chunkPos.x(), chunkPos.z(), worldGenLevel.getSeed(), level.getMinecraftWorld().spigotConfig.slimeSeed).nextInt(10) == 0; // Paper
++            // DivineMC end - Implement Secure Seed
+             // Paper start - Replace rules for Height in Slime Chunks
+             final double maxHeightSlimeChunk = level.getMinecraftWorld().paperConfig().entities.spawning.slimeSpawnHeight.slimeChunk.maximum;
+             if (random.nextInt(10) == 0 && slimeChunk && pos.getY() < maxHeightSlimeChunk) {
+diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
+index 83390f2bb0e04921c8b47b67ce560d3ff8a786b1..f70af3baa51a75871024a33f07a3429e2c526133 100644
+--- a/net/minecraft/world/level/chunk/ChunkAccess.java
++++ b/net/minecraft/world/level/chunk/ChunkAccess.java
+@@ -77,6 +77,10 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeR
+     public final Map<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
+     protected final LevelHeightAccessor levelHeightAccessor;
+     protected final LevelChunkSection[] sections;
++    // DivineMC start - Implement Secure Seed
++    private boolean slimeChunk;
++    private boolean hasComputedSlimeChunk;
++    // DivineMC end - Implement Secure Seed
+     // CraftBukkit start - SPIGOT-6814: move to ChunkAccess to account for 1.17 to 1.18 chunk upgrading.
+     private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
+     public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
+@@ -185,6 +189,17 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeR
+         return GameEventListenerRegistry.NOOP;
+     }
+ 
++    // DivineMC start - Implement Secure Seed
++    public boolean isSlimeChunk() {
++        if (!hasComputedSlimeChunk) {
++            hasComputedSlimeChunk = true;
++            slimeChunk = su.plo.matter.WorldgenCryptoRandom.seedSlimeChunk(chunkPos.x(), chunkPos.z()).nextInt(10) == 0;
++        }
++
++        return slimeChunk;
++    }
++    // DivineMC end - Implement Secure Seed
++
+     public abstract BlockState getBlockState(final int x, final int y, final int z); // Paper
+ 
+     public @Nullable BlockState setBlockState(final BlockPos pos, final BlockState state) {
+diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
+index 7c366268b87468ed7f4c420d606588324d37d4f8..619be124f43e257a31abde2e57af12b32ed455db 100644
+--- a/net/minecraft/world/level/chunk/ChunkGenerator.java
++++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
+@@ -385,7 +385,11 @@ public abstract class ChunkGenerator {
+             Map<Integer, List<Structure>> structuresByStep = structuresRegistry.stream()
+                 .collect(Collectors.groupingBy(structure -> structure.step().ordinal()));
+             List<FeatureSorter.StepFeatureData> featureList = this.featuresPerStep.get();
+-            WorldgenRandom random = new WorldgenRandom(new XoroshiroRandomSource(RandomSupport.generateUniqueSeed()));
++            // DivineMC start - Implement Secure Seed
++            WorldgenRandom random = org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed
++                    ? new su.plo.matter.WorldgenCryptoRandom(origin.getX(), origin.getZ(), su.plo.matter.Globals.Salt.UNDEFINED, 0)
++                    : new WorldgenRandom(new XoroshiroRandomSource(RandomSupport.generateUniqueSeed()));
++            // DivineMC end - Implement Secure Seed
+             long decorationSeed = random.setDecorationSeed(level.getSeed(), origin.getX(), origin.getZ());
+             Set<Holder<Biome>> possibleBiomes = new ObjectArraySet<>();
+             ChunkPos.rangeClosed(sectionPos.chunk(), 1).forEach(chunkPos -> {
+@@ -606,8 +610,18 @@ public abstract class ChunkGenerator {
+                             } else {
+                                 ArrayList<StructureSet.StructureSelectionEntry> options = new ArrayList<>(structures.size());
+                                 options.addAll(structures);
+-                                WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(0L));
+-                                random.setLargeFeatureSeed(state.getLevelSeed(), sourceChunkPos.x(), sourceChunkPos.z());
++                                // DivineMC start - Implement Secure Seed
++                                WorldgenRandom random;
++                                if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++                                    random = new su.plo.matter.WorldgenCryptoRandom(
++                                        sourceChunkPos.x(), sourceChunkPos.z(), su.plo.matter.Globals.Salt.GENERATE_FEATURE, 0
++                                    );
++                                } else {
++                                    random = new WorldgenRandom(new LegacyRandomSource(0L));
++
++                                    random.setLargeFeatureSeed(state.getLevelSeed(), sourceChunkPos.x(), sourceChunkPos.z());
++                                }
++                                // DivineMC end - Implement Secure Seed
+                                 int total = 0;
+ 
+                                 for (StructureSet.StructureSelectionEntry option : options) {
+diff --git a/net/minecraft/world/level/chunk/ChunkGeneratorStructureState.java b/net/minecraft/world/level/chunk/ChunkGeneratorStructureState.java
+index 8547fccf2216867147adcefa3e58a2c9ce58eadb..e532d3cb6b7e4d205b1190db310bc7690bc0256e 100644
+--- a/net/minecraft/world/level/chunk/ChunkGeneratorStructureState.java
++++ b/net/minecraft/world/level/chunk/ChunkGeneratorStructureState.java
+@@ -182,14 +182,21 @@ public class ChunkGeneratorStructureState {
+         List<CompletableFuture<ChunkPos>> tasks = new ArrayList<>(count);
+         int spread = placement.spread();
+         HolderSet<Biome> preferredBiomes = placement.preferredBiomes();
+-        RandomSource random = RandomSource.create();
+-        // Paper start - Add missing structure set seed configs
+-        if (this.config.strongholdSeed != null && structureSet.is(net.minecraft.world.level.levelgen.structure.BuiltinStructureSets.STRONGHOLDS)) {
+-            random.setSeed(this.config.strongholdSeed);
+-        } else {
+-        // Paper end - Add missing structure set seed configs
+-        random.setSeed(this.concentricRingsSeed);
+-        } // Paper - Add missing structure set seed configs
++        // DivineMC start - Implement Secure Seed
++        RandomSource random = org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed
++                ? new su.plo.matter.WorldgenCryptoRandom(0, 0, su.plo.matter.Globals.Salt.STRONGHOLDS, 0)
++                : RandomSource.create();
++
++        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++            // Paper start - Add missing structure set seed configs
++            if (this.config.strongholdSeed != null && structureSet.is(net.minecraft.world.level.levelgen.structure.BuiltinStructureSets.STRONGHOLDS)) {
++                random.setSeed(this.config.strongholdSeed);
++            } else {
++                // Paper end - Add missing structure set seed configs
++                random.setSeed(this.concentricRingsSeed);
++            } // Paper - Add missing structure set seed configs
++        }
++        // DivineMC end - Implement Secure Seed
+         double angle = random.nextDouble() * Math.PI * 2.0;
+         int positionInCircle = 0;
+         int circle = 0;
+diff --git a/net/minecraft/world/level/chunk/status/ChunkStep.java b/net/minecraft/world/level/chunk/status/ChunkStep.java
+index 3536bc2287ab5b285790dc496836cf43020b698c..f653f187b24aec91f780bb4b4ca89067749b315b 100644
+--- a/net/minecraft/world/level/chunk/status/ChunkStep.java
++++ b/net/minecraft/world/level/chunk/status/ChunkStep.java
+@@ -62,6 +62,7 @@ public final class ChunkStep implements ca.spottedleaf.moonrise.patches.chunk_sy
+     }
+ 
+     public CompletableFuture<ChunkAccess> apply(final WorldGenContext context, final StaticCache2D<GenerationChunkHolder> cache, final ChunkAccess chunk) {
++        su.plo.matter.Globals.setupGlobals(context.level()); // DivineMC - Implement Secure Seed
+         if (chunk.getPersistedStatus().isBefore(this.targetStatus)) {
+             String stepName = this.targetStatus.getName();
+ 
+diff --git a/net/minecraft/world/level/levelgen/WorldOptions.java b/net/minecraft/world/level/levelgen/WorldOptions.java
+index 4ad94af024d81b7dfe910dcee2a6ec7a9b200d56..bcbbdb02bcf16bdef280595239f3344944ce5198 100644
+--- a/net/minecraft/world/level/levelgen/WorldOptions.java
++++ b/net/minecraft/world/level/levelgen/WorldOptions.java
+@@ -10,8 +10,19 @@ import net.minecraft.util.RandomSource;
+ import org.apache.commons.lang3.StringUtils;
+ 
+ public class WorldOptions {
++    // DivineMC start - Implement Secure Seed
++    private static final boolean isSecureSeedEnabled = org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed;
+     public static final MapCodec<WorldOptions> CODEC = RecordCodecBuilder.mapCodec(
+-        i -> i.group(
++        i -> isSecureSeedEnabled
++            ? i.group(
++                Codec.LONG.fieldOf("seed").stable().forGetter(WorldOptions::seed),
++                Codec.LONG_STREAM.fieldOf("feature_seed").stable().forGetter(WorldOptions::featureSeedStream),
++                ExtraCodecs.optionalAlwaysPresentFieldOf(Codec.BOOL, "generate_structures", true).stable().forGetter(WorldOptions::generateStructures),
++                ExtraCodecs.optionalAlwaysPresentFieldOf(Codec.BOOL, "bonus_chest", false).stable().forGetter(WorldOptions::generateBonusChest),
++                Codec.STRING.lenientOptionalFieldOf("legacy_custom_options").stable().forGetter(s -> s.legacyCustomOptions)
++            )
++            .apply(i, i.stable(WorldOptions::new))
++            : i.group(
+                 Codec.LONG.fieldOf("seed").stable().forGetter(WorldOptions::seed),
+                 ExtraCodecs.optionalAlwaysPresentFieldOf(Codec.BOOL, "generate_structures", true).stable().forGetter(WorldOptions::generateStructures),
+                 ExtraCodecs.optionalAlwaysPresentFieldOf(Codec.BOOL, "bonus_chest", false).stable().forGetter(WorldOptions::generateBonusChest),
+@@ -19,8 +30,12 @@ public class WorldOptions {
+             )
+             .apply(i, i.stable(WorldOptions::new))
+     );
+-    public static final WorldOptions DEMO_OPTIONS = new WorldOptions("North Carolina".hashCode(), true, true);
++    public static final WorldOptions DEMO_OPTIONS = isSecureSeedEnabled
++            ? new WorldOptions("North Carolina".hashCode(), su.plo.matter.Globals.createRandomWorldSeed(), true, true)
++            : new WorldOptions("North Carolina".hashCode(), true, true);
++    // DivineMC end - Implement Secure Seed
+     private final long seed;
++    private long[] featureSeed = su.plo.matter.Globals.createRandomWorldSeed(); // DivineMC - Implement Secure Seed
+     private final boolean generateStructures;
+     private final boolean generateBonusChest;
+     private final Optional<String> legacyCustomOptions;
+@@ -29,10 +44,22 @@ public class WorldOptions {
+         this(seed, generateStructures, generateBonusChest, Optional.empty());
+     }
+ 
++    // DivineMC start - Implement Secure Seed
++    public WorldOptions(long seed, long[] featureSeed, boolean generateStructures, boolean bonusChest) {
++        this(seed, featureSeed, generateStructures, bonusChest, Optional.empty());
++    }
++
+     public static WorldOptions defaultWithRandomSeed() {
+-        return new WorldOptions(randomSeed(), true, false);
++        return isSecureSeedEnabled
++                ? new WorldOptions(randomSeed(), su.plo.matter.Globals.createRandomWorldSeed(), true, false)
++                : new WorldOptions(randomSeed(), true, false);
+     }
+ 
++    private WorldOptions(long seed, java.util.stream.LongStream featureSeed, boolean generateStructures, boolean bonusChest, Optional<String> legacyCustomOptions) {
++        this(seed, featureSeed.toArray(), generateStructures, bonusChest, legacyCustomOptions);
++    }
++    // DivineMC end - Implement Secure Seed
++
+     public static WorldOptions testWorldWithRandomSeed() {
+         return new WorldOptions(randomSeed(), false, false);
+     }
+@@ -44,10 +71,27 @@ public class WorldOptions {
+         this.legacyCustomOptions = legacyCustomOptions;
+     }
+ 
++    // DivineMC start - Implement Secure Seed
++    private WorldOptions(long seed, long[] featureSeed, boolean generateStructures, boolean bonusChest, Optional<String> legacyCustomOptions) {
++        this(seed, generateStructures, bonusChest, legacyCustomOptions);
++        this.featureSeed = featureSeed;
++    }
++    // DivineMC end - Implement Secure Seed
++
+     public long seed() {
+         return this.seed;
+     }
+ 
++    // DivineMC start - Implement Secure Seed
++    public long[] featureSeed() {
++        return this.featureSeed;
++    }
++
++    public java.util.stream.LongStream featureSeedStream() {
++        return java.util.stream.LongStream.of(this.featureSeed);
++    }
++    // DivineMC end - Implement Secure Seed
++
+     public boolean generateStructures() {
+         return this.generateStructures;
+     }
+@@ -60,17 +104,25 @@ public class WorldOptions {
+         return this.legacyCustomOptions.isPresent();
+     }
+ 
++    // DivineMC start - Implement Secure Seed
+     public WorldOptions withBonusChest(final boolean generateBonusChest) {
+-        return new WorldOptions(this.seed, this.generateStructures, generateBonusChest, this.legacyCustomOptions);
++        return isSecureSeedEnabled
++                ? new WorldOptions(this.seed, this.featureSeed, this.generateStructures, generateBonusChest, this.legacyCustomOptions)
++                : new WorldOptions(this.seed, this.generateStructures, generateBonusChest, this.legacyCustomOptions);
+     }
+ 
+     public WorldOptions withStructures(final boolean generateStructures) {
+-        return new WorldOptions(this.seed, generateStructures, this.generateBonusChest, this.legacyCustomOptions);
++        return isSecureSeedEnabled
++                ? new WorldOptions(this.seed, this.featureSeed, generateStructures, this.generateBonusChest, this.legacyCustomOptions)
++                : new WorldOptions(this.seed, generateStructures, this.generateBonusChest, this.legacyCustomOptions);
+     }
+ 
+     public WorldOptions withSeed(final OptionalLong seed) {
+-        return new WorldOptions(seed.orElse(randomSeed()), this.generateStructures, this.generateBonusChest, this.legacyCustomOptions);
++        return isSecureSeedEnabled
++                ? new WorldOptions(seed.orElse(randomSeed()), su.plo.matter.Globals.createRandomWorldSeed(), this.generateStructures, this.generateBonusChest, this.legacyCustomOptions)
++                : new WorldOptions(seed.orElse(randomSeed()), this.generateStructures, this.generateBonusChest, this.legacyCustomOptions);
+     }
++    // DivineMC end - Implement Secure Seed
+ 
+     public static OptionalLong parseSeed(String seedString) {
+         seedString = seedString.trim();
+diff --git a/net/minecraft/world/level/levelgen/feature/GeodeFeature.java b/net/minecraft/world/level/levelgen/feature/GeodeFeature.java
+index fa0cf8121a4ab566ec36bdb18f09d60ec82374d9..4c47150f620d2727659ac27c90c1af061dc6335b 100644
+--- a/net/minecraft/world/level/levelgen/feature/GeodeFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/GeodeFeature.java
+@@ -78,7 +78,12 @@ public record GeodeFeature(
+     public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
+         List<Pair<BlockPos, Integer>> points = Lists.newLinkedList();
+         int numPoints = this.distributionPoints.sample(random);
+-        Noise noise = NOISE_PARAMETERS.create(new WorldgenRandom(new LegacyRandomSource(level.getSeed())));
++        // DivineMC start - Implement Secure Seed
++        WorldgenRandom random1 = org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed
++            ? new su.plo.matter.WorldgenCryptoRandom(0, 0, su.plo.matter.Globals.Salt.GEODE_FEATURE, 0)
++            : new WorldgenRandom(new LegacyRandomSource(level.getSeed()));
++        Noise noise = NOISE_PARAMETERS.create(random1);
++        // DivineMC end - Implement Secure Seed
+         List<BlockPos> crackPoints = Lists.newLinkedList();
+         double crackSizeAdjustment = (double)numPoints / this.outerWallDistance.maxInclusive();
+         double innerAir = 1.0 / Math.sqrt(this.layerSettings.filling);
+diff --git a/net/minecraft/world/level/levelgen/structure/Structure.java b/net/minecraft/world/level/levelgen/structure/Structure.java
+index b8282f39e5e95724dfed3c6fed2c96210f917fce..8f67d6784ab85243145042600dcafc427905a602 100644
+--- a/net/minecraft/world/level/levelgen/structure/Structure.java
++++ b/net/minecraft/world/level/levelgen/structure/Structure.java
+@@ -252,6 +252,13 @@ public abstract class Structure {
+         }
+ 
+         private static WorldgenRandom makeRandom(final long seed, final ChunkPos chunkPos) {
++            // DivineMC start - Implement Secure Seed
++            if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++                return new su.plo.matter.WorldgenCryptoRandom(
++                    chunkPos.x(), chunkPos.z(), su.plo.matter.Globals.Salt.GENERATE_FEATURE, seed
++                );
++            }
++            // DivineMC end - Implement Secure Seed
+             WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(0L));
+             random.setLargeFeatureSeed(seed, chunkPos.x(), chunkPos.z());
+             return random;
+diff --git a/net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.java b/net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.java
+index 23c24b33c74aa45496614a541a7d51a21f6d2b91..0dbd3434a4123f8787ddebf88a39a8312719bd87 100644
+--- a/net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.java
++++ b/net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.java
+@@ -109,8 +109,17 @@ public abstract class AbstractSpreadingStructurePlacement implements StructurePl
+     protected abstract boolean isPlacementChunk(final ChunkGeneratorStructureState state, final int sourceX, final int sourceZ);
+ 
+     private static boolean probabilityReducer(final long seed, final int salt, final int sourceX, final int sourceZ, final float probability, final @org.jspecify.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs; ignore here
+-        WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(0L));
+-        random.setLargeFeatureWithSalt(seed, salt, sourceX, sourceZ);
++        // DivineMC start - Implement Secure Seed
++        WorldgenRandom random;
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++            random = new su.plo.matter.WorldgenCryptoRandom(
++                sourceX, sourceZ, su.plo.matter.Globals.Salt.UNDEFINED, salt
++            );
++        } else {
++            random = new WorldgenRandom(new LegacyRandomSource(0L));
++            random.setLargeFeatureWithSalt(seed, salt, sourceX, sourceZ);
++        }
++        // DivineMC end - Implement Secure Seed
+         return random.nextFloat() < probability;
+     }
+ 
+diff --git a/net/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement.java b/net/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement.java
+index 261c46ec5ddb001b10d114f0f7ba3f74626f9e8c..0e6f215db82c4d63a00a5d5cd73bb201c0b28d1e 100644
+--- a/net/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement.java
++++ b/net/minecraft/world/level/levelgen/structure/placement/RandomSpreadStructurePlacement.java
+@@ -67,8 +67,17 @@ public class RandomSpreadStructurePlacement extends AbstractSpreadingStructurePl
+     public ChunkPos getPotentialStructureChunk(final long seed, final int sourceX, final int sourceZ) {
+         int spacedGridX = Math.floorDiv(sourceX, this.spacing);
+         int spacedGridZ = Math.floorDiv(sourceZ, this.spacing);
+-        WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(0L));
+-        random.setLargeFeatureWithSalt(seed, spacedGridX, spacedGridZ, this.salt());
++        // DivineMC start - Implement Secure Seed
++        WorldgenRandom random;
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++            random = new su.plo.matter.WorldgenCryptoRandom(
++                spacedGridX, spacedGridZ, su.plo.matter.Globals.Salt.POTENTIONAL_FEATURE, this.salt
++            );
++        } else {
++            random = new WorldgenRandom(new LegacyRandomSource(0L));
++            random.setLargeFeatureWithSalt(seed, spacedGridX, spacedGridZ, this.salt());
++        }
++        // DivineMC end - Implement Secure Seed
+         int limit = this.spacing - this.separation;
+         int spreadX = this.spreadType.evaluate(random, limit);
+         int spreadZ = this.spreadType.evaluate(random, limit);
+diff --git a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
+index bcb5d2e1fb9fce73bfe2913912de47d45f412919..c88768e13c73228819c5cd1b47bff826918e94f3 100644
+--- a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
++++ b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
+@@ -65,7 +65,11 @@ public class JigsawPlacement {
+         ChunkGenerator chunkGenerator = context.chunkGenerator();
+         StructureTemplateManager structureTemplateManager = context.structureTemplateManager();
+         LevelHeightAccessor heightAccessor = context.heightAccessor();
+-        WorldgenRandom random = context.random();
++        // DivineMC start - Implement Secure Seed
++        WorldgenRandom random = org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed
++                ? new su.plo.matter.WorldgenCryptoRandom(context.chunkPos().x(), context.chunkPos().z(), su.plo.matter.Globals.Salt.JIGSAW_PLACEMENT, 0)
++                : context.random();
++        // DivineMC end - Implement Secure Seed
+         Registry<StructureTemplatePool> pools = registryAccess.lookupOrThrow(Registries.TEMPLATE_POOL);
+         Rotation centerRotation = Rotation.getRandom(random);
+         StructureTemplatePool centerPool = startPool.unwrapKey()
+diff --git a/net/minecraft/world/level/levelgen/structure/structures/MineshaftStructure.java b/net/minecraft/world/level/levelgen/structure/structures/MineshaftStructure.java
+index 137be92ab5020e711907aa9cd4cf56fa5ba36b7f..b24de23b2a3994fc70e4663a067f73fab0a9acc0 100644
+--- a/net/minecraft/world/level/levelgen/structure/structures/MineshaftStructure.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/MineshaftStructure.java
+@@ -44,7 +44,16 @@ public class MineshaftStructure extends Structure {
+ 
+     private int generatePiecesAndAdjust(final StructurePiecesBuilder builder, final Structure.GenerationContext context) {
+         ChunkPos chunkPos = context.chunkPos();
+-        WorldgenRandom random = context.random();
++        // DivineMC start - Implement Secure Seed
++        WorldgenRandom random;
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++            random = new su.plo.matter.WorldgenCryptoRandom(
++                chunkPos.x(), chunkPos.z(), su.plo.matter.Globals.Salt.MINESHAFT_FEATURE, 0
++            );
++        } else {
++            random = context.random();
++        }
++        // DivineMC end - Implement Secure Seed
+         ChunkGenerator chunkGenerator = context.chunkGenerator();
+         MineshaftPieces.MineShaftRoom mineShaftRoom = new MineshaftPieces.MineShaftRoom(0, random, chunkPos.getBlockX(2), chunkPos.getBlockZ(2), this.type);
+         builder.addPiece(mineShaftRoom);
+diff --git a/net/minecraft/world/level/levelgen/structure/structures/OceanMonumentStructure.java b/net/minecraft/world/level/levelgen/structure/structures/OceanMonumentStructure.java
+index 627efd9f5f29b9411d1907ce91515da1154cc4fe..bcdcbf6e557fe7d2cac3caf3a5ff3b7e96490eb1 100644
+--- a/net/minecraft/world/level/levelgen/structure/structures/OceanMonumentStructure.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/OceanMonumentStructure.java
+@@ -48,7 +48,17 @@ public class OceanMonumentStructure extends Structure {
+     }
+ 
+     private static void generatePieces(final StructurePiecesBuilder builder, final Structure.GenerationContext context) {
+-        builder.addPiece(createTopPiece(context.chunkPos(), context.random()));
++        // DivineMC start - Implement Secure Seed
++        WorldgenRandom random;
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++            random = new su.plo.matter.WorldgenCryptoRandom(
++                context.chunkPos().x(), context.chunkPos().z(), su.plo.matter.Globals.Salt.OCEAN_MONUMENT_FEATURE, 0
++            );
++        } else {
++            random = context.random();
++        }
++        builder.addPiece(createTopPiece(context.chunkPos(), random));
++        // DivineMC end - Implement Secure Seed
+     }
+ 
+     public static PiecesContainer regeneratePiecesAfterLoad(final ChunkPos chunkPos, final long seed, final PiecesContainer savedPieces) {
+@@ -56,8 +66,17 @@ public class OceanMonumentStructure extends Structure {
+             return savedPieces;
+         }
+ 
+-        WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(RandomSupport.generateUniqueSeed()));
+-        random.setLargeFeatureSeed(seed, chunkPos.x(), chunkPos.z());
++        // DivineMC start - Implement Secure Seed
++        WorldgenRandom random;
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++            random = new su.plo.matter.WorldgenCryptoRandom(
++                chunkPos.x(), chunkPos.z(), su.plo.matter.Globals.Salt.OCEAN_MONUMENT_FEATURE, seed
++            );
++        } else {
++            random = new WorldgenRandom(new LegacyRandomSource(RandomSupport.generateUniqueSeed()));
++            random.setLargeFeatureSeed(seed, chunkPos.x(), chunkPos.z());
++        }
++        // DivineMC end - Implement Secure Seed
+         StructurePiece oldTopPiece = savedPieces.pieces().get(0);
+         BoundingBox oldBoundingBox = oldTopPiece.getBoundingBox();
+         int west = oldBoundingBox.minX();
+diff --git a/net/minecraft/world/level/levelgen/structure/structures/RuinedPortalStructure.java b/net/minecraft/world/level/levelgen/structure/structures/RuinedPortalStructure.java
+index b407a9f76770fb9d03cebcf7b8a203eba1c1437e..e5f5711e020e5e1b42c8117d19b72582bbaa8fba 100644
+--- a/net/minecraft/world/level/levelgen/structure/structures/RuinedPortalStructure.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/RuinedPortalStructure.java
+@@ -65,7 +65,16 @@ public class RuinedPortalStructure extends Structure {
+ 
+     @Override
+     public Optional<Structure.GenerationStub> findGenerationPoint(final Structure.GenerationContext context) {
+-        WorldgenRandom random = context.random();
++        // DivineMC start - Implement Secure Seed
++        WorldgenRandom random;
++        if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed) {
++            random = new su.plo.matter.WorldgenCryptoRandom(
++                context.chunkPos().x(), context.chunkPos().z(), su.plo.matter.Globals.Salt.RUINED_PORTAL_FEATURE, 0L
++            );
++        } else {
++            random = context.random();
++        }
++        // DivineMC end - Implement Secure Seed
+         RuinedPortalStructure.Setup chosenSetup = null;
+         if (this.setups.size() > 1) {
+             float total = 0.0F;

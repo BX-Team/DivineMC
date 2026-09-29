@@ -25,14 +25,14 @@ public class IterateOutwardsCache {
         this.random = new Random();
     }
 
-    private void fillPositionsWithIterateOutwards(LongList entry, int xRange, int yRange, int zRange) {
-        for (BlockPos pos : BlockPos.withinManhattan(POS_ZERO, xRange, yRange, zRange)) {
+    private void fillPositionsWithIterateOutwards(LongList entry, int xRange, int yRange, int zRange, int maxDepth) {
+        for (BlockPos pos : BlockPos.manhattanOrderedFromZeroUncached(xRange, yRange, zRange, maxDepth)) {
             entry.add(pos.asLong());
         }
     }
 
-    public LongList getOrCompute(int xRange, int yRange, int zRange) {
-        long key = BlockPos.asLong(xRange, yRange, zRange);
+    public LongList getOrCompute(int xRange, int yRange, int zRange, int maxDepth) {
+        long key = ((long) (xRange & 0xFFFF) << 48) | ((long) (yRange & 0xFFFF) << 32) | ((long) (zRange & 0xFFFF) << 16) | (maxDepth & 0xFFFF);
 
         LongArrayList entry = this.table.get(key);
         if (entry != null) {
@@ -41,7 +41,7 @@ public class IterateOutwardsCache {
 
         entry = new LongArrayList(128);
 
-        this.fillPositionsWithIterateOutwards(entry, xRange, yRange, zRange);
+        this.fillPositionsWithIterateOutwards(entry, xRange, yRange, zRange, maxDepth);
 
         entry.trim();
 

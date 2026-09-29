@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Mon, 3 Mar 2025 20:08:44 +0300
+Subject: [PATCH] Option to disable disconnect.spam
+
+
+diff --git a/net/minecraft/server/network/ServerCommandSuggestionsProvider.java b/net/minecraft/server/network/ServerCommandSuggestionsProvider.java
+index 52cb9e845bd18a27cbafd432e5339cf3929b1fc7..95fcd8021adf65995cb56ae2246a37e839ed3eaa 100644
+--- a/net/minecraft/server/network/ServerCommandSuggestionsProvider.java
++++ b/net/minecraft/server/network/ServerCommandSuggestionsProvider.java
+@@ -49,6 +49,7 @@ public class ServerCommandSuggestionsProvider {
+                     ParseResults<CommandSourceStack> parse = dispatcher.parse(reader, this.player.createCommandSourceStack());
+                     // Paper start - Handle non-recoverable exceptions
+                     if (!parse.getExceptions().isEmpty()
++                        && !org.bxteam.divinemc.config.DivineConfig.NetworkCategory.disableDisconnectSpam // DivineMC - Option to disable disconnect.spam
+                         && parse.getExceptions().values().stream().anyMatch(e -> e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException)) {
+                         this.player.connection.disconnect(net.minecraft.network.chat.Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
+                         return;
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index ddd1c54262f0dad08619ee9337f9f34951db1767..63d1858ff647c5a8316cfca4b298e69c18a0d565 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -887,7 +887,7 @@ public class ServerGamePacketListenerImpl
+     @Override
+     public void handleCustomCommandSuggestions(final ServerboundCommandSuggestionPacket packet) {
+         // Paper start - throttle tab completions
+-        if (!this.tabSpamThrottler.isIncrementAndUnderThreshold() && !this.server.getPlayerList().isOp(this.player.nameAndId()) && !this.server.isSingleplayerOwner(this.player.nameAndId())) {
++        if (!this.tabSpamThrottler.isIncrementAndUnderThreshold() && !this.server.getPlayerList().isOp(this.player.nameAndId()) && !this.server.isSingleplayerOwner(this.player.nameAndId()) && !org.bxteam.divinemc.config.DivineConfig.NetworkCategory.disableDisconnectSpam) { // DivineMC - Option to disable disconnect.spam
+             this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
+             return;
+         }
+@@ -895,7 +895,7 @@ public class ServerGamePacketListenerImpl
+             return;
+         }
+         final int index;
+-        if (packet.command().length() > 64 && ((index = packet.command().indexOf(' ')) == -1 || index >= 64)) {
++        if (packet.command().length() > 64 && ((index = packet.command().indexOf(' ')) == -1 || index >= 64) && !org.bxteam.divinemc.config.DivineConfig.NetworkCategory.disableDisconnectSpam) { // DivineMC - Option to disable disconnect.spam
+             this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
+             return;
+         }
+@@ -928,6 +928,7 @@ public class ServerGamePacketListenerImpl
+             CommandDispatcher<CommandSourceStack> dispatcher = server.getCommands().getDispatcher();
+             ParseResults<CommandSourceStack> parse = dispatcher.parse(reader, this.player.createCommandSourceStack());
+             if (!parse.getExceptions().isEmpty()
++                && !org.bxteam.divinemc.config.DivineConfig.NetworkCategory.disableDisconnectSpam // DivineMC - Option to disable disconnect.spam
+                 && parse.getExceptions().values().stream().anyMatch(e -> e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException)) {
+                 this.player.connection.disconnect(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
+                 return;
+@@ -2780,6 +2781,7 @@ public class ServerGamePacketListenerImpl
+         // throttler.increment();
+         if (!throttler.isIncrementAndUnderThreshold()
+         // CraftBukkit end - replaced with thread safe throttle
++            && !org.bxteam.divinemc.config.DivineConfig.NetworkCategory.disableDisconnectSpam // DivineMC - Option to disable disconnect.spam
+             && !this.server.getPlayerList().isOp(this.player.nameAndId())
+             && !this.server.isSingleplayerOwner(this.player.nameAndId())) {
+             this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - kick event cause & add proper async disconnect
+@@ -3530,7 +3532,7 @@ public class ServerGamePacketListenerImpl
+     public void handlePlaceRecipe(final ServerboundPlaceRecipePacket packet) {
+         // Paper start - auto recipe limit
+         if (!org.bukkit.Bukkit.isPrimaryThread()) {
+-            if (!this.recipeSpamPackets.isIncrementAndUnderThreshold()) {
++            if (!this.recipeSpamPackets.isIncrementAndUnderThreshold() && !org.bxteam.divinemc.config.DivineConfig.NetworkCategory.disableDisconnectSpam) { // DivineMC - Option to disable disconnect.spam
+                 this.disconnectAsync(net.minecraft.network.chat.Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - kick event cause // Paper - add proper async disconnect
+                 return;
+             }

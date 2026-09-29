@@ -1,0 +1,250 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Wed, 1 Oct 2025 01:49:00 +0300
+Subject: [PATCH] lithium: equipment_tracking
+
+This patch is based on the following mixins:
+* "net/caffeinemc/mods/lithium/mixin/util/item_component_and_count_tracking/PatchedDataComponentMapMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/util/item_component_and_count_tracking/ItemStackMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/entity/equipment_tracking/enchantment_ticking/LivingEntityMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/entity/equipment_tracking/equipment_changes/LivingEntityMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/entity/equipment_tracking/EntityEquipmentMixin.java"
+* "net/caffeinemc/mods/lithium/common/util/change_tracking/ChangePublisher.java"
+* "net/caffeinemc/mods/lithium/common/util/change_tracking/ChangeSubscriber.java"
+By: 2No2Name <2No2Name@web.de>
+As part of: Lithium (https://github.com/CaffeineMC/lithium)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
+
+diff --git a/net/minecraft/world/entity/EntityEquipment.java b/net/minecraft/world/entity/EntityEquipment.java
+index 1aa888376784dfc9ddd9c4e2493031ff2a564b59..683ffa16e758e615597023602ec43d6eea551b6c 100644
+--- a/net/minecraft/world/entity/EntityEquipment.java
++++ b/net/minecraft/world/entity/EntityEquipment.java
+@@ -8,7 +8,7 @@ import java.util.Map.Entry;
+ import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.item.ItemStack;
+ 
+-public class EntityEquipment {
++public class EntityEquipment implements net.caffeinemc.mods.lithium.common.util.change_tracking.ChangeSubscriber.CountChangeSubscriber<net.minecraft.world.item.ItemStack> { // DivineMC - lithium: equipment_tracking
+     public static final Codec<EntityEquipment> CODEC = Codec.unboundedMap(EquipmentSlot.CODEC, ItemStack.CODEC).xmap(items -> {
+         EnumMap<EquipmentSlot, ItemStack> map = new EnumMap<>(EquipmentSlot.class);
+         map.putAll((Map<? extends EquipmentSlot, ? extends ItemStack>)items);
+@@ -19,6 +19,11 @@ public class EntityEquipment {
+         return items;
+     });
+     private final EnumMap<EquipmentSlot, ItemStack> items;
++    // DivineMC start - lithium: equipment_tracking
++    boolean shouldTickEnchantments = false;
++    ItemStack recheckEnchantmentForStack = null;
++    boolean hasUnsentEquipmentChanges = true;
++    // DivineMC end - lithium: equipment_tracking
+ 
+     private EntityEquipment(final EnumMap<EquipmentSlot, ItemStack> items) {
+         this.items = items;
+@@ -29,7 +34,13 @@ public class EntityEquipment {
+     }
+ 
+     public ItemStack set(final EquipmentSlot slot, final ItemStack itemStack) {
+-        return Objects.requireNonNullElse(this.items.put(slot, itemStack), ItemStack.EMPTY);
++        // DivineMC start - lithium: equipment_tracking
++        ItemStack oldStack = Objects.requireNonNullElse(this.items.put(slot, itemStack), ItemStack.EMPTY);
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) {
++            this.onEquipmentReplaced(oldStack, itemStack);
++        }
++        return oldStack;
++        // DivineMC end - lithium: equipment_tracking
+     }
+ 
+     public ItemStack get(final EquipmentSlot slot) {
+@@ -56,8 +67,23 @@ public class EntityEquipment {
+     }
+ 
+     public void setAll(final EntityEquipment equipment) {
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) this.onClear(); // DivineMC - lithium: equipment_tracking
+         this.items.clear();
+         this.items.putAll(equipment.items);
++        // DivineMC start - lithium: equipment_tracking
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) {
++            for (net.minecraft.world.item.ItemStack newStack : this.items.values()) {
++                if (!newStack.isEmpty()) {
++                    if (!this.shouldTickEnchantments) {
++                        this.shouldTickEnchantments = stackHasTickableEnchantment(newStack);
++                    }
++                    if (!newStack.isEmpty()) {
++                        newStack.lithium$subscribe(this, 0);
++                    }
++                }
++            }
++        }
++        // DivineMC end - lithium: equipment_tracking
+     }
+ 
+     public void dropAll(final LivingEntity dropper) {
+@@ -73,6 +99,7 @@ public class EntityEquipment {
+ 
+     public void clear() {
+         this.items.replaceAll((s, v) -> ItemStack.EMPTY);
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) this.onClear(); // DivineMC - lithium: equipment_tracking
+     }
+ 
+     // Paper start - EntityDeathEvent
+@@ -81,4 +108,98 @@ public class EntityEquipment {
+         return this.items.containsKey(slot);
+     }
+     // Paper end - EntityDeathEvent
++
++    // DivineMC start - lithium: equipment_tracking
++    public boolean lithium$shouldTickEnchantments() {
++        this.processScheduledEnchantmentCheck(null);
++        return this.shouldTickEnchantments;
++    }
++
++    public boolean lithium$hasUnsentEquipmentChanges() {
++        return this.hasUnsentEquipmentChanges;
++    }
++
++    public void lithium$onEquipmentChangesSent() {
++        this.hasUnsentEquipmentChanges = false;
++    }
++
++    private void onClear() {
++        this.shouldTickEnchantments = false;
++        this.recheckEnchantmentForStack = null;
++        this.hasUnsentEquipmentChanges = true;
++
++        for (ItemStack oldStack : this.items.values()) {
++            if (!oldStack.isEmpty()) {
++                oldStack.lithium$unsubscribeWithData(this, 0);
++            }
++        }
++    }
++
++    private void onEquipmentReplaced(ItemStack oldStack, ItemStack newStack) {
++        if (!this.shouldTickEnchantments) {
++            if (this.recheckEnchantmentForStack == oldStack) {
++                this.recheckEnchantmentForStack = null;
++            }
++            this.shouldTickEnchantments = stackHasTickableEnchantment(newStack);
++        }
++
++        this.hasUnsentEquipmentChanges = true;
++
++        if (!oldStack.isEmpty()) {
++            oldStack.lithium$unsubscribeWithData(this, 0);
++        }
++        if (!newStack.isEmpty()) {
++            newStack.lithium$subscribe(this, 0);
++        }
++    }
++
++    private static boolean stackHasTickableEnchantment(ItemStack stack) {
++        if (!stack.isEmpty()) {
++            net.minecraft.world.item.enchantment.ItemEnchantments enchantments = stack.get(net.minecraft.core.component.DataComponents.ENCHANTMENTS);
++            if (enchantments != null && !enchantments.isEmpty()) {
++                for (net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment> enchantmentEntry : enchantments.keySet()) {
++                    if (!enchantmentEntry.value().getEffects(net.minecraft.world.item.enchantment.EnchantmentEffectComponents.TICK).isEmpty()) {
++                        return true;
++                    }
++                }
++            }
++        }
++        return false;
++    }
++
++    @Override
++    public void lithium$notify(@org.jetbrains.annotations.Nullable ItemStack publisher, int zero) {
++        this.hasUnsentEquipmentChanges = true;
++
++        if (!this.shouldTickEnchantments) {
++            this.processScheduledEnchantmentCheck(publisher);
++            this.scheduleEnchantmentCheck(publisher);
++        }
++    }
++
++    private void scheduleEnchantmentCheck(@org.jetbrains.annotations.Nullable ItemStack toCheck) {
++        this.recheckEnchantmentForStack = toCheck;
++    }
++
++    private void processScheduledEnchantmentCheck(@org.jetbrains.annotations.Nullable ItemStack ignoredStack) {
++        if (this.recheckEnchantmentForStack != null && this.recheckEnchantmentForStack != ignoredStack) {
++            this.shouldTickEnchantments = stackHasTickableEnchantment(this.recheckEnchantmentForStack);
++            this.recheckEnchantmentForStack = null;
++        }
++    }
++
++    @Override
++    public void lithium$notifyCount(ItemStack publisher, int zero, int newCount) {
++        if (newCount == 0) {
++            publisher.lithium$unsubscribeWithData(this, zero);
++        }
++
++        this.onEquipmentReplaced(publisher, ItemStack.EMPTY);
++    }
++
++    @Override
++    public void lithium$forceUnsubscribe(ItemStack publisher, int zero) {
++        throw new UnsupportedOperationException();
++    }
++    // DivineMC end - lithium: equipment_tracking
+ }
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index 5c76eee827ac06f47c52a268669e7b4815e5a8c1..8ab4ef6ad5dd7d4ce439a18d712c0f7469dbe158 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -458,9 +458,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             });
+         }
+ 
+-        if (this.level() instanceof ServerLevel serverLevel) {
+-            EnchantmentHelper.tickEffects(serverLevel, this);
++        // DivineMC start - lithium: equipment_tracking
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) {
++            if ((this instanceof Player || this.equipment.lithium$shouldTickEnchantments()) && this.level() instanceof ServerLevel serverLevel) {
++                EnchantmentHelper.tickEffects(serverLevel, this);
++            }
++        } else {
++            if (this.level() instanceof ServerLevel serverLevel) {
++                EnchantmentHelper.tickEffects(serverLevel, this);
++            }
+         }
++        // DivineMC end - lithium: equipment_tracking
+ 
+         super.baseTick();
+         ProfilerFiller profiler = Profiler.get();
+@@ -3652,6 +3660,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     public void detectEquipmentUpdates() {
+         Map<EquipmentSlot, ItemStack> changedItems = this.collectEquipmentChanges(this.lastEquipmentItems);
+         if (changedItems != null) {
++            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking && !(this instanceof net.minecraft.world.entity.player.Player)) this.equipment.lithium$onEquipmentChangesSent(); // DivineMC - lithium: equipment_tracking
+             this.handleHandSwap(changedItems);
+             if (!changedItems.isEmpty()) {
+                 this.handleEquipmentChanges(changedItems);
+@@ -3660,6 +3669,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     }
+ 
+     protected @Nullable Map<EquipmentSlot, ItemStack> collectEquipmentChanges(final Map<EquipmentSlot, ItemStack> lastEquipmentItems) {
++        // DivineMC start - lithium: equipment_tracking
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) {
++            final boolean isArmorStandUpdateNoTick = this instanceof net.minecraft.world.entity.decoration.ArmorStand stand && !stand.canTick && stand.noTickEquipmentDirty;
++            if (!isArmorStandUpdateNoTick && !this.equipment.lithium$hasUnsentEquipmentChanges()) {
++                return null;
++            }
++        }
++        // DivineMC end - lithium: equipment_tracking
+         Map<EquipmentSlot, ItemStack> changedItems = null;
+         // Paper start - EntityEquipmentChangedEvent
+         record EquipmentChangeImpl(org.bukkit.inventory.ItemStack oldItem, org.bukkit.inventory.ItemStack newItem) implements io.papermc.paper.event.entity.EntityEquipmentChangedEvent.EquipmentChange {
+diff --git a/net/minecraft/world/entity/decoration/ArmorStand.java b/net/minecraft/world/entity/decoration/ArmorStand.java
+index 7fe3efb911a80cb1be59d342cc980c3eade6701d..57705be4938ca7dc8f2ab993567bcf8e154d724f 100644
+--- a/net/minecraft/world/entity/decoration/ArmorStand.java
++++ b/net/minecraft/world/entity/decoration/ArmorStand.java
+@@ -557,8 +557,9 @@ public class ArmorStand extends LivingEntity {
+         maxUpStep = level().purpurConfig.armorstandStepHeight; // Purpur - Add option to set armorstand step height
+         if (!this.canTick) {
+             if (this.noTickEquipmentDirty) {
+-                this.noTickEquipmentDirty = false;
++                if (!org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) this.noTickEquipmentDirty = false; // DivineMC - lithium: equipment_tracking
+                 this.detectEquipmentUpdates();
++                if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) this.noTickEquipmentDirty = false; // DivineMC - lithium: equipment_tracking
+             }
+ 
+             return;

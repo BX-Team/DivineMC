@@ -1,12 +1,6 @@
 # This file is auto generated, any changes may be overridden!
 # See CONTRIBUTING.md on how to add access transformers.
 private-f net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData buffer
-private-f net.minecraft.world.level.levelgen.NoiseChunk$Cache2D function
-private-f net.minecraft.world.level.levelgen.NoiseChunk$CacheOnce function
-private-f net.minecraft.world.level.levelgen.NoiseChunk$FlatCache noiseFiller
-private-f net.minecraft.world.level.levelgen.NoiseChunk$NoiseInterpolator noiseFiller
-private-f net.minecraft.world.level.levelgen.RandomState router
-private-f net.minecraft.world.level.levelgen.RandomState sampler
 public net.minecraft.core.NonNullList list
 public net.minecraft.server.level.ServerLevel chunkSource
 public net.minecraft.server.level.ServerLevel entityTickList
@@ -34,58 +28,18 @@ public net.minecraft.world.level.chunk.storage.RegionFile recalculateHeader()Z
 public net.minecraft.world.level.chunk.storage.RegionFile setOversized(IIZ)V
 public net.minecraft.world.level.chunk.storage.RegionFile write(Lnet/minecraft/world/level/ChunkPos;Ljava/nio/ByteBuffer;)V
 public net.minecraft.world.level.entity.EntityTickList entities
-public net.minecraft.world.level.levelgen.DensityFunctions$BlendAlpha
-public net.minecraft.world.level.levelgen.DensityFunctions$BlendDensity
-public net.minecraft.world.level.levelgen.DensityFunctions$BlendOffset
-public net.minecraft.world.level.levelgen.DensityFunctions$Clamp
-public net.minecraft.world.level.levelgen.DensityFunctions$Constant
-public net.minecraft.world.level.levelgen.DensityFunctions$IntervalSelect
-public net.minecraft.world.level.levelgen.DensityFunctions$Mapped
-public net.minecraft.world.level.levelgen.DensityFunctions$Mapped$Type
-public net.minecraft.world.level.levelgen.DensityFunctions$Noise
-public net.minecraft.world.level.levelgen.DensityFunctions$RangeChoice
-public net.minecraft.world.level.levelgen.DensityFunctions$Shift
-public net.minecraft.world.level.levelgen.DensityFunctions$ShiftA
-public net.minecraft.world.level.levelgen.DensityFunctions$ShiftB
-public net.minecraft.world.level.levelgen.DensityFunctions$ShiftedNoise
-public net.minecraft.world.level.levelgen.DensityFunctions$TwoArgumentSimpleFunction
-public net.minecraft.world.level.levelgen.DensityFunctions$WeirdScaledSampler
-public net.minecraft.world.level.levelgen.DensityFunctions$WeirdScaledSampler$RarityValueMapper mapper
-public net.minecraft.world.level.levelgen.DensityFunctions$YClampedGradient
 public net.minecraft.world.level.levelgen.Heightmap setHeight(III)V
-public net.minecraft.world.level.levelgen.NoiseChunk blender
-public net.minecraft.world.level.levelgen.NoiseChunk$BlendAlpha
-public net.minecraft.world.level.levelgen.NoiseChunk$BlendOffset
-public net.minecraft.world.level.levelgen.NoiseRouterData$QuantizedSpaghettiRarity
-public net.minecraft.world.level.levelgen.NoiseRouterData$QuantizedSpaghettiRarity getSpaghettiRarity3D(D)D
-public net.minecraft.world.level.levelgen.NoiseRouterData$QuantizedSpaghettiRarity getSphaghettiRarity2D(D)D
 public net.minecraft.world.level.levelgen.Xoroshiro128PlusPlus seedHi
 public net.minecraft.world.level.levelgen.Xoroshiro128PlusPlus seedLo
 public net.minecraft.world.level.levelgen.XoroshiroRandomSource randomNumberGenerator
 public net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool rawTemplates
-public net.minecraft.world.level.levelgen.synth.BlendedNoise mainNoise
-public net.minecraft.world.level.levelgen.synth.BlendedNoise maxLimitNoise
-public net.minecraft.world.level.levelgen.synth.BlendedNoise minLimitNoise
-public net.minecraft.world.level.levelgen.synth.BlendedNoise smearScaleMultiplier
-public net.minecraft.world.level.levelgen.synth.BlendedNoise xzFactor
-public net.minecraft.world.level.levelgen.synth.BlendedNoise xzMultiplier
-public net.minecraft.world.level.levelgen.synth.BlendedNoise xzScale
-public net.minecraft.world.level.levelgen.synth.BlendedNoise yFactor
-public net.minecraft.world.level.levelgen.synth.BlendedNoise yMultiplier
-public net.minecraft.world.level.levelgen.synth.BlendedNoise yScale
-public net.minecraft.world.level.levelgen.synth.ImprovedNoise p
-public net.minecraft.world.level.levelgen.synth.PerlinNoise amplitudes
-public net.minecraft.world.level.levelgen.synth.PerlinNoise lowestFreqInputFactor
-public net.minecraft.world.level.levelgen.synth.PerlinNoise lowestFreqValueFactor
-public net.minecraft.world.level.levelgen.synth.PerlinNoise noiseLevels
-public net.minecraft.world.level.levelgen.synth.SimplexNoise p
 public net.minecraft.world.level.pathfinder.NodeEvaluator nodes
 public net.minecraft.world.level.pathfinder.SwimNodeEvaluator allowBreaching
 public net.minecraft.world.level.storage.loot.LootPool entries
 public net.minecraft.world.level.storage.loot.LootTable pools
 public net.minecraft.world.level.storage.loot.entries.CompositeEntryBase children
-public net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer conditions
-public net.minecraft.world.level.storage.loot.entries.NestedLootTable contents
+public net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer condition
+public net.minecraft.world.level.storage.loot.entries.NestedLootTable value
 public net.minecraft.world.level.storage.loot.predicates.CompositeLootItemCondition terms
 public-f ca.spottedleaf.moonrise.paper.PaperHooks
 public-f net.minecraft.world.level.chunk.HashMapPalette moonrise$getRawPalette(Lca/spottedleaf/moonrise/patches/fast_palette/FastPaletteData;)[Ljava/lang/Object;

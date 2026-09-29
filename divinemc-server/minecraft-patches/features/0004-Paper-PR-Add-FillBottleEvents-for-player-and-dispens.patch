@@ -23,10 +23,10 @@ index 80b4905bc7b9c67a0d4355e5de3b3cdb46fcb061..570f912ecb396159a8a762d4600615c0
                      player.awardStat(Stats.ITEM_USED.get(usedItem));
                      // level.setBlockAndUpdate(pos, Blocks.WATER_CAULDRON.defaultBlockState()); // CraftBukkit
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index aa5bebc293a73468cadf7939fd0a64822953e452..c1c4c7d6afd94da4f139d14e4a406e136039d03c 100644
+index c33cb78dddfaff40f54ff4def7d58ebdd7085fa3..d461e6d6c5b5ca23809a603efe1b1a66e09258ab 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-@@ -474,13 +474,25 @@ public interface DispenseItemBehavior {
+@@ -473,13 +473,25 @@ public interface DispenseItemBehavior {
                      // Paper end - Call BlockDispenseEvent
                      if (state.is(BlockTags.BEEHIVES, s -> s.hasProperty(BeehiveBlock.HONEY_LEVEL) && s.getBlock() instanceof BeehiveBlock)
                          && state.getValue(BeehiveBlock.HONEY_LEVEL) >= 5) {
@@ -111,10 +111,10 @@ index 83c4c614ccc3a219d4e27d9e17d0fc61ec6e4dd9..b6b06bc2902a6d0febdfec92a65fc2a8
              }
  
 diff --git a/net/minecraft/world/level/block/BeehiveBlock.java b/net/minecraft/world/level/block/BeehiveBlock.java
-index e071dae775a5dc95eb0d5d6c080e623aeaa97385..c519107372dcdd6d3d53e1d5f2d07401ee638ee0 100644
+index a6d6e4acc5b46f869aa17b743d558e708c185f7e..dfe21ac5dc81c609f61a540c06491995922179ad 100644
 --- a/net/minecraft/world/level/block/BeehiveBlock.java
 +++ b/net/minecraft/world/level/block/BeehiveBlock.java
-@@ -181,12 +181,26 @@ public class BeehiveBlock extends BaseEntityBlock {
+@@ -175,12 +175,26 @@ public class BeehiveBlock extends BaseEntityBlock {
                  hiveEmptied = true;
                  level.gameEvent(player, GameEvent.SHEAR, pos);
              } else if (itemStack.is(Items.GLASS_BOTTLE)) {
@@ -135,11 +135,11 @@ index e071dae775a5dc95eb0d5d6c080e623aeaa97385..c519107372dcdd6d3d53e1d5f2d07401
                  if (itemStack.isEmpty()) {
 -                    player.setItemInHand(hand, new ItemStack(Items.HONEY_BOTTLE));
 -                } else if (!player.getInventory().add(new ItemStack(Items.HONEY_BOTTLE))) {
--                    player.drop(new ItemStack(Items.HONEY_BOTTLE), false);
+-                    player.drop(new ItemStack(Items.HONEY_BOTTLE), false, Prediction.PREDICTED);
 +                    // DivineMC start - Paper PR: Add FillBottleEvents for player and dispenser
 +                    player.setItemInHand(hand, resultItem);
 +                } else if (!player.getInventory().add(resultItem)) {
-+                    player.drop(resultItem, false);
++                    player.drop(resultItem, false, Prediction.PREDICTED);
 +                    // DivineMC end - Paper PR: Add FillBottleEvents for player and dispenser
                  }
  

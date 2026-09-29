@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sat, 26 Apr 2025 22:30:35 +0300
+Subject: [PATCH] Player ProfileResult caching
+
+
+diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+index bf87abc39fc510bebcdb83b94989103fc63f14e4..f444f29e37aaa23b90e1538966804740feb40e47 100644
+--- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+@@ -70,6 +70,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+     private int velocityLoginMessageId = -1; // Paper - Add Velocity IP Forwarding Support
+     public java.util.@Nullable UUID requestedUuid; // Paper
+     private final io.papermc.paper.connection.PaperPlayerLoginConnection paperLoginConnection; // Paper - Config API
++    // DivineMC start - Player ProfileResult caching
++    private static final com.google.common.cache.Cache<String, ProfileResult> playerProfileResultCache = com.google.common.cache.CacheBuilder.newBuilder()
++        .expireAfterWrite(org.bxteam.divinemc.config.DivineConfig.NetworkCategory.playerProfileResultCachingTimeout, java.util.concurrent.TimeUnit.MINUTES)
++        .build();
++    // DivineMC end - Player ProfileResult caching
+ 
+     public ServerLoginPacketListenerImpl(final MinecraftServer minecraftserver, final Connection connection, final boolean transferred) {
+         this.server = minecraftserver;
+@@ -268,10 +273,25 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+                 String name = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
+ 
+                 try {
+-                    ProfileResult result = ServerLoginPacketListenerImpl.this.server
+-                        .services()
+-                        .sessionService()
+-                        .hasJoinedServer(name, digest, this.getAddress());
++                    // DivineMC start - Player ProfileResult caching
++                    ProfileResult result;
++                    if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.playerProfileResultCachingEnabled) {
++                        result = playerProfileResultCache.getIfPresent(name);
++
++                        if (result == null) {
++                            result = ServerLoginPacketListenerImpl.this.server
++                                .services()
++                                .sessionService()
++                                .hasJoinedServer(name, digest, this.getAddress());
++                            playerProfileResultCache.put(name, result);
++                        }
++                    } else {
++                        result = ServerLoginPacketListenerImpl.this.server
++                            .services()
++                            .sessionService()
++                            .hasJoinedServer(name, digest, this.getAddress());
++                    }
++                    // DivineMC end - Player ProfileResult caching
+                     if (result != null) {
+                         GameProfile profile = result.profile();
+                         // CraftBukkit start - fire PlayerPreLoginEvent

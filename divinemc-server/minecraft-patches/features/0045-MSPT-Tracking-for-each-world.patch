@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sat, 1 Feb 2025 18:55:59 +0300
+Subject: [PATCH] MSPT Tracking for each world
+
+
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index 80598905e93c3b5c066bc3b8830a9efdaef99d4f..18121bec15325dbf3a14bfa0ed230f57d8a4a138 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -1798,7 +1798,16 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     // DivineMC start - Parallel world ticking
+     private void tickLevel(ServerLevel serverLevel, BooleanSupplier haveTime) {
+         try {
++            // DivineMC start - MSPT Tracking for each world
++            long tickStart = Util.getNanos();
+             serverLevel.tick(haveTime);
++
++            long tickDuration = Util.getNanos() - tickStart;
++
++            serverLevel.tickTimes5s.add(this.tickCount, tickDuration);
++            serverLevel.tickTimes10s.add(this.tickCount, tickDuration);
++            serverLevel.tickTimes60s.add(this.tickCount, tickDuration);
++            // DivineMC end - MSPT Tracking for each world
+         } catch (Throwable levelTickingException) {
+             CrashReport crashReport = CrashReport.forThrowable(levelTickingException, "Exception ticking world");
+             serverLevel.fillReportDetails(crashReport);
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index bf9d345477ab5b6f1402088f9e71bcdc56898d30..be581d6d6c63e5cc1ff8889b510d39bf1913434b 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -613,6 +613,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+     }
+     // Paper end - chunk tick iteration
+ 
++    // DivineMC start - MSPT Tracking for each world
++    public final MinecraftServer.TickTimes tickTimes5s = new MinecraftServer.TickTimes(100);
++    public final MinecraftServer.TickTimes tickTimes10s = new MinecraftServer.TickTimes(200);
++    public final MinecraftServer.TickTimes tickTimes60s = new MinecraftServer.TickTimes(1200);
++    // DivineMC end - MSPT Tracking for each world
++
+     public ServerLevel(
+         final MinecraftServer server,
+         final Executor executor,

@@ -1,0 +1,237 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Wed, 20 May 2026 01:01:37 +0300
+Subject: [PATCH] C2ME: native math optimization
+
+This patch is based on the c2me-opts-natives-math module
+By: ishland <ishlandmc@yeah.net>
+As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
+Licensed under: MIT (https://opensource.org/licenses/MIT)
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index e788312524ad186722c4b133f476499ca1c14bde..1cbb1fa882aae0ab8c3a51dd4e1219acd2068dad 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -112,6 +112,26 @@ public class Main {
+             org.purpurmc.purpur.PurpurConfig.registerMinecraftDisabledCommands = purpurConfiguration.getBoolean("settings.register-minecraft-disabled-commands"); // Purpur - register disabled minecraft commands
+             // Purpur end - Add toggle for enchant level clamping - load config files early
+ 
++            // DivineMC start - C2ME: native math optimization
++            org.bukkit.configuration.file.YamlConfiguration divinemcConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("divinemc-settings"));
++            boolean divinemcNativeMathEnabled = divinemcConfiguration.getBoolean("performance.chunks.native-acceleration.enabled", false);
++            if (divinemcNativeMathEnabled) {
++                org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.allowAVX512 =
++                    divinemcConfiguration.getBoolean("performance.chunks.native-acceleration.allow-avx512", false);
++                int divinemcIsaTargetLevelOverride =
++                    divinemcConfiguration.getInt("performance.chunks.native-acceleration.isa-target-level-override", -1);
++                if (divinemcIsaTargetLevelOverride < -1 || divinemcIsaTargetLevelOverride > 13) {
++                    divinemcIsaTargetLevelOverride = -1;
++                }
++                org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.isaTargetLevelOverride = divinemcIsaTargetLevelOverride;
++                try {
++                    Class.forName("org.bxteam.divinemc.math.NativeLoader").getField("lookup").get(null);
++                } catch (Throwable e) {
++                    LOGGER.error("Failed to initialize native math acceleration, continuing without it", e);
++                }
++            }
++            // DivineMC end - C2ME: native math optimization
++
+             io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
+             Bootstrap.bootStrap();
+             Bootstrap.validate();
+diff --git a/net/minecraft/world/level/biome/BiomeManager.java b/net/minecraft/world/level/biome/BiomeManager.java
+index 99b4cf3529c973c154277e07108fc6d2d0bead76..73ad063a380c54e0804455ae66dc03459d640337 100644
+--- a/net/minecraft/world/level/biome/BiomeManager.java
++++ b/net/minecraft/world/level/biome/BiomeManager.java
+@@ -37,6 +37,16 @@ public class BiomeManager {
+     }
+ 
+     public Holder<Biome> getBiome(final int blockX, final int blockY, final int blockZ) { // DivineMC - Carpet-Fixes: Optimized getBiome method - rename params
++        // DivineMC start - C2ME: native math optimization
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++            final int mask = org.bxteam.divinemc.math.Bindings.c2me_natives_biome_access_sample(this.biomeZoomSeed, blockX, blockY, blockZ);
++            return this.noiseBiomeSource.getNoiseBiome(
++                ((blockX - 2) >> 2) + ((mask & 4) != 0 ? 1 : 0),
++                ((blockY - 2) >> 2) + ((mask & 2) != 0 ? 1 : 0),
++                ((blockZ - 2) >> 2) + ((mask & 1) != 0 ? 1 : 0)
++            );
++        }
++        // DivineMC end - C2ME: native math optimization
+         // DivineMC start - Carpet-Fixes: Optimized getBiome method
+         int xMinus2 = blockX - 2;
+         int yMinus2 = blockY - 2;
+diff --git a/net/minecraft/world/level/levelgen/densityfunction/DensityBuffer.java b/net/minecraft/world/level/levelgen/densityfunction/DensityBuffer.java
+index ec0ca312c28dc1ba4b4f310ff3f80f22fc3367a5..2281340d5c4df627be05f5d38a8c0d40839efd91 100644
+--- a/net/minecraft/world/level/levelgen/densityfunction/DensityBuffer.java
++++ b/net/minecraft/world/level/levelgen/densityfunction/DensityBuffer.java
+@@ -5,6 +5,7 @@ import java.util.Arrays;
+ public class DensityBuffer {
+     protected final float[] values;
+     protected int size;
++    private java.lang.foreign.@org.jspecify.annotations.Nullable MemorySegment divinemc$segment; // DivineMC - C2ME: native math optimization
+ 
+     protected DensityBuffer(final int size) {
+         this.values = new float[size];
+@@ -43,6 +44,16 @@ public class DensityBuffer {
+         System.arraycopy(other.values, 0, this.values, 0, this.size());
+     }
+ 
++    // DivineMC start - C2ME: native math optimization
++    public java.lang.foreign.MemorySegment divinemc$heapSegment() {
++        java.lang.foreign.MemorySegment segment = this.divinemc$segment;
++        if (segment == null) {
++            this.divinemc$segment = segment = java.lang.foreign.MemorySegment.ofArray(this.values);
++        }
++        return segment;
++    }
++    // DivineMC end - C2ME: native math optimization
++
+     public int capacity() {
+         return this.values.length;
+     }
+diff --git a/net/minecraft/world/level/levelgen/densityfunction/generator/EndIslandFunction.java b/net/minecraft/world/level/levelgen/densityfunction/generator/EndIslandFunction.java
+index 2bdc138f0e34793fec010edcbb35936ed6a50d0f..491e4f5f0ed35a5a1940922d193cc61be1fcc8f2 100644
+--- a/net/minecraft/world/level/levelgen/densityfunction/generator/EndIslandFunction.java
++++ b/net/minecraft/world/level/levelgen/densityfunction/generator/EndIslandFunction.java
+@@ -46,7 +46,14 @@ public record EndIslandFunction() implements DensityFunction {
+         RandomSource islandRandom = context.createEndIslandRandom();
+         islandRandom.consumeCount(17292);
+         SimplexNoise islandNoise = new SimplexNoise(islandRandom, true);
+-        return new EndIslandFunction.Sampler(islandNoise);
++        // DivineMC start - C2ME: native math optimization
++        java.lang.foreign.MemorySegment nativePerms = null;
++        if (islandNoise.divinemc$packedPerms != null && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++            nativePerms = java.lang.foreign.Arena.ofAuto().allocate(islandNoise.divinemc$packedPerms.byteSize(), 64);
++            java.lang.foreign.MemorySegment.copy(islandNoise.divinemc$packedPerms, 0L, nativePerms, 0L, islandNoise.divinemc$packedPerms.byteSize());
++        }
++        return new EndIslandFunction.Sampler(islandNoise, nativePerms);
++        // DivineMC end - C2ME: native math optimization
+     }
+ 
+     @Override
+@@ -69,7 +76,7 @@ public record EndIslandFunction() implements DensityFunction {
+         return this;
+     }
+ 
+-    private record Sampler(SimplexNoise islandNoise) implements DensitySampler {
++    private record Sampler(SimplexNoise islandNoise, java.lang.foreign.@org.jspecify.annotations.Nullable MemorySegment divinemc$nativePerms) implements DensitySampler { // DivineMC - C2ME: native math optimization
+         @Override
+         public void sampleVolume(final SamplerContext context, final DensityBuffer outputBuffer, final DensityVolume volume) {
+             for (int z = 0; z < volume.sizeZ(); z++) {
+@@ -86,6 +93,11 @@ public record EndIslandFunction() implements DensityFunction {
+ 
+         @Override
+         public float sampleValue(final SamplerContext context, final int blockX, final int blockY, final int blockZ) {
++            // DivineMC start - C2ME: native math optimization
++            if (this.divinemc$nativePerms != null && !org.purpurmc.purpur.PurpurConfig.generateEndVoidRings) {
++                return (org.bxteam.divinemc.math.Bindings.c2me_natives_end_islands_sample(this.divinemc$nativePerms, blockX / 8, blockZ / 8) - 8.0F) / 128.0F;
++            }
++            // DivineMC end - C2ME: native math optimization
+             return (EndIslandFunction.getHeightValue(this.islandNoise, blockX / 8, blockZ / 8) - 8.0F) / 128.0F;
+         }
+     }
+diff --git a/net/minecraft/world/level/levelgen/synth/GradientNoise.java b/net/minecraft/world/level/levelgen/synth/GradientNoise.java
+index d7b2a91df8c5c0ce480bc537b3457fcd144162e1..b3aa1cf065d5df1c90b7726e35c591d424e5016c 100644
+--- a/net/minecraft/world/level/levelgen/synth/GradientNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/GradientNoise.java
+@@ -28,6 +28,7 @@ public abstract class GradientNoise implements Noise {
+     protected final double offsetX;
+     protected final double offsetY;
+     protected final double offsetZ;
++    public final java.lang.foreign.@org.jspecify.annotations.Nullable MemorySegment divinemc$packedPerms; // DivineMC - C2ME: native math optimization
+ 
+     protected GradientNoise(final RandomSource random) {
+         this(random, 256.0);
+@@ -48,6 +49,18 @@ public abstract class GradientNoise implements Noise {
+             this.perms[i] = this.perms[offset + i];
+             this.perms[offset + i] = tmp;
+         }
++
++        // DivineMC start - C2ME: native math optimization
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++            final int[] packed = new int[this.perms.length >> 2];
++            for (int i = 0; i < this.perms.length; i++) {
++                packed[i >> 2] |= (this.perms[i] & 0xFF) << ((i & 3) << 3);
++            }
++            this.divinemc$packedPerms = java.lang.foreign.MemorySegment.ofArray(packed);
++        } else {
++            this.divinemc$packedPerms = null;
++        }
++        // DivineMC end - C2ME: native math optimization
+     }
+ 
+     protected int permute(final int x) {
+diff --git a/net/minecraft/world/level/levelgen/synth/NoiseStack.java b/net/minecraft/world/level/levelgen/synth/NoiseStack.java
+index 3cb7094148b00eba7c46c3ec56653c02d179c6bb..e63aa4e9a964a9c2bb5e5b1551052ee37c55f8e3 100644
+--- a/net/minecraft/world/level/levelgen/synth/NoiseStack.java
++++ b/net/minecraft/world/level/levelgen/synth/NoiseStack.java
+@@ -76,12 +76,23 @@ public class NoiseStack implements Noise {
+         }
+ 
+         public NoiseStack.Builder add(final Noise noise, final double frequency, final float amplitude) {
++            // DivineMC start - C2ME: native math optimization - flatten nested stacks so the specialized Perlin stacks can be used
++            if (noise instanceof NoiseStack nested && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++                return this.addStack(nested, frequency, amplitude);
++            }
++            // DivineMC end - C2ME: native math optimization - flatten nested stacks so the specialized Perlin stacks can be used
+             this.layers.add(new NoiseStack.Layer(noise, frequency, amplitude));
+             return this;
+         }
+ 
+         public NoiseStack.Builder addStack(final NoiseStack stack, final double frequency, final float amplitude) {
+             for (NoiseStack.Layer layer : stack.layers) {
++                // DivineMC start - C2ME: native math optimization - flatten nested stacks so the specialized Perlin stacks can be used
++                if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++                    this.add(layer.noise, layer.frequency * frequency, layer.amplitude * amplitude);
++                    continue;
++                }
++                // DivineMC end - C2ME: native math optimization - flatten nested stacks so the specialized Perlin stacks can be used
+                 this.layers.add(new NoiseStack.Layer(layer.noise, layer.frequency * frequency, layer.amplitude * amplitude));
+             }
+ 
+diff --git a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
+index ecbd95204e4650b514d341f79c5756430e08e70f..48322d7ace310cc8fb5767d24c583d879ac5ee8c 100644
+--- a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
+@@ -77,6 +77,18 @@ public class PerlinNoise extends GradientNoise {
+ 
+     @Override
+     public void addToVolume(final DensityBuffer buffer, final DensityVolume volume, final double xzScale, final double yScale, final float amplitude) {
++        // DivineMC start - C2ME: native math optimization
++        if (this.divinemc$packedPerms != null && volume.size() >= 8 && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++            org.bxteam.divinemc.math.Bindings.c2me_natives_noise_perlin_sample_base_area(
++                this.divinemc$packedPerms, this.offsetX, this.offsetY, this.offsetZ, buffer.divinemc$heapSegment(),
++                volume.sizeX(), volume.sizeY(), volume.sizeZ(),
++                volume.minBlockX(), volume.minBlockY(), volume.minBlockZ(),
++                volume.stepBlockX(), volume.stepBlockY(), volume.stepBlockZ(),
++                xzScale, yScale, amplitude
++            );
++            return;
++        }
++        // DivineMC end - C2ME: native math optimization
+         float d000xz = 0.0F;
+         float d100xz = 0.0F;
+         float d010xz = 0.0F;
+diff --git a/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java b/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
+index 4884b35596ea7ab327f75f0537affab97df492be..f108a8cc47dac20b95706ca71075084885ede3db 100644
+--- a/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
++++ b/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
+@@ -53,6 +53,18 @@ public class SmearedPerlinNoise extends PerlinNoise {
+ 
+     @Override
+     public void addToVolume(final DensityBuffer buffer, final DensityVolume volume, final double xzScale, final double yScale, final float amplitude) {
++        // DivineMC start - C2ME: native math optimization
++        if (this.divinemc$packedPerms != null && volume.size() >= 8 && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
++            org.bxteam.divinemc.math.Bindings.c2me_natives_noise_perlin_sample_legacy_area(
++                this.divinemc$packedPerms, this.offsetX, this.offsetY, this.offsetZ, this.fudgeYScale, buffer.divinemc$heapSegment(),
++                volume.sizeX(), volume.sizeY(), volume.sizeZ(),
++                volume.minBlockX(), volume.minBlockY(), volume.minBlockZ(),
++                volume.stepBlockX(), volume.stepBlockY(), volume.stepBlockZ(),
++                xzScale, yScale, amplitude
++            );
++            return;
++        }
++        // DivineMC end - C2ME: native math optimization
+         float d000xz = 0.0F;
+         float d100xz = 0.0F;
+         float d010xz = 0.0F;

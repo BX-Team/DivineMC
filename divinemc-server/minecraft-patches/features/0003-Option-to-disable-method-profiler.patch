@@ -5,10 +5,10 @@ Subject: [PATCH] Option to disable method profiler
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 8d7d2957c2cec4fa37e295c658080edbfa59ce09..be2213f9bb5f6d4fd5fc05dcd8854dc28b978e27 100644
+index 021d726fcc57e148ee328e6375276c2c254043d1..1b529e652775c8d107736d0c334c4738c818c7c0 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -2792,6 +2792,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2752,6 +2752,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      // CraftBukkit end
  
      private ProfilerFiller createProfiler() {
@@ -17,10 +17,10 @@ index 8d7d2957c2cec4fa37e295c658080edbfa59ce09..be2213f9bb5f6d4fd5fc05dcd8854dc2
              this.metricsRecorder = ActiveMetricsRecorder.createStarted(
                  new ServerMetricsSamplersProvider(Util.timeSource(), this.isDedicatedServer()),
 diff --git a/net/minecraft/util/profiling/Profiler.java b/net/minecraft/util/profiling/Profiler.java
-index ee9794784a53cbe4ec02ec4ad94923ce8381b5dd..8889aaa3fac7af6c50bd09b5dfc3b73c31bafecd 100644
+index ae5974d304abd7d240453f0376c5fd79359a9585..b69a79f19ac20e11d7fb1b2b65cc7e512178c814 100644
 --- a/net/minecraft/util/profiling/Profiler.java
 +++ b/net/minecraft/util/profiling/Profiler.java
-@@ -45,6 +45,7 @@ public final class Profiler {
+@@ -49,6 +49,7 @@ public final class Profiler {
      }
  
      public static ProfilerFiller get() {

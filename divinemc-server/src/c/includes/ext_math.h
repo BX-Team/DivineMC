@@ -5,7 +5,41 @@
 #include <stddef.h>
 #include <float.h>
 
-__attribute__((aligned(64))) static const double FLAT_SIMPLEX_GRAD[] = {
+// Define UNUSED_ATTR macro based on language standard and compiler support
+#if defined(__cplusplus) && __cplusplus >= 201703L
+// C++17 or newer
+#define UNUSED_ATTR [[maybe_unused]]
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
+// C23 or newer
+#define UNUSED_ATTR [[maybe_unused]]
+#elif defined(__clang__) || defined(__GNUC__)
+// Clang/GCC specific attribute
+#define UNUSED_ATTR __attribute__((unused))
+#else
+// No attribute support - define to nothing
+#define UNUSED_ATTR
+#endif
+
+__attribute__((aligned(64))) static const double FLAT_SIMPLEX_GRAD_F64[] = {
+        1, 1, 0, 0,
+        -1, 1, 0, 0,
+        1, -1, 0, 0,
+        -1, -1, 0, 0,
+        1, 0, 1, 0,
+        -1, 0, 1, 0,
+        1, 0, -1, 0,
+        -1, 0, -1, 0,
+        0, 1, 1, 0,
+        0, -1, 1, 0,
+        0, 1, -1, 0,
+        0, -1, -1, 0,
+        1, 1, 0, 0,
+        0, -1, 1, 0,
+        -1, 1, 0, 0,
+        0, -1, -1, 0,
+};
+
+__attribute__((aligned(32))) static const float FLAT_SIMPLEX_GRAD_F32[] = {
         1, 1, 0, 0,
         -1, 1, 0, 0,
         1, -1, 0, 0,
@@ -25,16 +59,33 @@ __attribute__((aligned(64))) static const double FLAT_SIMPLEX_GRAD[] = {
 };
 
 static const double SQRT_3 = 1.7320508075688772;
+// 1 / SQRT_3
+static const double INV_SQRT_3 = 0.5773502691896258;
 // 0.5 * (SQRT_3 - 1.0)
 static const double SKEW_FACTOR_2D = 0.3660254037844386;
 // (3.0 - SQRT_3) / 6.0
 static const double UNSKEW_FACTOR_2D = 0.21132486540518713;
 
 typedef const double *aligned_double_ptr __attribute__((align_value(64)));
+typedef const double *restrict aligned_restrict_double_ptr __attribute__((align_value(64)));
 typedef const uint8_t *aligned_uint8_ptr __attribute__((align_value(64)));
 typedef const uint32_t *aligned_uint32_ptr __attribute__((align_value(64)));
+typedef const uint32_t *restrict aligned_restrict_uint32_ptr __attribute__((align_value(64)));
+
+#define max(a, b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a >= _b ? _a : _b; })
+#define min(a, b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a <= _b ? _a : _b; })
 
 #pragma clang attribute push (__attribute__((always_inline)), apply_to = function)
+
+static inline __attribute__((const)) void *ptr_shift(const void * const ptr, const int32_t shift) {
+    return (void *) (((uint8_t *) ptr) + shift);
+}
 
 static inline __attribute__((const)) float fminf(const float x, const float y) {
     return __builtin_fminf(x, y);
@@ -54,11 +105,23 @@ static inline __attribute__((const)) float fabsf(const float x) {
 }
 
 static inline __attribute__((const)) int64_t labs(const int64_t x) {
+#ifdef _WIN32
+    return __builtin_llabs(x);
+#else
     return __builtin_labs(x);
+#endif
 }
 
 static inline __attribute__((const)) double floor(double x) {
     return __builtin_floor(x);
+}
+
+static inline __attribute__((const)) float floorf(float x) {
+    return __builtin_floorf(x);
+}
+
+static inline __attribute__((const)) float roundf(float x) {
+    return __builtin_roundf(x);
 }
 
 static inline __attribute__((const)) float sqrtf(float x) {
@@ -93,9 +156,9 @@ static inline __attribute__((const)) double math_simplex_grad(const int32_t hash
         return 0.0;
     } else {
         int32_t i = hash << 2;
-        double var0 = FLAT_SIMPLEX_GRAD[i | 0] * x;
-        double var1 = FLAT_SIMPLEX_GRAD[i | 1] * y;
-        double var2 = FLAT_SIMPLEX_GRAD[i | 2] * z;
+        double var0 = FLAT_SIMPLEX_GRAD_F64[i | 0] * x;
+        double var1 = FLAT_SIMPLEX_GRAD_F64[i | 1] * y;
+        double var2 = FLAT_SIMPLEX_GRAD_F64[i | 2] * z;
         return d * d * d * d * (var0 + var1 + var2);
     }
 }
@@ -125,6 +188,11 @@ static inline __attribute__((const)) double math_lerp2(const double deltaX, cons
     return math_lerp(deltaY, math_lerp(deltaX, x0y0, x1y0), math_lerp(deltaX, x0y1, x1y1));
 }
 
+static inline __attribute__((const)) float math_lerp2f(const float deltaX, const float deltaY, const float x0y0,
+                                                        const float x1y0, const float x0y1, const float x1y1) {
+    return math_lerpf(deltaY, math_lerpf(deltaX, x0y0, x1y0), math_lerpf(deltaX, x0y1, x1y1));
+}
+
 static inline __attribute__((const)) double math_lerp3(
         const double deltaX,
         const double deltaY,
@@ -140,6 +208,23 @@ static inline __attribute__((const)) double math_lerp3(
 ) {
     return math_lerp(deltaZ, math_lerp2(deltaX, deltaY, x0y0z0, x1y0z0, x0y1z0, x1y1z0),
                      math_lerp2(deltaX, deltaY, x0y0z1, x1y0z1, x0y1z1, x1y1z1));
+}
+
+static inline __attribute__((const)) float math_lerp3f(
+        const float deltaX,
+        const float deltaY,
+        const float deltaZ,
+        const float x0y0z0,
+        const float x1y0z0,
+        const float x0y1z0,
+        const float x1y1z0,
+        const float x0y0z1,
+        const float x1y0z1,
+        const float x0y1z1,
+        const float x1y1z1
+) {
+    return math_lerpf(deltaZ, math_lerp2f(deltaX, deltaY, x0y0z0, x1y0z0, x0y1z0, x1y1z0),
+                     math_lerp2f(deltaX, deltaY, x0y0z1, x1y0z1, x0y1z1, x1y1z1));
 }
 
 static inline __attribute__((const)) double math_getLerpProgress(const double value, const double start,
@@ -171,14 +256,15 @@ static inline __attribute__((const)) int32_t math_block2biome(const int32_t bloc
 }
 
 static inline __attribute__((const)) uint32_t
-__math_simplex_map(const aligned_uint32_ptr permutations, const int32_t input) {
-    return permutations[input & 0xFF];
+__math_simplex_map(const uint32_t *restrict const permutations, const uint32_t input) {
+    uint32_t point = input & 0xFF;
+    return (permutations[point >> 2] >> ((input & 3) << 3)) & 0xFF;
 }
 
 static inline __attribute__((const)) double math_simplex_dot(const int32_t hash, const double x, const double y,
                                                              const double z) {
     const int32_t loc = hash << 2;
-    return FLAT_SIMPLEX_GRAD[loc + 0] * x + FLAT_SIMPLEX_GRAD[loc + 1] * y + FLAT_SIMPLEX_GRAD[loc + 2] * z;
+    return FLAT_SIMPLEX_GRAD_F64[loc + 0] * x + FLAT_SIMPLEX_GRAD_F64[loc + 1] * y + FLAT_SIMPLEX_GRAD_F64[loc + 2] * z;
 }
 
 static inline __attribute__((const)) double __math_simplex_grad(const int32_t hash, const double x, const double y,
@@ -198,7 +284,7 @@ static inline __attribute__((const)) double __math_simplex_grad(const int32_t ha
 }
 
 static inline double __attribute__((const))
-math_noise_simplex_sample2d(const aligned_uint32_ptr permutations, const double x, const double y) {
+math_noise_simplex_sample2d(const uint32_t *restrict const permutations, const double x, const double y) {
     const double d = (x + y) * SKEW_FACTOR_2D;
     const double i = floor(x + d);
     const double j = floor(y + d);
@@ -238,401 +324,675 @@ math_noise_simplex_sample2d(const aligned_uint32_ptr permutations, const double 
     return 70.0 * (w + z + aa);
 }
 
-static inline __attribute__((const)) double math_perlinFade(const double value) {
-    return value * value * value * (value * (value * 6.0 - 15.0) + 10.0);
+static inline __attribute__((const)) float math_perlinFade(const float value) {
+    return value * value * value * (value * (value * 6.0f - 15.0f) + 10.0f);
 }
 
-static inline __attribute__((const)) double __math_perlin_grad(const aligned_uint32_ptr permutations, const int32_t px,
-                                                               const int32_t py, const int32_t pz, const double fx,
-                                                               const double fy, const double fz) {
-    const double f[3] = {fx, fy, fz};
-    const int32_t p[3] = {px, py, pz};
-    const uint32_t q[3] = {p[0] & 0xFF, p[1] & 0xFF, p[2] & 0xFF};
-    const uint32_t hash = permutations[(permutations[(permutations[q[0]] + q[1]) & 0xFF] + q[2]) & 0xFF] & 0xF;
-    const double *const grad = FLAT_SIMPLEX_GRAD + (hash << 2);
-    return grad[0] * f[0] + grad[1] * f[1] + grad[2] * f[2];
+static inline __attribute__((pure)) uint32_t __math_perlin_perm_index(const uint32_t *restrict const permutations,
+                                                                      uint32_t index) {
+    uint32_t point = index & 0xFF;
+    return (permutations[point >> 2] >> ((index & 3) << 3)) & 0xFF;
 }
 
-static inline __attribute__((const)) double
-math_noise_perlin_sampleScalar(const aligned_uint32_ptr permutations,
-                               const int32_t px0, const int32_t py0, const int32_t pz0,
-                               const double fx0, const double fy0, const double fz0, const double fadeLocalY) {
-    const int32_t px1 = px0 + 1;
-    const int32_t py1 = py0 + 1;
-    const int32_t pz1 = pz0 + 1;
-    const double fx1 = fx0 - 1;
-    const double fy1 = fy0 - 1;
-    const double fz1 = fz0 - 1;
-
-    const double f000 = __math_perlin_grad(permutations, px0, py0, pz0, fx0, fy0, fz0);
-    const double f100 = __math_perlin_grad(permutations, px1, py0, pz0, fx1, fy0, fz0);
-    const double f010 = __math_perlin_grad(permutations, px0, py1, pz0, fx0, fy1, fz0);
-    const double f110 = __math_perlin_grad(permutations, px1, py1, pz0, fx1, fy1, fz0);
-    const double f001 = __math_perlin_grad(permutations, px0, py0, pz1, fx0, fy0, fz1);
-    const double f101 = __math_perlin_grad(permutations, px1, py0, pz1, fx1, fy0, fz1);
-    const double f011 = __math_perlin_grad(permutations, px0, py1, pz1, fx0, fy1, fz1);
-    const double f111 = __math_perlin_grad(permutations, px1, py1, pz1, fx1, fy1, fz1);
-
-    const double dx = math_perlinFade(fx0);
-    const double dy = math_perlinFade(fadeLocalY);
-    const double dz = math_perlinFade(fz0);
-    return math_lerp3(dx, dy, dz, f000, f100, f010, f110, f001, f101, f011, f111);
-}
-
-
-static inline __attribute__((const)) double
-math_noise_perlin_sample(const aligned_uint32_ptr permutations,
-                         const double originX, const double originY, const double originZ,
-                         const double x, const double y, const double z,
-                         const double yScale, const double yMax) {
-    const double d = x + originX;
-    const double e = y + originY;
-    const double f = z + originZ;
-    const double i = floor(d);
-    const double j = floor(e);
-    const double k = floor(f);
-    const double g = d - i;
-    const double h = e - j;
-    const double l = f - k;
-    const double o = yScale != 0 ? floor(((yMax >= 0.0 && yMax < h) ? yMax : h) / yScale + 1.0E-7) * yScale : 0;
-
-    return math_noise_perlin_sampleScalar(permutations, (int32_t) i, (int32_t) j, (int32_t) k, g, h - o, l, h);
-}
-
-
-typedef const struct double_octave_sampler_data {
-    const uint64_t length;
-    const double amplitude;
-    const bool *const need_shift;
-    const aligned_double_ptr lacunarity_powd;
-    const aligned_double_ptr persistence_powd;
-    const aligned_uint32_ptr sampler_permutations;
-    const aligned_double_ptr sampler_originX;
-    const aligned_double_ptr sampler_originY;
-    const aligned_double_ptr sampler_originZ;
-    const aligned_double_ptr amplitudes;
-} double_octave_sampler_data_t;
-
-static inline __attribute__((const)) double
-math_noise_perlin_double_octave_sample_impl(const double_octave_sampler_data_t *const data,
-                                            const double x, const double y, const double z,
-                                            const double yScale, const double yMax, const uint8_t useOrigin) {
-    double ds[data->length];
-
-#pragma clang loop vectorize(enable) interleave(enable) interleave_count(2)
-    for (uint32_t i = 0; i < data->length; i++) {
-        const double e = data->lacunarity_powd[i];
-        const double f = data->persistence_powd[i];
-        const aligned_uint32_ptr permutations = data->sampler_permutations + 256 * i;
-        const double sampleX = data->need_shift[i] ? x * 1.0181268882175227 : x;
-        const double sampleY = data->need_shift[i] ? y * 1.0181268882175227 : y;
-        const double sampleZ = data->need_shift[i] ? z * 1.0181268882175227 : z;
-        const double g = math_noise_perlin_sample(
-                permutations,
-                data->sampler_originX[i],
-                data->sampler_originY[i],
-                data->sampler_originZ[i],
-                math_octave_maintainPrecision(sampleX * e),
-                useOrigin ? -(data->sampler_originY[i]) : math_octave_maintainPrecision(sampleY * e),
-                math_octave_maintainPrecision(sampleZ * e),
-                yScale * e,
-                yMax * e);
-        ds[i] = data->amplitudes[i] * g * f;
-    }
-
-    double d1 = 0.0;
-    double d2 = 0.0;
-    for (uint32_t i = 0; i < data->length; i++) {
-        if (!data->need_shift[i]) {
-            d1 += ds[i];
-        } else {
-            d2 += ds[i];
-        }
-    }
-
-    return (d1 + d2) * data->amplitude;
-}
-
-//static inline void
-//math_noise_perlin_double_octave_sample_impl_batch(const double_octave_sampler_data_t *const data, double *const res,
-//                                                  const double *const x, const double *const y, const double *const z,
-//                                                  const uint32_t length) {
-//    double ds[data->length][length];
-//
-//    for (uint32_t si = 0; si < data->length; si ++) {
-//#pragma clang loop vectorize(enable) interleave(enable) interleave_count(2)
-//        for (uint32_t bi = 0; bi < length; bi++) {
-//            const double e = data->lacunarity_powd[si];
-//            const double f = data->persistence_powd[si];
-//            const aligned_uint32_ptr permutations = data->sampler_permutations + 256 * si;
-//            const double sampleX = data->need_shift[si] ? x[bi] * 1.0181268882175227 : x[bi];
-//            const double sampleY = data->need_shift[si] ? y[bi] * 1.0181268882175227 : y[bi];
-//            const double sampleZ = data->need_shift[si] ? z[bi] * 1.0181268882175227 : z[bi];
-//            const double g = math_noise_perlin_sample(
-//                    permutations,
-//                    data->sampler_originX[si],
-//                    data->sampler_originY[si],
-//                    data->sampler_originZ[si],
-//                    math_octave_maintainPrecision(sampleX * e),
-//                    math_octave_maintainPrecision(sampleY * e),
-//                    math_octave_maintainPrecision(sampleZ * e),
-//                    0.0,
-//                    0.0);
-//            ds[si][bi] = data->amplitudes[si] * g * f;
-//        }
-//    }
-//
-//    double d1[length];
-//    double d2[length];
-//    for (uint32_t i = 0; i < length; i ++) {
-//        d1[i] = 0.0;
-//        d2[i] = 0.0;
-//    }
-//    for (uint32_t bi = 0; bi < length; bi++) {
-//        for (uint32_t si = 0; si < data->length; si ++) {
-//            if (!data->need_shift[si]) {
-//                d1[bi] += ds[si][bi];
-//            } else {
-//                d2[bi] += ds[si][bi];
-//            }
-//        }
-//    }
-//    for (uint32_t bi = 0; bi < length; bi++) {
-//        res[bi] = (d1[bi] + d2[bi]) * data->amplitude;
-//    }
-//}
-
-//static inline void
-//math_noise_perlin_double_octave_sample_impl_batch(const double_octave_sampler_data_t *restrict const data,
-//                                                  double *restrict const res, const double *restrict const x,
-//                                                  const double *restrict const y, const double *restrict const z,
-//                                                  const uint32_t length) {
-//    const uint32_t total_len = data->length * length;
-//
-//    double ds[total_len];
-//    uint32_t sia[total_len]; // sampler index array
-//    uint32_t bia[total_len]; // batch index array
-//    double xa[total_len]; // x array
-//    double ya[total_len]; // y array
-//    double za[total_len]; // z array
-//
-//    double lacunarity_powd[total_len];
-//    double persistence_powd[total_len];
-//    bool need_shift[total_len];
-//    double sampler_originX[total_len];
-//    double sampler_originY[total_len];
-//    double sampler_originZ[total_len];
-//    double amplitudes[total_len];
-//
-//    {
-//        uint32_t idx = 0;
-//        for (uint32_t si = 0; si < data->length; si++) {
-//            for (uint32_t bi = 0; bi < length; bi++) {
-//                sia[idx] = si;
-//                bia[idx] = bi;
-//                xa[idx] = x[bi];
-//                ya[idx] = y[bi];
-//                za[idx] = z[bi];
-//                lacunarity_powd[idx] = data->lacunarity_powd[si];
-//                persistence_powd[idx] = data->persistence_powd[si];
-//                need_shift[idx] = data->need_shift[si];
-//                sampler_originX[idx] = data->sampler_originX[si];
-//                sampler_originY[idx] = data->sampler_originY[si];
-//                sampler_originZ[idx] = data->sampler_originZ[si];
-//                amplitudes[idx] = data->amplitudes[si];
-//                idx++;
-//            }
-//        }
-//    }
-//
-//#pragma clang loop vectorize(enable) interleave(enable) interleave_count(2)
-//    for (uint32_t idx = 0; idx < total_len; idx++) {
-//        const uint32_t si = sia[idx];
-//        const double xi = xa[idx];
-//        const double yi = ya[idx];
-//        const double zi = za[idx];
-//        const double e = lacunarity_powd[idx];
-//        const double f = persistence_powd[idx];
-//        const aligned_uint32_ptr permutations = data->sampler_permutations + 256 * si;
-//        const double sampleX = need_shift[idx] ? xi * 1.0181268882175227 : xi;
-//        const double sampleY = need_shift[idx] ? yi * 1.0181268882175227 : yi;
-//        const double sampleZ = need_shift[idx] ? zi * 1.0181268882175227 : zi;
-//        const double g = math_noise_perlin_sample(
-//                permutations,
-//                sampler_originX[idx],
-//                sampler_originY[idx],
-//                sampler_originZ[idx],
-//                math_octave_maintainPrecision(sampleX * e),
-//                math_octave_maintainPrecision(sampleY * e),
-//                math_octave_maintainPrecision(sampleZ * e),
-//                0.0,
-//                0.0);
-//        ds[idx] = amplitudes[idx] * g * f;
-//    }
-//
-//    double d1[length];
-//    double d2[length];
-//    for (uint32_t i = 0; i < length; i++) {
-//        d1[i] = 0.0;
-//        d2[i] = 0.0;
-//    }
-//    for (uint32_t idx = 0; idx < total_len; idx++) {
-//        const uint32_t si = sia[idx];
-//        const uint32_t bi = bia[idx];
-//        if (!data->need_shift[si]) {
-//            d1[bi] += ds[idx];
-//        } else {
-//            d2[bi] += ds[idx];
-//        }
-//    }
-//    for (uint32_t bi = 0; bi < length; bi++) {
-//        res[bi] = (d1[bi] + d2[bi]) * data->amplitude;
-//    }
-//}
-
-static inline __attribute__((const)) double
-math_noise_perlin_double_octave_sample(const double_octave_sampler_data_t *const data,
-                                       const double x, const double y, const double z) {
-    return math_noise_perlin_double_octave_sample_impl(data, x, y, z, 0.0, 0.0, 0);
-}
-
-static inline void
-math_noise_perlin_double_octave_sample_batch(const double_octave_sampler_data_t *const data, double *const res,
-                                             const double *const x, const double *const y, const double *const z,
-                                             const uint32_t length) {
-//    math_noise_perlin_double_octave_sample_impl_batch(data, res, x, y, z, length);
-    for (uint32_t i = 0; i < length; i ++) {
-        res[i] = math_noise_perlin_double_octave_sample_impl(data, x[i], y[i], z[i], 0.0, 0.0, 0);
-    }
-}
-
-typedef const struct interpolated_noise_sub_sampler {
-    const aligned_uint32_ptr sampler_permutations;
-    const aligned_double_ptr sampler_originX;
-    const aligned_double_ptr sampler_originY;
-    const aligned_double_ptr sampler_originZ;
-    const aligned_double_ptr sampler_mulFactor;
-    const uint32_t length;
-} interpolated_noise_sub_sampler_t;
-
-typedef const struct interpolated_noise_sampler {
-    const double scaledXzScale;
-    const double scaledYScale;
-    const double xzFactor;
-    const double yFactor;
-    const double smearScaleMultiplier;
-    const double xzScale;
-    const double yScale;
-
-    const interpolated_noise_sub_sampler_t lower;
-    const interpolated_noise_sub_sampler_t upper;
-    const interpolated_noise_sub_sampler_t normal;
-} interpolated_noise_sampler_t;
-
-
-static inline __attribute__((const)) double
-math_noise_perlin_interpolated_sample(const interpolated_noise_sampler_t *const data,
-                                      const double x, const double y, const double z) {
-    const double d = x * data->scaledXzScale;
-    const double e = y * data->scaledYScale;
-    const double f = z * data->scaledXzScale;
-    const double g = d / data->xzFactor;
-    const double h = e / data->yFactor;
-    const double i = f / data->xzFactor;
-    const double j = data->scaledYScale * data->smearScaleMultiplier;
-    const double k = j / data->yFactor;
-    double l = 0.0;
-    double m = 0.0;
-    double n = 0.0;
-
-    double ns[data->normal.length];
-#pragma clang loop vectorize(enable)
-    for (uint32_t offset = 0; offset < data->normal.length; offset++) {
-        ns[offset] = math_noise_perlin_sample(
-                data->normal.sampler_permutations + 256 * offset,
-                data->normal.sampler_originX[offset],
-                data->normal.sampler_originY[offset],
-                data->normal.sampler_originZ[offset],
-                math_octave_maintainPrecision(g * data->normal.sampler_mulFactor[offset]),
-                math_octave_maintainPrecision(h * data->normal.sampler_mulFactor[offset]),
-                math_octave_maintainPrecision(i * data->normal.sampler_mulFactor[offset]),
-                k * data->normal.sampler_mulFactor[offset],
-                h * data->normal.sampler_mulFactor[offset]
-        ) / data->normal.sampler_mulFactor[offset];
-    }
-
-    for (uint32_t offset = 0; offset < data->normal.length; offset++) {
-        n += ns[offset];
-    }
-
-    const double q = (n / 10.0 + 1.0) / 2.0;
-    const uint8_t bl2 = q >= 1.0;
-    const uint8_t bl3 = q <= 0.0;
-
-    if (!bl2) {
-        double ls[data->lower.length];
-#pragma clang loop vectorize(enable) interleave_count(2)
-        for (uint32_t offset = 0; offset < data->lower.length; offset++) {
-            ls[offset] = math_noise_perlin_sample(
-                    data->lower.sampler_permutations + 256 * offset,
-                    data->lower.sampler_originX[offset],
-                    data->lower.sampler_originY[offset],
-                    data->lower.sampler_originZ[offset],
-                    math_octave_maintainPrecision(d * data->lower.sampler_mulFactor[offset]),
-                    math_octave_maintainPrecision(e * data->lower.sampler_mulFactor[offset]),
-                    math_octave_maintainPrecision(f * data->lower.sampler_mulFactor[offset]),
-                    j * data->lower.sampler_mulFactor[offset],
-                    e * data->lower.sampler_mulFactor[offset]
-            ) / data->lower.sampler_mulFactor[offset];
-        }
-
-        for (uint32_t offset = 0; offset < data->lower.length; offset++) {
-            l += ls[offset];
-        }
-    }
-
-    if (!bl3) {
-        double ms[data->upper.length];
-#pragma clang loop vectorize(enable) interleave_count(2)
-        for (uint32_t offset = 0; offset < data->upper.length; offset++) {
-            ms[offset] = math_noise_perlin_sample(
-                    data->upper.sampler_permutations + 256 * offset,
-                    data->upper.sampler_originX[offset],
-                    data->upper.sampler_originY[offset],
-                    data->upper.sampler_originZ[offset],
-                    math_octave_maintainPrecision(d * data->upper.sampler_mulFactor[offset]),
-                    math_octave_maintainPrecision(e * data->upper.sampler_mulFactor[offset]),
-                    math_octave_maintainPrecision(f * data->upper.sampler_mulFactor[offset]),
-                    j * data->upper.sampler_mulFactor[offset],
-                    e * data->upper.sampler_mulFactor[offset]
-            ) / data->upper.sampler_mulFactor[offset];
-        }
-        for (uint32_t offset = 0; offset < data->upper.length; offset++) {
-            m += ms[offset];
-        }
-    }
-
-    return math_clampedLerp(l / 512.0, m / 512.0, q) / 128.0;
+static inline __attribute__((const)) float __math_perlin_grad(const uint32_t *restrict const permutations,
+                                                              const int32_t px, const int32_t py, const int32_t pz,
+                                                              const float fx, const float fy, const float fz) {
+    const uint32_t hash = __math_perlin_perm_index(
+                              permutations,
+                              (__math_perlin_perm_index(
+                                   permutations,
+                                   (__math_perlin_perm_index(permutations, px & 0xFF) + (py & 0xFF)) & 0xFF
+                               ) + (pz & 0xFF)) & 0xFF
+                          ) & 0xF;
+    const float *const grad = FLAT_SIMPLEX_GRAD_F32 + (hash << 2);
+    return grad[0] * fx + grad[1] * fy + grad[2] * fz;
 }
 
 static inline __attribute__((const)) float
-math_end_islands_sample(const aligned_uint32_ptr simplex_permutations, const int32_t x, const int32_t z) {
+math_noise_perlin_sample0(const uint32_t *restrict const permutations,
+                          const int32_t px0, const int32_t py0, const int32_t pz0,
+                          const float fx0, const float fy0, const float fz0, const float fadeLocalY) {
+    const int32_t px1 = px0 + 1;
+    const int32_t py1 = py0 + 1;
+    const int32_t pz1 = pz0 + 1;
+    const float fx1 = fx0 - 1.0f;
+    const float fy1 = fy0 - 1.0f;
+    const float fz1 = fz0 - 1.0f;
+
+    const float f000 = __math_perlin_grad(permutations, px0, py0, pz0, fx0, fy0, fz0);
+    const float f100 = __math_perlin_grad(permutations, px1, py0, pz0, fx1, fy0, fz0);
+    const float f010 = __math_perlin_grad(permutations, px0, py1, pz0, fx0, fy1, fz0);
+    const float f110 = __math_perlin_grad(permutations, px1, py1, pz0, fx1, fy1, fz0);
+    const float f001 = __math_perlin_grad(permutations, px0, py0, pz1, fx0, fy0, fz1);
+    const float f101 = __math_perlin_grad(permutations, px1, py0, pz1, fx1, fy0, fz1);
+    const float f011 = __math_perlin_grad(permutations, px0, py1, pz1, fx0, fy1, fz1);
+    const float f111 = __math_perlin_grad(permutations, px1, py1, pz1, fx1, fy1, fz1);
+
+    const float dx = math_perlinFade(fx0);
+    const float dy = math_perlinFade(fadeLocalY);
+    const float dz = math_perlinFade(fz0);
+    return math_lerp3f(dx, dy, dz, f000, f100, f010, f110, f001, f101, f011, f111);
+}
+
+static inline __attribute__((const)) float
+math_noise_perlin_sample_legacy(const uint32_t *restrict const permutations,
+                                const double originX, const double originY, const double originZ,
+                                const double x, const double y, const double z,
+                                const double yScale) {
+    const double x1 = math_octave_maintainPrecision(x) + originX;
+    const double y1 = math_octave_maintainPrecision(y) + originY;
+    const double z1 = math_octave_maintainPrecision(z) + originZ;
+    const double floorX = floor(x1);
+    const double floorY = floor(y1);
+    const double floorZ = floor(z1);
+    const double relX = x1 - floorX;
+    const double relY = y1 - floorY;
+    const double relZ = z1 - floorZ;
+    const double fy = floor(((y >= 0.0 && y < relY) ? y : relY) / yScale + 1.0E-7) * yScale;
+
+    return math_noise_perlin_sample0(permutations, (int32_t) floorX, (int32_t) floorY, (int32_t) floorZ, (float) relX,
+                                     (float) (relY - fy), (float) relZ, (float) relY);
+}
+
+static inline __attribute__((const)) float
+math_noise_perlin_sample_base(const uint32_t *restrict const permutations,
+                              const double originX, const double originY, const double originZ,
+                              const double x, const double y, const double z) {
+    const double x1 = math_octave_maintainPrecision(x) + originX;
+    const double y1 = math_octave_maintainPrecision(y) + originY;
+    const double z1 = math_octave_maintainPrecision(z) + originZ;
+    const double floorX = floor(x1);
+    const double floorY = floor(y1);
+    const double floorZ = floor(z1);
+    const float relX = (float) (x1 - floorX);
+    const float relY = (float) (y1 - floorY);
+    const float relZ = (float) (z1 - floorZ);
+
+    return math_noise_perlin_sample0(permutations, (int32_t) floorX, (int32_t) floorY, (int32_t) floorZ, relX, relY,
+                                     relZ, relY);
+}
+
+
+typedef struct sampling_region {
+    const uint32_t sizeX;
+    const uint32_t sizeY;
+    const uint32_t sizeZ;
+    const int32_t minBlockX;
+    const int32_t minBlockY;
+    const int32_t minBlockZ;
+    const uint32_t stepBlockX;
+    const uint32_t stepBlockY;
+    const uint32_t stepBlockZ;
+} sampling_region_t;
+
+typedef struct pos_i32 {
+    const int32_t x;
+    const int32_t y;
+    const int32_t z;
+} pos_i32_t;
+
+static inline __attribute__((const)) pos_i32_t
+math_sampling_region_index(const sampling_region_t region, const uint32_t index) {
+    // order: z, x, y
+
+    if (index >= (region.sizeX * region.sizeY * region.sizeZ)) {
+        __builtin_trap();
+        __builtin_unreachable();
+    }
+
+    uint32_t i = index;
+
+    const uint32_t y = i % region.sizeY;
+    i /= region.sizeY;
+
+    const uint32_t x = i % region.sizeX;
+    const uint32_t z = i / region.sizeX;
+
+    return (pos_i32_t){
+        .x = region.minBlockX + (int32_t) x * (int32_t) region.stepBlockX,
+        .y = region.minBlockY + (int32_t) y * (int32_t) region.stepBlockY,
+        .z = region.minBlockZ + (int32_t) z * (int32_t) region.stepBlockZ
+    };
+}
+
+typedef struct {
+    uint32_t x, y, z;
+    uint32_t sizeX, sizeY, sizeZ;
+    int32_t minX, minY, minZ;
+    uint32_t stepX, stepY, stepZ;
+} coord_iter_t;
+
+static inline coord_iter_t math_coord_iter_begin(const sampling_region_t region) {
+    return (coord_iter_t){
+        .x = 0, .y = 0, .z = 0,
+        .sizeX = region.sizeX, .sizeY = region.sizeY, .sizeZ = region.sizeZ,
+        .minX = region.minBlockX, .minY = region.minBlockY, .minZ = region.minBlockZ,
+        .stepX = region.stepBlockX, .stepY = region.stepBlockY, .stepZ = region.stepBlockZ,
+    };
+}
+
+static inline uint32_t
+math_coord_iter_next64(coord_iter_t *restrict it,
+                       int32_t *restrict xs, int32_t *restrict ys, int32_t *restrict zs,
+                       uint32_t remaining) {
+    const uint32_t n = remaining < 64u ? remaining : 64u;
+    if (n == 0) return 0;
+
+    const uint32_t sizeX = it->sizeX;
+    const uint32_t sizeY = it->sizeY;
+
+    if (it->y + n < sizeY) {
+        const int32_t baseX = it->minX + (int32_t) it->x * (int32_t) it->stepX;
+        const int32_t baseZ = it->minZ + (int32_t) it->z * (int32_t) it->stepZ;
+        const int32_t baseY = it->minY + (int32_t) it->y * (int32_t) it->stepY;
+        for (uint32_t j = 0; j < n; j++) {
+            xs[j] = baseX;
+            ys[j] = baseY + (int32_t) j * (int32_t) it->stepY;
+            zs[j] = baseZ;
+        }
+        it->y += n;
+        return n;
+    }
+
+    uint32_t cx = it->x, cy = it->y, cz = it->z;
+    for (uint32_t j = 0; j < n;) {
+        while (cy < sizeY && j < n) {
+            xs[j] = it->minX + (int32_t) cx * (int32_t) it->stepX;
+            ys[j] = it->minY + (int32_t) cy * (int32_t) it->stepY;
+            zs[j] = it->minZ + (int32_t) cz * (int32_t) it->stepZ;
+            cy ++;
+            j ++;
+        }
+        if (cy == sizeY) {
+            cy = 0;
+            if (++cx == sizeX) {
+                cx = 0;
+                ++cz;
+            }
+        }
+    }
+    it->x = cx;
+    it->y = cy;
+    it->z = cz;
+    return n;
+}
+
+static inline void
+math_noise_perlin_sample_legacy_area0(const uint32_t *restrict const permutations,
+                                      const double originX, const double originY, const double originZ,
+                                      const double yScale,
+                                      float *restrict const output, const sampling_region_t region,
+                                      const double *restrict const shiftX, const double *restrict const shiftY,
+                                      const double *restrict const shiftZ,
+                                      const double scaleXz, const double scaleY, const float outputScale) {
+    if (shiftX && shiftY && shiftZ) {
+        const uint32_t size = region.sizeX * region.sizeY * region.sizeZ;
+        coord_iter_t it = math_coord_iter_begin(region);
+        uint32_t i = 0;
+        int32_t xs[64], ys[64], zs[64];
+
+        while (i < size) {
+            const uint32_t n = math_coord_iter_next64(&it, xs, ys, zs, size - i);
+
+#pragma clang loop vectorize(enable)
+            for (uint32_t j = 0; j < n; j++) {
+                const double x = (double) xs[j] * scaleXz + shiftX[i + j];
+                const double y = (double) ys[j] * scaleY + shiftY[i + j];
+                const double z = (double) zs[j] * scaleXz + shiftZ[i + j];
+                output[i + j] += math_noise_perlin_sample_legacy(permutations, originX, originY, originZ, x, y, z, yScale) *
+                        outputScale;
+            }
+
+            i += n;
+        }
+    } else if (!shiftX && !shiftY && !shiftZ) {
+        if (( {
+#if __AVX512F__
+            true;
+#elif __AVX__
+            double xzFactor = max(1.0, 1.0 / scaleXz);
+            double yFactor = region.sizeY > 2 ? max(1.0, 1.0 / scaleY) : 1;
+            (region.sizeY > 2 && yFactor < 3.0) || xzFactor * xzFactor * yFactor < 64.0;
+#else
+            false;
+#endif
+        })) {
+            const uint32_t size = region.sizeX * region.sizeY * region.sizeZ;
+            coord_iter_t it = math_coord_iter_begin(region);
+            uint32_t i = 0;
+            int32_t xs[64], ys[64], zs[64];
+
+            while (i < size) {
+                const uint32_t n = math_coord_iter_next64(&it, xs, ys, zs, size - i);
+
+#pragma clang loop vectorize(enable)
+                for (uint32_t j = 0; j < n; j++) {
+                    const double x = (double) xs[j] * scaleXz;
+                    const double y = (double) ys[j] * scaleY;
+                    const double z = (double) zs[j] * scaleXz;
+                    output[i + j] += math_noise_perlin_sample_legacy(permutations, originX, originY, originZ, x, y, z,
+                                                                     yScale) *
+                            outputScale;
+                }
+
+                i += n;
+            }
+        } else {
+            int32_t px0_prev = 0;
+            uint32_t px0_perm = 0;
+            uint32_t px1_perm = 0;
+
+            for (uint32_t offX = 0; offX < region.sizeX; offX++) {
+                int32_t blockX = region.minBlockX + (int32_t) offX * (int32_t) region.stepBlockX;
+                const double x = (double) blockX * scaleXz;
+                const double x1 = math_octave_maintainPrecision(x) + originX;
+                const double floorX = floor(x1);
+                const double relX = x1 - floorX;
+                const float fx0 = (float) relX;
+                const int32_t px0 = (int32_t) floorX;
+                const float fx1 = fx0 - 1.0f;
+
+                if (offX == 0 || px0_prev != px0) {
+                    px0_perm = __math_perlin_perm_index(permutations, px0 & 0xFF);
+                    px1_perm = __math_perlin_perm_index(permutations, (px0 + 1) & 0xFF);
+                    px0_prev = px0;
+                }
+
+                int32_t py0_prev = 0;
+                uint32_t px0_py0_perm = 0;
+                uint32_t px1_py0_perm = 0;
+                uint32_t px0_py1_perm = 0;
+                uint32_t px1_py1_perm = 0;
+
+                for (uint32_t offY = 0; offY < region.sizeY; offY++) {
+                    int32_t blockY = region.minBlockY + (int32_t) offY * (int32_t) region.stepBlockY;
+                    const double y = (double) blockY * scaleY;
+                    const double y1 = math_octave_maintainPrecision(y) + originY;
+                    const double floorY = floor(y1);
+                    const double relY = y1 - floorY;
+                    const double fy = floor(((y >= 0.0 && y < relY) ? y : relY) / yScale + 1.0E-7) * yScale;
+                    const int32_t py0 = (int32_t) floorY;
+                    const float fy0 = (float) (relY - fy);
+                    const float fadeLocalY = (float) relY;
+                    const float fy1 = fy0 - 1.0f;
+
+                    if (offY == 0 || py0_prev != py0) {
+                        px0_py0_perm = __math_perlin_perm_index(
+                            permutations,
+                            (px0_perm + (py0 & 0xFF)) & 0xFF
+                        );
+                        px1_py0_perm = __math_perlin_perm_index(
+                            permutations,
+                            (px1_perm + (py0 & 0xFF)) & 0xFF
+                        );
+                        px0_py1_perm = __math_perlin_perm_index(
+                            permutations,
+                            (px0_perm + ((py0 + 1) & 0xFF)) & 0xFF
+                        );
+                        px1_py1_perm = __math_perlin_perm_index(
+                            permutations,
+                            (px1_perm + ((py0 + 1) & 0xFF)) & 0xFF
+                        );
+                        py0_prev = py0;
+                    }
+
+                    int32_t pz0_prev = 0;
+                    float arr000[4] = {};
+                    float arr100[4] = {};
+                    float arr010[4] = {};
+                    float arr110[4] = {};
+                    float arr001[4] = {};
+                    float arr101[4] = {};
+                    float arr011[4] = {};
+                    float arr111[4] = {};
+
+                    for (uint32_t offZ = 0; offZ < region.sizeZ; offZ++) {
+                        int32_t blockZ = region.minBlockZ + (int32_t) offZ * (int32_t) region.stepBlockZ;
+                        const double z = (double) blockZ * scaleXz;
+                        const uint32_t idx = offY + (offX + offZ * region.sizeX) * region.sizeY;
+                        const double z1 = math_octave_maintainPrecision(z) + originZ;
+                        const double floorZ = floor(z1);
+                        const double relZ = z1 - floorZ;
+                        const int32_t pz0 = (int32_t) floorZ;
+                        const float fz0 = (float) relZ;
+                        const float fz1 = fz0 - 1.0f;
+
+                        if (offZ == 0 || pz0_prev != pz0) {
+                            const uint32_t hash000 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px0_py0_perm + (pz0 & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr000, FLAT_SIMPLEX_GRAD_F32 + (hash000 << 2), 4 * sizeof(float));
+                            const uint32_t hash100 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px1_py0_perm + (pz0 & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr100, FLAT_SIMPLEX_GRAD_F32 + (hash100 << 2), 4 * sizeof(float));
+                            const uint32_t hash010 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px0_py1_perm + (pz0 & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr010, FLAT_SIMPLEX_GRAD_F32 + (hash010 << 2), 4 * sizeof(float));
+                            const uint32_t hash110 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px1_py1_perm + (pz0 & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr110, FLAT_SIMPLEX_GRAD_F32 + (hash110 << 2), 4 * sizeof(float));
+                            const uint32_t hash001 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px0_py0_perm + ((pz0 + 1) & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr001, FLAT_SIMPLEX_GRAD_F32 + (hash001 << 2), 4 * sizeof(float));
+                            const uint32_t hash101 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px1_py0_perm + ((pz0 + 1) & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr101, FLAT_SIMPLEX_GRAD_F32 + (hash101 << 2), 4 * sizeof(float));
+                            const uint32_t hash011 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px0_py1_perm + ((pz0 + 1) & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr011, FLAT_SIMPLEX_GRAD_F32 + (hash011 << 2), 4 * sizeof(float));
+                            const uint32_t hash111 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px1_py1_perm + ((pz0 + 1) & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr111, FLAT_SIMPLEX_GRAD_F32 + (hash111 << 2), 4 * sizeof(float));
+                            pz0_prev = pz0;
+                        }
+
+                        const float f000 = arr000[0] * fx0 + arr000[1] * fy0 + arr000[2] * fz0;
+                        const float f100 = arr100[0] * fx1 + arr100[1] * fy0 + arr100[2] * fz0;
+                        const float f010 = arr010[0] * fx0 + arr010[1] * fy1 + arr010[2] * fz0;
+                        const float f110 = arr110[0] * fx1 + arr110[1] * fy1 + arr110[2] * fz0;
+                        const float f001 = arr001[0] * fx0 + arr001[1] * fy0 + arr001[2] * fz1;
+                        const float f101 = arr101[0] * fx1 + arr101[1] * fy0 + arr101[2] * fz1;
+                        const float f011 = arr011[0] * fx0 + arr011[1] * fy1 + arr011[2] * fz1;
+                        const float f111 = arr111[0] * fx1 + arr111[1] * fy1 + arr111[2] * fz1;
+
+                        const float dx = math_perlinFade(fx0);
+                        const float dy = math_perlinFade(fadeLocalY);
+                        const float dz = math_perlinFade(fz0);
+                        output[idx] += math_lerp3f(dx, dy, dz, f000, f100, f010, f110, f001, f101, f011, f111) *
+                                outputScale;
+                    }
+                }
+            }
+        }
+    } else {
+        __builtin_trap();
+        __builtin_unreachable();
+    }
+}
+
+static inline void
+math_noise_perlin_sample_legacy_area(const uint32_t *restrict const permutations,
+                                     const double originX, const double originY, const double originZ,
+                                     const double yScale, float *restrict const output,
+                                     const int32_t sizeX, const int32_t sizeY, const int32_t sizeZ,
+                                     const int32_t minBlockX, const int32_t minBlockY, const int32_t minBlockZ,
+                                     const int32_t stepBlockX, const int32_t stepBlockY, const int32_t stepBlockZ,
+                                     const double *restrict const shiftX, const double *restrict const shiftY,
+                                     const double *restrict const shiftZ,
+                                     const double scaleXz, const double scaleY, const float outputScale) {
+    sampling_region_t region = {
+        .sizeX = sizeX,
+        .sizeY = sizeY,
+        .sizeZ = sizeZ,
+        .minBlockX = minBlockX,
+        .minBlockY = minBlockY,
+        .minBlockZ = minBlockZ,
+        .stepBlockX = stepBlockX,
+        .stepBlockY = stepBlockY,
+        .stepBlockZ = stepBlockZ,
+    };
+    math_noise_perlin_sample_legacy_area0(permutations, originX, originY, originZ, yScale, output, region, shiftX,
+                                          shiftY, shiftZ, scaleXz, scaleY, outputScale);;
+}
+
+static inline void
+math_noise_perlin_sample_base_area0(const uint32_t *restrict const permutations,
+                                    const double originX, const double originY, const double originZ,
+                                    float *restrict const output, const sampling_region_t region,
+                                    const double *restrict const shiftX, const double *restrict const shiftY,
+                                    const double *restrict const shiftZ,
+                                    const double scaleXz, const double scaleY, const float outputScale) {
+    if (shiftX && shiftY && shiftZ) {
+        const uint32_t size = region.sizeX * region.sizeY * region.sizeZ;
+        coord_iter_t it = math_coord_iter_begin(region);
+        uint32_t i = 0;
+        int32_t xs[64], ys[64], zs[64];
+
+        while (i < size) {
+            const uint32_t n = math_coord_iter_next64(&it, xs, ys, zs, size - i);
+
+#pragma clang loop vectorize(enable)
+            for (uint32_t j = 0; j < n; j++) {
+                const double x = (double) xs[j] * scaleXz + shiftX[i + j];
+                const double y = (double) ys[j] * scaleY + shiftY[i + j];
+                const double z = (double) zs[j] * scaleXz + shiftZ[i + j];
+                output[i + j] += math_noise_perlin_sample_base(permutations, originX, originY, originZ, x, y, z) *
+                        outputScale;
+            }
+
+            i += n;
+        }
+    } else if (!shiftX && !shiftY && !shiftZ) {
+        if (( {
+#if __AVX512F__
+            true;
+#elif __AVX__
+            double xzFactor = max(1.0, 1.0 / scaleXz);
+            double yFactor = region.sizeY > 2 ? max(1.0, 1.0 / scaleY) : 1;
+            (region.sizeY > 2 && yFactor < 3.0) || xzFactor * xzFactor * yFactor < 64.0;
+#else
+            false;
+#endif
+        })) {
+            const uint32_t size = region.sizeX * region.sizeY * region.sizeZ;
+            coord_iter_t it = math_coord_iter_begin(region);
+            uint32_t i = 0;
+            int32_t xs[64], ys[64], zs[64];
+
+            while (i < size) {
+                const uint32_t n = math_coord_iter_next64(&it, xs, ys, zs, size - i);
+
+#pragma clang loop vectorize(enable)
+                for (uint32_t j = 0; j < n; j++) {
+                    const double x = (double) xs[j] * scaleXz;
+                    const double y = (double) ys[j] * scaleY;
+                    const double z = (double) zs[j] * scaleXz;
+                    output[i + j] += math_noise_perlin_sample_base(permutations, originX, originY, originZ, x, y, z) *
+                            outputScale;
+                }
+
+                i += n;
+            }
+        } else {
+            int32_t px0_prev = 0;
+            uint32_t px0_perm = 0;
+            uint32_t px1_perm = 0;
+
+            for (uint32_t offX = 0; offX < region.sizeX; offX++) {
+                int32_t blockX = region.minBlockX + (int32_t) offX * (int32_t) region.stepBlockX;
+                const double x = (double) blockX * scaleXz;
+                const double x1 = math_octave_maintainPrecision(x) + originX;
+                const double floorX = floor(x1);
+                const double relX = x1 - floorX;
+                const float fx0 = (float) relX;
+                const int32_t px0 = (int32_t) floorX;
+                const float fx1 = fx0 - 1.0f;
+
+                if (offX == 0 || px0_prev != px0) {
+                    px0_perm = __math_perlin_perm_index(permutations, px0 & 0xFF);
+                    px1_perm = __math_perlin_perm_index(permutations, (px0 + 1) & 0xFF);
+                    px0_prev = px0;
+                }
+
+                int32_t py0_prev = 0;
+                uint32_t px0_py0_perm = 0;
+                uint32_t px1_py0_perm = 0;
+                uint32_t px0_py1_perm = 0;
+                uint32_t px1_py1_perm = 0;
+
+                for (uint32_t offY = 0; offY < region.sizeY; offY++) {
+                    int32_t blockY = region.minBlockY + (int32_t) offY * (int32_t) region.stepBlockY;
+                    const double y = (double) blockY * scaleY;
+                    const double y1 = math_octave_maintainPrecision(y) + originY;
+                    const double floorY = floor(y1);
+                    const double relY = y1 - floorY;
+                    const int32_t py0 = (int32_t) floorY;
+                    const float fy0 = (float) relY;
+                    const float fadeLocalY = (float) relY;
+                    const float fy1 = fy0 - 1.0f;
+
+                    if (offY == 0 || py0_prev != py0) {
+                        px0_py0_perm = __math_perlin_perm_index(
+                            permutations,
+                            (px0_perm + (py0 & 0xFF)) & 0xFF
+                        );
+                        px1_py0_perm = __math_perlin_perm_index(
+                            permutations,
+                            (px1_perm + (py0 & 0xFF)) & 0xFF
+                        );
+                        px0_py1_perm = __math_perlin_perm_index(
+                            permutations,
+                            (px0_perm + ((py0 + 1) & 0xFF)) & 0xFF
+                        );
+                        px1_py1_perm = __math_perlin_perm_index(
+                            permutations,
+                            (px1_perm + ((py0 + 1) & 0xFF)) & 0xFF
+                        );
+                        py0_prev = py0;
+                    }
+
+                    int32_t pz0_prev = 0;
+                    float arr000[4] = {};
+                    float arr100[4] = {};
+                    float arr010[4] = {};
+                    float arr110[4] = {};
+                    float arr001[4] = {};
+                    float arr101[4] = {};
+                    float arr011[4] = {};
+                    float arr111[4] = {};
+
+                    for (uint32_t offZ = 0; offZ < region.sizeZ; offZ++) {
+                        int32_t blockZ = region.minBlockZ + (int32_t) offZ * (int32_t) region.stepBlockZ;
+                        const double z = (double) blockZ * scaleXz;
+                        const uint32_t idx = offY + (offX + offZ * region.sizeX) * region.sizeY;
+                        const double z1 = math_octave_maintainPrecision(z) + originZ;
+                        const double floorZ = floor(z1);
+                        const double relZ = z1 - floorZ;
+                        const int32_t pz0 = (int32_t) floorZ;
+                        const float fz0 = (float) relZ;
+                        const float fz1 = fz0 - 1.0f;
+
+                        if (offZ == 0 || pz0_prev != pz0) {
+                            const uint32_t hash000 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px0_py0_perm + (pz0 & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr000, FLAT_SIMPLEX_GRAD_F32 + (hash000 << 2), 4 * sizeof(float));
+                            const uint32_t hash100 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px1_py0_perm + (pz0 & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr100, FLAT_SIMPLEX_GRAD_F32 + (hash100 << 2), 4 * sizeof(float));
+                            const uint32_t hash010 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px0_py1_perm + (pz0 & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr010, FLAT_SIMPLEX_GRAD_F32 + (hash010 << 2), 4 * sizeof(float));
+                            const uint32_t hash110 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px1_py1_perm + (pz0 & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr110, FLAT_SIMPLEX_GRAD_F32 + (hash110 << 2), 4 * sizeof(float));
+                            const uint32_t hash001 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px0_py0_perm + ((pz0 + 1) & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr001, FLAT_SIMPLEX_GRAD_F32 + (hash001 << 2), 4 * sizeof(float));
+                            const uint32_t hash101 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px1_py0_perm + ((pz0 + 1) & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr101, FLAT_SIMPLEX_GRAD_F32 + (hash101 << 2), 4 * sizeof(float));
+                            const uint32_t hash011 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px0_py1_perm + ((pz0 + 1) & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr011, FLAT_SIMPLEX_GRAD_F32 + (hash011 << 2), 4 * sizeof(float));
+                            const uint32_t hash111 = __math_perlin_perm_index(
+                                                         permutations,
+                                                         (px1_py1_perm + ((pz0 + 1) & 0xFF)) & 0xFF
+                                                     ) & 0xF;
+                            __builtin_memcpy_inline(arr111, FLAT_SIMPLEX_GRAD_F32 + (hash111 << 2), 4 * sizeof(float));
+                            pz0_prev = pz0;
+                        }
+
+                        const float f000 = arr000[0] * fx0 + arr000[1] * fy0 + arr000[2] * fz0;
+                        const float f100 = arr100[0] * fx1 + arr100[1] * fy0 + arr100[2] * fz0;
+                        const float f010 = arr010[0] * fx0 + arr010[1] * fy1 + arr010[2] * fz0;
+                        const float f110 = arr110[0] * fx1 + arr110[1] * fy1 + arr110[2] * fz0;
+                        const float f001 = arr001[0] * fx0 + arr001[1] * fy0 + arr001[2] * fz1;
+                        const float f101 = arr101[0] * fx1 + arr101[1] * fy0 + arr101[2] * fz1;
+                        const float f011 = arr011[0] * fx0 + arr011[1] * fy1 + arr011[2] * fz1;
+                        const float f111 = arr111[0] * fx1 + arr111[1] * fy1 + arr111[2] * fz1;
+
+                        const float dx = math_perlinFade(fx0);
+                        const float dy = math_perlinFade(fadeLocalY);
+                        const float dz = math_perlinFade(fz0);
+                        output[idx] += math_lerp3f(dx, dy, dz, f000, f100, f010, f110, f001, f101, f011, f111) *
+                                outputScale;
+                    }
+                }
+            }
+        }
+    } else {
+        __builtin_trap();
+        __builtin_unreachable();
+    }
+}
+
+static inline void
+math_noise_perlin_sample_base_area(const uint32_t *restrict const permutations,
+                                   const double originX, const double originY, const double originZ,
+                                   float *restrict const output,
+                                   const int32_t sizeX, const int32_t sizeY, const int32_t sizeZ,
+                                   const int32_t minBlockX, const int32_t minBlockY, const int32_t minBlockZ,
+                                   const int32_t stepBlockX, const int32_t stepBlockY, const int32_t stepBlockZ,
+                                   const double *restrict const shiftX, const double *restrict const shiftY,
+                                   const double *restrict const shiftZ,
+                                   const double scaleXz, const double scaleY, const float outputScale) {
+    sampling_region_t region = {
+        .sizeX = sizeX,
+        .sizeY = sizeY,
+        .sizeZ = sizeZ,
+        .minBlockX = minBlockX,
+        .minBlockY = minBlockY,
+        .minBlockZ = minBlockZ,
+        .stepBlockX = stepBlockX,
+        .stepBlockY = stepBlockY,
+        .stepBlockZ = stepBlockZ,
+    };
+    math_noise_perlin_sample_base_area0(permutations, originX, originY, originZ, output, region, shiftX,
+                                        shiftY, shiftZ, scaleXz, scaleY, outputScale);;
+}
+
+static inline __attribute__((const)) float
+math_end_islands_sample(const uint32_t *restrict const simplex_permutations, const int32_t x, const int32_t z) {
     const int32_t i = x / 2;
     const int32_t j = z / 2;
     const int32_t k = x % 2;
     const int32_t l = z % 2;
-    const int32_t muld = x * x + z * z; // int32_t intentionally
-    if (muld < 0) {
-        return __builtin_nanf("");
-    }
-    float f = 100.0F - sqrtf((float) muld) * 8.0F;
-    f = clampf(f, -100.0F, 80.0F);
+    float f = -100.0F;
 
     int8_t ms[25 * 25], ns[25 * 25], hit[25 * 25];
     const int64_t omin = labs(i) - 12LL;
     const int64_t pmin = labs(j) - 12LL;
-    const int64_t omax = labs(i) + 12LL;
-    const int64_t pmax = labs(j) + 12LL;
+    UNUSED_ATTR const int64_t omax = labs(i) + 12LL;
+    UNUSED_ATTR const int64_t pmax = labs(j) + 12LL;
 
     {
         uint32_t idx = 0;
@@ -650,6 +1010,7 @@ math_end_islands_sample(const aligned_uint32_ptr simplex_permutations, const int
     }
 
     if (omin * omin + pmin * pmin > 4096LL) {
+#pragma clang loop vectorize(enable) interleave_count(2)
         for (uint32_t idx = 0; idx < 25 * 25; idx++) {
             const int64_t o = (int64_t) i + (int64_t) ms[idx];
             const int64_t p = (int64_t) j + (int64_t) ns[idx];
@@ -664,7 +1025,6 @@ math_end_islands_sample(const aligned_uint32_ptr simplex_permutations, const int
         }
     }
 
-#pragma clang loop vectorize(enable) interleave(enable)
     for (uint32_t idx = 0; idx < 25 * 25; idx++) {
         if (hit[idx]) {
             const int32_t m = ms[idx];
@@ -701,7 +1061,7 @@ math_biome_access_sample(const int64_t theSeed, const int32_t x, const int32_t y
 
     double var28s[8];
 
-#pragma clang loop interleave_count(2)
+#pragma clang loop vectorize_width(4) interleave_count(2)
     for (uint32_t var11 = 0; var11 < 8; ++var11) {
         uint32_t var12 = var11 & 4;
         uint32_t var13 = var11 & 2;
@@ -740,5 +1100,243 @@ math_biome_access_sample(const int64_t theSeed, const int32_t x, const int32_t y
     return var9;
 }
 
-#pragma clang attribute pop
+typedef const struct aquifer_data {
+    int32_t startX;
+    int32_t startY;
+    int32_t startZ;
+    int32_t sizeX;
+    int32_t sizeZ;
+} aquifer_data_t;
 
+static inline __attribute__((const)) uint32_t
+math_aquifer_index(const aquifer_data_t *restrict const aquiferData, const int32_t x, const int32_t y,
+                   const int32_t z) {
+    int i = x - aquiferData->startX;
+    int j = y - aquiferData->startY;
+    int k = z - aquiferData->startZ;
+    return (j * aquiferData->sizeZ + k) * aquiferData->sizeX + i;
+}
+
+static inline __attribute__((const)) int32_t
+math_aquifer_unpackPackedX(uint32_t packed) {
+    return packed >> 8;
+}
+
+static inline __attribute__((const)) int32_t
+math_aquifer_unpackPackedY(uint32_t packed) {
+    return (packed >> 4) & 0b1111;
+}
+
+static inline __attribute__((const)) int32_t
+math_aquifer_unpackPackedZ(uint32_t packed) {
+    return packed & 0b1111;
+}
+
+static inline void
+math_aquifer_refreshDistPosIdx(const uint16_t *restrict const packedBlockPositions, uint32_t *restrict const res,
+                               const aquifer_data_t *restrict const aquiferData,
+                               const int32_t x, const int32_t y, const int32_t z) {
+    int32_t gx = (x - 5) >> 4;
+    int32_t gy = math_floorDiv(y + 1, 12) - 1;
+    int32_t gz = (z - 5) >> 4;
+    uint32_t A = UINT32_MAX;
+    uint32_t B = UINT32_MAX;
+    uint32_t C = UINT32_MAX;
+    uint32_t D = UINT32_MAX;
+
+    uint32_t ps[12];
+
+    uint32_t index = 12; // 12 max
+    for (int32_t offY = 0; offY <= 2; ++offY) {
+        int32_t gymul = gy * 12 + offY * 12;
+        for (int32_t offZ = 0; offZ <= 1; ++offZ) {
+            int32_t gzmul = (gz + offZ) << 4;
+
+            uint32_t index0 = index - 1;
+            uint32_t posIdx0 = math_aquifer_index(aquiferData, gx, gy + offY, gz + offZ);
+            uint32_t position0 = packedBlockPositions[posIdx0];
+            int32_t dx0 = (gx << 4) + math_aquifer_unpackPackedX(position0) - x;
+            int32_t dy0 = gymul + math_aquifer_unpackPackedY(position0) - y;
+            int32_t dz0 = gzmul + math_aquifer_unpackPackedZ(position0) - z;
+            uint32_t dist_0 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
+
+            uint32_t index1 = index - 2;
+            uint32_t posIdx1 = posIdx0 + 1;
+            uint32_t position1 = packedBlockPositions[posIdx1];
+            int32_t dx1 = ((gx + 1) << 4) + math_aquifer_unpackPackedX(position1) - x;
+            int32_t dy1 = gymul + math_aquifer_unpackPackedY(position1) - y;
+            int32_t dz1 = gzmul + math_aquifer_unpackPackedZ(position1) - z;
+            uint32_t dist_1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+
+            ps[12 - index] = (dist_0 << 20) | (index0 << 16) | posIdx0;
+            ps[13 - index] = (dist_1 << 20) | (index1 << 16) | posIdx1;
+
+            index -= 2;
+        }
+    }
+
+    A = ps[0];
+
+    for (uint32_t i = 1; i < 12; i ++) {
+        uint32_t p1 = ps[i];
+        if (p1 <= C) {
+            uint32_t n11 = max(A, p1);
+            A = min(A, p1);
+
+            uint32_t n12 = max(B, n11);
+            B = min(B, n11);
+
+            uint32_t n13 = max(C, n12);
+            C = min(C, n12);
+
+            D = min(D, n13);
+        }
+    }
+
+    res[0] = A;
+    res[1] = B;
+    res[2] = C;
+    res[3] = D;
+}
+
+// branch node: occupies two slots, first with node_minmacs, second with branch_children
+// bit 31 set for both slots, bit 30 set for second slot
+// leaf node: occupies one slot, with biome ID in state
+
+typedef const struct biome_search_tree_node {
+    // bit 31: set if branch node, clear if leaf node
+    // bit 30: set if is branch node children offsets
+    // bit 0-29: biome ID (only valid for leaf nodes)
+    uint32_t state;
+    union {
+        struct {
+            uint32_t children_offset[7]; // at most 7 children, 0 is reserved and means no child
+        } branch_children;
+        struct {
+            int16_t maxs[7];
+            int16_t mins[7];
+        } node_minmaxs;
+    };
+} biome_search_tree_node_t;
+
+static inline bool __attribute__((pure))
+__math_biome_search_tree_is_branch(const biome_search_tree_node_t * restrict const node) {
+    return (node->state & (1U << 31)) != 0;
+}
+
+static inline bool __attribute__((pure))
+__math_biome_search_tree_is_branch_children(const biome_search_tree_node_t * restrict const node) {
+    return (node->state & (1U << 30)) != 0;
+}
+
+static inline void
+__math_biome_search_tree_validate_node(const biome_search_tree_node_t * restrict const node) {
+    if (!__math_biome_search_tree_is_branch(node) && __math_biome_search_tree_is_branch_children(node)) {
+        // invalid state
+        __builtin_trap();
+    }
+    if (__math_biome_search_tree_is_branch(node)) {
+        if (!__math_biome_search_tree_is_branch(node + 1) || !__math_biome_search_tree_is_branch_children(node + 1)) {
+            // branch node must have children offsets in the next slot
+            __builtin_trap();
+        }
+        if (!__math_biome_search_tree_is_branch(node + 1) && __math_biome_search_tree_is_branch_children(node + 1)) {
+            // branch node children offsets must be in a branch node
+            __builtin_trap();
+        }
+    }
+}
+
+static inline uint64_t __attribute__((pure))
+__math_biome_search_tree_distance_func(const biome_search_tree_node_t * restrict const node,
+                                       const int16_t * restrict const target) {
+    if (__math_biome_search_tree_is_branch_children(node)) {
+        __builtin_trap();
+    }
+
+    uint64_t res = 0;
+
+    for (uint32_t i = 0; i < 7; i ++) {
+        int64_t l = (int32_t) target[i] - (int32_t) node->node_minmaxs.maxs[i];
+        int64_t m = (int32_t) node->node_minmaxs.mins[i] - (int32_t) target[i];
+        int64_t dist = l >= 0L ? l : max(m, 0L);
+        res += dist * dist;
+    }
+
+    return res;
+}
+
+typedef struct __biome_search_stack_element {
+    uint32_t node;
+    uint8_t iter_i;
+} __biome_search_stack_element_t;
+
+static inline uint32_t __attribute__((pure))
+math_biome_search_tree_calc(const biome_search_tree_node_t * restrict const nodes,
+                            const int16_t * restrict const target,
+                            UNUSED_ATTR const uint32_t nodes_c, const uint32_t tree_depth) {
+    // no recursion allowed, because this needs to be eventually ported to GPU
+
+    if (!__math_biome_search_tree_is_branch(nodes + 1)) {
+        return nodes[1].state & 0x3FFFFFFF;
+    }
+
+    __biome_search_stack_element_t working[tree_depth];
+    uint32_t top = 0;
+    uint32_t current_optimal_node = 1;
+    uint64_t current_optimal_dist = UINT64_MAX;
+
+    working[top ++] = (__biome_search_stack_element_t) { .node = 1, .iter_i = 0 };
+    __math_biome_search_tree_validate_node(nodes + 1);
+
+    // loop_start:
+    while (top) {
+        uint32_t cur_node = working[top - 1].node;
+        uint32_t iter_i = working[top - 1].iter_i;
+        __math_biome_search_tree_validate_node(nodes + cur_node);
+
+        uint32_t child_node;
+        if (iter_i >= 7 || !(child_node = nodes[cur_node + 1].branch_children.children_offset[iter_i])) {
+            // no more children, pop the stack
+            top --;
+            continue;
+        }
+
+        // bump iter index for the current node
+        working[top - 1].iter_i ++;
+
+        __math_biome_search_tree_validate_node(nodes + child_node);
+
+        uint64_t d = __math_biome_search_tree_distance_func(nodes + child_node, target);
+
+        if (d >= current_optimal_dist) {
+            // this child cannot be better than the current optimal, skip it
+            continue;
+        }
+
+        if (__math_biome_search_tree_is_branch(nodes + child_node)) {
+            // this is a branch node, push it to the stack
+            working[top ++] = (__biome_search_stack_element_t) { .node = child_node, .iter_i = 0 };
+            if (top >= tree_depth) {
+                // stack overflow, this should never happen
+                __builtin_trap();
+            }
+        } else {
+            current_optimal_dist = d;
+            current_optimal_node = child_node;
+        }
+    }
+
+    return nodes[current_optimal_node].state & 0x3FFFFFFF;
+}
+
+static inline uint32_t __attribute__((pure))
+math_biome_search_tree_calc_args(const biome_search_tree_node_t * restrict const nodes,
+                                 const uint32_t nodes_c, const uint32_t tree_depth,
+                                 int16_t p0, int16_t p1, int16_t p2, int16_t p3,
+                                 int16_t p4, int16_t p5, int16_t p6) {
+    const int16_t target[7] = { p0, p1, p2, p3, p4, p5, p6 };
+    return math_biome_search_tree_calc(nodes, target, nodes_c, tree_depth);
+}
+
+#pragma clang attribute pop

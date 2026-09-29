@@ -5,7 +5,7 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 2627039d46af92de3f68a2e508c9c2e17822e10d..49e6975b247252a699af0326e8e67860949521a6 100644
+index 22dac44f43d78e97f68fb98599f9f981e6f69033..d0037310ed9adb81c4700ad67afc4a6c8dff8813 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -230,6 +230,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -17,19 +17,19 @@ index 2627039d46af92de3f68a2e508c9c2e17822e10d..49e6975b247252a699af0326e8e67860
          // Spigot start
          this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
          org.spigotmc.SpigotConfig.init((java.io.File) this.options.valueOf("spigot-settings"));
-@@ -244,6 +246,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -260,6 +262,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          }
          org.purpurmc.purpur.PurpurConfig.registerCommands();
-         // Purpur end - Migrate Setting to reintroduce end void rings
+         // Purpur end - Purpur config files
 +        org.bxteam.divinemc.command.DivineCommands.registerCommands(this); // DivineMC - Configuration
-         // Paper start - initialize global and world-defaults configuration
-         this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
-         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
+         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
+  
+         // DivineMC start - Pufferfish: SIMD Support
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index d272874549a71b77fadeaa39f655ddc6d51f75a7..0e91b5de2b888c7c2fb573fb9d685a5321ae5368 100644
+index c245c05158f9f356ae888b1aa2fb45f84cdd7cfa..70aa16cb21a9d1123db75310adbf280198c3b625 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -173,6 +173,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -171,6 +171,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      // Paper end - add paper world config
  
      public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files
@@ -37,7 +37,7 @@ index d272874549a71b77fadeaa39f655ddc6d51f75a7..0e91b5de2b888c7c2fb573fb9d685a53
      public static @Nullable BlockPos lastPhysicsProblem; // Spigot
      public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
      public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
-@@ -898,6 +899,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -896,6 +897,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(bukkitName, worldKey); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
          this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(bukkitName, environment, worldKey); // Purpur - Purpur config files
