@@ -5,7 +5,7 @@ Subject: [PATCH] Async Chunk Sending
 
 
 diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
-index 54004666673f7ff95c0ea9eac76c633962120889..23a42c0278787a7eb51869025382b2d04637717e 100644
+index 54004666673f7ff95c0ea9eac76c633962120889..8fa22d5532384fd2da41fd639cca5045bc934e49 100644
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 @@ -64,7 +64,7 @@ public class ClientboundLevelChunkPacketData {
@@ -17,7 +17,7 @@ index 54004666673f7ff95c0ea9eac76c633962120889..23a42c0278787a7eb51869025382b2d0
      }
      public ClientboundLevelChunkPacketData(final LevelChunk levelChunk, final io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo) {
          // Paper end - Anti-Xray - Add chunk packet info
-@@ -103,6 +103,60 @@ public class ClientboundLevelChunkPacketData {
+@@ -103,6 +103,61 @@ public class ClientboundLevelChunkPacketData {
          this.blockEntitiesData = blockEntitiesData;
      }
  
@@ -30,6 +30,7 @@ index 54004666673f7ff95c0ea9eac76c633962120889..23a42c0278787a7eb51869025382b2d0
 +            .filter(entryx -> ((Heightmap.Types)entryx.getKey()).sendToClient())
 +            .collect(Collectors.toMap(Entry::getKey, entryx -> (long[])((Heightmap)entryx.getValue()).getRawData().clone()));
 +        this.sectionSnapshot = sectionSnapshot;
++        this.ready = false; // buffer is filled later by serializeFromSnapshot(), hold the packet in the connection queue until then
 +        this.blockEntitiesData = Lists.newArrayList();
 +        int totalTileEntities = 0; // Paper - Handle oversized block entities in chunks
 +
