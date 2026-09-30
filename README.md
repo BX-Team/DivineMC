@@ -1,6 +1,13 @@
 <div align="center">
 
-# DivineMC
+<h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/branding/logo-dark.svg">
+  <img src=".github/branding/logo-light.svg" height="36" align="top" alt="">
+</picture>
+DivineMC
+</h1>
+
 DivineMC is a multi-functional fork of [Purpur](https://github.com/PurpurMC/Purpur), which focuses on the flexibility of your server and its optimization
 
 [![website](https://raw.githubusercontent.com/NONPLAYT/badges/refs/heads/master/available-on-our-website.svg)](https://bxteam.org/downloads/divinemc)
