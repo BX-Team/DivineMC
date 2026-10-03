@@ -389,7 +389,7 @@ index d461e6d6c5b5ca23809a603efe1b1a66e09258ab..9f4ffb773e920e6eefa0f33ee6e89ba7
                  // Paper end
                  // CraftBukkit start
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 93ab3290e074c728c73e6c5acc5887b3cf22b3b9..80598905e93c3b5c066bc3b8830a9efdaef99d4f 100644
+index 93ab3290e074c728c73e6c5acc5887b3cf22b3b9..adb944b37e492f9b4b8b8001c3edff858f393a3b 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -335,6 +335,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -469,7 +469,7 @@ index 93ab3290e074c728c73e6c5acc5887b3cf22b3b9..80598905e93c3b5c066bc3b8830a9efd
      protected void tickChildren(final BooleanSupplier haveTime) {
          ProfilerFiller profiler = Profiler.get();
          this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.suspendFlushing());
-@@ -1832,26 +1857,53 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1832,26 +1857,54 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          this.updateEffectiveRespawnData();
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
@@ -502,6 +502,7 @@ index 93ab3290e074c728c73e6c5acc5887b3cf22b3b9..80598905e93c3b5c066bc3b8830a9efd
 +
 +                            try {
 +                                tickLevel(level, haveTime);
++                                level.explosionDensityCache.clear(); // Paper - Optimize explosions - cleared by the level's own thread, the main thread would race its explosions
 +                            } finally {
 +                                serverLevelTickingSemaphore.release();
 +                            }
@@ -509,6 +510,7 @@ index 93ab3290e074c728c73e6c5acc5887b3cf22b3b9..80598905e93c3b5c066bc3b8830a9efd
 +                    );
 +                } else {
 +                    tickLevel(level, haveTime);
++                    level.explosionDensityCache.clear(); // Paper - Optimize explosions
 +                }
  
 -            try {
@@ -519,7 +521,6 @@ index 93ab3290e074c728c73e6c5acc5887b3cf22b3b9..80598905e93c3b5c066bc3b8830a9efd
 -                throw new ReportedException(report);
 +                profiler.pop();
 +                profiler.pop();
-+                level.explosionDensityCache.clear(); // Paper - Optimize explosions
              }
  
 -            profiler.pop();
@@ -540,7 +541,7 @@ index 93ab3290e074c728c73e6c5acc5887b3cf22b3b9..80598905e93c3b5c066bc3b8830a9efd
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
-@@ -1943,6 +1995,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1943,6 +1996,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
          Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
          newLevels.remove(level.dimension());
@@ -633,7 +634,7 @@ index 4acbf63ae4fdeed7c8789f8d62853fadae90c6f8..f61479e08441fa5b89c636e8a233cfc3
      public int serverViewDistance;
      public final WorldGenContext worldGenContext; // Paper - public
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 0731834a28db1278fc72eda0ae2be469e68749a9..f53a6ffae77f5deb562e94776d01dc78c9ca9484 100644
+index 673d53583463b03d94bf87e5e7f6461161daed65..d40adbb00f9de08c6cbee3c41f8b883e865af09d 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -183,8 +183,12 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
