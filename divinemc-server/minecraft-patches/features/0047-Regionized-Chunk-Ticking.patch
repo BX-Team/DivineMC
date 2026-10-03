@@ -829,10 +829,10 @@ index 170c17cf271cdbc46d1f2f3172b47f559716dd5a..0c7a74b1781a62d8aa700ea9255ffae6
      // Paper start - rewrite chunk system
      private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
 diff --git a/net/minecraft/server/level/ServerPlayerGameMode.java b/net/minecraft/server/level/ServerPlayerGameMode.java
-index 28c69f61e476b138a38ae6eb9b5ae06b3bb818d7..1f4feadc257e53e800672733a3422084725290de 100644
+index 11e1507f2c97abc32f135fd686d77da2051ed9a9..35145e2543400ad273db37e87b7387ff4a92b1bb 100644
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -424,7 +424,7 @@ public class ServerPlayerGameMode {
+@@ -429,7 +429,7 @@ public class ServerPlayerGameMode {
  
          // CraftBukkit start
          org.bukkit.block.BlockState bState = bblock.getState();
@@ -841,7 +841,7 @@ index 28c69f61e476b138a38ae6eb9b5ae06b3bb818d7..1f4feadc257e53e800672733a3422084
          // CraftBukkit end
          BlockState adjustedState = block.playerWillDestroy(this.level, pos, state, this.player);
          boolean changed = this.level.removeBlock(pos, false);
-@@ -450,8 +450,10 @@ public class ServerPlayerGameMode {
+@@ -455,8 +455,10 @@ public class ServerPlayerGameMode {
          } // CraftBukkit
  
          // CraftBukkit start

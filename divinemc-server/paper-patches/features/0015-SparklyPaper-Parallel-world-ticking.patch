@@ -266,7 +266,7 @@ index ef3ceea642a2370b7f9009a23b0e5118dc14951f..0160e9442bf46fd3a2ea51134b8f3aeb
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 2a8f8eb3579ea082fc8261cd5f9bcc2dae80c5aa..e436466877dac6495b931d306a297e41a8bc8fca 100644
+index f53214ebc7fc1c3dd205566f775b49edd666b1c9..7fc802c86989727ad1e27826bc16e23f103eae04 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -453,7 +453,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
@@ -339,7 +339,7 @@ index 2a8f8eb3579ea082fc8261cd5f9bcc2dae80c5aa..e436466877dac6495b931d306a297e41
          if (this.world.hasChunkAt(pos)) {
              net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkAt(pos);
  
-@@ -1863,6 +1880,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1858,6 +1875,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public void sendGameEvent(Entity sourceEntity, org.bukkit.GameEvent gameEvent, Vector position) {
@@ -347,7 +347,7 @@ index 2a8f8eb3579ea082fc8261cd5f9bcc2dae80c5aa..e436466877dac6495b931d306a297e41
          getHandle().gameEvent(sourceEntity != null ? ((CraftEntity) sourceEntity).getHandle(): null, net.minecraft.core.registries.BuiltInRegistries.GAME_EVENT.get(org.bukkit.craftbukkit.util.CraftNamespacedKey.toMinecraft(gameEvent.getKey())).orElseThrow(), org.bukkit.craftbukkit.util.CraftVector.toBlockPos(position));
      }
      // Paper end
-@@ -2095,4 +2113,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2090,4 +2108,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          return POINTERS_SUPPLIER.view(this);
      }
      // Paper end
