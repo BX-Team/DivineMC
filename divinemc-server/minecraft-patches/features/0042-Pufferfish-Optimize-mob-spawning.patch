@@ -34,7 +34,7 @@ index 52929c90e8749dfe137023e7723c37f9e2858b65..ed7424cd5d53e5387939e20709683daa
          this.notificationManager().serverStarted();
          return true;
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 8662fa5322af70f5c32763ced28ac8675549e3b2..ad498d9f7cf27c465506976ad36ac273d2cb123d 100644
+index 8662fa5322af70f5c32763ced28ac8675549e3b2..1d1a0ca09401e26f0fe5428a212c4d67751cf776 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -75,6 +75,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -87,8 +87,8 @@ index 8662fa5322af70f5c32763ced28ac8675549e3b2..ad498d9f7cf27c465506976ad36ac273
 +                        );
 +                    } finally {
 +                        objectiterator.finishedIterating();
++                        spawnCountsReady.set(true); // a failed pass must not stop natural spawning in this level for good
 +                    }
-+                    spawnCountsReady.set(true);
 +                });
 +            }
 +        }

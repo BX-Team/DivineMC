@@ -39,7 +39,7 @@ import java.util.function.Supplier;
 
 public final class RegionizedChunkTicking extends ServerChunkCache {
     public static final Executor REGION_EXECUTOR = Executors.newFixedThreadPool(DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount,
-        new NamedAgnosticThreadFactory<>("Region Ticking", TickThread::new, DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority));
+        new NamedAgnosticThreadFactory<>("Region Ticking", TickThread.RegionTickThread::new, DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority));
     public static final boolean CHECK_OWNERSHIP = Boolean.getBoolean("divinemc.rct.checkOwnership");
     private static final int TILE_SHIFT = 3;
     private static final int COLORS = 4;
@@ -300,6 +300,18 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             }
         }
 
+        // Regions on touching tiles would tick side by side with nothing between their border entities, so merge
+        // them. Every pair of regions is then at least one unowned tile apart, which runs on the main thread.
+        for (final ObjectIterator<Long2IntMap.Entry> iterator = this.tileOwner.long2IntEntrySet().fastIterator(); iterator.hasNext(); ) {
+            final Long2IntMap.Entry entry = iterator.next();
+            final int tileX = CoordinateUtils.getChunkX(entry.getLongKey());
+            final int tileZ = CoordinateUtils.getChunkZ(entry.getLongKey());
+            this.unionNeighbour(groups, entry.getIntValue(), tileX + 1, tileZ - 1);
+            this.unionNeighbour(groups, entry.getIntValue(), tileX + 1, tileZ);
+            this.unionNeighbour(groups, entry.getIntValue(), tileX + 1, tileZ + 1);
+            this.unionNeighbour(groups, entry.getIntValue(), tileX, tileZ + 1);
+        }
+
         final int[] unitByRoot = new int[count];
         Arrays.fill(unitByRoot, -1);
         for (final ObjectIterator<Long2IntMap.Entry> iterator = this.tileOwner.long2IntEntrySet().fastIterator(); iterator.hasNext(); ) {
@@ -318,6 +330,13 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                     this.mainThreadTiles.add(tile);
                 }
             }
+        }
+    }
+
+    private void unionNeighbour(final UnionFind groups, final int owner, final int tileX, final int tileZ) {
+        final int neighbour = this.tileOwner.get(CoordinateUtils.getChunkKey(tileX, tileZ));
+        if (neighbour != -1) {
+            groups.union(owner, neighbour);
         }
     }
 
@@ -392,7 +411,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         final int workers = Math.min(count, DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount);
         final CompletableFuture<?>[] futures = new CompletableFuture<?>[workers];
         for (int worker = 0; worker < workers; worker++) {
-            futures[worker] = CompletableFuture.runAsync(() -> {
+            futures[worker] = CompletableFuture.runAsync(() -> runInLevel(this.level, () -> {
                 int index;
                 while ((index = next.getAndIncrement()) < ordered.length) {
                     final Tile unit = ordered[index];
@@ -413,7 +432,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                         }
                     }
                 }
-            }, REGION_EXECUTOR);
+            }), REGION_EXECUTOR);
         }
         for (final CompletableFuture<?> future : futures) {
             future.join();
@@ -517,6 +536,24 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         }
     }
 
+    /**
+     * Runs {@code task} with the current region worker marked as ticking {@code level}, so that thread checks done
+     * under parallel world ticking accept this level and reject every other one.
+     */
+    public static void runInLevel(final ServerLevel level, final Runnable task) {
+        if (!(Thread.currentThread() instanceof TickThread.RegionTickThread thread)) {
+            task.run();
+            return;
+        }
+        final ServerLevel previous = thread.currentlyTickingServerLevel;
+        thread.currentlyTickingServerLevel = level;
+        try {
+            task.run();
+        } finally {
+            thread.currentlyTickingServerLevel = previous;
+        }
+    }
+
     public static void checkOwnership(final Level level, final int chunkX, final int chunkZ) {
         final Tile own = CURRENT_TILE.get();
         if (own == null || own.level != level) {
@@ -541,7 +578,9 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     }
 
     private static boolean mustTickOnMainThread(Entity entity) {
-        return entity instanceof net.minecraft.world.entity.item.PrimedTnt;
+        return entity instanceof net.minecraft.world.entity.item.PrimedTnt
+            // runs arbitrary commands, which can reach anything in any world
+            || entity instanceof net.minecraft.world.entity.vehicle.minecart.MinecartCommandBlock;
     }
 
     private void tickEntity(Entity entity) {

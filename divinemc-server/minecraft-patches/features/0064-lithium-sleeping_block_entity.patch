@@ -71,10 +71,10 @@ index f2c5a6ce769d8a5fdb4b836eae6a61a4da91cb3f..bde40b2c2d9a9fd8f4000a0c3dee7d5b
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 5cb7f0028745a98c1c8446a918984f9e1c3ab5e1..df694abb6c092d0050f622f093bbf2f796447271 100644
+index 9f912f433d6fc8d923e9d9a645fddbc4c1a149e0..dfc6f2876d0d684cbd2dd1c2f35711ecf5085449 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2671,6 +2671,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2675,6 +2675,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
          for (TickingBlockEntity ticker : this.blockEntityTickers) {
              BlockPos blockPos = ticker.getPos();
@@ -417,10 +417,10 @@ index c9f2155c4bb788f5e2304794e162d5322a287eee..6ea0d37320b990a5978603f99a9b639b
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index bd3d3da7ea7f42e701e8dcf9b3752db084c3da26..04c9c4cc0bbb53570ed70fc0078b43cd291025f6 100644
+index 172359a358f8c85a3de337fa7c17ed5a212a2323..123a01e8f991a40deab32c8cb61316691ca62626 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1579,7 +1579,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1581,7 +1581,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              while (scanIndex < this.blockEntityTickers.size()) {
                  final TickingBlockEntity ticker = this.blockEntityTickers.get(scanIndex);
                  if (!ticker.isRemoved()) {
@@ -429,7 +429,7 @@ index bd3d3da7ea7f42e701e8dcf9b3752db084c3da26..04c9c4cc0bbb53570ed70fc0078b43cd
                          ticker.tick();
                          // DivineMC start - Parallel world ticking
                          ++tickedEntities;
-@@ -2323,4 +2323,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2325,4 +2325,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option
