@@ -5,25 +5,24 @@ Subject: [PATCH] Optimize Moonrise
 
 
 diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-index fff7a796a61542213bdaa417d44e25cd05f7e774..97207e837abe5838d30f366309fa5e317624c8d9 100644
+index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c051784dbd 100644
 --- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 +++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 @@ -59,71 +59,90 @@ public final class NearbyPlayers {
      public static final int GENERAL_REALLY_SMALL_AREA_VIEW_DISTANCE_BLOCKS = (GENERAL_REALLY_SMALL_VIEW_DISTANCE << 4);
  
      private final ServerLevel world;
--    private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
--    private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
--    private final Long2ReferenceOpenHashMap<ReferenceList<ServerPlayer>>[] directByChunk = new Long2ReferenceOpenHashMap[TOTAL_MAP_TYPES];
 +    // DivineMC start - Optimize collections
 +    private final Object mutex = new Object();
-+    private final it.unimi.dsi.fastutil.objects.Reference2ReferenceMap<ServerPlayer, TrackedPlayer[]> players = it.unimi.dsi.fastutil.objects.Reference2ReferenceMaps.synchronize(new Reference2ReferenceOpenHashMap<>(), this.mutex);
-+    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<TrackedChunk> byChunk = it.unimi.dsi.fastutil.longs.Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>(), this.mutex);
-+    private final it.unimi.dsi.fastutil.longs.Long2ReferenceMap<ReferenceList<ServerPlayer>>[] directByChunk = new it.unimi.dsi.fastutil.longs.Long2ReferenceMap[TOTAL_MAP_TYPES];
+     private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
+-    private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
+-    private final Long2ReferenceOpenHashMap<ReferenceList<ServerPlayer>>[] directByChunk = new Long2ReferenceOpenHashMap[TOTAL_MAP_TYPES];
++    private final ca.spottedleaf.concurrentutil.map.SWMRLong2ObjectHashTable<TrackedChunk> byChunk = new ca.spottedleaf.concurrentutil.map.SWMRLong2ObjectHashTable<>();
++    private final ca.spottedleaf.concurrentutil.map.SWMRLong2ObjectHashTable<ReferenceList<ServerPlayer>>[] directByChunk = new ca.spottedleaf.concurrentutil.map.SWMRLong2ObjectHashTable[TOTAL_MAP_TYPES];
      {
          for (int i = 0; i < this.directByChunk.length; ++i) {
 -            this.directByChunk[i] = new Long2ReferenceOpenHashMap<>();
-+            this.directByChunk[i] = it.unimi.dsi.fastutil.longs.Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>(), this.mutex);
++            this.directByChunk[i] = new ca.spottedleaf.concurrentutil.map.SWMRLong2ObjectHashTable<>();
          }
      }
 +    // DivineMC end - Optimize collections

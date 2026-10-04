@@ -47,10 +47,16 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     private static final double DOMINANT_UNIT_SHARE = 0.9;
     private static final long MIN_PARALLEL_WORK_NANOS = 1_000_000L;
     private static final int TILE_EVICT_TICKS = 200;
-    private static final int PROBE_INTERVAL_TICKS = 1200;
+    private static final int MIN_PROBE_GAP_TICKS = 300;
     private static final int PROBE_WARMUP_TICKS = 10;
     private static final int PROBE_TICKS = 100;
     private static final double SWITCH_MARGIN = 0.95;
+    private static final int PROBE_ABORT_TICKS = 20;
+    private static final double PROBE_ABORT_MARGIN = 1.1;
+    private static final int VERIFY_TICKS = 40;
+    private static final double REVERT_MARGIN = 1.05;
+    private static final double DRIFT_RATIO = 1.3;
+    private static final int PLAYERS_SETTLE_TICKS = 100;
     private static final ThreadLocal<Tile> CURRENT_TILE = new ThreadLocal<>();
     private static final ConcurrentHashMap<String, Boolean> REPORTED_VIOLATIONS = new ConcurrentHashMap<>();
 
@@ -74,10 +80,16 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     private boolean pendingEntityTick;
     private long blockPhaseNanos;
     private boolean regionMode;
-    private boolean preferRegions;
+    private boolean preferRegions = true;
     private boolean probing;
     private int probeTick;
     private int parallelTicksSinceProbe;
+    private int verifyTicksLeft;
+    private double verifyBaselineNanos;
+    private double decisionNanos;
+    private boolean degenerateFallback;
+    private int lastPlayerCount;
+    private int playersSettleTick = -1;
 
     public RegionizedChunkTicking(
         ServerLevel level,
@@ -178,39 +190,125 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         this.finishUnits();
         final long total = this.blockPhaseNanos + (System.nanoTime() - start);
         this.avgTime.add(total);
-        if (!this.probing || this.probeTick > PROBE_WARMUP_TICKS) {
+        final boolean warmingUp = this.probing ? this.probeTick <= PROBE_WARMUP_TICKS : this.verifyTicksLeft > VERIFY_TICKS;
+        if (!warmingUp) {
             (this.regionMode ? this.regionTimes : this.tileTimes).add(total);
         }
     }
 
     private boolean chooseRegionMode() {
         if (this.probing) {
-            if (++this.probeTick <= PROBE_WARMUP_TICKS + PROBE_TICKS) {
+            if (++this.probeTick <= PROBE_WARMUP_TICKS + PROBE_TICKS && !this.isProbeClearlyLosing()) {
                 return !this.preferRegions;
             }
             this.finishProbe();
             return this.preferRegions;
         }
-        if (++this.parallelTicksSinceProbe >= PROBE_INTERVAL_TICKS) {
-            this.probing = true;
-            this.probeTick = 1;
-            (this.preferRegions ? this.tileTimes : this.regionTimes).clear();
-            return !this.preferRegions;
+        if (this.verifyTicksLeft > 0) {
+            if (--this.verifyTicksLeft == 0) {
+                this.finishVerify();
+            }
+            return this.preferRegions;
         }
-        return this.preferRegions;
+
+        this.parallelTicksSinceProbe++;
+        final boolean playersSettled = this.havePlayersSettled();
+        if (playersSettled && this.degenerateFallback && this.lastPlayerCount >= 2) {
+            this.playersSettleTick = -1;
+            this.degenerateFallback = false;
+            this.switchLayout(true, this.tileTimes.average().orElse(Double.MAX_VALUE), Double.NaN);
+            return this.preferRegions;
+        }
+        if (this.parallelTicksSinceProbe < MIN_PROBE_GAP_TICKS) {
+            return this.preferRegions;
+        }
+        if (playersSettled || this.hasLoadDrifted()) {
+            this.playersSettleTick = -1;
+            this.startProbe();
+        }
+        return this.probing != this.preferRegions;
+    }
+
+    private RollingLongBuffer preferredTimes() {
+        return this.preferRegions ? this.regionTimes : this.tileTimes;
+    }
+
+    private RollingLongBuffer probedTimes() {
+        return this.preferRegions ? this.tileTimes : this.regionTimes;
+    }
+
+    private boolean havePlayersSettled() {
+        final int players = this.level.players().size();
+        if (players != this.lastPlayerCount) {
+            this.lastPlayerCount = players;
+            this.playersSettleTick = this.tickCount + PLAYERS_SETTLE_TICKS;
+            return false;
+        }
+        return this.playersSettleTick != -1 && this.tickCount >= this.playersSettleTick;
+    }
+
+    private boolean hasLoadDrifted() {
+        final RollingLongBuffer preferred = this.preferredTimes();
+        if (preferred.size() < PROBE_TICKS) {
+            return false;
+        }
+        final double current = preferred.average().orElse(0);
+        if (this.decisionNanos <= 0) {
+            this.decisionNanos = current;
+            return false;
+        }
+        return current > this.decisionNanos * DRIFT_RATIO || current * DRIFT_RATIO < this.decisionNanos;
+    }
+
+    private void startProbe() {
+        this.probing = true;
+        this.probeTick = 1;
+        this.probedTimes().clear();
+    }
+
+    private boolean isProbeClearlyLosing() {
+        final RollingLongBuffer probed = this.probedTimes();
+        if (probed.size() < PROBE_ABORT_TICKS) {
+            return false;
+        }
+        final double preferredNanos = this.preferredTimes().average().orElse(Double.MAX_VALUE);
+        return probed.average().orElse(0) > preferredNanos * PROBE_ABORT_MARGIN;
     }
 
     private void finishProbe() {
         this.probing = false;
+        this.degenerateFallback = false;
         this.parallelTicksSinceProbe = 0;
         final double tileNanos = this.tileTimes.average().orElse(Double.MAX_VALUE);
         final double regionNanos = this.regionTimes.average().orElse(Double.MAX_VALUE);
         final boolean switchToRegions = !this.preferRegions && regionNanos < tileNanos * SWITCH_MARGIN;
         final boolean switchToTiles = this.preferRegions && tileNanos < regionNanos * SWITCH_MARGIN;
         if (switchToRegions || switchToTiles) {
-            this.preferRegions = switchToRegions;
-            this.logLayoutSwitch(tileNanos, regionNanos);
+            this.switchLayout(switchToRegions, tileNanos, regionNanos);
+            return;
         }
+        this.decisionNanos = this.preferredTimes().average().orElse(0);
+    }
+
+    private void switchLayout(final boolean regions, final double tileNanos, final double regionNanos) {
+        this.verifyBaselineNanos = regions ? tileNanos : regionNanos;
+        this.preferRegions = regions;
+        this.preferredTimes().clear();
+        this.verifyTicksLeft = PROBE_WARMUP_TICKS + VERIFY_TICKS;
+        this.parallelTicksSinceProbe = 0;
+        this.logLayout("Switched to", tileNanos, regionNanos);
+    }
+
+    private void finishVerify() {
+        final double current = this.preferredTimes().average().orElse(Double.MAX_VALUE);
+        if (current <= this.verifyBaselineNanos * REVERT_MARGIN) {
+            this.decisionNanos = current;
+            return;
+        }
+        this.preferRegions = !this.preferRegions;
+        this.decisionNanos = this.verifyBaselineNanos;
+        this.parallelTicksSinceProbe = 0;
+        this.logLayout("Reverted to", this.tileTimes.average().orElse(0), this.regionTimes.average().orElse(0));
     }
 
     private void abandonRegionMode() {
@@ -220,15 +318,24 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             this.parallelTicksSinceProbe = 0;
         } else if (this.preferRegions) {
             this.preferRegions = false;
-            this.logLayoutSwitch(this.tileTimes.average().orElse(0), Double.MAX_VALUE);
+            this.verifyTicksLeft = 0;
+            this.degenerateFallback = true;
+            this.decisionNanos = 0;
+            this.logLayout("Switched to", this.tileTimes.average().orElse(Double.MAX_VALUE), Double.MAX_VALUE);
         }
     }
 
-    private void logLayoutSwitch(final double tileNanos, final double regionNanos) {
-        final String text = "Switched to " + (this.preferRegions ? "player regions" : "tiles")
-            + " (tiles " + Math.round(tileNanos / 1000.0) + " us, player regions "
-            + (regionNanos == Double.MAX_VALUE ? "degenerate" : Math.round(regionNanos / 1000.0) + " us") + ")\n";
+    private void logLayout(final String action, final double tileNanos, final double regionNanos) {
+        final String text = action + " " + (this.preferRegions ? "player regions" : "tiles")
+            + " (tiles " + formatNanos(tileNanos, "unmeasured") + ", player regions " + formatNanos(regionNanos, "degenerate") + ")\n";
         REGION_EXECUTOR.execute(() -> this.avgTimeLogger.logTickTime(text));
+    }
+
+    private static String formatNanos(final double nanos, final String maxLabel) {
+        if (Double.isNaN(nanos)) {
+            return "unmeasured";
+        }
+        return nanos == Double.MAX_VALUE ? maxLabel : Math.round(nanos / 1000.0) + " us";
     }
 
     private void assignTiles() {
