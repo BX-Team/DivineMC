@@ -12,10 +12,10 @@ Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
 Replaces the vanilla hash palette with an optimized variant
 
 diff --git a/net/minecraft/world/level/chunk/HashMapPalette.java b/net/minecraft/world/level/chunk/HashMapPalette.java
-index 2b3a0e1223bc0e8212d96a59c174dc2a570ae7d8..fe81aa60941c05d9c988a1bfe8725588f9b84519 100644
+index fde0a0e4b2a3b2bd4f2ac893703c70dd55b1ddc2..fc53bb226c0e1b6114d26ffcbd9a79dcd658eba7 100644
 --- a/net/minecraft/world/level/chunk/HashMapPalette.java
 +++ b/net/minecraft/world/level/chunk/HashMapPalette.java
-@@ -33,6 +33,14 @@ public class HashMapPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.pa
+@@ -26,6 +26,14 @@ public class HashMapPalette<T> implements Palette<T> {
          this.values = values;
      }
  
@@ -31,7 +31,7 @@ index 2b3a0e1223bc0e8212d96a59c174dc2a570ae7d8..fe81aa60941c05d9c988a1bfe8725588
          return new HashMapPalette<>(bits, paletteEntries);
      }
 diff --git a/net/minecraft/world/level/chunk/Strategy.java b/net/minecraft/world/level/chunk/Strategy.java
-index 958be147cd940ac430576ca5b4ada70fa5d051e3..3a91c5494a9154fbd3199ea0a20c10924223597a 100644
+index 38e4abe3307c020ec7e2385a559ff4708b09c899..b454683fc3d1b26bceac990ce3046f2c0c94d62a 100644
 --- a/net/minecraft/world/level/chunk/Strategy.java
 +++ b/net/minecraft/world/level/chunk/Strategy.java
 @@ -4,6 +4,14 @@ import net.minecraft.core.IdMap;
@@ -48,7 +48,7 @@ index 958be147cd940ac430576ca5b4ada70fa5d051e3..3a91c5494a9154fbd3199ea0a20c1092
 +    // DivineMC end - lithium: faster hash palette
      public static final Palette.Factory SINGLE_VALUE_PALETTE_FACTORY = SingleValuePalette::create; // Paper - Anti-Xray
      private static final Palette.Factory LINEAR_PALETTE_FACTORY = LinearPalette::create;
-     private static final Palette.Factory HASHMAP_PALETTE_FACTORY = HashMapPalette::create;
+     private static final Palette.Factory HASHMAP_PALETTE_FACTORY = ca.spottedleaf.moonrise.patches.fast_palette.FastHashMapPalette::create; // Paper - optimise palette reads
 @@ -36,11 +44,14 @@ public abstract class Strategy<T> {
              public Configuration getConfigurationForBitCount(final int entryBits) {
                  return switch (entryBits) {

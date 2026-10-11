@@ -25,10 +25,10 @@ index f8254b3ec264f2ece70a2635823493b90fb45ad8..6255006a5397811acc031dbf399cc916
  
      @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 0cf6219a153c5beb76f6d660c011c0027c2bad68..ef3ceea642a2370b7f9009a23b0e5118dc14951f 100644
+index 5c83fffd3edcaf62808ede7913c5ec3b498517cc..760950fba080fefe98e18a8da1e106f71c6c62ef 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -1248,7 +1248,11 @@ public final class CraftServer implements Server {
+@@ -1226,7 +1226,11 @@ public final class CraftServer implements Server {
              .orElse(null);
          RegistryAccess contextRegistryAccess = registryAccess;
          if (worldGenSettings == null) {

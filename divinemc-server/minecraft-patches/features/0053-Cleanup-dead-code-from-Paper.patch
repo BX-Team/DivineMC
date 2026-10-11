@@ -69,7 +69,7 @@ index f398d48910dff89c41d1344ebf7b793c27dcb6aa..aa5989ed22b3b72137c5d037c7e1315a
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 174f13bcde765148754d3cd71b4ee69e7a772b73..9c236c90a8025be303e80a4a58cd0ab662641989 100644
+index c9b9143449aa276bdc2083762a393dca7d57604c..9936d1fb48868c6a3733c1207a7ab5dab75a5de6 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1545,11 +1545,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -99,7 +99,7 @@ index 174f13bcde765148754d3cd71b4ee69e7a772b73..9c236c90a8025be303e80a4a58cd0ab6
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 57a86604fcd7abf3bb60007d895535fbc72c01b3..a438e0ab363040f4cb695316639cffd26dbd4757 100644
+index 1a7ee398a2bdbb3adade87bbcc287e3da06f0139..aebce207108aef78cfe2a9df9502ea7234ba7295 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1179,16 +1179,6 @@ public abstract class Entity

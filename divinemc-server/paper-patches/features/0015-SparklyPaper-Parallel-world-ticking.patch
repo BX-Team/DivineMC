@@ -250,10 +250,10 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index ef3ceea642a2370b7f9009a23b0e5118dc14951f..0160e9442bf46fd3a2ea51134b8f3aeb2a15a1c4 100644
+index 760950fba080fefe98e18a8da1e106f71c6c62ef..1d08cb67286dc11db3334d53854ca04d6bce5677 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -3041,4 +3041,11 @@ public final class CraftServer implements Server {
+@@ -3039,4 +3039,11 @@ public final class CraftServer implements Server {
          return getServer().lagging;
      }
      // Purpur end - Lagging threshold
@@ -266,7 +266,7 @@ index ef3ceea642a2370b7f9009a23b0e5118dc14951f..0160e9442bf46fd3a2ea51134b8f3aeb
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index f53214ebc7fc1c3dd205566f775b49edd666b1c9..7fc802c86989727ad1e27826bc16e23f103eae04 100644
+index 7ed2f99175b672d7836d2f63d2a419408d930607..667440fce86c51e2dff37f409c097d1d12d8b7dc 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -453,7 +453,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
@@ -339,7 +339,7 @@ index f53214ebc7fc1c3dd205566f775b49edd666b1c9..7fc802c86989727ad1e27826bc16e23f
          if (this.world.hasChunkAt(pos)) {
              net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkAt(pos);
  
-@@ -1858,6 +1875,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1862,6 +1879,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public void sendGameEvent(Entity sourceEntity, org.bukkit.GameEvent gameEvent, Vector position) {
@@ -347,7 +347,7 @@ index f53214ebc7fc1c3dd205566f775b49edd666b1c9..7fc802c86989727ad1e27826bc16e23f
          getHandle().gameEvent(sourceEntity != null ? ((CraftEntity) sourceEntity).getHandle(): null, net.minecraft.core.registries.BuiltInRegistries.GAME_EVENT.get(org.bukkit.craftbukkit.util.CraftNamespacedKey.toMinecraft(gameEvent.getKey())).orElseThrow(), org.bukkit.craftbukkit.util.CraftVector.toBlockPos(position));
      }
      // Paper end
-@@ -2090,4 +2108,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2094,4 +2112,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          return POINTERS_SUPPLIER.view(this);
      }
      // Paper end
@@ -532,49 +532,6 @@ index 5f48f453223a7b431461d82b80b7ac48d7452820..05f2aaacc0d776071c9e6012495cc731
          final ServerLevel level = this.level.getMinecraftWorld();
          this.getBlockState().tick(level, this.position, level.getRandom());
      }
-diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
-index 1ef1943c9934400e40c3c060299c98659709a5cc..eea90754068410d8e3d930654f558e016cb11ee1 100644
---- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
-+++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockEntityState.java
-@@ -34,6 +34,25 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
-     private final T snapshot;
-     public boolean snapshotDisabled; // Paper
-     public static boolean DISABLE_SNAPSHOT = false; // Paper
-+    // DivineMC start - Parallel world ticking
-+    public static ThreadLocal<Boolean> DISABLE_SNAPSHOT_TL = ThreadLocal.withInitial(() -> Boolean.FALSE);
-+
-+    public static boolean getDisableSnapshotTL() {
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && DISABLE_SNAPSHOT_TL.get()) return true;
-+
-+        synchronized (CraftBlockEntityState.class) {
-+            return DISABLE_SNAPSHOT;
-+        }
-+    }
-+
-+    public static void setDisableSnapshotTL(boolean value) {
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) DISABLE_SNAPSHOT_TL.set(value);
-+
-+        synchronized (CraftBlockEntityState.class) {
-+            DISABLE_SNAPSHOT = value;
-+        }
-+    }
-+    // DivineMC end - Parallel world ticking
- 
-     public CraftBlockEntityState(World world, T blockEntity) {
-         super(world, blockEntity.getBlockPos(), blockEntity.getBlockState());
-@@ -42,8 +61,10 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
- 
-         try { // Paper - Show blockstate location if we failed to read it
-         // Paper start
--        this.snapshotDisabled = DISABLE_SNAPSHOT;
--        if (DISABLE_SNAPSHOT) {
-+        // DivineMC start - Parallel world ticking
-+        this.snapshotDisabled = getDisableSnapshotTL();
-+        if (snapshotDisabled) {
-+        // DivineMC end - Parallel world ticking
-             this.snapshot = this.blockEntity;
-         } else {
-             this.snapshot = this.createSnapshot(blockEntity);
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
 index ec3343ecbe68b1c2a33f85edb3b527363affa9ba..672a1fc6cc23a03426dd9bd7bcaddb6584848004 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
@@ -586,28 +543,4 @@ index ec3343ecbe68b1c2a33f85edb3b527363affa9ba..672a1fc6cc23a03426dd9bd7bcaddb65
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(world.getHandle(), position, "Cannot modify world asynchronously"); // DivineMC - Parallel world ticking
          this.requirePlaced();
          net.minecraft.world.item.ItemStack item = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(tool);
- 
-diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
-index 6575e32fd37da7ce46c24ff4bfcf6832d0c3653a..44f6a21dadb9ae3e259fbecd4bd0fe6101a4d4dd 100644
---- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
-+++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockStates.java
-@@ -198,14 +198,16 @@ public final class CraftBlockStates {
-         BlockPos pos = craftBlock.getPosition();
-         net.minecraft.world.level.block.state.BlockState state = craftBlock.getBlockState();
-         BlockEntity blockEntity = craftBlock.getLevel().getBlockEntity(pos);
--        boolean prev = CraftBlockEntityState.DISABLE_SNAPSHOT;
--        CraftBlockEntityState.DISABLE_SNAPSHOT = !useSnapshot;
-+        // DivineMC start - Parallel world ticking
-+        boolean prev = CraftBlockEntityState.getDisableSnapshotTL();
-+        CraftBlockEntityState.setDisableSnapshotTL(!useSnapshot);
-+        // DivineMC end - Parallel world ticking
-         try {
-             CraftBlockState blockState = CraftBlockStates.getBlockState(world, pos, state, blockEntity);
-             blockState.setWorldHandle(craftBlock.getLevel()); // Inject the block's level accessor
-             return blockState;
-         } finally {
--            CraftBlockEntityState.DISABLE_SNAPSHOT = prev;
-+            CraftBlockEntityState.setDisableSnapshotTL(prev); // DivineMC - Parallel world ticking
-         }
-     }
  

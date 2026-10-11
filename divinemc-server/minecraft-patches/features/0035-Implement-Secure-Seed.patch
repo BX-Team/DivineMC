@@ -93,7 +93,7 @@ index 5a2858526aaed35f3b2f0cd93652490c9357f937..3530bd64bff6d6a3cec15b652ee71627
              final double maxHeightSlimeChunk = level.getMinecraftWorld().paperConfig().entities.spawning.slimeSpawnHeight.slimeChunk.maximum;
              if (random.nextInt(10) == 0 && slimeChunk && pos.getY() < maxHeightSlimeChunk) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 83390f2bb0e04921c8b47b67ce560d3ff8a786b1..f70af3baa51a75871024a33f07a3429e2c526133 100644
+index 47ac578482e2c6bb0aa4728dc03f499144a6eae2..3a51c68c3cc60824d0265548d2a0074041ea42fd 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
 @@ -77,6 +77,10 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeR
@@ -107,7 +107,7 @@ index 83390f2bb0e04921c8b47b67ce560d3ff8a786b1..f70af3baa51a75871024a33f07a3429e
      // CraftBukkit start - SPIGOT-6814: move to ChunkAccess to account for 1.17 to 1.18 chunk upgrading.
      private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
      public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
-@@ -185,6 +189,17 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeR
+@@ -201,6 +205,17 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeR
          return GameEventListenerRegistry.NOOP;
      }
  
@@ -126,10 +126,10 @@ index 83390f2bb0e04921c8b47b67ce560d3ff8a786b1..f70af3baa51a75871024a33f07a3429e
  
      public @Nullable BlockState setBlockState(final BlockPos pos, final BlockState state) {
 diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
-index 7c366268b87468ed7f4c420d606588324d37d4f8..619be124f43e257a31abde2e57af12b32ed455db 100644
+index 37cd7372c52e5a7bd5c9104edead729287514e54..bfe6f864fd4e1651ba99d62a4220d0d8be11e5c1 100644
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -385,7 +385,11 @@ public abstract class ChunkGenerator {
+@@ -394,7 +394,11 @@ public abstract class ChunkGenerator {
              Map<Integer, List<Structure>> structuresByStep = structuresRegistry.stream()
                  .collect(Collectors.groupingBy(structure -> structure.step().ordinal()));
              List<FeatureSorter.StepFeatureData> featureList = this.featuresPerStep.get();
@@ -142,7 +142,7 @@ index 7c366268b87468ed7f4c420d606588324d37d4f8..619be124f43e257a31abde2e57af12b3
              long decorationSeed = random.setDecorationSeed(level.getSeed(), origin.getX(), origin.getZ());
              Set<Holder<Biome>> possibleBiomes = new ObjectArraySet<>();
              ChunkPos.rangeClosed(sectionPos.chunk(), 1).forEach(chunkPos -> {
-@@ -606,8 +610,18 @@ public abstract class ChunkGenerator {
+@@ -625,8 +629,18 @@ public abstract class ChunkGenerator {
                              } else {
                                  ArrayList<StructureSet.StructureSelectionEntry> options = new ArrayList<>(structures.size());
                                  options.addAll(structures);

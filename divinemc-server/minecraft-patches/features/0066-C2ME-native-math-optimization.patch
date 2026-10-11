@@ -61,12 +61,12 @@ index 99b4cf3529c973c154277e07108fc6d2d0bead76..73ad063a380c54e0804455ae66dc0345
          int xMinus2 = blockX - 2;
          int yMinus2 = blockY - 2;
 diff --git a/net/minecraft/world/level/levelgen/densityfunction/DensityBuffer.java b/net/minecraft/world/level/levelgen/densityfunction/DensityBuffer.java
-index ec0ca312c28dc1ba4b4f310ff3f80f22fc3367a5..2281340d5c4df627be05f5d38a8c0d40839efd91 100644
+index 464fb72348084adcfd5cd40d9e926bb826f1a010..2403ad6fc64e2b416252136aefd258bef9e35f7e 100644
 --- a/net/minecraft/world/level/levelgen/densityfunction/DensityBuffer.java
 +++ b/net/minecraft/world/level/levelgen/densityfunction/DensityBuffer.java
 @@ -5,6 +5,7 @@ import java.util.Arrays;
  public class DensityBuffer {
-     protected final float[] values;
+     public final float[] values; // Paper - optimise chunk generation - public
      protected int size;
 +    private java.lang.foreign.@org.jspecify.annotations.Nullable MemorySegment divinemc$segment; // DivineMC - C2ME: native math optimization
  
@@ -131,7 +131,7 @@ index 2bdc138f0e34793fec010edcbb35936ed6a50d0f..491e4f5f0ed35a5a1940922d193cc61b
          }
      }
 diff --git a/net/minecraft/world/level/levelgen/synth/GradientNoise.java b/net/minecraft/world/level/levelgen/synth/GradientNoise.java
-index d7b2a91df8c5c0ce480bc537b3457fcd144162e1..b3aa1cf065d5df1c90b7726e35c591d424e5016c 100644
+index 6da4d95f6a5f6043aaea6d62c550cd9f991da9ec..4c7af47ffdb3337cd23c51e2af97d4f10d4b4386 100644
 --- a/net/minecraft/world/level/levelgen/synth/GradientNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/GradientNoise.java
 @@ -28,6 +28,7 @@ public abstract class GradientNoise implements Noise {
@@ -190,13 +190,13 @@ index 3cb7094148b00eba7c46c3ec56653c02d179c6bb..e63aa4e9a964a9c2bb5e5b1551052ee3
              }
  
 diff --git a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
-index ecbd95204e4650b514d341f79c5756430e08e70f..48322d7ace310cc8fb5767d24c583d879ac5ee8c 100644
+index 8e5ba8f7bed5754b6b657db30cba92fb4c7ee1b3..9380377a5d9c511e1ef937a51d8d0961df811af3 100644
 --- a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
-@@ -77,6 +77,18 @@ public class PerlinNoise extends GradientNoise {
- 
+@@ -154,6 +154,18 @@ public class PerlinNoise extends GradientNoise implements ca.spottedleaf.moonris
      @Override
-     public void addToVolume(final DensityBuffer buffer, final DensityVolume volume, final double xzScale, final double yScale, final float amplitude) {
+     public void addToVolume(final DensityBuffer buffer, final DensityVolume volume,
+                             final double xzScale, final double yScale, final float amplitude) {
 +        // DivineMC start - C2ME: native math optimization
 +        if (this.divinemc$packedPerms != null && volume.size() >= 8 && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
 +            org.bxteam.divinemc.math.Bindings.c2me_natives_noise_perlin_sample_base_area(
@@ -209,17 +209,17 @@ index ecbd95204e4650b514d341f79c5756430e08e70f..48322d7ace310cc8fb5767d24c583d87
 +            return;
 +        }
 +        // DivineMC end - C2ME: native math optimization
-         float d000xz = 0.0F;
-         float d100xz = 0.0F;
-         float d010xz = 0.0F;
+         final float[] vanillaNoise;
+         if (DEBUG_NOISE) {
+             final float[] cpy = buffer.values.clone();
 diff --git a/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java b/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
-index 4884b35596ea7ab327f75f0537affab97df492be..f108a8cc47dac20b95706ca71075084885ede3db 100644
+index 64868bdc6554dea2b1b45fbdac8da6551f6ecc08..51c12ebb1fad7fc53b7ecedba276e921a870ab8b 100644
 --- a/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
-@@ -53,6 +53,18 @@ public class SmearedPerlinNoise extends PerlinNoise {
- 
+@@ -63,6 +63,18 @@ public class SmearedPerlinNoise extends PerlinNoise {
      @Override
-     public void addToVolume(final DensityBuffer buffer, final DensityVolume volume, final double xzScale, final double yScale, final float amplitude) {
+     public void addToVolume(final DensityBuffer buffer, final DensityVolume volume,
+                             final double xzScale, final double yScale, final float amplitude) {
 +        // DivineMC start - C2ME: native math optimization
 +        if (this.divinemc$packedPerms != null && volume.size() >= 8 && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
 +            org.bxteam.divinemc.math.Bindings.c2me_natives_noise_perlin_sample_legacy_area(
@@ -232,6 +232,6 @@ index 4884b35596ea7ab327f75f0537affab97df492be..f108a8cc47dac20b95706ca710750848
 +            return;
 +        }
 +        // DivineMC end - C2ME: native math optimization
-         float d000xz = 0.0F;
-         float d100xz = 0.0F;
-         float d010xz = 0.0F;
+         final float[] vanillaNoise;
+         if (DEBUG_NOISE) {
+             final float[] cpy = buffer.values.clone();

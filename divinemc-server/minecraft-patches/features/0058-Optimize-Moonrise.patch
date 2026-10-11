@@ -136,7 +136,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
  
      public TrackedChunk getChunk(final ChunkPos pos) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index e297fcef5104dc17b74d9d492ac935947aebca8d..d41b67c8b8045729575d204ca666866dfdd418fa 100644
+index b165826fb500aba3d540e211a9602dced610bf43..3bbd8798c9b1e0537833e8d3f886beacda2494f4 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -85,28 +85,40 @@ public final class ChunkHolderManager {
@@ -255,7 +255,7 @@ index e297fcef5104dc17b74d9d492ac935947aebca8d..d41b67c8b8045729575d204ca666866d
              return new Long2IntOpenHashMap();
          }).addTo(chunkKey, 1);
      }
-@@ -1156,21 +1172,26 @@ public final class ChunkHolderManager {
+@@ -1171,21 +1187,26 @@ public final class ChunkHolderManager {
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && !TickThread.isTickThreadFor(world) || !TickThread.isTickThread()) { // DivineMC - Parallel world ticking
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
@@ -286,7 +286,7 @@ index e297fcef5104dc17b74d9d492ac935947aebca8d..d41b67c8b8045729575d204ca666866d
      }
  
      // note: never call while inside the chunk system, this will absolutely break everything
-@@ -1335,6 +1356,27 @@ public final class ChunkHolderManager {
+@@ -1350,6 +1371,27 @@ public final class ChunkHolderManager {
          }
      }
  
@@ -314,7 +314,7 @@ index e297fcef5104dc17b74d9d492ac935947aebca8d..d41b67c8b8045729575d204ca666866d
      public enum TicketOperationType {
          ADD, REMOVE, ADD_IF_REMOVED, ADD_AND_REMOVE
      }
-@@ -1498,8 +1540,10 @@ public final class ChunkHolderManager {
+@@ -1538,8 +1580,10 @@ public final class ChunkHolderManager {
  
      // only call on tick thread
      private void processOffThreadFullUpdates() {
@@ -327,7 +327,7 @@ index e297fcef5104dc17b74d9d492ac935947aebca8d..d41b67c8b8045729575d204ca666866d
  
          NewChunkHolder toUpdate;
          while ((toUpdate = offThreadPendingFullLoadUpdate.poll()) != null) {
-@@ -1511,7 +1555,7 @@ public final class ChunkHolderManager {
+@@ -1551,7 +1595,7 @@ public final class ChunkHolderManager {
      private boolean processPendingFullUpdate() {
          this.processOffThreadFullUpdates();
  

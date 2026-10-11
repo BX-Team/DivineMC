@@ -43,7 +43,7 @@ index c1fee0420e417a408d1fd12e2d59394810fc33e1..7f19e26066f8ecc64583200f76d0bbd1
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  profiler.push("checkDespawn");
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 372fdb4f3637674dfd9fe73bdac15eb09b24eaef..819ce3c0e4997d87749474f44d6e90d1040105d3 100644
+index 76dca5bf618971167f21ac56c4538172dab49e91..6851c84c44a0fe7b42676c5ee06af3eccf755420 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -389,6 +389,8 @@ public abstract class Entity
@@ -68,7 +68,7 @@ index e4fd3727cdf99bebed91ac195034e988cdc9951b..8f0893d42dd56d8a3cac5d142f7d2b0d
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index 4a040057b9980f86d681bbfa4782b459e83cc7f7..33ac3ab31ef2a6d0960f7a0011b25b32d1133866 100644
+index 9b702a6e1cc3ed68e17aec6dc461cebaa62d982c..a7701c19a06e61a41691d59eb8154283bca50571 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
 @@ -224,10 +224,10 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs

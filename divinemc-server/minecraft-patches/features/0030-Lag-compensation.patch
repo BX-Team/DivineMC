@@ -46,7 +46,7 @@ index 1ff2e90b21a8d9fc196c70701f67e15297dcc42d..75299f298621d592c62ae9e81a1a458d
          if (runs) {
              this.tickTime();
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 03610aaba134f0f379b6d13e5ac7b542a06e2ac8..5c76eee827ac06f47c52a268669e7b4815e5a8c1 100644
+index 673552976721931e3b01f3de4f41c2ca0b24816d..4d13f9f21aac7f984d1c2586393fe98eab14910f 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -546,12 +546,24 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
@@ -101,7 +101,7 @@ index 7ec15f3d3a770e1e9e2fbac29dd38e947bb07091..a3c119c89aff9eb776b647a811ac9e4d
          return this.portal.getPortalDestination(serverLevel, entity, this.entryPosition);
      }
 diff --git a/net/minecraft/world/entity/item/ItemEntity.java b/net/minecraft/world/entity/item/ItemEntity.java
-index 25c2b8d3e29dee82a4a305af96b6ed805a38150e..0277d86849e3986585e1f30b9f4281289f7046f4 100644
+index d48781789c08cf6cd48ab5157cb5e3fe55519844..3641edda8b06cc454d8c05ab6ec9624cf81d88f1 100644
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
 @@ -147,8 +147,25 @@ public class ItemEntity extends Entity implements TraceableEntity {
@@ -162,7 +162,7 @@ index aef1a9cb52efc2f432f8015f5aef5a76fe1014d5..ca407928a195a9bc63b3e5cd59feec2b
              return !itemStack.has(DataComponents.BLOCKS_ATTACKS) && !itemStack.has(DataComponents.KINETIC_WEAPON) ? 0 : 72000;
          }
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 38a0388cf80dd7cc47fb1faa7af1031f0976f49e..3c783bf6f0cbf01599760744fe575a1f44c67b19 100644
+index 8f504f2a36490e9afcdedfc89b91fc3f420820be..58da6c986924121f93fa2385f561cbaf0b93f8dd 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -351,14 +351,22 @@ public abstract class BlockBehaviour implements FeatureElement {
@@ -191,10 +191,10 @@ index 38a0388cf80dd7cc47fb1faa7af1031f0976f49e..3c783bf6f0cbf01599760744fe575a1f
  
      protected void spawnAfterBreak(final BlockState state, final ServerLevel level, final BlockPos pos, final ItemStack tool, final boolean dropExperience) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 686d5556c19f096e2de1a54d76619f44320bd3e7..f952d9e7438ed466ff7d30257fe84693a346256d 100644
+index 40f0220d6037da1c26b6eb127f69139f2f343bcd..4c520643a19593c8bf998487b242993c86f10e34 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -942,6 +942,19 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -947,6 +947,19 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
              this.ticker = ticker;
          }
  
@@ -214,7 +214,7 @@ index 686d5556c19f096e2de1a54d76619f44320bd3e7..f952d9e7438ed466ff7d30257fe84693
          @Override
          public void tick() {
              if (!this.blockEntity.isRemoved() && this.blockEntity.hasLevel()) {
-@@ -952,7 +965,11 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -957,7 +970,11 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
                          profiler.push(this::getType);
                          BlockState blockState = LevelChunk.this.getBlockState(pos);
                          if (this.blockEntity.getType().isValid(blockState)) {

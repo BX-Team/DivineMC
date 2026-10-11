@@ -236,7 +236,7 @@ index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..31038feaf9388384edb42d7bea12fca4
  }
 +// DivineMC end - Optimize Moonrise
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
-index c2fe81726ad2cfba2d71f37445d72cc9c4b075f6..5e5318a9fa0e9902b5f0a15cc46cbf1db19f52f1 100644
+index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..e7645e75ba42bfbf5d9f189f58c54461bf1999cd 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
 @@ -1,11 +1,13 @@
@@ -249,8 +249,8 @@ index c2fe81726ad2cfba2d71f37445d72cc9c4b075f6..5e5318a9fa0e9902b5f0a15cc46cbf1d
  
  public final class ShortList {
  
--    private final Short2ShortOpenHashMap map = new Short2ShortOpenHashMap();
-+    private final Short2ShortMap map = Short2ShortMaps.synchronize(new Short2ShortOpenHashMap()); // DivineMC - Optimize Moonrise
+-    private final Short2ShortOpenHashMap map = new Short2ShortOpenHashMap(0);
++    private final Short2ShortMap map = Short2ShortMaps.synchronize(new Short2ShortOpenHashMap(0)); // DivineMC - Optimize Moonrise
      {
          this.map.defaultReturnValue(Short.MIN_VALUE);
      }

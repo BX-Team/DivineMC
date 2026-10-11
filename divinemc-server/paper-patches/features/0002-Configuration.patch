@@ -5,10 +5,10 @@ Subject: [PATCH] Configuration
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index b6b63479e5f91230679781d8aeaca063e70901b8..a2ebf14afeeef415aefa521b362ab6796a61c16c 100644
+index 7f0f64b6845eb81265a7ce894e95b415c7c3d564..74d9a00f215d90028a0b86356be28d4b5c9de646 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -1003,6 +1003,7 @@ public final class CraftServer implements Server {
+@@ -981,6 +981,7 @@ public final class CraftServer implements Server {
          org.spigotmc.SpigotConfig.init((File) this.console.options.valueOf("spigot-settings")); // Spigot
          this.console.paperConfigurations.reloadConfigs(this.console);
          org.purpurmc.purpur.PurpurConfig.init((File) console.options.valueOf("purpur-settings")); // Purpur - Purpur config files
@@ -16,7 +16,7 @@ index b6b63479e5f91230679781d8aeaca063e70901b8..a2ebf14afeeef415aefa521b362ab679
          for (ServerLevel world : this.console.getAllLevels()) {
              // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
              world.setSpawnSettings(world.isSpawningMonsters()); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
-@@ -1019,6 +1020,13 @@ public final class CraftServer implements Server {
+@@ -997,6 +998,13 @@ public final class CraftServer implements Server {
              }
              world.spigotConfig.init(); // Spigot
              world.purpurConfig.init(); // Purpur - Purpur config files
@@ -31,10 +31,10 @@ index b6b63479e5f91230679781d8aeaca063e70901b8..a2ebf14afeeef415aefa521b362ab679
  
          Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index e6ea34b18c6db63efa77bb67d3484e4d66315ed6..533f389762da7e049d1ec078f486089398621543 100644
+index ca1a3e1b4cd2b7b62cd65bb02fa79e2ae9d3da48..97fc092aaf0e78e52945bd882f36d42d35be962f 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -147,6 +147,14 @@ public class Main {
+@@ -152,6 +152,14 @@ public class Main {
                      .describedAs("Yml file");
                  // Purpur end - Purpur config files
  

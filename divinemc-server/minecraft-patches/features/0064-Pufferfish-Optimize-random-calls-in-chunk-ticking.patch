@@ -10,7 +10,7 @@ As part of: Airplane (https://github.com/TECHNOVE/Airplane)
 Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index f8a0217404e1d935ad5c393c6e7ada99ec483d7d..60dde229a9492c585e21825f0dcd6d99c5196a4c 100644
+index bdc92e717170a1502c7b8e2494b6cf48635501bf..369150dd4f3485fe1a18ceedf6e85084154f95ef 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1146,7 +1146,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -23,11 +23,11 @@ index f8a0217404e1d935ad5c393c6e7ada99ec483d7d..60dde229a9492c585e21825f0dcd6d99
              if (this.isRainingAt(pos)) {
                  DifficultyInstance difficulty = this.getCurrentDifficultyAt(pos);
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 658d77e089be1790b67c87710524419bc88ae5c9..9186faffd3a04c3f243cf72b7974a404d0b0e80e 100644
+index 2a2df7c210c60715fd33439efc494defe2d98550..e7e7f3036d9735dea3764478b265f8e5803b23be 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -134,6 +134,18 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
-         return this.getBlockStateFinal(x, y, z);
+@@ -139,6 +139,18 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+         return this.getFluidState(x, y, z);
      }
      // Paper end - get block chunk optimisation
 +    // DivineMC start - Pufferfish: Optimize random calls in chunk ticking
@@ -45,7 +45,7 @@ index 658d77e089be1790b67c87710524419bc88ae5c9..9186faffd3a04c3f243cf72b7974a404
  
      public LevelChunk(final Level level, final ChunkPos pos) {
          this(level, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
-@@ -171,6 +183,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -176,6 +188,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          this.debug = !empty && this.level.isDebug();
          this.defaultBlockState = empty ? VOID_AIR_BLOCKSTATE : AIR_BLOCKSTATE;
          // Paper end - get block chunk optimisation

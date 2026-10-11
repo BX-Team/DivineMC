@@ -22,7 +22,7 @@ index 7ed727cbb33e490257283400220ad6a2a3bc9918..e482645097fdbd6b0994b839cd0d5b56
              if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
                  visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 0c7a74b1781a62d8aa700ea9255ffae66daf9a04..149aa10058f16a45e58ac4db5493340264c78c5e 100644
+index 3246315c2b5c577c4c6e741e2d1b90c8d85e7f17..9da0181ab2067557e9747cbe69883c848a5766cb 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -444,6 +444,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -54,7 +54,7 @@ index 8f0893d42dd56d8a3cac5d142f7d2b0d23eb435c..78d0c7af20b1fabc3994d34dab685a42
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 39198a4de8ca0d59211b80ef588b6b433ea28666..b30ffaaa38ddf1527ffb87084b6565a8a7c0d72d 100644
+index 0721ac621feb0ca914c7d07f041f30beba67041f..181bf5479aa7a115fdb47b54b4247695299f8e17 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1162,6 +1162,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

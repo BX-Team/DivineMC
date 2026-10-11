@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-@@ -425,6 +_,11 @@
+@@ -430,6 +_,11 @@
  
          Direction direction = self.facing.getOpposite();
          if (isFullContainer(container, direction)) {

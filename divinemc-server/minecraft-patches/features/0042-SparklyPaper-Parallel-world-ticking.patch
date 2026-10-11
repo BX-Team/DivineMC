@@ -284,10 +284,10 @@ index 5b7ed8e5067683143c99473a126e17baa531903c..1651698b79fd62b20c18a931849f8b47
  
      private static final class BasicEntityList<E extends Entity> {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index eb7c5ba7168ba4903e93938dd8671227194bec99..e297fcef5104dc17b74d9d492ac935947aebca8d 100644
+index ef990079fe5214a2817f55249163548f601523de..b165826fb500aba3d540e211a9602dced610bf43 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -1153,7 +1153,7 @@ public final class ChunkHolderManager {
+@@ -1168,7 +1168,7 @@ public final class ChunkHolderManager {
          if (changedFullStatus.isEmpty()) {
              return;
          }
@@ -296,7 +296,7 @@ index eb7c5ba7168ba4903e93938dd8671227194bec99..e297fcef5104dc17b74d9d492ac93594
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
              this.offThreadPendingFullLoadUpdate.addAll(changedFullStatus);
-@@ -1175,7 +1175,13 @@ public final class ChunkHolderManager {
+@@ -1190,7 +1190,13 @@ public final class ChunkHolderManager {
  
      // note: never call while inside the chunk system, this will absolutely break everything
      public void processUnloads() {
@@ -311,7 +311,7 @@ index eb7c5ba7168ba4903e93938dd8671227194bec99..e297fcef5104dc17b74d9d492ac93594
  
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot unload chunks recursively");
-@@ -1444,7 +1450,11 @@ public final class ChunkHolderManager {
+@@ -1484,7 +1490,11 @@ public final class ChunkHolderManager {
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot update ticket level while unloading chunks or updating entity manager");
          }
@@ -322,7 +322,7 @@ index eb7c5ba7168ba4903e93938dd8671227194bec99..e297fcef5104dc17b74d9d492ac93594
 +            : TickThread.isTickThread();
 +        // DivineMC end - Parallel world ticking
  
-         if (!PlatformHooks.get().allowAsyncTicketUpdates() && isTickThread) {
+         if (!PlatformHooks.get().allowAsyncTicketUpdates() && !isTickThread) {
              TickThread.ensureTickThread("Cannot asynchronously process ticket updates");
 diff --git a/io/papermc/paper/entity/activation/ActivationRange.java b/io/papermc/paper/entity/activation/ActivationRange.java
 index 1d9edbd1b8a71662b71d3d96caa0dc7fd14b6257..91f8673a91e294678b75a8bdaae47b563bac19a9 100644
@@ -760,7 +760,7 @@ index 7f19e26066f8ecc64583200f76d0bbd15eea2827..bf9d345477ab5b6f1402088f9e71bcdc
          // Paper start - extra debug info
          if (entity.valid) {
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 501052d81e30caccf8b3047b221b8fee35159cd3..170c17cf271cdbc46d1f2f3172b47f559716dd5a 100644
+index 6ab0c0b13c447bf01f56a52e7d8b00813e8c3b24..95b883395aeb4aaf4ec8bf27ae23b9ce1f456573 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -449,6 +449,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -928,7 +928,7 @@ index b9748a392c9f76e61a1b673085b4dd74c007c70d..3342bf3f8d0ed7b23d573f21b9e33735
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 819ce3c0e4997d87749474f44d6e90d1040105d3..57a86604fcd7abf3bb60007d895535fbc72c01b3 100644
+index 6851c84c44a0fe7b42676c5ee06af3eccf755420..1a7ee398a2bdbb3adade87bbcc287e3da06f0139 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -3748,10 +3748,29 @@ public abstract class Entity
@@ -1653,10 +1653,10 @@ index 95ac67eeee1c5c12fd709fe44288d6de9a28b3a1..c0a657699329835ce91be24705758373
      // CraftBukkit end
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index f952d9e7438ed466ff7d30257fe84693a346256d..220d5c9ee7957a9047cfebae139f95c3ca522e8e 100644
+index 4c520643a19593c8bf998487b242993c86f10e34..aa15b79177cc739ba31e32322b2891ca5b4b7d9e 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -371,6 +371,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -376,6 +376,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
  
      @Override
      public @Nullable BlockState setBlockState(final BlockPos pos, final BlockState state, final @Block.UpdateFlags int flags) {
@@ -1665,10 +1665,10 @@ index f952d9e7438ed466ff7d30257fe84693a346256d..220d5c9ee7957a9047cfebae139f95c3
          LevelChunkSection section = this.getSection(this.getSectionIndex(y));
          boolean wasEmpty = section.hasOnlyAir();
 diff --git a/net/minecraft/world/level/chunk/ProtoChunk.java b/net/minecraft/world/level/chunk/ProtoChunk.java
-index 769ec921f5ba1ee8146d5abeb287b14a24d1fbfa..7f95a8988322a3508f8e203afa0b5a17c288999c 100644
+index d3afcaa32dc9b46147c99972fbcca84be2a8e54d..ad68c22533df343c9ebd8958dbea6b8b01a29a64 100644
 --- a/net/minecraft/world/level/chunk/ProtoChunk.java
 +++ b/net/minecraft/world/level/chunk/ProtoChunk.java
-@@ -44,7 +44,7 @@ public class ProtoChunk extends ChunkAccess {
+@@ -44,7 +44,7 @@ public class ProtoChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
      private static final Logger LOGGER = LogUtils.getLogger();
      private volatile @Nullable LevelLightEngine lightEngine;
      private volatile ChunkStatus status = ChunkStatus.EMPTY;

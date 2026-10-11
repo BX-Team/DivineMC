@@ -187,7 +187,7 @@ index 1aa888376784dfc9ddd9c4e2493031ff2a564b59..683ffa16e758e615597023602ec43d6e
 +    // DivineMC end - lithium: equipment_tracking
  }
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 5c76eee827ac06f47c52a268669e7b4815e5a8c1..8ab4ef6ad5dd7d4ce439a18d712c0f7469dbe158 100644
+index 4d13f9f21aac7f984d1c2586393fe98eab14910f..bae9ec2957ad591b92f2836185c64cfba9222d22 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -458,9 +458,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
@@ -234,7 +234,7 @@ index 5c76eee827ac06f47c52a268669e7b4815e5a8c1..8ab4ef6ad5dd7d4ce439a18d712c0f74
          // Paper start - EntityEquipmentChangedEvent
          record EquipmentChangeImpl(org.bukkit.inventory.ItemStack oldItem, org.bukkit.inventory.ItemStack newItem) implements io.papermc.paper.event.entity.EntityEquipmentChangedEvent.EquipmentChange {
 diff --git a/net/minecraft/world/entity/decoration/ArmorStand.java b/net/minecraft/world/entity/decoration/ArmorStand.java
-index 7fe3efb911a80cb1be59d342cc980c3eade6701d..57705be4938ca7dc8f2ab993567bcf8e154d724f 100644
+index 917e23cd1c3c480a40702b4712963cb2e9694f77..31a406f8e9a642d7a30b451a648ddd55f0a9df63 100644
 --- a/net/minecraft/world/entity/decoration/ArmorStand.java
 +++ b/net/minecraft/world/entity/decoration/ArmorStand.java
 @@ -557,8 +557,9 @@ public class ArmorStand extends LivingEntity {

@@ -6,7 +6,7 @@ Subject: [PATCH] Option to allow weird movement and disable teleporting
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 63d1858ff647c5a8316cfca4b298e69c18a0d565..e50476645e7f3599874962b424f2dababee1daa9 100644
+index c9d2d42fa02b04681a4156c1d17e5fd18c648eea..4bd5a8787f2ef700eb66c3a3d1a2f6927e57efbd 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -650,7 +650,7 @@ public class ServerGamePacketListenerImpl

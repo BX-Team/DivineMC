@@ -813,7 +813,7 @@ index be581d6d6c63e5cc1ff8889b510d39bf1913434b..c9b9143449aa276bdc2083762a393dca
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 170c17cf271cdbc46d1f2f3172b47f559716dd5a..0c7a74b1781a62d8aa700ea9255ffae66daf9a04 100644
+index 95b883395aeb4aaf4ec8bf27ae23b9ce1f456573..3246315c2b5c577c4c6e741e2d1b90c8d85e7f17 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -450,6 +450,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -1242,10 +1242,10 @@ index 6cabc49464d34cb5282b7fa3bcfee20953d7e347..bf6d1391ca191eddaefda11946ba767c
          }
      }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 220d5c9ee7957a9047cfebae139f95c3ca522e8e..c256a357a5ca03bab92c9828a7d52f79f36ce5bd 100644
+index aa15b79177cc739ba31e32322b2891ca5b4b7d9e..fedb00d2116025503ecd11f1c3ef6f5398c1f394 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -431,7 +431,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -436,7 +436,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
              return null;
          }
  
@@ -1254,7 +1254,7 @@ index 220d5c9ee7957a9047cfebae139f95c3ca522e8e..c256a357a5ca03bab92c9828a7d52f79
              state.onPlace(this.level, pos, oldState, movedByPiston);
          }
  
-@@ -475,7 +475,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -480,7 +480,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
  
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos, final LevelChunk.EntityCreationType creationType) {
          // CraftBukkit start
@@ -1263,7 +1263,7 @@ index 220d5c9ee7957a9047cfebae139f95c3ca522e8e..c256a357a5ca03bab92c9828a7d52f79
          if (blockEntity == null) {
              blockEntity = this.blockEntities.get(pos);
          }
-@@ -662,13 +662,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -667,13 +667,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
  
                  org.bukkit.World world = this.level.getWorld();
                  if (world != null) {

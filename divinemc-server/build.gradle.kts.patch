@@ -93,7 +93,7 @@
      implementation(platform("ca.spottedleaf.leafpile:bom:1.2.4"))
      implementation("ca.spottedleaf.leafpile:common")
      implementation("ca.spottedleaf.leafpile:concurrentutil")
-@@ -173,7 +_,12 @@
+@@ -172,7 +_,12 @@
      // Deps that were previously in the API but have now been moved here for backwards compat, eventually to be removed
      runtimeOnly("commons-lang:commons-lang:2.6")
      runtimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
@@ -107,8 +107,8 @@
      runtimeOnly("com.lmax:disruptor:3.4.4")
      implementation("com.googlecode.json-simple:json-simple:1.1.1") { // change to runtimeOnly once Timings is removed
          isTransitive = false // includes junit
-@@ -194,6 +_,16 @@
-     implementation("me.lucko:spark-paper:1.10.180")
+@@ -193,6 +_,16 @@
+     implementation("me.lucko:spark-paper:1.10.191")
  }
  
 +// DivineMC start - Hide irrelevant compilation warnings
@@ -124,7 +124,7 @@
  tasks.jar {
      manifest {
          val git = Git(rootProject.layout.projectDirectory.path)
-@@ -204,20 +_,22 @@
+@@ -203,20 +_,22 @@
          val implementationVersion = "$mcVersion-${build ?: "DEV"}-$gitHash"
          val date = git.exec(providers, "show", "-s", "--format=%ci", gitHash).get().trim()
          val gitBranch = git.exec(providers, "rev-parse", "--abbrev-ref", "HEAD").get().trim()

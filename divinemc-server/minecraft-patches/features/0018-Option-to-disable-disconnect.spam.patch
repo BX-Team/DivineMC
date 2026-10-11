@@ -17,7 +17,7 @@ index 52cb9e845bd18a27cbafd432e5339cf3929b1fc7..95fcd8021adf65995cb56ae2246a37e8
                          this.player.connection.disconnect(net.minecraft.network.chat.Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
                          return;
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index ddd1c54262f0dad08619ee9337f9f34951db1767..63d1858ff647c5a8316cfca4b298e69c18a0d565 100644
+index c65ce565e74e551c3a77794c8ceec897b6725355..c9d2d42fa02b04681a4156c1d17e5fd18c648eea 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -887,7 +887,7 @@ public class ServerGamePacketListenerImpl

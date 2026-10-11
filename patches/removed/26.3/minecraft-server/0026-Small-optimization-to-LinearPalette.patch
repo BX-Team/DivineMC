@@ -5,19 +5,19 @@ Subject: [PATCH] Small optimization to LinearPalette
 
 
 diff --git a/net/minecraft/world/level/chunk/LinearPalette.java b/net/minecraft/world/level/chunk/LinearPalette.java
-index 58f03cf8b32b141dc7df72568ef902eed53f4a5d..3c588d87410ff3615cf8d29310a9e73bdf8d6ffb 100644
+index 51761bba718b5bc58524454137d7e526c74ce5d3..a6ab5eda6b5660b043f2f99c5cc833573964d1f2 100644
 --- a/net/minecraft/world/level/chunk/LinearPalette.java
 +++ b/net/minecraft/world/level/chunk/LinearPalette.java
 @@ -10,7 +10,7 @@ import org.apache.commons.lang3.Validate;
- public class LinearPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.patches.fast_palette.FastPalette<T> { // Paper - optimise palette reads
+ public class LinearPalette<T> implements Palette<T> {
      private final T[] values;
      private final int bits;
 -    private int size;
 +    private volatile int size; // DivineMC - Small optimization to LinearPalette
  
-     // Paper start - optimise palette reads
-     @Override
-@@ -45,11 +45,16 @@ public class LinearPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.pat
+     private LinearPalette(final int bits, final List<T> paletteEntries) {
+         this.values = (T[])(new Object[1 << bits]);
+@@ -38,11 +38,16 @@ public class LinearPalette<T> implements Palette<T> {
  
      @Override
      public int idFor(final T value, final PaletteResize<T> resizeHandler) {
@@ -36,7 +36,7 @@ index 58f03cf8b32b141dc7df72568ef902eed53f4a5d..3c588d87410ff3615cf8d29310a9e73b
  
          int index = this.size;
          if (index < this.values.length) {
-@@ -63,17 +68,23 @@ public class LinearPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.pat
+@@ -56,17 +61,23 @@ public class LinearPalette<T> implements Palette<T> {
  
      @Override
      public boolean maybeHas(final Predicate<T> predicate) {

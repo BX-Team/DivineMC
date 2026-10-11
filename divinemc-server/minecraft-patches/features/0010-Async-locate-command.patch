@@ -100,10 +100,10 @@ index d018ec1c7876ddc883223d548fbe6a513e14bcfe..c9633a4e09bebb9107351b7965b00831
      }
  
 diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
-index bb484105c8bcbc277cd85b7d1168680bf0b1ce85..7c366268b87468ed7f4c420d606588324d37d4f8 100644
+index cc4800823c20e8ecbf0b4d74fd85a22bcb70c74c..37cd7372c52e5a7bd5c9104edead729287514e54 100644
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -176,7 +176,12 @@ public abstract class ChunkGenerator {
+@@ -185,7 +185,12 @@ public abstract class ChunkGenerator {
          final List<org.bukkit.generator.structure.Structure> apiStructures = wantedStructures.stream().map(org.bukkit.craftbukkit.generator.structure.CraftStructure::minecraftHolderToBukkit).toList();
          if (!apiStructures.isEmpty()) {
              final io.papermc.paper.event.world.StructuresLocateEvent event = new io.papermc.paper.event.world.StructuresLocateEvent(bukkitWorld, origin, apiStructures, maxSearchRadius, createReference);

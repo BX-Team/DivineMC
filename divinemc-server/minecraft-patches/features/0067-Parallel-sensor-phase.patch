@@ -9,7 +9,7 @@ so the world can't mutate. Sensors unsafe off-thread opt out via
 divinemc$canRunAsync, and TargetingConditions are made thread-local.
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 60dde229a9492c585e21825f0dcd6d99c5196a4c..0ab673d458389fa023756a10d2365422e6cb14f8 100644
+index 369150dd4f3485fe1a18ceedf6e85084154f95ef..cddf6f6c538e96024cd2936fe7f8ae25b5f76794 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -985,6 +985,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet

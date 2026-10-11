@@ -60,10 +60,10 @@ index 5741a60faba70da485053599c9370f0e27e868f4..d4dbd4eccc49192bdc4aa44aef8a1714
          final Set<String> paperPluginNames = new TreeSet<>();
          final Set<String> legacyPluginNames = new TreeSet<>();
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 533f389762da7e049d1ec078f486089398621543..089ce63f245fdee971ab1ef4c1cc48e9f574d6d6 100644
+index 97fc092aaf0e78e52945bd882f36d42d35be962f..693526a04c681773fd5cd5bd1880cd779628b714 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -133,12 +133,6 @@ public class Main {
+@@ -138,12 +138,6 @@ public class Main {
                          .defaultsTo(new File[] {})
                          .describedAs("Jar file");
  
@@ -76,7 +76,7 @@ index 533f389762da7e049d1ec078f486089398621543..089ce63f245fdee971ab1ef4c1cc48e9
                  // Purpur start - Purpur config files
                  this.acceptsAll(asList("purpur", "purpur-settings"), "File for purpur settings")
                      .withRequiredArg()
-@@ -155,6 +149,52 @@ public class Main {
+@@ -160,6 +154,52 @@ public class Main {
                      .describedAs("Yml file");
                  // DivineMC end - Configuration
  

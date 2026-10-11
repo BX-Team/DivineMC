@@ -5,7 +5,7 @@ Subject: [PATCH] Virtual Threads
 
 
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index 5cc4837471cc6dc2efb20ec8f5a89082a641728d..28a43a558c4d3fc7daddaee034bf8dd011721027 100644
+index 0bf3433cc7c796b7bf5354dfe179f43bdb0b16e6..ac433af32ed5c629e9f5da81865c3cf33efe5a88 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
 @@ -505,7 +505,7 @@ public class Commands {
@@ -36,7 +36,7 @@ index 5a22b666525248615fdd435e892729e308db5d5e..277ef0fe54551dd5a1d13b0a9a30446a
  
      public ChatDecorator getChatDecorator() {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index e50476645e7f3599874962b424f2dababee1daa9..34fa841b6dee423c97688b751a73d97fc144a9ef 100644
+index 4bd5a8787f2ef700eb66c3a3d1a2f6927e57efbd..9f340c2953c81fc0e8770ee97d5e21b335c9558a 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -880,8 +880,11 @@ public class ServerGamePacketListenerImpl
