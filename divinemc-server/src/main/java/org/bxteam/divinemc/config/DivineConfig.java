@@ -30,6 +30,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -102,11 +103,21 @@ public class DivineConfig {
             }
         }
 
-        for (Class<?> innerClass : clazz.getDeclaredClasses()) {
+        Class<?>[] categories = Arrays.stream(clazz.getDeclaredClasses()).sorted(Comparator.comparingInt(c -> {
+            try {
+                Field category = c.getDeclaredField("category");
+                category.setAccessible(true);
+                return ((ConfigCategory) category.get(null)).ordinal();
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        })).toArray(Class<?>[]::new);
+
+        for (Class<?> innerClass : categories) {
             if (Modifier.isStatic(innerClass.getModifiers())) {
                 try {
-                    Object innerInstance = null;
-                    Method loadMethod = null;
+                    Object innerInstance;
+                    Method loadMethod;
                     try {
                         loadMethod = innerClass.getDeclaredMethod("load");
                     } catch (NoSuchMethodException ignored) {
@@ -114,7 +125,15 @@ public class DivineConfig {
                         continue;
                     }
 
-                    if (loadMethod != null) {
+                    boolean shouldLoad = true;
+                    try {
+                        Method load = innerClass.getDeclaredMethod("shouldLoad");
+                        load.setAccessible(true);
+                        shouldLoad = (Boolean) load.invoke(null);
+                    } catch (NoSuchMethodException _) {
+                    }
+
+                    if (loadMethod != null && shouldLoad) {
                         try {
                             innerInstance = innerClass.getDeclaredConstructor().newInstance();
                         } catch (NoSuchMethodException e) {
@@ -235,8 +254,19 @@ public class DivineConfig {
         return config.getStringList(key);
     }
 
+    private static int[] getIntArray(String key, int[] defaultValue, String... comment) {
+        return getIntArray(key, null, defaultValue, comment);
+    }
+
+    private static int[] getIntArray(String key, @Nullable String oldKey, int[] defaultValue, String... comment) {
+        ensureDefault(key, oldKey, defaultValue, comment);
+        return config.getIntegerList(key).stream().mapToInt(Integer::intValue).toArray();
+    }
+
     public static class AsyncCategory {
+        private static final ConfigCategory category = ConfigCategory.ASYNC;
         private static boolean enableAutoAllocation = false;
+        public static boolean guruMode = false;
 
         // Parallel world ticking settings
         @Experimental("Parallel World Ticking")
@@ -308,6 +338,12 @@ public class DivineConfig {
                     LOGGER.info("Detected {} CPU threads", maxThreads);
                 }
             }
+
+            guruMode = getBoolean(ConfigCategory.ASYNC.key("guru-mode-enable"), guruMode,
+                "This mode will allow you to cook with thread affinity only enable this when you know exactly what you are doing.",
+                "NO SUPPORT WILL BE GIVEN IF THIS IS ENABLED",
+                "To enable this you need also to set system property 'divinemc.async.guru' to true")
+                       && Boolean.getBoolean("divinemc.async.guru");
         }
 
         private static void autoAllocation() {
@@ -502,7 +538,29 @@ public class DivineConfig {
         }
     }
 
+    public static class GuruMode {
+        private static final ConfigCategory category = ConfigCategory.GURU_MODE;
+        public static int[] regionizedChunkTickingAffinity = new int[0];
+        public static int[] asyncPathfindingAffinity = new int[0];
+        public static int[] parallelSensorsAffinity = new int[0];
+        public static int[] parallelEntityTrackerAffinity = new int[0];
+        public static int[] asyncChunkSendingAffinity = new int[0];
+
+        public static boolean shouldLoad() {
+            return AsyncCategory.guruMode;
+        }
+
+        public static void load() {
+            regionizedChunkTickingAffinity = getIntArray(ConfigCategory.GURU_MODE.key("regionized-chunk-ticking-affinity"), regionizedChunkTickingAffinity);
+            asyncPathfindingAffinity = getIntArray(ConfigCategory.GURU_MODE.key("async-pathfinding-affinity"), asyncPathfindingAffinity);
+            parallelSensorsAffinity = getIntArray(ConfigCategory.GURU_MODE.key("parallel-sensors-affinity"), parallelSensorsAffinity);
+            parallelEntityTrackerAffinity = getIntArray(ConfigCategory.GURU_MODE.key("parallel-entity-tracker-affinity"), parallelEntityTrackerAffinity);
+            asyncChunkSendingAffinity = getIntArray(ConfigCategory.GURU_MODE.key("async-chunk-sending-affinity"), asyncChunkSendingAffinity);
+        }
+    }
+
     public static class PerformanceCategory {
+        private static final ConfigCategory category = ConfigCategory.PERFORMANCE;
         // Chunk settings
         public static boolean nativeAccelerationEnabled = false;
         public static boolean allowAVX512 = false;
@@ -726,6 +784,7 @@ public class DivineConfig {
     }
 
     public static class FixesCategory {
+        private static final ConfigCategory category = ConfigCategory.FIXES;
         // Gameplay fixes
         public static boolean fixIncorrectBounceLogic = false;
         public static boolean updateSuppressionCrashFix = true;
@@ -798,6 +857,7 @@ public class DivineConfig {
     }
 
     public static class MiscCategory {
+        private static final ConfigCategory category = ConfigCategory.MISC;
         // Secure seed
         public static boolean enableSecureSeed = false;
         public static HashingVersion secureSeedHashingVersion = HashingVersion.BLAKE2B;
@@ -882,6 +942,7 @@ public class DivineConfig {
     }
 
     public static class NetworkCategory {
+        private static final ConfigCategory category = ConfigCategory.NETWORK;
         // General network settings
         public static boolean optimizeNonFlushPacketSending = false;
         public static boolean disableDisconnectSpam = false;
@@ -1057,6 +1118,7 @@ public class DivineConfig {
     }
 
     public static class RegionSettingsCategory {
+        private static final ConfigCategory category = ConfigCategory.REGION;
         // Region Format
         public static EnumRegionFileExtension regionFileType = EnumRegionFileExtension.MCA;
         public static int compressionLevel = 4;
