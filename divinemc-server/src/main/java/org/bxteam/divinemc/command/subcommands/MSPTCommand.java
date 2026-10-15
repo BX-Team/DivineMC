@@ -135,7 +135,7 @@ public final class MSPTCommand extends DivineSubCommandPermission {
         return Arrays.asList(getColoredValue(avg), getColoredValue(min), getColoredValue(max));
     }
 
-    private static List<Component> evalFromTickData(ca.spottedleaf.common.time.TickData tickData, long tickInterval) {
+    private static List<Component> evalFromTickData(TickData tickData, long tickInterval) {
         TickData.TickReportData report = tickData.generateTickReport(null, System.nanoTime(), tickInterval);
 
         if (report == null) {
@@ -157,8 +157,8 @@ public final class MSPTCommand extends DivineSubCommandPermission {
 
     private static Component getColoredValue(double value) {
         NamedTextColor color = value >= 50 ? RED
-            : value >= 40 ? YELLOW
-            : value >= 30 ? NamedTextColor.GOLD
+            : value >= 40 ? GOLD
+            : value >= 30 ? YELLOW
             : value >= 20 ? GREEN
             : AQUA;
         return Component.text(DF.format(value) + "ms", color);

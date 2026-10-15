@@ -23,8 +23,7 @@ import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.SavedDataStorage;
-import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
+import org.bxteam.divinemc.util.NamedAgnosticThreadFactoryAffinity;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -37,9 +36,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount;
+import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority;
+import static org.bxteam.divinemc.config.DivineConfig.GuruMode.regionizedChunkTickingAffinity;
+
 public final class RegionizedChunkTicking extends ServerChunkCache {
-    public static final Executor REGION_EXECUTOR = Executors.newFixedThreadPool(DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount,
-        new NamedAgnosticThreadFactory<>("Region Ticking", TickThread.RegionTickThread::new, DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority));
+    public static final Executor REGION_EXECUTOR = Executors.newFixedThreadPool(regionizedChunkTickingExecutorThreadCount,
+        new NamedAgnosticThreadFactoryAffinity<>("Region Ticking", TickThread.RegionTickThread::new, regionizedChunkTickingExecutorThreadPriority, regionizedChunkTickingAffinity)
+    );
     public static final boolean CHECK_OWNERSHIP = Boolean.getBoolean("divinemc.rct.checkOwnership");
     private static final int TILE_SHIFT = 3;
     private static final int COLORS = 4;
@@ -106,7 +110,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         final SavedDataStorage savedDataStorage
     ) {
         super(level, levelStorageAccess, fixerUpper, structureTemplateManager, executor, generator, viewDistance, simulationDistance, sync, chunkStatusListener, overworldDataStorage, savedDataStorage);
-        this.avgTimeLogger = new AvgTimeLogger(level.serverLevelData.getLevelName());
+        this.avgTimeLogger = new AvgTimeLogger(level.bukkitName);
         for (int color = 0; color < COLORS; color++) {
             this.tilesByColor[color] = new ObjectArrayList<>();
         }
@@ -515,7 +519,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         final Tile[] ordered = work.toArray(new Tile[0]);
         final boolean checkOwnership = CHECK_OWNERSHIP && !this.regionMode;
         final AtomicInteger next = new AtomicInteger();
-        final int workers = Math.min(count, DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount);
+        final int workers = Math.min(count, regionizedChunkTickingExecutorThreadCount);
         final CompletableFuture<?>[] futures = new CompletableFuture<?>[workers];
         for (int worker = 0; worker < workers; worker++) {
             futures[worker] = CompletableFuture.runAsync(() -> runInLevel(this.level, () -> {

@@ -9,7 +9,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.sensing.Sensor;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
+import org.bxteam.divinemc.util.NamedAgnosticThreadFactoryAffinity;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -19,6 +19,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import static org.bxteam.divinemc.config.DivineConfig.GuruMode.parallelSensorsAffinity;
 
 /**
  * Runs due AI sensors (read-only world scans) on a worker pool right before entity ticking, one
@@ -69,7 +71,9 @@ public final class ParallelSensorTicker {
             DivineConfig.AsyncCategory.parallelSensorsMaxThreads, DivineConfig.AsyncCategory.parallelSensorsMaxThreads,
             60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(),
-            new NamedAgnosticThreadFactory<>("Parallel Sensors", TickThread::new, Thread.NORM_PRIORITY)
+            new NamedAgnosticThreadFactoryAffinity<>("Parallel Sensors", TickThread::new,
+                Thread.NORM_PRIORITY, parallelSensorsAffinity
+            )
         );
     }
 

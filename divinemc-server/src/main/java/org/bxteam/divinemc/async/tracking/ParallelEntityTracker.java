@@ -14,7 +14,7 @@ import net.minecraft.world.entity.decoration.ItemFrame;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
+import org.bxteam.divinemc.util.NamedAgnosticThreadFactoryAffinity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -24,6 +24,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+
+import static org.bxteam.divinemc.config.DivineConfig.GuruMode.parallelEntityTrackerAffinity;
 
 public class ParallelEntityTracker {
     private static final String THREAD_PREFIX = "Parallel Entity Tracker";
@@ -37,7 +39,9 @@ public class ParallelEntityTracker {
             DivineConfig.AsyncCategory.parallelTrackerThreads, DivineConfig.AsyncCategory.parallelTrackerThreads,
             DivineConfig.AsyncCategory.parallelTrackerKeepalive, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(),
-            new NamedAgnosticThreadFactory<>(THREAD_PREFIX, TickThread::new, Thread.NORM_PRIORITY - 2),
+            new NamedAgnosticThreadFactoryAffinity<>(THREAD_PREFIX, TickThread::new,
+                Thread.NORM_PRIORITY - 2, parallelEntityTrackerAffinity
+            ),
             new ThreadPoolExecutor.CallerRunsPolicy()
         );
         pool.allowCoreThreadTimeOut(true);
