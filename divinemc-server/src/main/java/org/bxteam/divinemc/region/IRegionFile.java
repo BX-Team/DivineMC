@@ -47,5 +47,5 @@ public interface IRegionFile extends ChunkSystemRegionFile, AutoCloseable {
 
     default int getRecalculateCount() {
         return 0;
-    };
+    }
 }

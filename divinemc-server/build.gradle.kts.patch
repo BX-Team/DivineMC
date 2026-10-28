@@ -73,7 +73,7 @@
      }
  }
  val log4jPlugins = sourceSets.create("log4jPlugins") {
-@@ -137,7 +_,18 @@
+@@ -137,7 +_,19 @@
  }
  
  dependencies {
@@ -88,6 +88,7 @@
 +    implementation("at.yawk.lz4:lz4-java:1.11.2")
 +    implementation("net.openhft:zero-allocation-hashing:2026.0")
 +    implementation("net.objecthunter:exp4j:0.4.8")
++    implementation("net.openhft:affinity:2026.2")
 +    // DivineMC end - Dependencies
 +
      implementation("ca.spottedleaf:leafpile:1.2.0")
