@@ -33,7 +33,7 @@ public class LongList2BlockPosMutableIterable implements Iterable<BlockPos> {
             }
 
             @Override
-            public net.minecraft.core.BlockPos next() {
+            public BlockPos next() {
                 long nextPos = this.it.nextLong();
                 return this.pos.set(
                     LongList2BlockPosMutableIterable.this.xOffset + BlockPos.getX(nextPos),

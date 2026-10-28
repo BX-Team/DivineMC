@@ -6,7 +6,8 @@ public enum ConfigCategory {
     FIXES("fixes"),
     NETWORK("network"),
     MISC("misc"),
-    REGION("region-settings");
+    REGION("region-settings"),
+    GURU_MODE("async.guru-mode");
 
     private final String name;
 

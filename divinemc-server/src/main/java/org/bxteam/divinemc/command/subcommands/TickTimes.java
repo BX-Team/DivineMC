@@ -170,10 +170,10 @@ public final class TickTimes extends DivineSubCommandPermission {
 
     private static Component getColoredValue(double value) {
         NamedTextColor color = value >= 35 ? RED
-            : value >= 30 ? YELLOW
-              : value >= 25 ? GOLD
-                : value >= 15 ? GREEN
-                  : AQUA;
+            : value >= 30 ? GOLD
+            : value >= 25 ? YELLOW
+            : value >= 15 ? GREEN
+            : AQUA;
         return text(DF.format(value) + "ms", color);
     }
 }
