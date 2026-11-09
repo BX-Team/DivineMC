@@ -23,13 +23,13 @@ index 80b4905bc7b9c67a0d4355e5de3b3cdb46fcb061..570f912ecb396159a8a762d4600615c0
                      player.awardStat(Stats.ITEM_USED.get(usedItem));
                      // level.setBlockAndUpdate(pos, Blocks.WATER_CAULDRON.defaultBlockState()); // CraftBukkit
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index c33cb78dddfaff40f54ff4def7d58ebdd7085fa3..d461e6d6c5b5ca23809a603efe1b1a66e09258ab 100644
+index ca046e44445c68f430ac1936b1f6312386cd5569..c1257e0413c4ee5e924a5a8db7205514d411b4fb 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-@@ -473,13 +473,25 @@ public interface DispenseItemBehavior {
-                     // Paper end - Call BlockDispenseEvent
-                     if (state.is(BlockTags.BEEHIVES, s -> s.hasProperty(BeehiveBlock.HONEY_LEVEL) && s.getBlock() instanceof BeehiveBlock)
-                         && state.getValue(BeehiveBlock.HONEY_LEVEL) >= 5) {
+@@ -473,10 +473,16 @@ public interface DispenseItemBehavior {
+                             return result;
+                         }
+                         // Paper end - Call BlockDispenseEvent
 +                        // DivineMC start - Paper PR: Add FillBottleEvents for player and dispenser
 +                        final io.papermc.paper.event.block.BlockFillBottleEvent bottleEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFillBottleEvent(level, source.pos(), dispensed, new ItemStack(Items.HONEY_BOTTLE));
 +                        if (bottleEvent.isCancelled()) {
@@ -42,6 +42,12 @@ index c33cb78dddfaff40f54ff4def7d58ebdd7085fa3..d461e6d6c5b5ca23809a603efe1b1a66
 -                        return this.takeLiquid(source, dispensed, new ItemStack(Items.HONEY_BOTTLE));
 +                        return this.takeLiquid(source, dispensed, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(bottleEvent.getResultItem())); // DivineMC - Paper PR: Add FillBottleEvents for player and dispenser
                      } else if (level.getFluidState(target).is(FluidTags.WATER)) {
+                         // Paper start - Call BlockDispenseEvent
+                         ItemStack result = org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDispenseEvent(source, target, dispensed, this);
+@@ -484,8 +490,14 @@ public interface DispenseItemBehavior {
+                             return result;
+                         }
+                         // Paper end - Call BlockDispenseEvent
 +                        // DivineMC start - Paper PR: Add FillBottleEvents for player and dispenser
 +                        final io.papermc.paper.event.block.BlockFillBottleEvent bottleEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFillBottleEvent(level, source.pos(), dispensed, PotionContents.createItemStack(Items.POTION, Potions.WATER));
 +                        if (bottleEvent.isCancelled()) {

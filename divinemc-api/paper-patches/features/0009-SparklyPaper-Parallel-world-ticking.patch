@@ -10,10 +10,10 @@ Original project: https://github.com/SparklyPower/SparklyPaper
 This patch provides an API for performance monitoring plugins.
 
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index 9bb3238382804c275e0119356939fd951ebf38c9..c54214fa21c0c2abf2bb9a7cac886966817e4d53 100644
+index 29edd88cb1c4055f90fd05c438263d2a6b619cbe..a1fb592a48a75fdb7f9d0d126bb144514be1b255 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
-@@ -2931,4 +2931,15 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+@@ -2966,4 +2966,15 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      @Deprecated
      void clearBlockHighlights();
      // Purpur end - Debug Marker API
@@ -30,10 +30,10 @@ index 9bb3238382804c275e0119356939fd951ebf38c9..c54214fa21c0c2abf2bb9a7cac886966
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 1debcd48c152961d327e53aa42e30c81c6e9424a..6dbf98e7003b7062c08a52ee45961b0085eed96e 100644
+index ae2a14f26bf7a03dfd922f9a3b9b303cde20fc8e..712bdecf0719caa0ba293769e849a98681e8847b 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -4839,4 +4839,23 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+@@ -4893,4 +4893,23 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
              }
          }
      }

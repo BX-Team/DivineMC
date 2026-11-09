@@ -1,11 +1,11 @@
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseConstants.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseConstants.java
-@@ -9,7 +_,7 @@
- 
+@@ -10,7 +_,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
  
--    public static final int MAX_VIEW_DISTANCE = Integer.getInteger(PlatformHooks.get().getBrand() + ".MaxViewDistance", 32);
-+    public static final int MAX_VIEW_DISTANCE = Integer.getInteger(PlatformHooks.get().getBrand() + ".MaxViewDistance", org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.maxViewDistance); // DivineMC - Configurable Max View Distance
+     // note: only allows increasing the max view distance, as lower values are smaller than the chunk generation radius
+-    public static final int MAX_VIEW_DISTANCE = Math.max(32, Integer.getInteger(PlatformHooks.get().getBrand() + ".MaxViewDistance", 32));
++    public static final int MAX_VIEW_DISTANCE = Math.max(32, Integer.getInteger(PlatformHooks.get().getBrand() + ".MaxViewDistance", org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.maxViewDistance)); // DivineMC - Configurable Max View Distance
      public static final boolean NUMA_ENABLE;
      static {
          final boolean numaScheduling = Boolean.getBoolean(PlatformHooks.get().getBrand() + ".NumaScheduling");

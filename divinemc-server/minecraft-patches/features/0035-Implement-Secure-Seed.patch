@@ -52,7 +52,7 @@ index f743902c9c2e040b58f6b071ccc853880248e9a2..a1f7fcf6acf6714f1ebe785c2dde0fef
              this.get("generator-settings", s -> GsonHelper.parse(!s.isEmpty() ? s : "{}"), new JsonObject()),
              this.get("level-type", v -> v.toLowerCase(Locale.ROOT), WorldPresets.NORMAL.identifier().toString())
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index c26a0a9018c7593107dfc81961414913d93db09f..0c35e5d0ff00636856f6b41c73bc404ce2076d47 100644
+index c79c255bd9cad6b8bc895e68f1d6836cf2a42280..3a8c64278a75b761437d1ce4415f666fcc35e969 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -654,6 +654,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -64,7 +64,7 @@ index c26a0a9018c7593107dfc81961414913d93db09f..0c35e5d0ff00636856f6b41c73bc404c
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 75299f298621d592c62ae9e81a1a458da0fd81ae..c1fee0420e417a408d1fd12e2d59394810fc33e1 100644
+index 6a1bd0dd84dc15d0f6260a15649d13d1c7cfd59d..6e893816510036481af65ef60456c4097b87c5c2 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -695,6 +695,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -126,7 +126,7 @@ index 47ac578482e2c6bb0aa4728dc03f499144a6eae2..3a51c68c3cc60824d0265548d2a00740
  
      public @Nullable BlockState setBlockState(final BlockPos pos, final BlockState state) {
 diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
-index 37cd7372c52e5a7bd5c9104edead729287514e54..bfe6f864fd4e1651ba99d62a4220d0d8be11e5c1 100644
+index eb437e79832baa611c431511731db231159c0736..54d4430aa2d4e8316b8d9efdc2c42ae98b0103b6 100644
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
 @@ -394,7 +394,11 @@ public abstract class ChunkGenerator {
@@ -142,7 +142,7 @@ index 37cd7372c52e5a7bd5c9104edead729287514e54..bfe6f864fd4e1651ba99d62a4220d0d8
              long decorationSeed = random.setDecorationSeed(level.getSeed(), origin.getX(), origin.getZ());
              Set<Holder<Biome>> possibleBiomes = new ObjectArraySet<>();
              ChunkPos.rangeClosed(sectionPos.chunk(), 1).forEach(chunkPos -> {
-@@ -625,8 +629,18 @@ public abstract class ChunkGenerator {
+@@ -716,8 +720,18 @@ public abstract class ChunkGenerator {
                              } else {
                                  ArrayList<StructureSet.StructureSelectionEntry> options = new ArrayList<>(structures.size());
                                  options.addAll(structures);

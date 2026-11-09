@@ -27,10 +27,10 @@ index 6194d6d8952864c71cc4017a639b818e4ecccea9..46e62dead64e18691122a6dfaa1df77a
                  metrics.addCustomChart(new Metrics.DrilldownPie("java_version", () -> {
                      Map<String, Map<String, Integer>> map = new HashMap<>();
 diff --git a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
-index 0e77ec2dec9ef92458e5c99f195ab48e7128a0dc..41e3cd97b5a3be6ca87644081e4cb8aef56b2a49 100644
+index 7a389c2ab1441ab1623ac81ad234ba640fae988c..f2ffd08c716af60434d073916e2c658d71b000fc 100644
 --- a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
 +++ b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
-@@ -21,7 +21,7 @@ public final class PaperConsole extends SimpleTerminalConsole {
+@@ -27,7 +27,7 @@ public final class PaperConsole extends SimpleTerminalConsole {
      @Override
      protected LineReader buildReader(LineReaderBuilder builder) {
          builder
@@ -67,10 +67,10 @@ index 5d24f049fa88ed619c7793cf57525aca641a6df7..ef4500a3aa6cb65ef4e3a37bddb1e945
      }
  }
 diff --git a/src/main/java/io/papermc/paper/PaperServerInternalAPIBridge.java b/src/main/java/io/papermc/paper/PaperServerInternalAPIBridge.java
-index dc2e25c2bc88b76d7b99ce965d2530c7a89af1cc..bbf11df925387267667273f1ac31752c3fe3ea04 100644
+index 8b50293689d2ecc2c2979b0f065d3e663eb302fa..ff9e09417b0da0db1baa1de8154b126580e60982 100644
 --- a/src/main/java/io/papermc/paper/PaperServerInternalAPIBridge.java
 +++ b/src/main/java/io/papermc/paper/PaperServerInternalAPIBridge.java
-@@ -192,7 +192,7 @@ public class PaperServerInternalAPIBridge implements InternalAPIBridge {
+@@ -203,7 +203,7 @@ public class PaperServerInternalAPIBridge implements InternalAPIBridge {
  
      @Override
      public VersionFetcher getVersionFetcher() {

@@ -31,7 +31,7 @@ index 439e2663a297029efc77adef9e8d99a0d8c02f41..b2a42bf642d80df6fb02e2e2e72da585
  
      @Override
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 455302161c8b24a1c953005e0597f3c69f764e1e..e788312524ad186722c4b133f476499ca1c14bde 100644
+index 7b1a8fbbb1d07f4b71f43c288da7d28edfbbe020..d4512910e751a3e198fd3cb2c56d40dcdb46996b 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -67,36 +67,31 @@ public class Main {
@@ -123,10 +123,10 @@ index 455302161c8b24a1c953005e0597f3c69f764e1e..e788312524ad186722c4b133f476499c
              }
  
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 6f7ad2cec1310e5e1d9cc3a7bfadd467e25e6f91..021d726fcc57e148ee328e6375276c2c254043d1 100644
+index 033311e01f4d2e81413af431c4b3e965a1a56e08..fab76995e9f9e82fd0234e533b33648e4fee3fe5 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1268,6 +1268,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1269,6 +1269,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      protected void runServer() {
          try {
@@ -165,16 +165,3 @@ index 960454a167ef52eb867da40af1fc5b3de4ea307c..e9b38ad8b9da0d8e502f157de00c9170
                      server.halt(true);
                      gui.runFinalizers();
                  }
-diff --git a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-index 154b571b33c868c6520ab563d8cd5482f1c288c3..04c5fcb3166e2670b4d24f48bd4256446852042c 100644
---- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-+++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-@@ -297,7 +297,7 @@ public class RegionFileStorage implements AutoCloseable, ca.spottedleaf.moonrise
- 
-     // Paper start
-     private static void printOversizedLog(String msg, Path file, int x, int z) {
--        LOGGER.error("{} ({} - {},{}) Go clean it up to remove this message. /minecraft:tp {} 128 {} - DO NOT REPORT THIS TO PAPER - You may ask for help on Discord, but do not file an issue. These error messages can not be removed.", msg, file.toString().replaceAll(".+[\\\\/]", ""), x, z, x << 4, z << 4);
-+        LOGGER.error("{} ({} - {},{}) Go clean it up to remove this message. /minecraft:tp {} 128 {} - DO NOT REPORT THIS TO DIVINEMC - You may ask for help on Discord, but do not file an issue. These error messages can not be removed.", msg, file.toString().replaceAll(".+[\\\\/]", ""), x, z, x << 4, z << 4); // DivineMC - Rebrand
-     }
- 
-     private static CompoundTag readOversizedChunk(RegionFile regionfile, ChunkPos chunkCoordinate) throws IOException {

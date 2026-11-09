@@ -5,7 +5,7 @@ Subject: [PATCH] Implement NoChatReports
 
 
 diff --git a/net/minecraft/network/FriendlyByteBuf.java b/net/minecraft/network/FriendlyByteBuf.java
-index b63d24683f7b3b1f11e927cf4261ff2d05cdbd38..7945c438f3534d2c64555bd2fb7b210a1fdb135e 100644
+index 4f2bd2e89f683bbc148e49cc8262c9b1f4544031..6399f1c8b8106b0df8d0f9a40e862b19a69eb5ee 100644
 --- a/net/minecraft/network/FriendlyByteBuf.java
 +++ b/net/minecraft/network/FriendlyByteBuf.java
 @@ -89,6 +89,26 @@ public class FriendlyByteBuf extends ByteBuf {
@@ -285,7 +285,7 @@ index 048bbab91c4614f8935797b389594c1bdd4542b0..fad5c662280084b734afd6a7d1c24d6c
          if (packet == null) {
              return;
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 18c9868eeccc802e76617a687a72dd8d1304b070..2f157dcf5b541b82826c774e08faa612964de5cb 100644
+index 3f59ed7cb1a05025c5b746432fe6e956c7ba9249..afe0c6a6c1c2dc4476def9f91a1d16fd436e400f 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -191,7 +191,7 @@ public abstract class PlayerList {
@@ -297,7 +297,7 @@ index 18c9868eeccc802e76617a687a72dd8d1304b070..2f157dcf5b541b82826c774e08faa612
              )
          );
          player.getBukkitEntity().sendSupportedChannels(); // CraftBukkit
-@@ -1207,6 +1207,7 @@ public abstract class PlayerList {
+@@ -1208,6 +1208,7 @@ public abstract class PlayerList {
      }
  
      public boolean verifyChatTrusted(final PlayerChatMessage message) {

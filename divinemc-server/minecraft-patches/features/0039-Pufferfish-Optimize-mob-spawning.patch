@@ -9,10 +9,10 @@ Original project: https://github.com/pufferfish-gg/Pufferfish
 This patch reduces the main-thread impact of mob spawning by moving spawning work to other threads
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 277ef0fe54551dd5a1d13b0a9a30446a838fc974..93ab3290e074c728c73e6c5acc5887b3cf22b3b9 100644
+index e05946fadd45552fa90e948e6e6db421f2d0d10a..b56d4349e43ac905699f3c0c75a85ca4342d645a 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -334,6 +334,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -335,6 +335,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      public boolean lagging = false; // Purpur - Lagging threshold
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
      public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
@@ -34,7 +34,7 @@ index c04b5370935f8eed8923e5c2d90d0ea0e6f63639..81a5dd6899f84d62bb1d15e47d536393
          this.notificationManager().serverStarted();
          return true;
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 0c35e5d0ff00636856f6b41c73bc404ce2076d47..673d53583463b03d94bf87e5e7f6461161daed65 100644
+index 3a8c64278a75b761437d1ce4415f666fcc35e969..c14ccbf6e77db1a43bbd839be187d13294dabc33 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -74,6 +74,10 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -46,7 +46,7 @@ index 0c35e5d0ff00636856f6b41c73bc404ce2076d47..673d53583463b03d94bf87e5e7f64611
 +    public final java.util.concurrent.atomic.AtomicBoolean spawnCountsReady = new java.util.concurrent.atomic.AtomicBoolean(false);
 +    // DivineMC end - Pufferfish: Optimize mob spawning
      // Paper start
-     public final ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<>();
+     public final ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable.createWithCapacity(ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable.defaultCapacity(), 0.25f);
      public int getFullChunksCount() {
 @@ -528,6 +532,48 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              this.broadcastChangedChunks(profiler);

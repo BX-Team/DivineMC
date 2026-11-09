@@ -5,10 +5,10 @@ Subject: [PATCH] Configurable files locations and plugin loading
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
-index 41e3cd97b5a3be6ca87644081e4cb8aef56b2a49..c1580dc6c44bbd0d14f68baecba0ec2ce3f4aaad 100644
+index f2ffd08c716af60434d073916e2c658d71b000fc..e7b2048e3dac723f79fcaac9ed4c58691865db98 100644
 --- a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
 +++ b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
-@@ -22,7 +22,7 @@ public final class PaperConsole extends SimpleTerminalConsole {
+@@ -28,7 +28,7 @@ public final class PaperConsole extends SimpleTerminalConsole {
      protected LineReader buildReader(LineReaderBuilder builder) {
          builder
                  .appName("DivineMC") // DivineMC - Rebrand
@@ -17,7 +17,7 @@ index 41e3cd97b5a3be6ca87644081e4cb8aef56b2a49..c1580dc6c44bbd0d14f68baecba0ec2c
                  .completer(new ConsoleCommandCompleter(this.server))
                  .option(LineReader.Option.COMPLETE_IN_WORD, true);
          if (io.papermc.paper.configuration.GlobalConfiguration.get().console.enableBrigadierHighlighting) {
-@@ -36,6 +36,15 @@ public final class PaperConsole extends SimpleTerminalConsole {
+@@ -42,6 +42,15 @@ public final class PaperConsole extends SimpleTerminalConsole {
          return super.buildReader(builder);
      }
  

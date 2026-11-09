@@ -1,7 +1,6 @@
 package org.bxteam.divinemc.region;
 
 import ca.spottedleaf.moonrise.patches.chunk_system.storage.ChunkSystemRegionFile;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 
 import java.io.DataInputStream;
@@ -29,23 +28,18 @@ public interface IRegionFile extends ChunkSystemRegionFile, AutoCloseable {
 
     void write(ChunkPos pos, ByteBuffer buf) throws IOException;
 
-    default CompoundTag getOversizedData(int x, int z) throws IOException {
-        return null;
-    }
-
-    default boolean isOversized(int x, int z) {
-        return false;
-    }
-
-    default boolean recalculateHeader() throws IOException {
-        return false;
-    }
-
-    default void setOversized(int x, int z, boolean oversized) throws IOException {
-
-    }
-
-    default int getRecalculateCount() {
+    @Override
+    default int moonrise$getRecalculateCount() {
         return 0;
+    }
+
+    @Override
+    default boolean moonrise$recalculateHeader() throws IOException {
+        return false;
+    }
+
+    @Override
+    default Boolean moonrise$tryRecalcHeader(final int expectedRecalcCount) throws IOException {
+        return Boolean.FALSE;
     }
 }

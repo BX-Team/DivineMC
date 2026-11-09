@@ -5,20 +5,20 @@ Subject: [PATCH] Expanded Adventure support
 
 
 diff --git a/src/main/java/org/bukkit/Color.java b/src/main/java/org/bukkit/Color.java
-index cf6427bec0e7a38e0fc51cc24de72718ee32a594..d18f6eff80dc20a84e7a2e667e2507366140e93c 100644
+index ccc0e9ecde439056b4721b13c44f2a410b1c8e7d..d24664157abb78e562f1e58a40b405e2824f1052 100644
 --- a/src/main/java/org/bukkit/Color.java
 +++ b/src/main/java/org/bukkit/Color.java
-@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
+@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Range;
   * but subject to change.
   */
  @SerializableAs("Color")
--public final class Color implements ConfigurationSerializable {
-+public final class Color implements ConfigurationSerializable, net.kyori.adventure.text.format.TextColor { // DivineMC - Expanded Adventure support
+-public final class Color implements ConfigurationSerializable, ARGBLike {
++public final class Color implements ConfigurationSerializable, ARGBLike, net.kyori.adventure.text.format.TextColor { // DivineMC - Expanded Adventure support
      private static final int BIT_MASK = 0xff;
      private static final int DEFAULT_ALPHA = 255;
  
-@@ -310,6 +310,13 @@ public final class Color implements ConfigurationSerializable {
-         return getAlpha() << 24 | getRed() << 16 | getGreen() << 8 | getBlue();
+@@ -365,6 +365,13 @@ public final class Color implements ConfigurationSerializable, ARGBLike {
+         return this.getAlpha() << 24 | this.getRed() << 16 | this.getGreen() << 8 | this.getBlue();
      }
  
 +    // DivineMC start - Expanded Adventure support

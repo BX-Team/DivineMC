@@ -10,10 +10,10 @@ As part of: ModernFix (https://github.com/embeddedt/ModernFix)
 Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 
 diff --git a/net/minecraft/world/level/chunk/PalettedContainer.java b/net/minecraft/world/level/chunk/PalettedContainer.java
-index 0f38eb82954165789e5fa982362925484cba0e53..25692b0bcd73d3be296f9052e6ad200fb786b420 100644
+index d564338ddc3dc13f0d11a18e26ea36e1f9343745..11e661d49cb665e0728b8f591ef153747fd73364 100644
 --- a/net/minecraft/world/level/chunk/PalettedContainer.java
 +++ b/net/minecraft/world/level/chunk/PalettedContainer.java
-@@ -249,6 +249,28 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
+@@ -254,6 +254,28 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
              newData.palette.read(buffer, this.strategy.globalMap());
              buffer.readFixedSizeLongArray(newData.storage.getRaw());
              this.data = newData;

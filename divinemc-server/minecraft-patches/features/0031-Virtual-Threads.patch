@@ -5,10 +5,10 @@ Subject: [PATCH] Virtual Threads
 
 
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index 0bf3433cc7c796b7bf5354dfe179f43bdb0b16e6..ac433af32ed5c629e9f5da81865c3cf33efe5a88 100644
+index 6d0c05c6558e94730d6acfeb766dbf30259d5082..f5e41658d480e6d85e63e07aa5d69f0993ec2b7d 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
-@@ -505,7 +505,7 @@ public class Commands {
+@@ -511,7 +511,7 @@ public class Commands {
      }
  
      // Fixed pool, but with discard policy
@@ -18,10 +18,10 @@ index 0bf3433cc7c796b7bf5354dfe179f43bdb0b16e6..ac433af32ed5c629e9f5da81865c3cf3
          new java.util.concurrent.LinkedBlockingQueue<>(),
          new com.google.common.util.concurrent.ThreadFactoryBuilder()
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 5a22b666525248615fdd435e892729e308db5d5e..277ef0fe54551dd5a1d13b0a9a30446a838fc974 100644
+index 19df2c7146ed034a0a6edbbd9d8b37531edfc7e0..e05946fadd45552fa90e948e6e6db421f2d0d10a 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -2891,8 +2891,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2893,8 +2893,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
  
@@ -36,10 +36,10 @@ index 5a22b666525248615fdd435e892729e308db5d5e..277ef0fe54551dd5a1d13b0a9a30446a
  
      public ChatDecorator getChatDecorator() {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 4bd5a8787f2ef700eb66c3a3d1a2f6927e57efbd..9f340c2953c81fc0e8770ee97d5e21b335c9558a 100644
+index e62c31f2e7341e7f1c03efaf11218897b713900b..4adf0976f6637f05f41ec0972068dd3216ccd436 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -880,8 +880,11 @@ public class ServerGamePacketListenerImpl
+@@ -881,8 +881,11 @@ public class ServerGamePacketListenerImpl
      }
  
      // Paper start - AsyncTabCompleteEvent

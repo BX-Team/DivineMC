@@ -73,7 +73,7 @@
          }
      }
  }
-@@ -213,14 +_,13 @@
+@@ -208,14 +_,13 @@
  val services = objects.newInstance<Services>()
  
  tasks.withType<Javadoc>().configureEach {
@@ -89,7 +89,7 @@
          "https://www.javadocs.dev/org.jetbrains/annotations/$annotationsVersion/",
          "https://www.javadocs.dev/org.joml/joml/1.10.9/",
          "https://www.javadocs.dev/com.google.code.gson/gson/2.14.0",
-@@ -228,7 +_,7 @@
+@@ -223,7 +_,7 @@
          "https://jd.papermc.io/adventure/$adventureVersion/",
          "https://www.javadocs.dev/org.slf4j/slf4j-api/$slf4jVersion/",
          "https://logging.apache.org/log4j/2.x/javadoc/log4j-api/",
@@ -98,7 +98,7 @@
      )
      options.tags(projectCustomJavadocTags.map { it.toOptionString() })
  
-@@ -252,7 +_,20 @@
+@@ -247,7 +_,20 @@
              into("build/docs/javadoc")
          }
      }

@@ -9,7 +9,7 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index e788312524ad186722c4b133f476499ca1c14bde..1cbb1fa882aae0ab8c3a51dd4e1219acd2068dad 100644
+index d4512910e751a3e198fd3cb2c56d40dcdb46996b..67fa1eb9944edc2968cf82f059190a056c9c8b9d 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -112,6 +112,26 @@ public class Main {
@@ -190,10 +190,10 @@ index 3cb7094148b00eba7c46c3ec56653c02d179c6bb..e63aa4e9a964a9c2bb5e5b1551052ee3
              }
  
 diff --git a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
-index 8e5ba8f7bed5754b6b657db30cba92fb4c7ee1b3..9380377a5d9c511e1ef937a51d8d0961df811af3 100644
+index 12be06b795343d0f61cd908dd3f62fab70592a81..4bcad748fa7f0878a11ee5d539c3588efa6ad5b0 100644
 --- a/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/PerlinNoise.java
-@@ -154,6 +154,18 @@ public class PerlinNoise extends GradientNoise implements ca.spottedleaf.moonris
+@@ -155,6 +155,18 @@ public class PerlinNoise extends GradientNoise implements ca.spottedleaf.moonris
      @Override
      public void addToVolume(final DensityBuffer buffer, final DensityVolume volume,
                              final double xzScale, final double yScale, final float amplitude) {
@@ -213,10 +213,10 @@ index 8e5ba8f7bed5754b6b657db30cba92fb4c7ee1b3..9380377a5d9c511e1ef937a51d8d0961
          if (DEBUG_NOISE) {
              final float[] cpy = buffer.values.clone();
 diff --git a/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java b/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
-index 64868bdc6554dea2b1b45fbdac8da6551f6ecc08..51c12ebb1fad7fc53b7ecedba276e921a870ab8b 100644
+index e8eafc7063c7563b0e97ec508dd5401efa3d2b31..04157b45ff1c9e0857af9bbb4fc0eb91af2e6e89 100644
 --- a/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
-@@ -63,6 +63,18 @@ public class SmearedPerlinNoise extends PerlinNoise {
+@@ -64,6 +64,18 @@ public class SmearedPerlinNoise extends PerlinNoise {
      @Override
      public void addToVolume(final DensityBuffer buffer, final DensityVolume volume,
                              final double xzScale, final double yScale, final float amplitude) {

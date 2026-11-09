@@ -5,7 +5,7 @@ Subject: [PATCH] Cleanup dead code from Paper
 
 
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index dc007dacb76fab856c429cd4986892bebf0a5511..1879523b56f47b3ec093781901dff78947eb55a8 100644
+index f87e13bcb278b48148cde0ac1129c9ee2a7b5f1d..fa28437ac761c4758542c2da50de13180a9ece5b 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
 @@ -635,13 +635,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
@@ -69,7 +69,7 @@ index f398d48910dff89c41d1344ebf7b793c27dcb6aa..aa5989ed22b3b72137c5d037c7e1315a
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index c9b9143449aa276bdc2083762a393dca7d57604c..9936d1fb48868c6a3733c1207a7ab5dab75a5de6 100644
+index 80aa668f9bb3b8189e45fe5ce27916d0aae69cbc..69415beaa25e704989902748f90740deb7014096 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1545,11 +1545,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -99,10 +99,10 @@ index c9b9143449aa276bdc2083762a393dca7d57604c..9936d1fb48868c6a3733c1207a7ab5da
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 1a7ee398a2bdbb3adade87bbcc287e3da06f0139..aebce207108aef78cfe2a9df9502ea7234ba7295 100644
+index d37940e6f03865ad5c9b0f2ad6aa8a2da00b93b6..d6beba02bcf4e4c4479f4ef4249f4e40e41d8be1 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1179,16 +1179,6 @@ public abstract class Entity
+@@ -1180,16 +1180,6 @@ public abstract class Entity
          return this.onGround;
      }
  
@@ -119,7 +119,7 @@ index 1a7ee398a2bdbb3adade87bbcc287e3da06f0139..aebce207108aef78cfe2a9df9502ea72
      public void move(final MoverType moverType, Vec3 delta) {
          if (SharedConstants.IS_RUNNING_IN_IDE && !moverType.isServerAndClientSimulated() && !this.canSimulateMovement()) {
              throw (IllegalStateException)Util.pauseInIde(
-@@ -1198,16 +1188,7 @@ public abstract class Entity
+@@ -1199,16 +1189,7 @@ public abstract class Entity
  
          if (!this.boundingBoxChanged && delta.equals(Vec3.ZERO)) return; // DivineMC - VMP: skip entity move if movement is zero
          final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
@@ -136,7 +136,7 @@ index 1a7ee398a2bdbb3adade87bbcc287e3da06f0139..aebce207108aef78cfe2a9df9502ea72
          if (this.noPhysics) {
              this.setPos(this.getX() + delta.x, this.getY() + delta.y, this.getZ() + delta.z);
              this.recordMovement(moverType, delta);
-@@ -1330,13 +1311,6 @@ public abstract class Entity
+@@ -1331,13 +1312,6 @@ public abstract class Entity
                  profiler.pop();
              }
          }
@@ -150,7 +150,7 @@ index 1a7ee398a2bdbb3adade87bbcc287e3da06f0139..aebce207108aef78cfe2a9df9502ea72
      }
  
      public void recordMovement(final MoverType moverType, final Vec3 movement) {
-@@ -5174,9 +5148,7 @@ public abstract class Entity
+@@ -5176,9 +5150,7 @@ public abstract class Entity
  
      public void setDeltaMovement(final Vec3 deltaMovement) {
          if (deltaMovement.isFinite()) {
@@ -160,7 +160,7 @@ index 1a7ee398a2bdbb3adade87bbcc287e3da06f0139..aebce207108aef78cfe2a9df9502ea72
          }
      }
  
-@@ -5281,9 +5253,7 @@ public abstract class Entity
+@@ -5283,9 +5255,7 @@ public abstract class Entity
          }
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {

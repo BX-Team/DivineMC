@@ -8,11 +8,11 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-index 328784ba08236553e49d62320b79f7222292412f..05ef9cfaa29e6f3f8ee5d600fc201e46bdfe1114 100644
+index 99b5026d8dfa9668caf15e9ae27619d9d433b441..4e1a1c531f65eb54657e5da90b5389f74e1da38a 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
 @@ -429,6 +429,11 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
-         Entity currentlyMapped = this.entityById.putIfAbsent((long)entity.getId(), entity);
+         Entity currentlyMapped = this.entityById.putIfAbsent(entity.getId(), entity);
          if (currentlyMapped != null) {
              LOGGER.warn("Entity id already exists: " + entity.getId() + ", mapped to " + currentlyMapped + ", can't add " + entity);
 +            // DivineMC start - Regionized Chunk Ticking - discard duplicates
@@ -25,7 +25,7 @@ index 328784ba08236553e49d62320b79f7222292412f..05ef9cfaa29e6f3f8ee5d600fc201e46
  
 @@ -437,6 +442,11 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
              // need to remove mapping for id
-             this.entityById.remove((long)entity.getId(), entity);
+             this.entityById.remove(entity.getId(), entity);
              LOGGER.warn("Entity uuid already exists: " + entity.getUUID() + ", mapped to " + currentlyMapped + ", can't add " + entity);
 +            // DivineMC start - Regionized Chunk Ticking - discard duplicates
 +            if (entity.getRemovalReason() == null) {
@@ -85,7 +85,7 @@ index 706f529a7d1064aad128b1ee8c82f6319daa8d01..ac2321daac5943a026cae858695e5629
      }
  }
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index 9f4ffb773e920e6eefa0f33ee6e89ba7131869c8..2054aeb5d55f9c2ddb13389ee8d5758027ca92d2 100644
+index e6c567f6ede8c7cde651666af506c4031fe1ffe4..593f660524977789c79858e9cae84cb2652d6814 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
 @@ -294,7 +294,7 @@ public interface DispenseItemBehavior {
@@ -112,7 +112,7 @@ index 9f4ffb773e920e6eefa0f33ee6e89ba7131869c8..2054aeb5d55f9c2ddb13389ee8d57580
                      // DivineMC start - Parallel world ticking
                      treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/network/Connection.java b/net/minecraft/network/Connection.java
-index bc9e45e17ce2ff1cf0b63c5540f8004e7ab0abc3..5ae2c1d2db0a6afdce13e2a55fa942e1c9580012 100644
+index 3bd459b28aa59ba312de141cdca444bc05773ddd..e5d2b0a96a3951848463f8ab6e3684963211634c 100644
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
 @@ -314,7 +314,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
@@ -125,10 +125,10 @@ index bc9e45e17ce2ff1cf0b63c5540f8004e7ab0abc3..5ae2c1d2db0a6afdce13e2a55fa942e1
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 78d03e12b62a71e941f61579bef3209ff3e06629..82cbf0acad4dead2f951d552eee85577fdd35dfb 100644
+index 63e3dc018eeafc574b950af1bfb779c6c530adbb..00a1ae910d3d5459df6426ce8ac66f18f784da25 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -463,6 +463,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -464,6 +464,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          // DivineMC start - Parallel world ticking
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.ServerLevelTickThread levelThread) {
              return this.tickLevelMidTickTasks(levelThread.currentlyTickingServerLevel);
@@ -222,7 +222,7 @@ index f61479e08441fa5b89c636e8a233cfc33de5bec7..e31aca35244e196b3fec340f359a6c65
          } finally {
              this.iteratingTrackerEntities = false;
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index d40adbb00f9de08c6cbee3c41f8b883e865af09d..20225d667d4842f125e155a5021a760c37486a94 100644
+index e693e8027f783c231d5fd10ffa85d03cb91b9d12..2966b231ee807015900ce0d4cc528f9ec9586d9b 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -55,10 +55,10 @@ import org.jspecify.annotations.Nullable;
@@ -414,7 +414,7 @@ index d40adbb00f9de08c6cbee3c41f8b883e865af09d..20225d667d4842f125e155a5021a760c
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index be581d6d6c63e5cc1ff8889b510d39bf1913434b..c9b9143449aa276bdc2083762a393dca7d57604c 100644
+index acdf3c2781828d76776e19140050c06ffb19d031..80aa668f9bb3b8189e45fe5ce27916d0aae69cbc 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -209,8 +209,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -803,7 +803,7 @@ index be581d6d6c63e5cc1ff8889b510d39bf1913434b..c9b9143449aa276bdc2083762a393dca
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -3304,7 +3351,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3303,7 +3350,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -813,7 +813,7 @@ index be581d6d6c63e5cc1ff8889b510d39bf1913434b..c9b9143449aa276bdc2083762a393dca
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 95b883395aeb4aaf4ec8bf27ae23b9ce1f456573..3246315c2b5c577c4c6e741e2d1b90c8d85e7f17 100644
+index ae91c051940974bc24a86c3d267904de35ac5074..f1dbac0f83d2ddc65db68d095e7456d5de706777 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -450,6 +450,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -966,7 +966,7 @@ index 555b61b4439f3e5eaa30bb351168c2de0d99a3eb..b6cd6d7d526022d875deb20375423fc7
                  // DivineMC start - Parallel world ticking
                  treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index a8728944144d24d67177fb537b6e27d03ad54dd4..673a25cfe4fd31020b00c43cfb24268a98734cce 100644
+index f7201576842918db65c90ceecdb92ec9037c08af..cd3ec1f9f9d134fb1cd70fdae480abe4b7c5d1d1 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -119,7 +119,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -1170,7 +1170,7 @@ index a8728944144d24d67177fb537b6e27d03ad54dd4..673a25cfe4fd31020b00c43cfb24268a
              }
              // CraftBukkit end
 diff --git a/net/minecraft/world/level/block/Block.java b/net/minecraft/world/level/block/Block.java
-index 52e57901a64f3d706ce213f72ad1e5719315391d..8f0beb732aa7f2f1c4528d96a5bb254c5148b88b 100644
+index 6e8bd9247fc5f381c695f2a28fe6814faf7b673f..ccdb21e2c8fb489586914f0ef2604d454ae8d528 100644
 --- a/net/minecraft/world/level/block/Block.java
 +++ b/net/minecraft/world/level/block/Block.java
 @@ -505,11 +505,14 @@ public class Block extends BlockBehaviour implements ItemLike {

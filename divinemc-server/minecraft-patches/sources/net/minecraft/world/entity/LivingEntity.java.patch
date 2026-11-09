@@ -17,7 +17,7 @@
              return;
          }
          // CraftBukkit end
-@@ -3420,7 +_,13 @@
+@@ -3431,7 +_,13 @@
      }
  
      protected float getFlyingSpeed() {
@@ -32,7 +32,7 @@
      }
  
      public float getSpeed() {
-@@ -3952,6 +_,7 @@
+@@ -3963,6 +_,7 @@
      protected void updateFallFlying() {
          this.checkFallDistanceAccumulation();
          if (!this.level().isClientSide()) {

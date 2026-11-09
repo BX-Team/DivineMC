@@ -187,7 +187,7 @@ index 1aa888376784dfc9ddd9c4e2493031ff2a564b59..683ffa16e758e615597023602ec43d6e
 +    // DivineMC end - lithium: equipment_tracking
  }
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 4d13f9f21aac7f984d1c2586393fe98eab14910f..bae9ec2957ad591b92f2836185c64cfba9222d22 100644
+index 31fd634c16ac9203cb30279e255e469b3ba9f0ce..137b67fd84632f0d63311657363ad5b02956d3b2 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -458,9 +458,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
@@ -210,7 +210,7 @@ index 4d13f9f21aac7f984d1c2586393fe98eab14910f..bae9ec2957ad591b92f2836185c64cfb
  
          super.baseTick();
          ProfilerFiller profiler = Profiler.get();
-@@ -3652,6 +3660,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3663,6 +3671,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      public void detectEquipmentUpdates() {
          Map<EquipmentSlot, ItemStack> changedItems = this.collectEquipmentChanges(this.lastEquipmentItems);
          if (changedItems != null) {
@@ -218,7 +218,7 @@ index 4d13f9f21aac7f984d1c2586393fe98eab14910f..bae9ec2957ad591b92f2836185c64cfb
              this.handleHandSwap(changedItems);
              if (!changedItems.isEmpty()) {
                  this.handleEquipmentChanges(changedItems);
-@@ -3660,6 +3669,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3671,6 +3680,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      }
  
      protected @Nullable Map<EquipmentSlot, ItemStack> collectEquipmentChanges(final Map<EquipmentSlot, ItemStack> lastEquipmentItems) {
@@ -234,7 +234,7 @@ index 4d13f9f21aac7f984d1c2586393fe98eab14910f..bae9ec2957ad591b92f2836185c64cfb
          // Paper start - EntityEquipmentChangedEvent
          record EquipmentChangeImpl(org.bukkit.inventory.ItemStack oldItem, org.bukkit.inventory.ItemStack newItem) implements io.papermc.paper.event.entity.EntityEquipmentChangedEvent.EquipmentChange {
 diff --git a/net/minecraft/world/entity/decoration/ArmorStand.java b/net/minecraft/world/entity/decoration/ArmorStand.java
-index 917e23cd1c3c480a40702b4712963cb2e9694f77..31a406f8e9a642d7a30b451a648ddd55f0a9df63 100644
+index 680a82a8bace4d264b94b713b7d8e7b883821dd5..5c282614944b2acc27fdb5baae863d006df9df00 100644
 --- a/net/minecraft/world/entity/decoration/ArmorStand.java
 +++ b/net/minecraft/world/entity/decoration/ArmorStand.java
 @@ -557,8 +557,9 @@ public class ArmorStand extends LivingEntity {
@@ -247,4 +247,4 @@ index 917e23cd1c3c480a40702b4712963cb2e9694f77..31a406f8e9a642d7a30b451a648ddd55
 +                if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking) this.noTickEquipmentDirty = false; // DivineMC - lithium: equipment_tracking
              }
  
-             return;
+             // Still tick for death, otherwise leaves permanent entities

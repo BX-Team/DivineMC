@@ -136,7 +136,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
  
      public TrackedChunk getChunk(final ChunkPos pos) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index b165826fb500aba3d540e211a9602dced610bf43..3bbd8798c9b1e0537833e8d3f886beacda2494f4 100644
+index 8c37dd08ae5b3e9f4d0d6d8f159dbe224caed20a..ffebf9b696969ea45298694dfe8d791bf28152a9 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -85,28 +85,40 @@ public final class ChunkHolderManager {
@@ -195,7 +195,7 @@ index b165826fb500aba3d540e211a9602dced610bf43..3bbd8798c9b1e0537833e8d3f886beac
 +    // DivineMC end - Optimize Moonrise
  
      // mapping of counter id -> (mapping of pos->count)
-     private final ConcurrentChainedLong2ReferenceHashTable<ConcurrentChainedLong2LongHashTable> ticketCounters = new ConcurrentChainedLong2ReferenceHashTable<>();
+     private final ConcurrentChainedLong2ReferenceHashTable<ConcurrentChainedLong2LongHashTable> ticketCounters = ConcurrentChainedLong2ReferenceHashTable.createWithCapacity(ConcurrentChainedLong2ReferenceHashTable.defaultCapacity(), 0.5f);
 @@ -230,26 +242,29 @@ public final class ChunkHolderManager {
          this.taskScheduler.setShutdown(true);
      }
@@ -337,7 +337,7 @@ index b165826fb500aba3d540e211a9602dced610bf43..3bbd8798c9b1e0537833e8d3f886beac
          boolean ret = false;
  
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
-index 7a0006f9b56d1e43b06f9f7452e1b5bb0ec53e72..e3692cce1fb2474101ab1461752437a4247a5509 100644
+index 1dc745d058d605dde0d10dea82c31b3303d670be..78a4f465beb82a5434920e3ccb4255ad12ff800d 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
 @@ -646,12 +646,20 @@ public final class NewChunkHolder {
@@ -417,7 +417,7 @@ index 7a0006f9b56d1e43b06f9f7452e1b5bb0ec53e72..e3692cce1fb2474101ab1461752437a4
      }
  
      // only to be called on the main thread, no locks need to be held
-@@ -1326,7 +1356,7 @@ public final class NewChunkHolder {
+@@ -1332,7 +1362,7 @@ public final class NewChunkHolder {
          return this.requestedGenStatus;
      }
  
@@ -426,7 +426,7 @@ index 7a0006f9b56d1e43b06f9f7452e1b5bb0ec53e72..e3692cce1fb2474101ab1461752437a4
  
      void addStatusConsumer(final ChunkStatus status, final Consumer<ChunkAccess> consumer) {
          this.statusWaiters.computeIfAbsent(status, (final ChunkStatus keyInMap) -> {
-@@ -1361,7 +1391,7 @@ public final class NewChunkHolder {
+@@ -1367,7 +1397,7 @@ public final class NewChunkHolder {
          }, Priority.HIGHEST);
      }
  
@@ -484,7 +484,7 @@ index 63cc7970b9df5e84743084ca99650bc3d13b970e..14d0afdb35f889693423a00b22aa4074
      }
  
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 20225d667d4842f125e155a5021a760c37486a94..51d8db024a172df587e25aa40d5a6643ef69fa6d 100644
+index 2966b231ee807015900ce0d4cc528f9ec9586d9b..87daccfca8e46e9e719411b1ac4d9d886398dec7 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -467,8 +467,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -498,7 +498,7 @@ index 20225d667d4842f125e155a5021a760c37486a94..51d8db024a172df587e25aa40d5a6643
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 9936d1fb48868c6a3733c1207a7ab5dab75a5de6..4fca23f65fcbc67c0a4b37f4ceffdcd8a92cff84 100644
+index 69415beaa25e704989902748f90740deb7014096..cd3ca00cca9f8fd2d6c5b9d2686bc1de3408d939 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -197,6 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet

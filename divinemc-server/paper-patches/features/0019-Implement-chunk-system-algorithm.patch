@@ -46,13 +46,13 @@ index b9f788693b0c4be48e8a923a3dec50555d135e7e..4f727a8a6885d0b119fa1c1dfeb96960
  
      public static final long IO_QUEUE_HOLD_TIME = (long)(25.0e6); // 25ms
 diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
-index c3fee52692ee2d0f0fa8c72d7bbc1d318819e57c..e3d20f9088151881971044658f10b26826f282b6 100644
+index e45c9af2515586dc5b27e426f67ba60214b6e746..21be5e5cf726743822506bcff7d7ac9301059d37 100644
 --- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
 +++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
-@@ -218,7 +218,7 @@ public class GlobalConfiguration extends ConfigurationPart {
- 
+@@ -221,7 +221,7 @@ public class GlobalConfiguration extends ConfigurationPart {
          @PostProcess
          private void postProcess() {
+             ca.spottedleaf.moonrise.common.util.FMA.init();
 -            ca.spottedleaf.moonrise.common.util.MoonriseCommon.adjustWorkerThreads(this.workerThreads, this.ioThreads);
 +            ca.spottedleaf.moonrise.common.util.MoonriseCommon.init(this.workerThreads, this.ioThreads); // DivineMC - Implement chunk system algorithm
          }

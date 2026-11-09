@@ -7,10 +7,10 @@ Original license: GPL v3
 Original project: https://github.com/pufferfish-gg/Pufferfish
 
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 46bfb347ffb917008c30c60fed06c6c50e8d4b78..673552976721931e3b01f3de4f41c2ca0b24816d 100644
+index 6a1f0ea9e4e74890b57a038ca24932bf8a68a05a..68c91e8cc3a604a579f4347e740411f37e823b5f 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -4663,10 +4663,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -4674,10 +4674,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          WorldBorder worldBorder = level.getWorldBorder();
          Vec3 clamped = worldBorder.clampVec3ToBound(xx, y, zz);
          BlockPos.MutableBlockPos pos = BlockPos.containing(clamped).mutable();

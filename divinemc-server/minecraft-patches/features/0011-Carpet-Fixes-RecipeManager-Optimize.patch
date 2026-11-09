@@ -9,23 +9,36 @@ This is a fully vanilla optimization. Improves: [Blast]Furnace/Campfire/Smoker/S
 This was mostly made for the auto crafting table, since the performance boost is much more visible while using that mod
 
 diff --git a/net/minecraft/world/item/crafting/RecipeManager.java b/net/minecraft/world/item/crafting/RecipeManager.java
-index f30349dacbc58bf88c594c84a1cc63ffce29325c..c545696104e6cfea0518e9815e2cdeb7f63dd207 100644
+index d9ac0c84285c96df934d8649ea659ab11925cb9a..953a8caa5f4907b7a8e7795de5f74a007b413b14 100644
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
-@@ -137,7 +137,7 @@ public class RecipeManager implements RecipeAccess {
+@@ -136,7 +136,20 @@ public class RecipeManager implements RecipeAccess {
+     }
  
      public <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeHolder<T>> getRecipeFor(final RecipeType<T> type, final I input, final Level level) {
-         // CraftBukkit start
--        List<RecipeHolder<T>> list = this.recipes.getRecipesFor(type, input, level).toList();
-+        List<RecipeHolder<T>> list = this.recipes.getRecipesForList(type, input, level); // DivineMC - Carpet-Fixes: Remove streams to be faster
-         return (list.isEmpty()) ? Optional.empty() : Optional.of(list.getLast()); // CraftBukkit - SPIGOT-4638: last recipe gets priority
-         // CraftBukkit end
+-        return this.recipes.getRecipesFor(type, input, level).reduce((first, second) -> second.runtimeAddedRecipe() ? second : first); // Paper - prioritize runtime added recipes and prioritize these by insertion order.
++        // DivineMC start - Carpet-Fixes: Remove streams to be faster
++        List<RecipeHolder<T>> list = this.recipes.getRecipesForList(type, input, level);
++        if (list.isEmpty()) {
++            return Optional.empty();
++        }
++        RecipeHolder<T> result = list.getFirst();
++        for (int i = 1, size = list.size(); i < size; i++) {
++            RecipeHolder<T> holder = list.get(i);
++            if (holder.runtimeAddedRecipe()) { // Paper - prioritize runtime added recipes and prioritize these by insertion order.
++                result = holder;
++            }
++        }
++        return Optional.of(result);
++        // DivineMC end - Carpet-Fixes: Remove streams to be faster
      }
+ 
+     public Optional<RecipeHolder<?>> byKey(final ResourceKey<Recipe<?>> recipeId) {
 diff --git a/net/minecraft/world/item/crafting/RecipeMap.java b/net/minecraft/world/item/crafting/RecipeMap.java
-index c53044e04fbc3de6b59b1117210b59867be413e1..79aaf95405da0a25b3d00602e4fb0b1cde00f97b 100644
+index b6142dc1f3b8b358965c16dcacf5a5979470b239..c4f77e8de1ea509da162e09afa43ac71ed98df5b 100644
 --- a/net/minecraft/world/item/crafting/RecipeMap.java
 +++ b/net/minecraft/world/item/crafting/RecipeMap.java
-@@ -76,4 +76,24 @@ public class RecipeMap {
+@@ -77,4 +77,24 @@ public class RecipeMap {
      public <I extends RecipeInput, T extends Recipe<I>> Stream<RecipeHolder<T>> getRecipesFor(final RecipeType<T> type, final I container, final Level level) {
          return container.isEmpty() ? Stream.empty() : this.byType(type).stream().filter(r -> r.value().matches(container, level));
      }

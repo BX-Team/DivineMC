@@ -31,7 +31,7 @@ index 829f7685904fd741e00403647ae76d32275c34a3..1d9edbd1b8a71662b71d3d96caa0dc7f
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index c1fee0420e417a408d1fd12e2d59394810fc33e1..7f19e26066f8ecc64583200f76d0bbd15eea2827 100644
+index 6e893816510036481af65ef60456c4097b87c5c2..1318814d279c8f26d1801a243771141f1311f5e9 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -921,6 +921,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -43,7 +43,7 @@ index c1fee0420e417a408d1fd12e2d59394810fc33e1..7f19e26066f8ecc64583200f76d0bbd1
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  profiler.push("checkDespawn");
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 76dca5bf618971167f21ac56c4538172dab49e91..6851c84c44a0fe7b42676c5ee06af3eccf755420 100644
+index 879b6e155a9ac1e657498a936afa7171e0491b45..72dfb705ec6f09e37693c09650a074d0b33534c9 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -389,6 +389,8 @@ public abstract class Entity
@@ -68,15 +68,15 @@ index e4fd3727cdf99bebed91ac195034e988cdc9951b..8f0893d42dd56d8a3cac5d142f7d2b0d
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index 9b702a6e1cc3ed68e17aec6dc461cebaa62d982c..a7701c19a06e61a41691d59eb8154283bca50571 100644
+index 8ff693203195048442fc8e9df336c5e5de747c85..63a1e42dfb27a039b517bc55ea304975e211f898 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -224,10 +224,10 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
-     public void inactiveTick() {
+@@ -227,10 +227,10 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
          super.inactiveTick();
          if (!this.aware) return; // Paper - Do not tick AI for inactive unaware mobs
--        if (this.goalSelector.inactiveTick()) {
-+        if (this.goalSelector.inactiveTick(this.activatedPriority, true)) { // DivineMC - Dynamic Activation of Brain
+         final boolean isThrottled = this.level().paperConfig().entities.behavior.inactiveMobGoalSelectorThrottleRate.enabled() && inactiveTickDisableCounter++ % this.level().paperConfig().entities.behavior.inactiveMobGoalSelectorThrottleRate.intValue() != 0; // Paper - Throttle inactive goal selector ticking
+-        if (this.goalSelector.inactiveTick() && !isThrottled) {
++        if (this.goalSelector.inactiveTick(this.activatedPriority, true) && !isThrottled) { // DivineMC - Dynamic Activation of Brain
              this.goalSelector.tick();
          }
 -        if (this.targetSelector.inactiveTick()) {
@@ -84,7 +84,7 @@ index 9b702a6e1cc3ed68e17aec6dc461cebaa62d982c..a7701c19a06e61a41691d59eb8154283
              this.targetSelector.tick();
          }
      }
-@@ -856,17 +856,17 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+@@ -859,17 +859,17 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
          int idBasedTickCount = this.tickCount + this.getId();
          if (idBasedTickCount % 2 != 0 && this.tickCount > 1) {
              profiler.push("targetSelector");
@@ -148,7 +148,7 @@ index 0439543fbb25ddb974550fe9dbdaa479e330937d..5ea8135b5a0d17b77f931038b219a3c1
      public boolean hasTasks() {
          for (final WrappedGoal task : this.availableGoals) {
 diff --git a/net/minecraft/world/entity/animal/allay/Allay.java b/net/minecraft/world/entity/animal/allay/Allay.java
-index aa53a618ca6b575bfbb10089010d689846cf9baf..2b4a4f5e3480cd6cbbeae0f94d70121001eedc0e 100644
+index 4ad9a8d54bb804c8692f9eba0f7c5affca8d6de3..4a48889441fa9470645395557c8f8f78a9999f77 100644
 --- a/net/minecraft/world/entity/animal/allay/Allay.java
 +++ b/net/minecraft/world/entity/animal/allay/Allay.java
 @@ -102,6 +102,7 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS

@@ -5,10 +5,10 @@ Subject: [PATCH] Virtual Threads
 
 
 diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
-index 0b35a293f3436bcf8a39c4f07a88340cd9d33bcb..c3fee52692ee2d0f0fa8c72d7bbc1d318819e57c 100644
+index 014f8488af19ba4c95365d6867784e76406c9165..e45c9af2515586dc5b27e426f67ba60214b6e746 100644
 --- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
 +++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
-@@ -312,9 +312,12 @@ public class GlobalConfiguration extends ConfigurationPart {
+@@ -315,9 +315,12 @@ public class GlobalConfiguration extends ConfigurationPart {
                      _chatExecutorMaxSize = _chatExecutorCoreSize;
                  }
  
