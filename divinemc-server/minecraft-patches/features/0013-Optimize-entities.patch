@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize entities
 
 
 diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
-index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b6a4e5eef 100644
+index 2b92de5075c7257e71dfd1f8e207a96abd24599d..62008222acdac96ed70ccec230d40a57934b8aae 100644
 --- a/net/minecraft/world/entity/ai/Brain.java
 +++ b/net/minecraft/world/entity/ai/Brain.java
 @@ -37,16 +37,96 @@ import org.jspecify.annotations.Nullable;
@@ -108,7 +108,14 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
  
      public static <E extends LivingEntity> Brain.Provider<E> provider(final Collection<? extends SensorType<? extends Sensor<? super E>>> sensorTypes) {
          return new Brain.Provider<>(ImmutableList.of(), sensorTypes, var0 -> List.of());
-@@ -158,6 +238,7 @@ public class Brain<E extends LivingEntity> {
+@@ -152,12 +232,14 @@ public class Brain<E extends LivingEntity> {
+     }
+ 
+     public void clearMemories() {
++        this.memoryModCount++; // DivineMC - Optimize entities - HappyGhast keeps ticking this brain after clearing it
+         this.memories.values().forEach(MemorySlot::clear);
+     }
+ 
      public <U> void eraseMemory(final MemoryModuleType<U> type) {
          MemorySlot<U> slot = this.getMemorySlotIfPresent(type);
          if (slot != null) {
@@ -116,7 +123,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
              slot.clear();
          }
      }
-@@ -191,8 +272,10 @@ public class Brain<E extends LivingEntity> {
+@@ -191,8 +273,10 @@ public class Brain<E extends LivingEntity> {
              }
  
              if (value == null) {
@@ -127,7 +134,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
                  slot.set(value, tileToLive);
              }
          }
-@@ -206,8 +289,10 @@ public class Brain<E extends LivingEntity> {
+@@ -206,8 +290,10 @@ public class Brain<E extends LivingEntity> {
              }
  
              if (value == null) {
@@ -138,7 +145,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
                  slot.set(value);
              }
          }
-@@ -255,6 +340,7 @@ public class Brain<E extends LivingEntity> {
+@@ -255,6 +341,7 @@ public class Brain<E extends LivingEntity> {
  
      public void setCoreActivities(final Set<Activity> activities) {
          this.coreActivities = activities;
@@ -146,7 +153,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
      }
  
      @Deprecated
-@@ -266,19 +352,7 @@ public class Brain<E extends LivingEntity> {
+@@ -266,19 +353,7 @@ public class Brain<E extends LivingEntity> {
      @Deprecated
      @VisibleForDebug
      public List<BehaviorControl<? super E>> getRunningBehaviors() {
@@ -167,7 +174,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
      }
  
      public void useDefaultActivity() {
-@@ -309,6 +383,8 @@ public class Brain<E extends LivingEntity> {
+@@ -309,6 +384,8 @@ public class Brain<E extends LivingEntity> {
              this.activeActivities.clear();
              this.activeActivities.addAll(this.coreActivities);
              this.activeActivities.add(activity);
@@ -176,7 +183,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
          }
      }
  
-@@ -329,7 +405,7 @@ public class Brain<E extends LivingEntity> {
+@@ -329,7 +406,7 @@ public class Brain<E extends LivingEntity> {
          if (gameTime - this.lastScheduleUpdate > 20L) {
              this.lastScheduleUpdate = gameTime;
              Activity scheduledActivity = this.schedule != null ? environmentAttributes.getValue(this.schedule, pos) : Activity.IDLE;
@@ -185,7 +192,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
                  this.setActiveActivityIfPossible(scheduledActivity);
              }
          }
-@@ -371,15 +447,17 @@ public class Brain<E extends LivingEntity> {
+@@ -371,15 +448,17 @@ public class Brain<E extends LivingEntity> {
                  .computeIfAbsent(activity, key -> Sets.newLinkedHashSet())
                  .add(behavior);
          }
@@ -204,7 +211,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
      }
  
      public void tick(final ServerLevel level, final E body) {
-@@ -396,7 +474,15 @@ public class Brain<E extends LivingEntity> {
+@@ -396,7 +475,15 @@ public class Brain<E extends LivingEntity> {
      }
  
      private void forgetOutdatedMemories() {
@@ -221,7 +228,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f7247c10a3ca280ccce05968ea7b779b
      }
  
      public void stopAll(final ServerLevel level, final E body) {
-@@ -404,31 +490,38 @@ public class Brain<E extends LivingEntity> {
+@@ -404,31 +491,38 @@ public class Brain<E extends LivingEntity> {
  
          for (BehaviorControl<? super E> behavior : this.getRunningBehaviors()) {
              behavior.doStop(level, body, timestamp);

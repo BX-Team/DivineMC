@@ -928,10 +928,10 @@ index b9748a392c9f76e61a1b673085b4dd74c007c70d..3342bf3f8d0ed7b23d573f21b9e33735
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 72dfb705ec6f09e37693c09650a074d0b33534c9..d37940e6f03865ad5c9b0f2ad6aa8a2da00b93b6 100644
+index 9ab60a38ca1bf8dd863a3b926e27e89cea27e111..3b1d8c2d8fa330dfeda93c66a82fe36064a59977 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3754,10 +3754,29 @@ public abstract class Entity
+@@ -3759,10 +3759,29 @@ public abstract class Entity
                      ProfilerFiller profiler = Profiler.get();
                      profiler.push("portal");
                      this.setPortalCooldown();
@@ -964,7 +964,7 @@ index 72dfb705ec6f09e37693c09650a074d0b33534c9..d37940e6f03865ad5c9b0f2ad6aa8a2d
  
                      profiler.pop();
                  } else if (this.portalProcess.hasExpired()) {
-@@ -4363,6 +4382,7 @@ public abstract class Entity
+@@ -4368,6 +4387,7 @@ public abstract class Entity
      }
  
      private @Nullable Entity teleportCrossDimension(final ServerLevel oldLevel, final ServerLevel newLevel, final TeleportTransition transition) {
@@ -1089,7 +1089,7 @@ index ba61762e09ace201173999b3984046f930ccfe57..18e8835597d6498128c62f734ae0c1f5
          body.getBrain().eraseMemory(MemoryModuleType.POTENTIAL_JOB_SITE);
      }
 diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
-index 167dbbb04de7c0956efe6c6ec5e06dfea32f00e1..44931e6b9f5bc6df85e3927c644e22a0c09240ca 100644
+index 02751452ada4d4fd882b2f089bd96e3549389654..899c5dbcf87bbf7793a9b9204e23245ad90756dd 100644
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
 @@ -796,13 +796,24 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
@@ -1575,7 +1575,7 @@ index c6ebd031389108a7506232386322ecd706fde84d..214ae1535cbadf5649c39458d893fdfe
      // CraftBukkit end
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 4c520643a19593c8bf998487b242993c86f10e34..aa15b79177cc739ba31e32322b2891ca5b4b7d9e 100644
+index d26d49510aecb2e74049244b1e7961afd068baf9..f0ba14b2586ecaaf6ff2efff2416a2ba41df99a0 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -376,6 +376,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
