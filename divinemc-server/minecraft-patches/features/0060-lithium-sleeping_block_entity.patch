@@ -96,10 +96,10 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index d6beba02bcf4e4c4479f4ef4249f4e40e41d8be1..88b5419fbeeb856a4a04ee7f97f11624381e5c2c 100644
+index 867b450f04f68837de592646059923adeb3420e6..7133a094673cd98ae338a7a47282b6023f33b433 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5289,6 +5289,18 @@ public abstract class Entity
+@@ -5294,6 +5294,18 @@ public abstract class Entity
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box
@@ -2371,7 +2371,7 @@ index 58da6c986924121f93fa2385f561cbaf0b93f8dd..5a820b1bf1d49b305f061750397b1652
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 10f6577394054d648a55fd8bfb0d0a3daede9b4b..2a2df7c210c60715fd33439efc494defe2d98550 100644
+index cc703e5f22e69162857820cd9c54ad988e416ef8..ac07d014ec61e9687d72506f02977e8c0ce8b9c0 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -924,10 +924,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

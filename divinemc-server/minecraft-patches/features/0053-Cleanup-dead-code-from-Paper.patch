@@ -99,10 +99,10 @@ index 80aa668f9bb3b8189e45fe5ce27916d0aae69cbc..69415beaa25e704989902748f90740de
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index d37940e6f03865ad5c9b0f2ad6aa8a2da00b93b6..d6beba02bcf4e4c4479f4ef4249f4e40e41d8be1 100644
+index 3b1d8c2d8fa330dfeda93c66a82fe36064a59977..867b450f04f68837de592646059923adeb3420e6 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1180,16 +1180,6 @@ public abstract class Entity
+@@ -1185,16 +1185,6 @@ public abstract class Entity
          return this.onGround;
      }
  
@@ -119,7 +119,7 @@ index d37940e6f03865ad5c9b0f2ad6aa8a2da00b93b6..d6beba02bcf4e4c4479f4ef4249f4e40
      public void move(final MoverType moverType, Vec3 delta) {
          if (SharedConstants.IS_RUNNING_IN_IDE && !moverType.isServerAndClientSimulated() && !this.canSimulateMovement()) {
              throw (IllegalStateException)Util.pauseInIde(
-@@ -1199,16 +1189,7 @@ public abstract class Entity
+@@ -1204,16 +1194,7 @@ public abstract class Entity
  
          if (!this.boundingBoxChanged && delta.equals(Vec3.ZERO)) return; // DivineMC - VMP: skip entity move if movement is zero
          final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
@@ -136,7 +136,7 @@ index d37940e6f03865ad5c9b0f2ad6aa8a2da00b93b6..d6beba02bcf4e4c4479f4ef4249f4e40
          if (this.noPhysics) {
              this.setPos(this.getX() + delta.x, this.getY() + delta.y, this.getZ() + delta.z);
              this.recordMovement(moverType, delta);
-@@ -1331,13 +1312,6 @@ public abstract class Entity
+@@ -1336,13 +1317,6 @@ public abstract class Entity
                  profiler.pop();
              }
          }
@@ -150,7 +150,7 @@ index d37940e6f03865ad5c9b0f2ad6aa8a2da00b93b6..d6beba02bcf4e4c4479f4ef4249f4e40
      }
  
      public void recordMovement(final MoverType moverType, final Vec3 movement) {
-@@ -5176,9 +5150,7 @@ public abstract class Entity
+@@ -5181,9 +5155,7 @@ public abstract class Entity
  
      public void setDeltaMovement(final Vec3 deltaMovement) {
          if (deltaMovement.isFinite()) {
@@ -160,7 +160,7 @@ index d37940e6f03865ad5c9b0f2ad6aa8a2da00b93b6..d6beba02bcf4e4c4479f4ef4249f4e40
          }
      }
  
-@@ -5283,9 +5255,7 @@ public abstract class Entity
+@@ -5288,9 +5260,7 @@ public abstract class Entity
          }
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {

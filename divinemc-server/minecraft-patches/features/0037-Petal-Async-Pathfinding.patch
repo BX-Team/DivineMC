@@ -11,7 +11,7 @@ Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 Makes most pathfinding-related work happen asynchronously
 
 diff --git a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
-index 9bc602112d3bc2eb17620aff4d888ac0d6658e33..7cb10e3728eb51c3debfc7af36f4b4f76e551690 100644
+index 08c99d327bfaef2996a1fda6c0b065c861c9484c..30c0f8e49eefd6a247f4622382f679b784c5b4fc 100644
 --- a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
 +++ b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
 @@ -58,11 +58,23 @@ public class AcquirePoi {
@@ -646,10 +646,10 @@ index 1ec514e77fbd4b14508202a4a80543ac004fe2ea..b3e21f9b66f996a69109dae0447b9490
      }
  
 diff --git a/net/minecraft/world/entity/animal/frog/Frog.java b/net/minecraft/world/entity/animal/frog/Frog.java
-index f5455d019bab2aedb9d54e9f77578e9c672aac80..f917d8928cc9b6265b0b7702b95484cf2fc2213e 100644
+index 3b2a79918a43fc3d2a4bc45f1abb68af1aee9a60..19592d46b5f57c143066866b3ed1bbd5467e37b8 100644
 --- a/net/minecraft/world/entity/animal/frog/Frog.java
 +++ b/net/minecraft/world/entity/animal/frog/Frog.java
-@@ -445,6 +445,17 @@ public class Frog extends Animal {
+@@ -442,6 +442,17 @@ public class Frog extends Animal {
              super(mob, level);
          }
  
@@ -667,7 +667,7 @@ index f5455d019bab2aedb9d54e9f77578e9c672aac80..f917d8928cc9b6265b0b7702b95484cf
          @Override
          public boolean canCutCorner(final PathType pathType) {
              return pathType != PathType.WATER_BORDER && super.canCutCorner(pathType);
-@@ -453,6 +464,11 @@ public class Frog extends Animal {
+@@ -450,6 +461,11 @@ public class Frog extends Animal {
          @Override
          protected PathFinder createPathFinder(final int maxVisitedNodes) {
              this.nodeEvaluator = new Frog.FrogNodeEvaluator(true);
@@ -729,10 +729,10 @@ index 7c910f14559f08ca2c73fd224f71e9c80dc95227..bdf6870656d7dec96e4c095b4c021e78
          }
  
 diff --git a/net/minecraft/world/entity/monster/warden/Warden.java b/net/minecraft/world/entity/monster/warden/Warden.java
-index aea17671587d0ce6c3f20861a05292ad9f914d14..ed9ea794138113b559bb9c884962e13b23293a5d 100644
+index d96102bbea87e8e1bb9994f91830479ced6cd049..d5603403fc9ea46163a4557649409447b18f6eba 100644
 --- a/net/minecraft/world/entity/monster/warden/Warden.java
 +++ b/net/minecraft/world/entity/monster/warden/Warden.java
-@@ -590,6 +590,16 @@ public class Warden extends Monster implements VibrationSystem {
+@@ -587,6 +587,16 @@ public class Warden extends Monster implements VibrationSystem {
              @Override
              protected PathFinder createPathFinder(final int maxVisitedNodes) {
                  this.nodeEvaluator = new WalkNodeEvaluator();
