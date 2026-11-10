@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FishingHook;
@@ -210,6 +211,9 @@ public final class PlayerCullTracker implements Runnable {
         }
         if (entity instanceof Display || entity instanceof FishingHook) {
             return true; // holograms and rod lines misbehave when untracked
+        }
+        if (entity instanceof LightningBolt) {
+            return true; // the client plays the bolt, thunder and sky flash from the entity, all visible through walls
         }
         if (entity.isCurrentlyGlowing() || entity.isCustomNameVisible()) {
             return true; // rendered through walls on the client
