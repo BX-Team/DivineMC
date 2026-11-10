@@ -389,7 +389,7 @@ index c1257e0413c4ee5e924a5a8db7205514d411b4fb..e6c567f6ede8c7cde651666af506c403
                  // Paper end
                  // CraftBukkit start
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index b56d4349e43ac905699f3c0c75a85ca4342d645a..91d21762711c211ec8ae112c0c5597cf91ee6dcb 100644
+index b56d4349e43ac905699f3c0c75a85ca4342d645a..a81ded45996750ac15c0b713360bcb8d1d1f4be0 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -336,6 +336,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -439,7 +439,7 @@ index b56d4349e43ac905699f3c0c75a85ca4342d645a..91d21762711c211ec8ae112c0c5597cf
 +        } else {
 +            boolean executed = false;
 +            for (final ServerLevel world : this.getAllLevels()) {
-+                executed = executed || this.tickLevelMidTickTasks(world);
++                executed |= this.tickLevelMidTickTasks(world);
              }
 -        }
  
