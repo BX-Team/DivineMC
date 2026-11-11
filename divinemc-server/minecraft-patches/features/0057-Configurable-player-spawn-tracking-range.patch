@@ -18,24 +18,25 @@ index 6d1fe8028739145b11fce98ad62b2f8044299548..9f086ded18d1fc8850877c6be113d880
      // note: vanilla does not subtract 0.5 but the result is (luckily!) the same
      public static final int NARROW_SPAWN_TRACK_RANGE = (int)Math.floor(((double)PLAYER_SPAWN_TRACK_RANGE / Math.sqrt(2.0)) - 0.5);
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index e31aca35244e196b3fec340f359a6c65b169dc67..7ed727cbb33e490257283400220ad6a2a3bc9918 100644
+index 5696cce53e7500f8b6fc1d8a36725d894f323ade..62ca863b526783e5613e711af4bf2c316260dcf4 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -866,10 +866,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -866,10 +866,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
          final ServerPlayer[] raw = players.getRawDataUnchecked();
          final int len = players.size();
  
 -        Objects.checkFromIndexSize(0, len, raw.length);
 -        for (int i = 0; i < len; ++i) {
-+        for (int i = 0; i < raw.length; ++i) { // DivineMC - Configurable player spawn tracking range
++        final double range = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.playerNearChunkDetectionRange; // DivineMC - Configurable player spawn tracking range
++        for (int i = 0, end = Math.min(len, raw.length); i < end; ++i) { // DivineMC - Configurable player spawn tracking range - raw and size are read without a lock
              final ServerPlayer player = raw[i];
 -            if (this.playerIsCloseEnoughForSpawning(player, pos, 16384.0D)) { // Spigot
 +            if (player == null) continue; // DivineMC - Configurable player spawn tracking range
-+            if (this.playerIsCloseEnoughForSpawning(player, pos, (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.playerNearChunkDetectionRange^2))) { // Spigot // DivineMC - Configurable player spawn tracking range
++            if (this.playerIsCloseEnoughForSpawning(player, pos, range * range)) { // Spigot // DivineMC - Configurable player spawn tracking range
                  if (ret == null) {
                      ret = new ArrayList<>(len - i);
                      ret.add(player);
-@@ -1331,6 +1331,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1331,6 +1332,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
  
              for (int i = 0; i < playersLength; ++i) { // DivineMC - Parallel entity tracker
                  final ServerPlayer player = playersRaw[i];
