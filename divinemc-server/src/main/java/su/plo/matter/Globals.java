@@ -1,7 +1,8 @@
 package su.plo.matter;
 
-import com.google.common.collect.Iterables;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import org.bxteam.divinemc.config.DivineConfig;
 
 import java.math.BigInteger;
@@ -41,10 +42,14 @@ public class Globals {
 
         long[] seed = world.getServer().getWorldGenSettings().options().featureSeed();
         System.arraycopy(seed, 0, worldSeed, 0, WORLD_SEED_LONGS);
-        int worldIndex = Iterables.indexOf(world.getServer().levelKeys(), it -> it == world.dimension());
-        if (worldIndex == -1)
-            worldIndex = world.getServer().levelKeys().size(); // if we are in world construction it may not have been added to the map yet
-        dimension.set(worldIndex);
+        dimension.set(dimensionIndex(world.dimension()));
+    }
+
+    public static int dimensionIndex(ResourceKey<Level> key) {
+        if (key == Level.OVERWORLD) return 0;
+        if (key == Level.NETHER) return 1;
+        if (key == Level.END) return 2;
+        return key.identifier().hashCode();
     }
 
     public static long[] createRandomWorldSeed() {

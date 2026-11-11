@@ -9,10 +9,10 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index d4512910e751a3e198fd3cb2c56d40dcdb46996b..67fa1eb9944edc2968cf82f059190a056c9c8b9d 100644
+index 16a8a39b01b87fc06e6911650925530f4726b5c0..f038fb736ae6f853f42ac2f7e0fce653a613a7ee 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -112,6 +112,26 @@ public class Main {
+@@ -113,6 +113,26 @@ public class Main {
              org.purpurmc.purpur.PurpurConfig.registerMinecraftDisabledCommands = purpurConfiguration.getBoolean("settings.register-minecraft-disabled-commands"); // Purpur - register disabled minecraft commands
              // Purpur end - Add toggle for enchant level clamping - load config files early
  
