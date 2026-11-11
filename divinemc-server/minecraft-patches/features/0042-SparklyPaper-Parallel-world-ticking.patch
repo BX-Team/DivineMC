@@ -1575,7 +1575,7 @@ index c6ebd031389108a7506232386322ecd706fde84d..214ae1535cbadf5649c39458d893fdfe
      // CraftBukkit end
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index d26d49510aecb2e74049244b1e7961afd068baf9..f0ba14b2586ecaaf6ff2efff2416a2ba41df99a0 100644
+index acd6cc948a1b42892193de33a0bfa12b3fb8f841..8749314a20d62f37890e075efde50c586ec0ba90 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -376,6 +376,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
@@ -1670,7 +1670,7 @@ index 6b3ce2ded53a7ea46cf7f0cb49043a022f6d9ee7..fbf0e14f6dd7907e2cb3a63a4410dbfe
      }
  }
 diff --git a/net/minecraft/world/level/storage/SavedDataStorage.java b/net/minecraft/world/level/storage/SavedDataStorage.java
-index d2a379b55467af19d9c7915e6964f97ca7ea264f..ed2a06dc1e24f0fafd8332ca2e1a6b44b09130a1 100644
+index d2a379b55467af19d9c7915e6964f97ca7ea264f..19fdee7b9d8cabbaf1b1e64b84fbe0e838a7c0ab 100644
 --- a/net/minecraft/world/level/storage/SavedDataStorage.java
 +++ b/net/minecraft/world/level/storage/SavedDataStorage.java
 @@ -40,7 +40,7 @@ import org.slf4j.Logger;
@@ -1682,15 +1682,22 @@ index d2a379b55467af19d9c7915e6964f97ca7ea264f..ed2a06dc1e24f0fafd8332ca2e1a6b44
      private final DataFixer fixerUpper;
      private final HolderLookup.Provider registries;
      private final Path dataFolder;
-@@ -63,24 +63,29 @@ public class SavedDataStorage implements AutoCloseable {
+@@ -63,24 +63,37 @@ public class SavedDataStorage implements AutoCloseable {
      }
  
      public <T extends SavedData> T computeIfAbsent(final SavedDataType<T> type) {
 -        T data = this.get(type);
 -        if (data != null) {
 -            return data;
--        }
 +        // DivineMC start - Parallel world ticking - thread-safe saved data storage
++        final Optional<SavedData> cached = this.cache.get(type);
++        if (cached != null && cached.isPresent()) {
++            return (T)cached.get();
+         }
+ 
+-        T newData = (T)type.constructor().get();
+-        this.set(type, newData);
+-        return newData;
 +        Optional<SavedData> data = this.cache.compute(type, (key, existing) -> {
 +            if (existing == null) {
 +                existing = Optional.ofNullable(this.readSavedData(type));
@@ -1701,10 +1708,7 @@ index d2a379b55467af19d9c7915e6964f97ca7ea264f..ed2a06dc1e24f0fafd8332ca2e1a6b44
 +                newData.setDirty();
 +                existing = Optional.of(newData);
 +            }
- 
--        T newData = (T)type.constructor().get();
--        this.set(type, newData);
--        return newData;
++
 +            return existing;
 +        });
 +        return (T)data.orElseThrow();
@@ -1712,20 +1716,20 @@ index d2a379b55467af19d9c7915e6964f97ca7ea264f..ed2a06dc1e24f0fafd8332ca2e1a6b44
      }
  
      public <T extends SavedData> @Nullable T get(final SavedDataType<T> type) {
--        Optional<SavedData> data = this.cache.get(type);
--        if (data == null) {
++        // DivineMC start - Parallel world ticking - thread-safe saved data storage
+         Optional<SavedData> data = this.cache.get(type);
+         if (data == null) {
 -            data = Optional.ofNullable(this.readSavedData(type));
 -            this.cache.put(type, data);
--        }
++            data = this.cache.computeIfAbsent(type, key -> Optional.ofNullable(this.readSavedData(type)));
+         }
 -
-+        // DivineMC start - Parallel world ticking - thread-safe saved data storage
-+        Optional<SavedData> data = this.cache.computeIfAbsent(type, key -> Optional.ofNullable(this.readSavedData(type)));
          return (T)data.orElse(null);
 +        // DivineMC end - Parallel world ticking - thread-safe saved data storage
      }
  
      private <T extends SavedData> @Nullable T readSavedData(final SavedDataType<T> type) {
-@@ -143,7 +148,7 @@ public class SavedDataStorage implements AutoCloseable {
+@@ -143,7 +156,7 @@ public class SavedDataStorage implements AutoCloseable {
          return gzip;
      }
  
