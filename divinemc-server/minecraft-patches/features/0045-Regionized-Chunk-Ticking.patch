@@ -138,7 +138,7 @@ index 63e3dc018eeafc574b950af1bfb779c6c530adbb..00a1ae910d3d5459df6426ce8ac66f18
              boolean executed = false;
              for (final ServerLevel world : this.getAllLevels()) {
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index f61479e08441fa5b89c636e8a233cfc33de5bec7..e31aca35244e196b3fec340f359a6c65b169dc67 100644
+index f61479e08441fa5b89c636e8a233cfc33de5bec7..5696cce53e7500f8b6fc1d8a36725d894f323ade 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -750,25 +750,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -152,7 +152,7 @@ index f61479e08441fa5b89c636e8a233cfc33de5bec7..e31aca35244e196b3fec340f359a6c65
 -        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks();
 +        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks;
 +        synchronized (tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks()) {
-+            final LevelChunk[] raw = tickingChunks.toArray(new LevelChunk[0]);
++            final LevelChunk[] raw = tickingChunks.getRawDataUnchecked();
 +            final int size = tickingChunks.size();
  
 -        final LevelChunk[] raw = tickingChunks.getRawDataUnchecked();
@@ -1242,7 +1242,7 @@ index 6cabc49464d34cb5282b7fa3bcfee20953d7e347..bf6d1391ca191eddaefda11946ba767c
          }
      }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index aa15b79177cc739ba31e32322b2891ca5b4b7d9e..fedb00d2116025503ecd11f1c3ef6f5398c1f394 100644
+index 8749314a20d62f37890e075efde50c586ec0ba90..d1542e18b8bc02abb3f65088da174f2c6f581694 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -436,7 +436,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
