@@ -866,6 +866,7 @@ public class DivineConfig {
         // Secure seed
         public static boolean enableSecureSeed = false;
         public static HashingVersion secureSeedHashingVersion = HashingVersion.BLAKE2B;
+        private static boolean secureSeedLoaded = false;
 
         // Lag compensation
         public static boolean lagCompensationEnabled = true;
@@ -895,22 +896,34 @@ public class DivineConfig {
         }
 
         private static void secureSeed() {
-            enableSecureSeed = getBoolean(ConfigCategory.MISC.key("secure-seed.enable"), enableSecureSeed,
+            final boolean enable = getBoolean(ConfigCategory.MISC.key("secure-seed.enable"), enableSecureSeed,
                 "This feature is based on Secure Seed mod by Earthcomputer.",
                 "",
                 "Terrain and biome generation remains the same, but all the ores and structures are generated with 1024-bit seed, instead of the usual 64-bit seed.",
                 "This seed is almost impossible to crack, and there are no weird links between structures.");
 
+            HashingVersion hashingVersion;
             try {
-                secureSeedHashingVersion = HashingVersion.valueOf(getString(ConfigCategory.MISC.key("secure-seed.hashing-version"), secureSeedHashingVersion.toString(),
+                hashingVersion = HashingVersion.valueOf(getString(ConfigCategory.MISC.key("secure-seed.hashing-version"), secureSeedHashingVersion.toString(),
                     "Type of hashing algorithm to use for secure seed.",
                     "Valid values:",
                     " - BLAKE2B: Cryptographically secure, well-tested, and reliable (default)",
                     " - BLAKE3: Faster than BLAKE2b with better security guarantees. Requires jdk.incubator.vector module"));
             } catch (IllegalArgumentException ignore) {
                 LOGGER.warn("Invalid secure seed hashing version: {}, resetting to default (BLAKE2B)", getString(ConfigCategory.MISC.key("secure-seed.hashing-version"), secureSeedHashingVersion.toString()));
-                secureSeedHashingVersion = HashingVersion.BLAKE2B;
+                hashingVersion = HashingVersion.BLAKE2B;
             }
+
+            // world options and generated chunks are bound to the boot-time values
+            if (secureSeedLoaded) {
+                if (enable != enableSecureSeed || hashingVersion != secureSeedHashingVersion) {
+                    LOGGER.warn("Secure seed settings only change on restart");
+                }
+                return;
+            }
+            secureSeedLoaded = true;
+            enableSecureSeed = enable;
+            secureSeedHashingVersion = hashingVersion;
         }
 
         private static void lagCompensation() {
