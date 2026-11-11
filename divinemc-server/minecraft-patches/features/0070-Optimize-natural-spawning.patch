@@ -1,0 +1,88 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Fri, 13 Nov 2026 22:55:04 +0300
+Subject: [PATCH] Optimize natural spawning
+
+
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 8a323abd5a062246b39affc7eca86610bff3930f..76fc3e97c8315d7996d66939a643b59f8bca8a7a 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -864,6 +864,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+      */
+     @Override
+     public Holder<Biome> getNoiseBiome(final int x, final int y, final int z) {
++        // DivineMC start - Optimize natural spawning - a loaded full chunk answers without the chunk holder lookup
++        final ChunkAccess loaded = this.getChunkIfLoadedImmediately(x >> 2, z >> 2);
++        if (loaded != null) {
++            return loaded.getNoiseBiome(x, y, z);
++        }
++        // DivineMC end - Optimize natural spawning
+         final ChunkAccess chunk = this.getChunk(x >> 2, z >> 2, ChunkStatus.BIOMES, false);
+ 
+         return chunk != null ? chunk.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
+diff --git a/net/minecraft/world/level/NaturalSpawner.java b/net/minecraft/world/level/NaturalSpawner.java
+index 99aec13322ff30aea4d8e2059401f481b635d780..cd322b10c2d0c1be8baea70d83464fe806913e25 100644
+--- a/net/minecraft/world/level/NaturalSpawner.java
++++ b/net/minecraft/world/level/NaturalSpawner.java
+@@ -317,10 +317,11 @@ public final class NaturalSpawner {
+                     pos.set(x, yStart, z);
+                     double xx = x + 0.5;
+                     double zz = z + 0.5;
+-                    Player nearestPlayer = level.getNearestPlayer(xx, yStart, zz, -1.0, level.purpurConfig.mobSpawningIgnoreCreativePlayers); // Purpur - mob spawning option to ignore creative players
++                    Player nearestPlayer = org.bxteam.divinemc.util.SpawnPlayerLookup.nearestPlayer(level, xx, yStart, zz, level.purpurConfig.mobSpawningIgnoreCreativePlayers); // Purpur - mob spawning option to ignore creative players // DivineMC - Optimize natural spawning
+                     if (nearestPlayer != null) {
+                         double nearestPlayerDistanceSqr = nearestPlayer.distanceToSqr(xx, yStart, zz);
+                         if (level.isLoadedAndInBounds(pos) && isRightDistanceToPlayerAndSpawnPoint(level, chunk, pos, nearestPlayerDistanceSqr)) { // Paper - don't load chunks for mob spawn
++                            final boolean pickedHere = currentSpawnData == null; // DivineMC - Optimize natural spawning
+                             if (currentSpawnData == null) {
+                                 Optional<MobSpawnSettings.SpawnerData> nextSpawnData = getRandomSpawnMobAt(
+                                     level, structureManager, generator, mobCategory, level.random, pos
+@@ -334,7 +335,7 @@ public final class NaturalSpawner {
+                             }
+ 
+                             // Paper start - PreCreatureSpawnEvent
+-                            PreSpawnStatus doSpawning = isValidSpawnPostitionForType(level, mobCategory, structureManager, generator, currentSpawnData, pos, nearestPlayerDistanceSqr);
++                            PreSpawnStatus doSpawning = isValidSpawnPostitionForType(level, mobCategory, structureManager, generator, currentSpawnData, pos, nearestPlayerDistanceSqr, pickedHere); // DivineMC - Optimize natural spawning
+                             // Paper start - per player mob count backoff
+                             if (doSpawning == PreSpawnStatus.ABORT || doSpawning == PreSpawnStatus.CANCELLED) {
+                                 level.getChunkSource().chunkMap.updateFailurePlayerMobTypeMap(pos.getX() >> 4, pos.getZ() >> 4, mobCategory);
+@@ -420,25 +421,31 @@ public final class NaturalSpawner {
+         final ChunkGenerator generator,
+         final MobSpawnSettings.SpawnerData currentSpawnData,
+         final BlockPos.MutableBlockPos pos,
+-        final double nearestPlayerDistanceSqr
++        final double nearestPlayerDistanceSqr,
++        final boolean pickedHere // DivineMC - Optimize natural spawning
+     ) {
+         // Paper start - PreCreatureSpawnEvent
+         EntityType<?> type = currentSpawnData.type();
++        // DivineMC start - Optimize natural spawning - nobody listens: skip the event, and nothing ran since the mob was picked from the list at this position
++        final boolean unobserved = com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent.getHandlerList().getRegisteredListeners().length == 0;
++        if (!unobserved) {
++            com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
+                 org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level),
+                 org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(type), org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL
+-        );
+-        if (!event.callEvent()) {
+-            if (event.shouldAbortSpawn()) {
+-                return PreSpawnStatus.ABORT;
++            );
++            if (!event.callEvent()) {
++                if (event.shouldAbortSpawn()) {
++                    return PreSpawnStatus.ABORT;
++                }
++                return PreSpawnStatus.CANCELLED;
+             }
+-            return PreSpawnStatus.CANCELLED;
+         }
++        // DivineMC end - Optimize natural spawning
+         final boolean success = type.getCategory() != MobCategory.MISC
+         // Paper end - PreCreatureSpawnEvent
+             && (type.canSpawnFarFromPlayer() || !(nearestPlayerDistanceSqr > type.getCategory().getDespawnDistance() * type.getCategory().getDespawnDistance()))
+             && type.canSummon()
+-            && canSpawnMobAt(level, structureManager, generator, mobCategory, currentSpawnData, pos)
++            && ((unobserved && pickedHere) || canSpawnMobAt(level, structureManager, generator, mobCategory, currentSpawnData, pos)) // DivineMC - Optimize natural spawning
+             && SpawnPlacements.isSpawnPositionOk(type, level, pos)
+             && SpawnPlacements.checkSpawnRules(type, level, EntitySpawnReason.NATURAL, pos, level.random)
+             && level.noCollision(type.getSpawnAABB(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5));
