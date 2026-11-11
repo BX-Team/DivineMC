@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/entity/vehicle/minecart/MinecartHopper.java
++++ b/net/minecraft/world/entity/vehicle/minecart/MinecartHopper.java
+@@ -103,6 +_,7 @@
+     }
+ 
+     public boolean suckInItems() {
++        if (HopperBlockEntity.isFullContainer(this, net.minecraft.core.Direction.DOWN)) return false; // DivineMC - Skip pulling into a full hopper minecart
+         if (HopperBlockEntity.suckInItems(this.level(), this)) {
+             this.immunize(); // Paper
+             return true;
