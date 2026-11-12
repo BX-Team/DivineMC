@@ -814,7 +814,7 @@ index c2f8479eef826efca3ed2993973b2cfc2c51ed00..5ae31cf3032e69fdb4386a46587b9022
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/BlockEntity.java b/net/minecraft/world/level/block/entity/BlockEntity.java
-index ef94c0e004d3e72db7899345cc5470afe6581dc4..25523192f01a483ba662f14ea9e528cd6b0781c0 100644
+index 262135848b3f4d088fa36325615e0b9a42fbc431..e63c0ef8facff6037e446ac71b9db0054f0f5dce 100644
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
 @@ -38,7 +38,7 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -823,7 +823,7 @@ index ef94c0e004d3e72db7899345cc5470afe6581dc4..25523192f01a483ba662f14ea9e528cd
  
 -public abstract class BlockEntity implements DebugValueSource, TypedInstance<BlockEntityType<?>> {
 +public abstract class BlockEntity implements DebugValueSource, TypedInstance<BlockEntityType<?>>, net.caffeinemc.mods.lithium.common.block.entity.inventory_comparator_tracking.ComparatorTracker, net.caffeinemc.mods.lithium.common.block.entity.SetBlockStateHandlingBlockEntity, net.caffeinemc.mods.lithium.common.block.entity.SetChangedHandlingBlockEntity { // DivineMC - lithium: sleeping_block_entity
-     static boolean ignoreBlockEntityUpdates; // Paper - Perf: Optimize Hoppers
+     // static boolean ignoreBlockEntityUpdates; // Paper - Perf: Optimize Hoppers // DivineMC - Thread-safe hopper event flags
      // CraftBukkit start - data containers
      private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
 @@ -59,6 +59,7 @@ public abstract class BlockEntity implements DebugValueSource, TypedInstance<Blo
@@ -836,7 +836,7 @@ index ef94c0e004d3e72db7899345cc5470afe6581dc4..25523192f01a483ba662f14ea9e528cd
      private void validateBlockState(final BlockState blockState) {
 @@ -212,6 +213,7 @@ public abstract class BlockEntity implements DebugValueSource, TypedInstance<Blo
          if (this.level != null) {
-             if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
+             if (org.bxteam.divinemc.async.HopperEventFlags.ignoreBlockEntityUpdates()) return; // Paper - Perf: Optimize Hoppers // DivineMC - Thread-safe hopper event flags
              setChanged(this.level, this.worldPosition, this.blockState);
 +            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) lithium$handleSetChanged(); // DivineMC - lithium: sleeping_block_entity
          }
@@ -1378,7 +1378,7 @@ index c669d0ad531fc43bb7799bd011ed73ccf7b6244a..144ae81daf6a1bbecd4fa0a733fd6d5d
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4bf9559255 100644
+index 00a62239e311709c0de18e99ee85e846702b958b..6fe28573215eb475c95b8cb6a69310ceeb194ee0 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,7 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -1420,7 +1420,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
                  return true;
              }
          }
-@@ -367,6 +376,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -373,6 +382,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      private static void applyCooldown(final Hopper hopper) {
          if (hopper instanceof HopperBlockEntity blockEntity && blockEntity.getLevel() != null) {
              blockEntity.setCooldown(blockEntity.getLevel().spigotConfig.hopperTransfer);
@@ -1428,7 +1428,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
          }
      }
  
-@@ -410,12 +420,20 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -416,12 +426,20 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(final Level level, final BlockPos blockPos, final HopperBlockEntity self) {
@@ -1450,7 +1450,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
          if (isFullContainer(container, direction)) {
              // DivineMC start - SparklyPaper: Allow throttling hopper checks if the target container is full
              if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.hopperThrottleWhenFull && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.hopperThrottleSkipTicks > 0) {
-@@ -507,10 +525,18 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -513,10 +531,18 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      public static boolean suckInItems(final Level level, final Hopper hopper) {
          BlockPos blockPos = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
          BlockState blockState = level.getBlockState(blockPos);
@@ -1458,7 +1458,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
 +        Container container = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity ? getExtractInventory(level, hopper, blockPos, blockState) : getSourceContainer(level, hopper, blockPos, blockState); // DivineMC - lithium: sleeping_block_entity
          if (container != null) {
              Direction direction = Direction.DOWN;
-             skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
+             org.bxteam.divinemc.async.HopperEventFlags.get().skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers // DivineMC - Thread-safe hopper event flags
 +            // DivineMC start - lithium: sleeping_block_entity
 +            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity && !hasPrepareTransferListeners(level)) {
 +                Boolean res = lithiumExtract(level, hopper, container);
@@ -1470,7 +1470,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
              final long disallowedSlots = callPrepareTransferEvent(level, container, hopper, false); // Paper - Add PrepareHopperTransferEvent
  
              for (int slot : getSlots(container, direction)) {
-@@ -526,7 +552,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -532,7 +558,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
                  && blockState.isCollisionShapeFullBlock(level, blockPos)
                  && !blockState.is(BlockTags.DOES_NOT_BLOCK_HOPPERS);
              if (!isBlocked) {
@@ -1479,7 +1479,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
                      if (addItem(hopper, entity)) {
                          return true;
                      }
-@@ -648,7 +674,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -659,7 +685,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
  
      // CraftBukkit start
      private static @Nullable Container runHopperInventorySearchEvent(
@@ -1488,7 +1488,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
          org.bukkit.craftbukkit.block.CraftBlock hopper,
          org.bukkit.craftbukkit.block.CraftBlock searchLocation,
          org.bukkit.event.inventory.HopperInventorySearchEvent.ContainerType containerType
-@@ -774,6 +800,19 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -785,6 +811,19 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      }
  
      public void setCooldown(final int time) {
@@ -1508,7 +1508,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
          this.cooldownTime = time;
      }
  
-@@ -793,6 +832,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -804,6 +843,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      @Override
      protected void setItems(final NonNullList<ItemStack> items) {
          this.items = items;
@@ -1516,7 +1516,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
      }
  
      public static void entityInside(final Level level, final BlockPos pos, final BlockState blockState, final Entity entity, final HopperBlockEntity hopper) {
-@@ -807,4 +847,755 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -818,4 +858,756 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      protected AbstractContainerMenu createMenu(final int containerId, final Inventory inventory) {
          return new HopperMenu(containerId, inventory, this);
      }
@@ -2170,7 +2170,8 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
 +                hopperBlockEntity.insertStackList.getOccupiedSlots() == 0 :
 +                insertInventory.isEmpty();
 +
-+        skipPushModeEventFire = skipHopperEvents;
++        final org.bxteam.divinemc.async.HopperEventFlags eventFlags = org.bxteam.divinemc.async.HopperEventFlags.get();
++        eventFlags.skipPushModeEventFire = skipHopperEvents;
 +        //noinspection ConstantConditions
 +        if (!(hopperBlockEntity.insertInventory == insertInventory && hopperBlockEntity.insertStackList.getFullSlots() == hopperBlockEntity.insertStackList.size())) {
 +            Direction fromDirection = hopperBlockEntity.facing.getOpposite();
@@ -2178,7 +2179,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
 +            for (int i = 0; i < size; ++i) {
 +                ItemStack transferStack = hopperStackList.get(i);
 +                if (!transferStack.isEmpty()) {
-+                    if (!skipPushModeEventFire && canTakeItemFromContainer(insertInventory, hopperBlockEntity, transferStack, i, Direction.DOWN)) {
++                    if (!eventFlags.skipPushModeEventFire && canTakeItemFromContainer(insertInventory, hopperBlockEntity, transferStack, i, Direction.DOWN)) {
 +                        transferStack = callPushMoveEvent(insertInventory, transferStack, hopperBlockEntity);
 +                        if (transferStack == null) { // cancelled
 +                            break;
@@ -2238,7 +2239,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
 +            int fromSlot = availableSlots != null ? availableSlots[i] : i;
 +            ItemStack itemStack = fromStackList.get(fromSlot);
 +            if (!itemStack.isEmpty() && canTakeItemFromContainer(to, from, itemStack, fromSlot, Direction.DOWN)) {
-+                if (!skipPullModeEventFire) {
++                if (!org.bxteam.divinemc.async.HopperEventFlags.get().skipPullModeEventFire) {
 +                    itemStack = callPullMoveEvent(to, from, itemStack);
 +                    if (itemStack == null) { // cancelled
 +                        return true;
