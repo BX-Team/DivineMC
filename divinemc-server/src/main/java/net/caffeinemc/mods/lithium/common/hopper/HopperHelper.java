@@ -11,9 +11,9 @@ import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
-import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,14 +34,14 @@ public class HopperHelper {
         if (toSided != null && fromDirection != null) {
             int[] slots = toSided.getSlotsForFace(fromDirection);
 
-            for (int slotIndex = 0; slotIndex < slots.length; ++slotIndex) {
+            for(int slotIndex = 0; slotIndex < slots.length; ++slotIndex) {
                 if (tryMoveSingleItem(to, toSided, stack, transferChecker, slots[slotIndex], fromDirection)) {
                     return true; //caller needs to take the item from the original inventory and call to.markDirty()
                 }
             }
         } else {
             int j = to.getContainerSize();
-            for (int slot = 0; slot < j; ++slot) {
+            for(int slot = 0; slot < j; ++slot) {
                 if (tryMoveSingleItem(to, toSided, stack, transferChecker, slot, fromDirection)) {
                     return true; //caller needs to take the item from the original inventory and call to.markDirty()
                 }
@@ -77,7 +77,7 @@ public class HopperHelper {
     }
 
     public static ComparatorUpdatePattern determineComparatorUpdatePattern(Container from, LithiumStackList fromStackList) {
-        if ((from instanceof HopperBlockEntity) || !(from instanceof RandomizableContainerBlockEntity)) {
+        if ((from instanceof HopperBlockEntity) || !(from instanceof BaseContainerBlockEntity)) {
             return ComparatorUpdatePattern.NO_UPDATE;
         }
         //calculate the signal strength of the inventory, but also keep the content weight variable
@@ -93,7 +93,7 @@ public class HopperHelper {
             }
         }
         float f = contentWeight;
-        f /= (float) from.getContainerSize();
+        f /= (float)from.getContainerSize();
         int originalSignalStrength = Mth.floor(f * 14.0F) + (numOccupiedSlots > 0 ? 1 : 0);
 
 
@@ -141,8 +141,8 @@ public class HopperHelper {
                     BlockPos offsetPos = pos.relative(direction);
                     //Directly get the block entity instead of getting the block state first. Maybe that is faster, maybe not.
                     BlockEntity hopper = blockEntities != null ? blockEntities.get(offsetPos) : level.lithium$getLoadedExistingBlockEntity(offsetPos);
-                    if (hopper instanceof HopperBlockEntity hopperBlockEntity) {
-                        hopperBlockEntity.lithium$invalidateCacheOnNeighborUpdate(direction == Direction.DOWN);
+                    if (hopper instanceof UpdateReceiver updateReceiver) {
+                        updateReceiver.lithium$invalidateCacheOnNeighborUpdate(direction == Direction.DOWN);
                     }
                 }
             }
