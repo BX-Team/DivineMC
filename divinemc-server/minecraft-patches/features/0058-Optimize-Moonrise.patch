@@ -484,10 +484,10 @@ index 63cc7970b9df5e84743084ca99650bc3d13b970e..14d0afdb35f889693423a00b22aa4074
      }
  
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 2966b231ee807015900ce0d4cc528f9ec9586d9b..87daccfca8e46e9e719411b1ac4d9d886398dec7 100644
+index 4c641ff02afb17530d6a619cea14460607172c1b..ffab1335060813315a7bd4b74faa98bd0e992078 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -467,8 +467,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -468,8 +468,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
  
      public boolean isPositionTicking(final long chunkKey) {
          // Paper start - rewrite chunk system
@@ -498,7 +498,7 @@ index 2966b231ee807015900ce0d4cc528f9ec9586d9b..87daccfca8e46e9e719411b1ac4d9d88
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 69415beaa25e704989902748f90740deb7014096..cd3ca00cca9f8fd2d6c5b9d2686bc1de3408d939 100644
+index 44bf1622e2212689d6702ea4a7f6a6b480df1748..2d6a995adb0d305cf0721419e4aa723a04c2fcc7 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -197,6 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet

@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount;
@@ -160,7 +161,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             this.tickTileBlocks(tile, randomTickSpeed);
         }
 
-        spawns.join();
+        RegionWorkerWait.join(this, spawns);
 
         this.pendingEntityTick = true;
         this.blockPhaseNanos = System.nanoTime() - start;
@@ -518,12 +519,13 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         final Tile[] ordered = work.toArray(new Tile[0]);
         final boolean checkOwnership = CHECK_OWNERSHIP && !this.regionMode;
         final AtomicInteger next = new AtomicInteger();
+        final AtomicReference<Throwable> failure = new AtomicReference<>();
         final int workers = Math.min(count, regionizedChunkTickingExecutorThreadCount);
         final CompletableFuture<?>[] futures = new CompletableFuture<?>[workers];
         for (int worker = 0; worker < workers; worker++) {
             futures[worker] = CompletableFuture.runAsync(() -> runInLevel(this.level, () -> {
                 int index;
-                while ((index = next.getAndIncrement()) < ordered.length) {
+                while (failure.get() == null && (index = next.getAndIncrement()) < ordered.length) {
                     final Tile unit = ordered[index];
                     if (checkOwnership) {
                         CURRENT_TILE.set(unit);
@@ -536,6 +538,9 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                         }
                     } catch (final Throwable throwable) {
                         LOGGER.error("Exception while ticking region unit {}", unit.describe(), throwable);
+                        if (!failure.compareAndSet(null, throwable) && failure.get() != throwable) {
+                            failure.get().addSuppressed(throwable);
+                        }
                     } finally {
                         if (checkOwnership) {
                             CURRENT_TILE.remove();
@@ -544,8 +549,13 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                 }
             }), REGION_EXECUTOR);
         }
-        for (final CompletableFuture<?> future : futures) {
-            future.join();
+        RegionWorkerWait.join(this, CompletableFuture.allOf(futures));
+        // the level's thread fails the tick, as it does when the same code throws without regions
+        final Throwable thrown = failure.get();
+        if (thrown instanceof Error error) {
+            throw error;
+        } else if (thrown != null) {
+            throw thrown instanceof RuntimeException exception ? exception : new RuntimeException(thrown);
         }
     }
 
