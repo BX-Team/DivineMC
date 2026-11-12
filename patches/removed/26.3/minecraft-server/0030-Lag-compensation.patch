@@ -5,7 +5,7 @@ Subject: [PATCH] Lag compensation
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 4def0259f66059ece009d152244d7704d63142e9..19df2c7146ed034a0a6edbbd9d8b37531edfc7e0 100644
+index 4def0259f66059ece009d152244d7704d63142e9..a5e89893d7e8b0380e6a9f1d05e4aed0df1975eb 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -334,6 +334,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -16,35 +16,42 @@ index 4def0259f66059ece009d152244d7704d63142e9..19df2c7146ed034a0a6edbbd9d8b3753
      // Paper start - improve tick loop
      public final ca.spottedleaf.common.time.TickData tickTimes1s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
      public final ca.spottedleaf.common.time.TickData tickTimes5s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
-@@ -1634,6 +1635,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-         }
+@@ -1323,6 +1324,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             while (this.running) {
+                 final long tickStart = System.nanoTime(); // Paper - improve tick loop
+                 long thisTickNanos; // Paper - improve tick loop - diff on change, expect this to be tick interval
++                long droppedTicks = 0L; // DivineMC - Lag compensation
+                 if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
+                     thisTickNanos = 0L;
+                     this.tickSchedule.setNextPeriod(tickStart, thisTickNanos); // Paper - improve tick loop
+@@ -1341,6 +1343,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                     // adjust ticksBehind so that it is not greater-than catchup
+                     if (ticksBehind - catchup > 0L) {
+                         final long difference = ticksBehind - catchup;
++                        droppedTicks = difference; // DivineMC - Lag compensation
+                         this.tickSchedule.advanceBy(difference, thisTickNanos);
+                     }
  
-         this.server.spark.tickStart(); // Paper - spark
-+        this.tpsCalculator.doTick(); // DivineMC - Lag compenstation
-         new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
-         this.tickCount++;
-         this.tickRateManager.tick();
+@@ -1351,6 +1354,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+ 
+                 this.nextTickTimeNanos = this.tickSchedule.getDeadline(thisTickNanos);
+                 this.lastOverloadWarningNanos = this.nextTickTimeNanos;
++                this.tpsCalculator.recordTick(droppedTicks); // DivineMC - Lag compensation
+ 
+                 this.currentTickStart = tickStart;
+                 ++MinecraftServer.currentTick;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 66479ac104b039bf5a6e8b72117a7739935d91a5..6a1bd0dd84dc15d0f6260a15649d13d1c7cfd59d 100644
+index 66479ac104b039bf5a6e8b72117a7739935d91a5..549bc4ee913363b38eb84872036aba4e2be35d14 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -241,6 +241,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
      public boolean hasRidableMoveEvent = false; // Purpur - Ridables
      public net.minecraft.world.item.ItemStack ominousBanner; // DivineMC - Optimize Raids
-+    public org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag Compensation
++    public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = MinecraftServer.getServer().tpsCalculator; // DivineMC - Lag Compensation - worlds tick once per server tick, so they share its schedule
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -867,6 +868,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
-             }
-         }
- 
-+        this.tpsCalculator.doTick(); // DivineMC - Lag compensation
-+
-         this.updateSkyBrightness();
-         if (runs) {
-             this.tickTime();
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
 index 68c91e8cc3a604a579f4347e740411f37e823b5f..31fd634c16ac9203cb30279e255e469b3ba9f0ce 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
@@ -101,7 +108,7 @@ index 7ec15f3d3a770e1e9e2fbac29dd38e947bb07091..a3c119c89aff9eb776b647a811ac9e4d
          return this.portal.getPortalDestination(serverLevel, entity, this.entryPosition);
      }
 diff --git a/net/minecraft/world/entity/item/ItemEntity.java b/net/minecraft/world/entity/item/ItemEntity.java
-index d48781789c08cf6cd48ab5157cb5e3fe55519844..3641edda8b06cc454d8c05ab6ec9624cf81d88f1 100644
+index d48781789c08cf6cd48ab5157cb5e3fe55519844..ba64e30c30fcb878be3c06ae3790c6058a8911fe 100644
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
 @@ -147,8 +147,25 @@ public class ItemEntity extends Entity implements TraceableEntity {
@@ -113,7 +120,7 @@ index d48781789c08cf6cd48ab5157cb5e3fe55519844..3641edda8b06cc454d8c05ab6ec9624c
 +        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.lagCompensationEnabled || !org.bxteam.divinemc.config.DivineConfig.MiscCategory.pickupAcceleration) return;
 +        if ((this).level().isClientSide()) return;
 +
-+        if (pickupDelay == 0) return;
++        if (pickupDelay == 0 || pickupDelay == INFINITE_PICKUP_DELAY) return;
 +
 +        if (pickupDelay - ((ServerLevel) this.level()).tpsCalculator.applicableMissedTicks() <= 0) {
 +            pickupDelay = 0;
@@ -131,7 +138,7 @@ index d48781789c08cf6cd48ab5157cb5e3fe55519844..3641edda8b06cc454d8c05ab6ec9624c
              this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
 diff --git a/net/minecraft/world/item/Item.java b/net/minecraft/world/item/Item.java
-index aef1a9cb52efc2f432f8015f5aef5a76fe1014d5..ca407928a195a9bc63b3e5cd59feec2b68048d5a 100644
+index aef1a9cb52efc2f432f8015f5aef5a76fe1014d5..3d1e2219ad2dd530a653898d9af840fe09581030 100644
 --- a/net/minecraft/world/item/Item.java
 +++ b/net/minecraft/world/item/Item.java
 @@ -322,10 +322,25 @@ public class Item implements ItemLike, FeatureElement {
@@ -141,7 +148,7 @@ index aef1a9cb52efc2f432f8015f5aef5a76fe1014d5..ca407928a195a9bc63b3e5cd59feec2b
 +    // DivineMC start - Lag compensation
 +    private int lagCompensation(int original, net.minecraft.server.level.ServerLevel level) {
 +        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.lagCompensationEnabled || !org.bxteam.divinemc.config.DivineConfig.MiscCategory.eatingAcceleration || original == 0) return original;
-+        return org.bxteam.divinemc.util.tps.TPSUtil.tt20(original, true, level);
++        return org.bxteam.divinemc.util.tps.TPSUtil.tt20(original, true);
 +    }
 +    // DivineMC end - Lag compensation
 +
@@ -162,7 +169,7 @@ index aef1a9cb52efc2f432f8015f5aef5a76fe1014d5..ca407928a195a9bc63b3e5cd59feec2b
              return !itemStack.has(DataComponents.BLOCKS_ATTACKS) && !itemStack.has(DataComponents.KINETIC_WEAPON) ? 0 : 72000;
          }
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 8f504f2a36490e9afcdedfc89b91fc3f420820be..58da6c986924121f93fa2385f561cbaf0b93f8dd 100644
+index 8f504f2a36490e9afcdedfc89b91fc3f420820be..9aff770a989e06c3a20d2312a4bd123e19ba72d2 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -351,14 +351,22 @@ public abstract class BlockBehaviour implements FeatureElement {
@@ -173,7 +180,7 @@ index 8f504f2a36490e9afcdedfc89b91fc3f420820be..58da6c986924121f93fa2385f561cbaf
 +    private float lagCompensation(float original, Player player) {
 +        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.lagCompensationEnabled || !org.bxteam.divinemc.config.DivineConfig.MiscCategory.blockBreakingAcceleration) return original;
 +        if (player.level().isClientSide) return original;
-+        return original * org.bxteam.divinemc.util.tps.TPSCalculator.MAX_TPS / (float) ((ServerLevel) player.level()).tpsCalculator.getMostAccurateTPS();
++        return original / (float) ((ServerLevel) player.level()).tpsCalculator.getTickRatio();
 +    }
 +    // DivineMC end - Lag compensation
 +
@@ -191,44 +198,27 @@ index 8f504f2a36490e9afcdedfc89b91fc3f420820be..58da6c986924121f93fa2385f561cbaf
  
      protected void spawnAfterBreak(final BlockState state, final ServerLevel level, final BlockPos pos, final ItemStack tool, final boolean dropExperience) {
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 40f0220d6037da1c26b6eb127f69139f2f343bcd..4c520643a19593c8bf998487b242993c86f10e34 100644
+index 40f0220d6037da1c26b6eb127f69139f2f343bcd..acd6cc948a1b42892193de33a0bfa12b3fb8f841 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -947,6 +947,19 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
-             this.ticker = ticker;
-         }
- 
-+        // DivineMC start - Lag compensation
-+        private <T extends BlockEntity> void lagCompensation(Runnable original) {
-+            original.run();
-+            if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.lagCompensationEnabled) return;
-+            if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.blockEntityAcceleration) return;
-+            if (LevelChunk.this.level.isClientSide()) return;
-+
-+            for (int i = 0; i < ((ServerLevel) this.blockEntity.getLevel()).tpsCalculator.applicableMissedTicks(); i++) {
-+                original.run();
-+            }
-+        }
-+        // DivineMC end - Lag compensation
-+
-         @Override
-         public void tick() {
-             if (!this.blockEntity.isRemoved() && this.blockEntity.hasLevel()) {
-@@ -957,7 +970,11 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
-                         profiler.push(this::getType);
+@@ -958,6 +958,15 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
                          BlockState blockState = LevelChunk.this.getBlockState(pos);
                          if (this.blockEntity.getType().isValid(blockState)) {
--                            this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockState, this.blockEntity);
+                             this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockState, this.blockEntity);
 +                            // DivineMC start - Lag compensation
-+                            lagCompensation(() -> {
-+                                this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockState, this.blockEntity);
-+                            });
++                            if (org.bxteam.divinemc.config.DivineConfig.MiscCategory.lagCompensationEnabled && org.bxteam.divinemc.config.DivineConfig.MiscCategory.blockEntityAcceleration && LevelChunk.this.level instanceof ServerLevel serverLevel) {
++                                for (int i = 0, missed = serverLevel.tpsCalculator.applicableMissedTicks(); i < missed && !this.blockEntity.isRemoved(); i++) {
++                                    final BlockState currentState = LevelChunk.this.getBlockState(pos); // an extra tick may have changed or removed the block
++                                    if (!this.blockEntity.getType().isValid(currentState)) break;
++                                    this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), currentState, this.blockEntity);
++                                }
++                            }
 +                            // DivineMC end - Lag compensation
                              this.loggedInvalidBlockState = false;
                              // Paper start - Remove the Block Entity if it's invalid
                          } else {
 diff --git a/net/minecraft/world/level/material/LavaFluid.java b/net/minecraft/world/level/material/LavaFluid.java
-index 6f39358dd4a2fbdb3188bc04839909c52fb4d0e1..aa126059ecdbcd0819101aefc23249e5b3da4e9b 100644
+index 6f39358dd4a2fbdb3188bc04839909c52fb4d0e1..a39c1a7e8894cd9e8ef41b2f0edf13de573e0ad1 100644
 --- a/net/minecraft/world/level/material/LavaFluid.java
 +++ b/net/minecraft/world/level/material/LavaFluid.java
 @@ -189,9 +189,22 @@ public abstract class LavaFluid extends FlowingFluid {
@@ -238,7 +228,7 @@ index 6f39358dd4a2fbdb3188bc04839909c52fb4d0e1..aa126059ecdbcd0819101aefc23249e5
 +    // DivineMC start - Lag compensation
 +    private int lagCompensation(int original, ServerLevel level) {
 +        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.lagCompensationEnabled || !org.bxteam.divinemc.config.DivineConfig.MiscCategory.fluidAcceleration) return original;
-+        return org.bxteam.divinemc.util.tps.TPSUtil.tt20(original, true, level);
++        return org.bxteam.divinemc.util.tps.TPSUtil.tt20(original, true);
 +    }
 +    // DivineMC end - Lag compensation
 +
@@ -256,7 +246,7 @@ index 6f39358dd4a2fbdb3188bc04839909c52fb4d0e1..aa126059ecdbcd0819101aefc23249e5
  
      @Override
 diff --git a/net/minecraft/world/level/material/WaterFluid.java b/net/minecraft/world/level/material/WaterFluid.java
-index e52362ae20646f0311262853af0cdc690a603b52..15c6f3d9575344595f5e8513e1e30920a0e24df9 100644
+index e52362ae20646f0311262853af0cdc690a603b52..41a773e14535fd45bebaed53d8152069117b8497 100644
 --- a/net/minecraft/world/level/material/WaterFluid.java
 +++ b/net/minecraft/world/level/material/WaterFluid.java
 @@ -123,8 +123,16 @@ public abstract class WaterFluid extends FlowingFluid {
@@ -266,7 +256,7 @@ index e52362ae20646f0311262853af0cdc690a603b52..15c6f3d9575344595f5e8513e1e30920
 +    // DivineMC start - Lag compensation
 +    private int lagCompensation(ServerLevel level) {
 +        if (!org.bxteam.divinemc.config.DivineConfig.MiscCategory.lagCompensationEnabled || !org.bxteam.divinemc.config.DivineConfig.MiscCategory.fluidAcceleration) return 5;
-+        return org.bxteam.divinemc.util.tps.TPSUtil.tt20(5, true, level);
++        return org.bxteam.divinemc.util.tps.TPSUtil.tt20(5, true);
 +    }
 +    // DivineMC end - Lag compensation
 +
