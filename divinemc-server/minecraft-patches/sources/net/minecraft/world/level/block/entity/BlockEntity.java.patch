@@ -1,5 +1,23 @@
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
+@@ -39,7 +_,7 @@
+ import org.slf4j.Logger;
+ 
+ public abstract class BlockEntity implements DebugValueSource, TypedInstance<BlockEntityType<?>> {
+-    static boolean ignoreBlockEntityUpdates; // Paper - Perf: Optimize Hoppers
++    // static boolean ignoreBlockEntityUpdates; // Paper - Perf: Optimize Hoppers // DivineMC - Thread-safe hopper event flags
+     // CraftBukkit start - data containers
+     private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
+     public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer;
+@@ -210,7 +_,7 @@
+ 
+     public void setChanged() {
+         if (this.level != null) {
+-            if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
++            if (org.bxteam.divinemc.async.HopperEventFlags.ignoreBlockEntityUpdates()) return; // Paper - Perf: Optimize Hoppers // DivineMC - Thread-safe hopper event flags
+             setChanged(this.level, this.worldPosition, this.blockState);
+         }
+     }
 @@ -365,7 +_,7 @@
  
      // CraftBukkit start - add method

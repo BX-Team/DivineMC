@@ -1,5 +1,75 @@
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -219,11 +_,12 @@
+ 
+     // Paper start - Perf: Optimize Hoppers
+     public static boolean skipHopperEvents;
+-    private static boolean skipPullModeEventFire;
+-    private static boolean skipPushModeEventFire;
++    // private static boolean skipPullModeEventFire; // DivineMC - Thread-safe hopper event flags
++    // private static boolean skipPushModeEventFire; // DivineMC - Thread-safe hopper event flags
+ 
+     private static boolean hopperPush(final Level level, final Container destination, final Direction direction, final HopperBlockEntity hopper) {
+-        skipPushModeEventFire = skipHopperEvents;
++        final org.bxteam.divinemc.async.HopperEventFlags eventFlags = org.bxteam.divinemc.async.HopperEventFlags.get(); // DivineMC - Thread-safe hopper event flags
++        eventFlags.skipPushModeEventFire = skipHopperEvents; // DivineMC - Thread-safe hopper event flags
+         final long disallowedSlots = callPrepareTransferEvent(level, hopper, destination, true); // Paper - Add PrepareHopperTransferEvent
+         boolean foundItem = false;
+         for (int i = 0; i < hopper.getContainerSize(); ++i) {
+@@ -240,7 +_,7 @@
+ 
+                 // We only need to fire the event once to give protection plugins a chance to cancel this event
+                 // Because nothing uses getItem, every event call should end up the same result.
+-                if (!skipPushModeEventFire) {
++                if (!eventFlags.skipPushModeEventFire) { // DivineMC - Thread-safe hopper event flags
+                     movedItem = callPushMoveEvent(destination, movedItem, hopper);
+                     if (movedItem == null) { // cancelled
+                         origItemStack.setCount(originalItemCount);
+@@ -275,7 +_,7 @@
+         final int movedItemCount = Math.min(level.spigotConfig.hopperAmount, originalItemCount);
+         movedItem.setCount(movedItemCount);
+ 
+-        if (!skipPullModeEventFire) {
++        if (!org.bxteam.divinemc.async.HopperEventFlags.get().skipPullModeEventFire) { // DivineMC - Thread-safe hopper event flags
+             movedItem = callPullMoveEvent(hopper, container, movedItem);
+             if (movedItem == null) { // cancelled
+                 origItemStack.setCount(originalItemCount);
+@@ -295,9 +_,14 @@
+                 origItemStack.setCount(originalItemCount - movedItemCount + remainingItemCount);
+             }
+ 
+-            ignoreBlockEntityUpdates = true;
+-            container.setItem(i, origItemStack);
+-            ignoreBlockEntityUpdates = false;
++            // DivineMC start - Thread-safe hopper event flags
++            org.bxteam.divinemc.async.HopperEventFlags.ignoreBlockEntityUpdates(true);
++            try {
++                container.setItem(i, origItemStack);
++            } finally {
++                org.bxteam.divinemc.async.HopperEventFlags.ignoreBlockEntityUpdates(false);
++            }
++            // DivineMC end - Thread-safe hopper event flags
+             container.setChanged();
+             return true;
+         }
+@@ -327,7 +_,7 @@
+         );
+         final boolean result = event.callEvent();
+         if (!event.calledGetItem && !event.calledSetItem) {
+-            skipPushModeEventFire = true;
++            org.bxteam.divinemc.async.HopperEventFlags.get().skipPushModeEventFire = true; // DivineMC - Thread-safe hopper event flags
+         }
+         if (!result) {
+             applyCooldown(hopper);
+@@ -350,7 +_,7 @@
+         final io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent event = new io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent(sourceInventory, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(itemstack), destination, false);
+         final boolean result = event.callEvent();
+         if (!event.calledGetItem && !event.calledSetItem) {
+-            skipPullModeEventFire = true;
++            org.bxteam.divinemc.async.HopperEventFlags.get().skipPullModeEventFire = true; // DivineMC - Thread-safe hopper event flags
+         }
+         if (!result) {
+             applyCooldown(hopper);
 @@ -417,6 +_,11 @@
  
          Direction direction = self.facing.getOpposite();
@@ -12,3 +82,30 @@
              return false;
          }
  
+@@ -505,7 +_,7 @@
+         Container container = getSourceContainer(level, hopper, blockPos, blockState);
+         if (container != null) {
+             Direction direction = Direction.DOWN;
+-            skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
++            org.bxteam.divinemc.async.HopperEventFlags.get().skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers // DivineMC - Thread-safe hopper event flags
+             final long disallowedSlots = callPrepareTransferEvent(level, container, hopper, false); // Paper - Add PrepareHopperTransferEvent
+ 
+             for (int slot : getSlots(container, direction)) {
+@@ -611,9 +_,14 @@
+                     itemStack = itemStack.split(container.getMaxStackSize());
+                 }
+                 // Spigot end
+-                ignoreBlockEntityUpdates = true; // Paper - Perf: Optimize Hoppers
+-                container.setItem(slot, itemStack);
+-                ignoreBlockEntityUpdates = false; // Paper - Perf: Optimize Hoppers
++                // DivineMC start - Thread-safe hopper event flags
++                org.bxteam.divinemc.async.HopperEventFlags.ignoreBlockEntityUpdates(true); // Paper - Perf: Optimize Hoppers
++                try {
++                    container.setItem(slot, itemStack);
++                } finally {
++                    org.bxteam.divinemc.async.HopperEventFlags.ignoreBlockEntityUpdates(false); // Paper - Perf: Optimize Hoppers
++                }
++                // DivineMC end - Thread-safe hopper event flags
+                 itemStack = leftover; // Paper - Make hoppers respect inventory max stack size
+                 success = true;
+             } else if (canMergeItems(current, itemStack)) {
