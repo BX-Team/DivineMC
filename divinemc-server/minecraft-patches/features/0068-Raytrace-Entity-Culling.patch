@@ -54,10 +54,10 @@ index 8f0893d42dd56d8a3cac5d142f7d2b0d23eb435c..78d0c7af20b1fabc3994d34dab685a42
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 80c392555d789fd2b5ab5f6a1ccdee8758455482..8a323abd5a062246b39affc7eca86610bff3930f 100644
+index dbf889a030260d89bf12433460d74f5a6b558999..8772885cc50fe2b1f3a03f712107344f94ef9998 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1163,6 +1163,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1164,6 +1164,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          }
          // DivineMC end - Imanity: Raytrace AntiXraySDK integration
          this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray

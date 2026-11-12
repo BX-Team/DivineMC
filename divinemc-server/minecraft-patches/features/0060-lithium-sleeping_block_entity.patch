@@ -417,10 +417,18 @@ index b6cd6d7d526022d875deb20375423fc7188f4229..f5b63a7215de9b32214c72073944ee4b
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 694040e1e34d7ef92b9314cc83990870dd6a45a8..80c392555d789fd2b5ab5f6a1ccdee8758455482 100644
+index 694040e1e34d7ef92b9314cc83990870dd6a45a8..dbf889a030260d89bf12433460d74f5a6b558999 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1583,7 +1583,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1156,6 +1156,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
+         // CraftBukkit end - capture blockstates
+         BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) net.caffeinemc.mods.lithium.common.hopper.HopperHelper.updateHopperOnUpdateSuppression(this, pos, updateFlags, chunk, oldState != null); // DivineMC - lithium: sleeping_block_entity
+         // DivineMC start - Imanity: Raytrace AntiXraySDK integration
+         dev.imanity.antixray.sdk.AntiXrayAdapter adapter = dev.imanity.antixray.sdk.AntiXraySDK.getAdapter();
+         if (adapter != null) {
+@@ -1583,7 +1584,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              while (scanIndex < this.blockEntityTickers.size()) {
                  final TickingBlockEntity ticker = this.blockEntityTickers.get(scanIndex);
                  if (!ticker.isRemoved()) {
@@ -429,7 +437,7 @@ index 694040e1e34d7ef92b9314cc83990870dd6a45a8..80c392555d789fd2b5ab5f6a1ccdee87
                          ticker.tick();
                          // DivineMC start - Parallel world ticking
                          ++tickedEntities;
-@@ -2334,4 +2334,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2334,4 +2335,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option
@@ -437,7 +445,7 @@ index 694040e1e34d7ef92b9314cc83990870dd6a45a8..80c392555d789fd2b5ab5f6a1ccdee87
 +    // DivineMC start - lithium: sleeping_block_entity
 +    public BlockEntity lithium$getLoadedExistingBlockEntity(BlockPos pos) {
 +        if (!this.isOutsideBuildHeight(pos)) {
-+            if (this.isClientSide || Thread.currentThread() == this.thread) {
++            if (this.isClientSide || ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()) { // PWT level threads and RCT region workers are tick threads but never this.thread
 +                ChunkAccess chunk = this.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()), ChunkStatus.FULL, false);
 +                if (chunk != null) {
 +                    return chunk.getBlockEntity(pos);
@@ -455,6 +463,19 @@ index 694040e1e34d7ef92b9314cc83990870dd6a45a8..80c392555d789fd2b5ab5f6a1ccdee87
 +    }
 +    // DivineMC end - lithium: sleeping_block_entity
  }
+diff --git a/net/minecraft/world/level/block/CalibratedSculkSensorBlock.java b/net/minecraft/world/level/block/CalibratedSculkSensorBlock.java
+index 37fb609443b418baf72c2207b01b4c5daf7721d7..cd4daf2ae28f5f98dca191481d636dcd8778fd37 100644
+--- a/net/minecraft/world/level/block/CalibratedSculkSensorBlock.java
++++ b/net/minecraft/world/level/block/CalibratedSculkSensorBlock.java
+@@ -38,7 +38,7 @@ public class CalibratedSculkSensorBlock extends SculkSensorBlock {
+             ? createTickerHelper(
+                 type,
+                 BlockEntityTypes.CALIBRATED_SCULK_SENSOR,
+-                (innerLevel, pos, state, entity) -> VibrationSystem.Ticker.tick(innerLevel, entity.getVibrationData(), entity.getVibrationUser())
++                (innerLevel, pos, state, entity) -> { VibrationSystem.Ticker.tick(innerLevel, entity.getVibrationData(), entity.getVibrationUser()); if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) net.caffeinemc.mods.lithium.common.block.entity.sleeping_sculk.SculkSleeping.sleepIfIdle(entity, entity.getVibrationData()); } // DivineMC - lithium: sleeping_block_entity
+             )
+             : null;
+     }
 diff --git a/net/minecraft/world/level/block/ComposterBlock.java b/net/minecraft/world/level/block/ComposterBlock.java
 index 893d9b18899d9b68bb1b3c6690be93492fb3f89d..a6051110fe9a1f2c57a2de807919993a4f963f04 100644
 --- a/net/minecraft/world/level/block/ComposterBlock.java
@@ -567,8 +588,54 @@ index c2d18458ce81c2d1523b3cf932e3c133c75b6f3f..2ab7b6c5eb58dc0f8ed464c458005127
 +    }
 +    // DivineMC end - lithium: sleeping_block_entity
  }
+diff --git a/net/minecraft/world/level/block/SculkSensorBlock.java b/net/minecraft/world/level/block/SculkSensorBlock.java
+index 6e217dea06365d2125b51b8222f49e186fcf6c08..a30edf539b5c1e3aca1fcdb64815fc9b2e98be3b 100644
+--- a/net/minecraft/world/level/block/SculkSensorBlock.java
++++ b/net/minecraft/world/level/block/SculkSensorBlock.java
+@@ -165,7 +165,7 @@ public class SculkSensorBlock extends BaseEntityBlock implements SimpleWaterlogg
+             ? createTickerHelper(
+                 type,
+                 BlockEntityTypes.SCULK_SENSOR,
+-                (innerLevel, pos, state, entity) -> VibrationSystem.Ticker.tick(innerLevel, entity.getVibrationData(), entity.getVibrationUser())
++                (innerLevel, pos, state, entity) -> { VibrationSystem.Ticker.tick(innerLevel, entity.getVibrationData(), entity.getVibrationUser()); if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) net.caffeinemc.mods.lithium.common.block.entity.sleeping_sculk.SculkSleeping.sleepIfIdle(entity, entity.getVibrationData()); } // DivineMC - lithium: sleeping_block_entity
+             )
+             : null;
+     }
+diff --git a/net/minecraft/world/level/block/SculkShriekerBlock.java b/net/minecraft/world/level/block/SculkShriekerBlock.java
+index f5fd4c3ac3d82607e11fa48651897ab279b804d1..6997932c88564d2b2231be7a35a398979795495a 100644
+--- a/net/minecraft/world/level/block/SculkShriekerBlock.java
++++ b/net/minecraft/world/level/block/SculkShriekerBlock.java
+@@ -139,7 +139,7 @@ public class SculkShriekerBlock extends BaseEntityBlock implements SimpleWaterlo
+             ? BaseEntityBlock.createTickerHelper(
+                 type,
+                 BlockEntityTypes.SCULK_SHRIEKER,
+-                (innerLevel, pos, state, entity) -> VibrationSystem.Ticker.tick(innerLevel, entity.getVibrationData(), entity.getVibrationUser())
++                (innerLevel, pos, state, entity) -> { VibrationSystem.Ticker.tick(innerLevel, entity.getVibrationData(), entity.getVibrationUser()); if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) net.caffeinemc.mods.lithium.common.block.entity.sleeping_sculk.SculkSleeping.sleepIfIdle(entity, entity.getVibrationData()); } // DivineMC - lithium: sleeping_block_entity
+             )
+             : null;
+     }
+diff --git a/net/minecraft/world/level/block/SculkSpreader.java b/net/minecraft/world/level/block/SculkSpreader.java
+index 9ac840cdb63e06d012540ef5393a4f7bb70145d1..67f08da7c043fb0d1d346369ac44bd021eda4860 100644
+--- a/net/minecraft/world/level/block/SculkSpreader.java
++++ b/net/minecraft/world/level/block/SculkSpreader.java
+@@ -125,12 +125,15 @@ public class SculkSpreader {
+         }
+     }
+ 
++    public @Nullable Runnable lithium$cursorsAddedCallback; // DivineMC - lithium: sleeping_block_entity
++
+     public void addCursors(final BlockPos startPos, int charge) {
+         while (charge > 0) {
+             int currentCharge = Math.min(charge, 1000);
+             this.addCursor(new SculkSpreader.ChargeCursor(startPos, currentCharge), true); // Paper - allow firing event for other causes
+             charge -= currentCharge;
+         }
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity && this.lithium$cursorsAddedCallback != null) this.lithium$cursorsAddedCallback.run(); // DivineMC - lithium: sleeping_block_entity
+     }
+ 
+     private void addCursor(final SculkSpreader.ChargeCursor cursor, boolean fireEvent) { // Paper - add boolean to conditionally fire SculkBloomEvent
 diff --git a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-index c97881ab9d21612c308a2b542c9edca32596da32..76fa07b5080e963d261ae2866198dd8272663d50 100644
+index c97881ab9d21612c308a2b542c9edca32596da32..148aed0587a9f74b5db17ae719e27fca7711a369 100644
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 @@ -44,7 +44,7 @@ import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableIn
@@ -601,7 +668,15 @@ index c97881ab9d21612c308a2b542c9edca32596da32..76fa07b5080e963d261ae2866198dd82
          if (usedLavaFromUnderneath) entity.items.set(1, ItemStack.EMPTY); // Purpur - Furnace uses lava from underneath
      }
  
-@@ -556,4 +563,53 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
+@@ -448,6 +455,7 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
+             this.cookingTimer = 0;
+             this.setChanged();
+         }
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) this.lithium$handleSetChanged(); // DivineMC - lithium: sleeping_block_entity - vanilla doesn't mark slots != 0 as changed
+     }
+ 
+     @Override
+@@ -556,4 +564,53 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
              this.getRecipesToAwardAndPopExperience(serverLevel, Vec3.atCenterOf(pos));
          }
      }
@@ -694,7 +769,7 @@ index c78c29be53da2e574d496ffeb9cec5487d963b31..eedf64f2859216ce6745b7ced9d6f842
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-index c2f8479eef826efca3ed2993973b2cfc2c51ed00..5ae31cf3032e69fdb4386a46587b90221891c7d4 100644
+index c2f8479eef826efca3ed2993973b2cfc2c51ed00..489074b8a282c75497de522ec40004fb9b69658d 100644
 --- a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 @@ -32,7 +32,7 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
@@ -714,7 +789,7 @@ index c2f8479eef826efca3ed2993973b2cfc2c51ed00..5ae31cf3032e69fdb4386a46587b9022
      }
  
      @Override
-@@ -201,4 +202,98 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
+@@ -201,4 +202,90 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
          return org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.worldPosition, this.level);
      }
      // CraftBukkit end
@@ -736,39 +811,31 @@ index c2f8479eef826efca3ed2993973b2cfc2c51ed00..5ae31cf3032e69fdb4386a46587b9022
 +
 +    @Override
 +    public void lithium$emitStackListReplaced() {
-+        it.unimi.dsi.fastutil.objects.ReferenceArraySet<net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeListener> listeners = this.inventoryHandlingTypeListeners;
-+        if (listeners != null && !listeners.isEmpty()) {
-+            for (net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeListener inventoryChangeListener : listeners) {
-+                inventoryChangeListener.handleStackListReplaced(this);
-+            }
-+            listeners.clear();
-+        }
-+
-+        if (this instanceof net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeListener listener) {
-+            listener.handleStackListReplaced(this);
-+        }
-+
 +        this.invalidateChangeListening();
 +    }
 +
 +    @Override
 +    public void lithium$emitRemoved() {
++        this.invalidateChangeListening();
++    }
++
++    private void invalidateChangeListening() {
 +        it.unimi.dsi.fastutil.objects.ReferenceArraySet<net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeListener> listeners = this.inventoryHandlingTypeListeners;
++        this.inventoryHandlingTypeListeners = null; // listeners unsubscribe while being notified
 +        if (listeners != null && !listeners.isEmpty()) {
 +            for (net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeListener listener : listeners) {
 +                listener.lithium$handleInventoryRemoved(this);
 +            }
 +            listeners.clear();
 +        }
++        if (this.inventoryHandlingTypeListeners == null) {
++            this.inventoryHandlingTypeListeners = listeners;
++        }
 +
 +        if (this instanceof net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeListener listener) {
 +            listener.lithium$handleInventoryRemoved(this);
 +        }
 +
-+        this.invalidateChangeListening();
-+    }
-+
-+    private void invalidateChangeListening() {
 +        if (this.inventoryChangeListeners != null) {
 +            this.inventoryChangeListeners.clear();
 +        }
@@ -788,11 +855,11 @@ index c2f8479eef826efca3ed2993973b2cfc2c51ed00..5ae31cf3032e69fdb4386a46587b9022
 +    }
 +
 +    @Override
-+    public void lithium$forwardContentChangeOnce(net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeListener inventoryChangeListener, net.caffeinemc.mods.lithium.common.hopper.LithiumStackList stackList, net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker thisTracker) {
++    public void lithium$forwardContentChangeOnce(net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeListener inventoryChangeListener, net.caffeinemc.mods.lithium.common.hopper.LithiumStackList stackList) {
 +        if (this.inventoryChangeListeners == null) {
 +            this.inventoryChangeListeners = new it.unimi.dsi.fastutil.objects.ReferenceArraySet<>(1);
 +        }
-+        stackList.setInventoryModificationCallback(thisTracker);
++        stackList.setNextInventoryModificationCallback((net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker) this);
 +        this.inventoryChangeListeners.add(inventoryChangeListener);
 +
 +    }
@@ -1086,7 +1153,7 @@ index 3bd910ae83694a6d19f53dcc4b74598ec0b62b17..d3a2420cc82da3fef7c949d410c433d3
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/ChestBlockEntity.java b/net/minecraft/world/level/block/entity/ChestBlockEntity.java
-index c1cdced85052cbc600cf8f9d81e38ab37817a14a..0084bbbe93c4a513392af048a2d07764c3e57aae 100644
+index c1cdced85052cbc600cf8f9d81e38ab37817a14a..7174cd11ab49770ac6cf08fb82518f25192e2886 100644
 --- a/net/minecraft/world/level/block/entity/ChestBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/ChestBlockEntity.java
 @@ -25,7 +25,7 @@ import net.minecraft.world.level.block.state.properties.ChestType;
@@ -1094,7 +1161,7 @@ index c1cdced85052cbc600cf8f9d81e38ab37817a14a..0084bbbe93c4a513392af048a2d07764
  import net.minecraft.world.level.storage.ValueOutput;
  
 -public class ChestBlockEntity extends RandomizableContainerBlockEntity implements LidBlockEntity {
-+public class ChestBlockEntity extends RandomizableContainerBlockEntity implements LidBlockEntity, net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker, net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeEmitter, net.caffeinemc.mods.lithium.common.block.entity.SetBlockStateHandlingBlockEntity, net.caffeinemc.mods.lithium.common.block.entity.SleepingBlockEntity, net.caffeinemc.mods.lithium.api.inventory.LithiumInventory { // DivineMC - lithium: sleeping_block_entity
++public class ChestBlockEntity extends RandomizableContainerBlockEntity implements LidBlockEntity, net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker, net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeEmitter, net.caffeinemc.mods.lithium.common.block.entity.SetBlockStateHandlingBlockEntity, net.caffeinemc.mods.lithium.common.block.entity.SleepingBlockEntity, net.caffeinemc.mods.lithium.api.inventory.LithiumInventory, net.caffeinemc.mods.lithium.api.inventory.LithiumCacheableInventory { // DivineMC - lithium: sleeping_block_entity
      private static final int EVENT_SET_OPEN_COUNT = 1;
      public static final Component DEFAULT_NAME = Component.translatable("container.chest");
      private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
@@ -1122,7 +1189,7 @@ index c1cdced85052cbc600cf8f9d81e38ab37817a14a..0084bbbe93c4a513392af048a2d07764
      }
  
      @Override
-@@ -233,4 +236,51 @@ public class ChestBlockEntity extends RandomizableContainerBlockEntity implement
+@@ -233,4 +236,58 @@ public class ChestBlockEntity extends RandomizableContainerBlockEntity implement
          Block block = blockState.getBlock();
          level.blockEvent(pos, block, EVENT_SET_OPEN_COUNT, current);
      }
@@ -1145,6 +1212,7 @@ index c1cdced85052cbc600cf8f9d81e38ab37817a14a..0084bbbe93c4a513392af048a2d07764
 +    @Override
 +    public void lithium$setTickWrapper(net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper) {
 +        this.tickWrapper = tickWrapper;
++        this.lithium$setSleepingTicker(null);
 +    }
 +
 +    @Override
@@ -1155,6 +1223,12 @@ index c1cdced85052cbc600cf8f9d81e38ab37817a14a..0084bbbe93c4a513392af048a2d07764
 +    @Override
 +    public void lithium$setSleepingTicker(TickingBlockEntity sleepingTicker) {
 +        this.sleepingTicker = sleepingTicker;
++    }
++
++    @Override
++    public boolean hopperCanReuseInventoryUntilBlockEntityInvalidatedOrBlockStateChangedLithium() {
++        // a chest half placed with its type already set is a single chest until its neighbour links up
++        return this.getBlockState().getValueOrElse(ChestBlock.TYPE, ChestType.LEFT) == ChestType.SINGLE;
 +    }
 +
 +    @Override
@@ -1315,7 +1389,7 @@ index 736f5fd76f4a86ab16740904b5c0823413d65cd2..eda31a15b84ecefc2c3a964ffb2b3e9f
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/EnderChestBlockEntity.java b/net/minecraft/world/level/block/entity/EnderChestBlockEntity.java
-index c669d0ad531fc43bb7799bd011ed73ccf7b6244a..144ae81daf6a1bbecd4fa0a733fd6d5db904170c 100644
+index c669d0ad531fc43bb7799bd011ed73ccf7b6244a..13a6cc0b449ea5b269ce0d052d21d91edda65e4f 100644
 --- a/net/minecraft/world/level/block/entity/EnderChestBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/EnderChestBlockEntity.java
 @@ -11,7 +11,7 @@ import net.minecraft.world.level.block.Blocks;
@@ -1341,7 +1415,7 @@ index c669d0ad531fc43bb7799bd011ed73ccf7b6244a..144ae81daf6a1bbecd4fa0a733fd6d5d
              this.chestLidController.shouldBeOpen(b1 > 0);
              return true;
          } else {
-@@ -107,4 +109,35 @@ public class EnderChestBlockEntity extends BlockEntity implements LidBlockEntity
+@@ -107,4 +109,36 @@ public class EnderChestBlockEntity extends BlockEntity implements LidBlockEntity
      public float getOpenNess(final float a) {
          return this.chestLidController.getOpenness(a);
      }
@@ -1358,6 +1432,7 @@ index c669d0ad531fc43bb7799bd011ed73ccf7b6244a..144ae81daf6a1bbecd4fa0a733fd6d5d
 +    @Override
 +    public void lithium$setTickWrapper(net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper) {
 +        this.tickWrapper = tickWrapper;
++        this.lithium$setSleepingTicker(null);
 +    }
 +
 +    @Override
@@ -1378,7 +1453,7 @@ index c669d0ad531fc43bb7799bd011ed73ccf7b6244a..144ae81daf6a1bbecd4fa0a733fd6d5d
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223cde0c29d 100644
+index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..65d9d75f9a969b0c771bbc29c96999cd78b7ba67 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,7 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -1516,7 +1591,7 @@ index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223
      }
  
      public static void entityInside(final Level level, final BlockPos pos, final BlockState blockState, final Entity entity, final HopperBlockEntity hopper) {
-@@ -807,4 +847,756 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -807,4 +847,766 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      protected AbstractContainerMenu createMenu(final int containerId, final Inventory inventory) {
          return new HopperMenu(containerId, inventory, this);
      }
@@ -1584,10 +1659,14 @@ index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223
 +                Container blockInventory = this.extractBlockInventory;
 +                if (this.extractStackList != null &&
 +                    blockInventory instanceof net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker) {
-+                    if (!this.extractStackList.maybeSendsComparatorUpdatesOnFailedExtract() || (blockInventory instanceof net.caffeinemc.mods.lithium.common.block.entity.inventory_comparator_tracking.ComparatorTracker comparatorTracker && !comparatorTracker.lithium$hasAnyComparatorNearby())) {
-+                        listenToExtractTracker = true;
++                    if (this.extractStackList.maybeSendsComparatorUpdatesOnFailedExtract() && this.extractStackList.getOccupiedSlots() != 0) {
++                        if (blockInventory instanceof net.caffeinemc.mods.lithium.common.block.entity.inventory_comparator_tracking.ComparatorTracker comparatorTracker && !comparatorTracker.lithium$hasAnyComparatorNearby()) {
++                            listenToExtractTracker = true;
++                        } else {
++                            return;
++                        }
 +                    } else {
-+                        return;
++                        listenToExtractTracker = true;
 +                    }
 +                } else {
 +                    return;
@@ -1766,6 +1845,11 @@ index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223
 +    }
 +
 +    private void invalidateBlockInsertionData() {
++        if (this.insertionMode == net.caffeinemc.mods.lithium.common.hopper.HopperCachingState.BlockInventory.REMOVAL_TRACKING_BLOCK_ENTITY) {
++            assert this.insertBlockInventory != null;
++            ((net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker) this.insertBlockInventory).stopListenForMajorInventoryChanges(this);
++        }
++
 +        this.insertionMode = net.caffeinemc.mods.lithium.common.hopper.HopperCachingState.BlockInventory.UNKNOWN;
 +        this.insertBlockInventory = null;
 +        this.insertInventory = null;
@@ -1791,10 +1875,6 @@ index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223
 +            }
 +        }
 +
-+        if (this.insertionMode == net.caffeinemc.mods.lithium.common.hopper.HopperCachingState.BlockInventory.REMOVAL_TRACKING_BLOCK_ENTITY) {
-+            assert this.insertBlockInventory != null;
-+            ((net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker) this.insertBlockInventory).stopListenForMajorInventoryChanges(this);
-+        }
 +        this.invalidateBlockInsertionData();
 +    }
 +
@@ -1813,14 +1893,15 @@ index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223
 +                this.collectItemEntityTrackerWasEmpty = false;
 +            }
 +        }
-+        if (this.extractionMode == net.caffeinemc.mods.lithium.common.hopper.HopperCachingState.BlockInventory.REMOVAL_TRACKING_BLOCK_ENTITY) {
-+            assert this.extractBlockInventory != null;
-+            ((net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker) this.extractBlockInventory).stopListenForMajorInventoryChanges(this);
-+        }
 +        this.invalidateBlockExtractionData();
 +    }
 +
 +    private void invalidateBlockExtractionData() {
++        if (this.extractionMode == net.caffeinemc.mods.lithium.common.hopper.HopperCachingState.BlockInventory.REMOVAL_TRACKING_BLOCK_ENTITY) {
++            assert this.extractBlockInventory != null;
++            ((net.caffeinemc.mods.lithium.common.block.entity.inventory_change_tracking.InventoryChangeTracker) this.extractBlockInventory).stopListenForMajorInventoryChanges(this);
++        }
++
 +        this.extractionMode = net.caffeinemc.mods.lithium.common.hopper.HopperCachingState.BlockInventory.UNKNOWN;
 +        this.extractBlockInventory = null;
 +        this.extractInventory = null;
@@ -1875,7 +1956,9 @@ index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223
 +
 +        blockInventory = getBlockContainer(world, extractBlockPos, extractBlockState);
 +        blockInventory = net.caffeinemc.mods.lithium.common.hopper.HopperHelper.replaceDoubleInventory(blockInventory);
-+        this.cacheExtractBlockInventory(blockInventory);
++        if (!(blockInventory instanceof net.caffeinemc.mods.lithium.api.inventory.LithiumCacheableInventory cacheable) || cacheable.hopperCanReuseInventoryUntilBlockEntityInvalidatedOrBlockStateChangedLithium()) {
++            this.cacheExtractBlockInventory(blockInventory);
++        }
 +        return blockInventory;
 +    }
 +
@@ -1916,7 +1999,9 @@ index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223
 +        BlockState blockState = world.getBlockState(insertBlockPos);
 +        blockInventory = getBlockContainer(world, insertBlockPos, blockState);
 +        blockInventory = net.caffeinemc.mods.lithium.common.hopper.HopperHelper.replaceDoubleInventory(blockInventory);
-+        this.cacheInsertBlockInventory(blockInventory);
++        if (!(blockInventory instanceof net.caffeinemc.mods.lithium.api.inventory.LithiumCacheableInventory cacheable) || cacheable.hopperCanReuseInventoryUntilBlockEntityInvalidatedOrBlockStateChangedLithium()) {
++            this.cacheInsertBlockInventory(blockInventory);
++        }
 +        return blockInventory;
 +    }
 +
@@ -2273,8 +2358,177 @@ index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223
 +    }
 +    // DivineMC end - lithium: sleeping_block_entity
  }
+diff --git a/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java b/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
+index 5c75db9d7766c97ef4deeaeb3712361690ac179f..e1eeb16f7a019a0c8f5cfb212a5e67691ed23ce4 100644
+--- a/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
+@@ -26,12 +26,13 @@ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec3;
+ 
+-public class SculkCatalystBlockEntity extends BlockEntity implements GameEventListener.Provider<SculkCatalystBlockEntity.CatalystListener> {
++public class SculkCatalystBlockEntity extends BlockEntity implements GameEventListener.Provider<SculkCatalystBlockEntity.CatalystListener>, net.caffeinemc.mods.lithium.common.block.entity.SleepingBlockEntity { // DivineMC - lithium: sleeping_block_entity
+     private final SculkCatalystBlockEntity.CatalystListener catalystListener;
+ 
+     public SculkCatalystBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
+         super(BlockEntityTypes.SCULK_CATALYST, worldPosition, blockState);
+         this.catalystListener = new SculkCatalystBlockEntity.CatalystListener(blockState, new BlockPositionSource(worldPosition));
++        this.catalystListener.sculkSpreader.lithium$cursorsAddedCallback = this::wakeUpNow; // DivineMC - lithium: sleeping_block_entity
+     }
+ 
+     // Paper start - Fix NPE in SculkBloomEvent world access
+@@ -44,12 +45,14 @@ public class SculkCatalystBlockEntity extends BlockEntity implements GameEventLi
+ 
+     public static void serverTick(final Level level, final BlockPos pos, final BlockState state, final SculkCatalystBlockEntity entity) {
+         entity.catalystListener.getSculkSpreader().updateCursors(level, pos, level.getRandom(), true);
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity && entity.catalystListener.getSculkSpreader().getCursors().isEmpty()) entity.lithium$startSleeping(); // DivineMC - lithium: sleeping_block_entity
+     }
+ 
+     @Override
+     protected void loadAdditional(final ValueInput input) {
+         super.loadAdditional(input);
+         this.catalystListener.sculkSpreader.load(input);
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity && !this.catalystListener.sculkSpreader.getCursors().isEmpty()) this.wakeUpNow(); // DivineMC - lithium: sleeping_block_entity
+     }
+ 
+     @Override
+@@ -130,4 +133,30 @@ public class SculkCatalystBlockEntity extends BlockEntity implements GameEventLi
+             }
+         }
+     }
++
++    // DivineMC start - lithium: sleeping_block_entity
++    private net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper = null;
++    private net.minecraft.world.level.block.entity.TickingBlockEntity sleepingTicker = null;
++
++    @Override
++    public net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper lithium$getTickWrapper() {
++        return this.tickWrapper;
++    }
++
++    @Override
++    public void lithium$setTickWrapper(net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper) {
++        this.tickWrapper = tickWrapper;
++        this.lithium$setSleepingTicker(null);
++    }
++
++    @Override
++    public net.minecraft.world.level.block.entity.TickingBlockEntity lithium$getSleepingTicker() {
++        return this.sleepingTicker;
++    }
++
++    @Override
++    public void lithium$setSleepingTicker(net.minecraft.world.level.block.entity.TickingBlockEntity sleepingTicker) {
++        this.sleepingTicker = sleepingTicker;
++    }
++    // DivineMC end - lithium: sleeping_block_entity
+ }
+diff --git a/net/minecraft/world/level/block/entity/SculkSensorBlockEntity.java b/net/minecraft/world/level/block/entity/SculkSensorBlockEntity.java
+index 7903289b01c652226b58d1f22f25cfabcbb10274..4d88b2caca8360ee32d14c68c3921fa4d60da1ef 100644
+--- a/net/minecraft/world/level/block/entity/SculkSensorBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/SculkSensorBlockEntity.java
+@@ -15,7 +15,7 @@ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.jspecify.annotations.Nullable;
+ 
+-public class SculkSensorBlockEntity extends BlockEntity implements GameEventListener.Provider<VibrationSystem.Listener>, VibrationSystem {
++public class SculkSensorBlockEntity extends BlockEntity implements GameEventListener.Provider<VibrationSystem.Listener>, VibrationSystem, net.caffeinemc.mods.lithium.common.block.entity.SleepingBlockEntity { // DivineMC - lithium: sleeping_block_entity
+     private static final int DEFAULT_LAST_VIBRATION_FREQUENCY = 0;
+     private VibrationSystem.Data vibrationData;
+     private final VibrationSystem.Listener vibrationListener;
+@@ -44,6 +44,7 @@ public class SculkSensorBlockEntity extends BlockEntity implements GameEventList
+         this.lastVibrationFrequency = input.getIntOr("last_vibration_frequency", 0);
+         this.vibrationData = input.read("listener", VibrationSystem.Data.CODEC).orElseGet(VibrationSystem.Data::new);
+         this.rangeOverride = input.getInt(PAPER_LISTENER_RANGE_NBT_KEY).orElse(null); // Paper start - Configurable sculk sensor listener range
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) net.caffeinemc.mods.lithium.common.block.entity.sleeping_sculk.SculkSleeping.wakeIfPending(this, this.vibrationData); // DivineMC - lithium: sleeping_block_entity
+     }
+ 
+     protected static final String PAPER_LISTENER_RANGE_NBT_KEY = "Paper.ListenerRange"; // Paper - Configurable sculk sensor listener range
+@@ -148,4 +149,30 @@ public class SculkSensorBlockEntity extends BlockEntity implements GameEventList
+             return true;
+         }
+     }
++
++    // DivineMC start - lithium: sleeping_block_entity
++    private net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper = null;
++    private net.minecraft.world.level.block.entity.TickingBlockEntity sleepingTicker = null;
++
++    @Override
++    public net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper lithium$getTickWrapper() {
++        return this.tickWrapper;
++    }
++
++    @Override
++    public void lithium$setTickWrapper(net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper) {
++        this.tickWrapper = tickWrapper;
++        this.lithium$setSleepingTicker(null);
++    }
++
++    @Override
++    public net.minecraft.world.level.block.entity.TickingBlockEntity lithium$getSleepingTicker() {
++        return this.sleepingTicker;
++    }
++
++    @Override
++    public void lithium$setSleepingTicker(net.minecraft.world.level.block.entity.TickingBlockEntity sleepingTicker) {
++        this.sleepingTicker = sleepingTicker;
++    }
++    // DivineMC end - lithium: sleeping_block_entity
+ }
+diff --git a/net/minecraft/world/level/block/entity/SculkShriekerBlockEntity.java b/net/minecraft/world/level/block/entity/SculkShriekerBlockEntity.java
+index 3adfffd3f0a7e6b4867248f6483a36ca9f5f1ee3..053f09e897836c426c9e57095941c6e9d6ed754d 100644
+--- a/net/minecraft/world/level/block/entity/SculkShriekerBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/SculkShriekerBlockEntity.java
+@@ -40,7 +40,7 @@ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
+-public class SculkShriekerBlockEntity extends BlockEntity implements GameEventListener.Provider<VibrationSystem.Listener>, VibrationSystem {
++public class SculkShriekerBlockEntity extends BlockEntity implements GameEventListener.Provider<VibrationSystem.Listener>, VibrationSystem, net.caffeinemc.mods.lithium.common.block.entity.SleepingBlockEntity { // DivineMC - lithium: sleeping_block_entity
+     private static final int WARNING_SOUND_RADIUS = 10;
+     private static final int WARDEN_SPAWN_ATTEMPTS = 20;
+     private static final int WARDEN_SPAWN_RANGE_XZ = 5;
+@@ -78,6 +78,7 @@ public class SculkShriekerBlockEntity extends BlockEntity implements GameEventLi
+         super.loadAdditional(input);
+         this.warningLevel = input.getIntOr("warning_level", 0);
+         this.vibrationData = input.read("listener", VibrationSystem.Data.CODEC).orElseGet(VibrationSystem.Data::new);
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) net.caffeinemc.mods.lithium.common.block.entity.sleeping_sculk.SculkSleeping.wakeIfPending(this, this.vibrationData); // DivineMC - lithium: sleeping_block_entity
+     }
+ 
+     @Override
+@@ -243,4 +244,30 @@ public class SculkShriekerBlockEntity extends BlockEntity implements GameEventLi
+             return true;
+         }
+     }
++
++    // DivineMC start - lithium: sleeping_block_entity
++    private net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper = null;
++    private net.minecraft.world.level.block.entity.TickingBlockEntity sleepingTicker = null;
++
++    @Override
++    public net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper lithium$getTickWrapper() {
++        return this.tickWrapper;
++    }
++
++    @Override
++    public void lithium$setTickWrapper(net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper) {
++        this.tickWrapper = tickWrapper;
++        this.lithium$setSleepingTicker(null);
++    }
++
++    @Override
++    public net.minecraft.world.level.block.entity.TickingBlockEntity lithium$getSleepingTicker() {
++        return this.sleepingTicker;
++    }
++
++    @Override
++    public void lithium$setSleepingTicker(net.minecraft.world.level.block.entity.TickingBlockEntity sleepingTicker) {
++        this.sleepingTicker = sleepingTicker;
++    }
++    // DivineMC end - lithium: sleeping_block_entity
+ }
 diff --git a/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java b/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java
-index e427e7291e897cbee0221801f85a9d3eeab1bac3..3e7412eb21f74f785c8f5c018133f6d2e31c012b 100644
+index e427e7291e897cbee0221801f85a9d3eeab1bac3..f98ab7ecc9c6191dcc7c7d64a3b06f74c2a8ba23 100644
 --- a/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java
 @@ -32,7 +32,7 @@ import net.minecraft.world.phys.AABB;
@@ -2310,7 +2564,7 @@ index e427e7291e897cbee0221801f85a9d3eeab1bac3..3e7412eb21f74f785c8f5c018133f6d2
      }
  
      @Override
-@@ -309,4 +312,39 @@ public class ShulkerBoxBlockEntity extends RandomizableContainerBlockEntity impl
+@@ -309,4 +312,40 @@ public class ShulkerBoxBlockEntity extends RandomizableContainerBlockEntity impl
          OPENED,
          CLOSING;
      }
@@ -2327,6 +2581,7 @@ index e427e7291e897cbee0221801f85a9d3eeab1bac3..3e7412eb21f74f785c8f5c018133f6d2
 +    @Override
 +    public void lithium$setTickWrapper(net.minecraft.world.level.chunk.LevelChunk.RebindableTickingBlockEntityWrapper tickWrapper) {
 +        this.tickWrapper = tickWrapper;
++        this.lithium$setSleepingTicker(null);
 +    }
 +
 +    @Override
@@ -2388,3 +2643,15 @@ index 7291cd946d837e65e79d872b167ab77bff16438f..a49a291b5327b677d1faa2cff377306f
                      this.level.addBlockEntityTicker(result);
                      return result;
                  } else {
+diff --git a/net/minecraft/world/level/gameevent/vibrations/VibrationSystem.java b/net/minecraft/world/level/gameevent/vibrations/VibrationSystem.java
+index 7364d6ae99772912bf353f7a004dd26f00fa80ae..0d85c24d18ca5916bf7edb3a0b5cb38862ae1e83 100644
+--- a/net/minecraft/world/level/gameevent/vibrations/VibrationSystem.java
++++ b/net/minecraft/world/level/gameevent/vibrations/VibrationSystem.java
+@@ -260,6 +260,7 @@ public interface VibrationSystem {
+             final Vec3 origin,
+             final Vec3 dest
+         ) {
++            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity && this.system instanceof net.caffeinemc.mods.lithium.common.block.entity.SleepingBlockEntity sleepingBlockEntity) sleepingBlockEntity.wakeUpNow(); // DivineMC - lithium: sleeping_block_entity
+             data.selectionStrategy.addCandidate(new VibrationInfo(event, (float)origin.distanceTo(dest), origin, context.sourceEntity()), level.getGameTime());
+         }
+ 
