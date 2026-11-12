@@ -389,18 +389,18 @@ index c1257e0413c4ee5e924a5a8db7205514d411b4fb..e6c567f6ede8c7cde651666af506c403
                  // Paper end
                  // CraftBukkit start
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 848b88fa76a1ae53ea9570e59c5b54c885507960..fe7ff1bde6e71efafb2196dc520d661783874127 100644
+index 0c753500fe4f9b4cded92cb2e1f5ae194384017c..f9d804ee7153b979da35335811705f30afd43d4b 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -336,6 +336,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -335,6 +335,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public boolean lagging = false; // Purpur - Lagging threshold
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
-     public final org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag compensation
      public gg.pufferfish.pufferfish.util.AsyncExecutor mobSpawnExecutor = new gg.pufferfish.pufferfish.util.AsyncExecutor("Mob Spawning"); // DivineMC - Pufferfish: Optimize mob spawning
 +    public java.util.concurrent.Semaphore serverLevelTickingSemaphore = null; // DivineMC - Parallel world ticking
      // Paper start - improve tick loop
      public final ca.spottedleaf.common.time.TickData tickTimes1s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
      public final ca.spottedleaf.common.time.TickData tickTimes5s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
-@@ -442,24 +443,36 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -441,24 +442,36 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      private long lastMidTickExecute;
      private long lastMidTickExecuteFailure;
  
@@ -450,7 +450,7 @@ index 848b88fa76a1ae53ea9570e59c5b54c885507960..fe7ff1bde6e71efafb2196dc520d6617
      }
  
      @Override
-@@ -1784,6 +1797,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1782,6 +1795,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList(); // Paper - optimise Folia entity scheduler
  
@@ -469,7 +469,7 @@ index 848b88fa76a1ae53ea9570e59c5b54c885507960..fe7ff1bde6e71efafb2196dc520d6617
      protected void tickChildren(final BooleanSupplier haveTime) {
          ProfilerFiller profiler = Profiler.get();
          this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.suspendFlushing());
-@@ -1836,26 +1861,55 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1832,26 +1857,55 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          this.updateEffectiveRespawnData();
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
@@ -542,7 +542,7 @@ index 848b88fa76a1ae53ea9570e59c5b54c885507960..fe7ff1bde6e71efafb2196dc520d6617
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
-@@ -1947,6 +2001,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1943,6 +1997,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
          Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
          newLevels.remove(level.dimension());
@@ -654,7 +654,7 @@ index c14ccbf6e77db1a43bbd839be187d13294dabc33..e693e8027f783c231d5fd10ffa85d03c
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 1318814d279c8f26d1801a243771141f1311f5e9..284723baeab27efe2fdff01ea8d1e6940d24fe58 100644
+index 7ed9c08e945738471a0006351bddecdfcb6a85bb..621857128dc74e440e5bace2d1f115b62cfbb54d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -197,7 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -666,15 +666,15 @@ index 1318814d279c8f26d1801a243771141f1311f5e9..284723baeab27efe2fdff01ea8d1e694
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
      // Paper - rewrite chunk system
-@@ -242,6 +242,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -241,6 +241,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+     private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
      public boolean hasRidableMoveEvent = false; // Purpur - Ridables
      public net.minecraft.world.item.ItemStack ominousBanner; // DivineMC - Optimize Raids
-     public org.bxteam.divinemc.util.tps.TPSCalculator tpsCalculator = new org.bxteam.divinemc.util.tps.TPSCalculator(); // DivineMC - Lag Compensation
 +    public java.util.concurrent.ExecutorService tickExecutor; // DivineMC - Parallel world ticking
  
      @Override
      public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -766,6 +767,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -765,6 +766,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.ominousBanner = Objects.requireNonNullElse(this.registryAccess(), net.minecraft.core.RegistryAccess.EMPTY).lookup(Registries.BANNER_PATTERN).map(Raid::getOminousBannerInstance).orElse(null); // DivineMC - Optimize Raids
@@ -688,7 +688,7 @@ index 1318814d279c8f26d1801a243771141f1311f5e9..284723baeab27efe2fdff01ea8d1e694
      }
  
      // Paper start
-@@ -842,6 +850,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -841,6 +849,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              profiler.pop();
          }
  
@@ -701,7 +701,7 @@ index 1318814d279c8f26d1801a243771141f1311f5e9..284723baeab27efe2fdff01ea8d1e694
          int percentage = this.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE);
          if (this.purpurConfig.playersSkipNight && this.sleepStatus.areEnoughSleeping(percentage) && this.sleepStatus.areEnoughDeepSleeping(percentage, this.players)) { // Purpur - Config for skipping night
              Optional<Holder<WorldClock>> defaultClock = this.dimensionType().defaultClock();
-@@ -1442,12 +1456,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1439,12 +1453,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (fluidState.is(type)) {
              fluidState.tick(this, pos, blockState);
          }
@@ -719,7 +719,7 @@ index 1318814d279c8f26d1801a243771141f1311f5e9..284723baeab27efe2fdff01ea8d1e694
      }
  
      private void tickBlock(final BlockPos pos, final Block type) {
-@@ -1455,12 +1469,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1452,12 +1466,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (state.is(type)) {
              state.tick(this, pos, this.random);
          }
@@ -737,7 +737,7 @@ index 1318814d279c8f26d1801a243771141f1311f5e9..284723baeab27efe2fdff01ea8d1e694
      }
  
      // Paper start - log detailed entity tick information
-@@ -1704,6 +1718,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1701,6 +1715,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      }
  
      private void addPlayer(final ServerPlayer player) {
@@ -745,7 +745,7 @@ index 1318814d279c8f26d1801a243771141f1311f5e9..284723baeab27efe2fdff01ea8d1e694
          Entity existing = this.getEntity(player.getUUID());
          if (existing != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -1716,7 +1731,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1713,7 +1728,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
      private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
@@ -987,7 +987,7 @@ index d449654d21a9d160c1a2825f6c8bee1a166a4a72..a3f5fa170240ad5b81b9ab3fcf8f5e81
      // Paper end - Affects Spawning API
  
 diff --git a/net/minecraft/world/entity/PortalProcessor.java b/net/minecraft/world/entity/PortalProcessor.java
-index a3c119c89aff9eb776b647a811ac9e4d8c0b7d25..6c918b4c1290a4d1a3bb1d174ad32801c81fe7db 100644
+index 7ec15f3d3a770e1e9e2fbac29dd38e947bb07091..50e51262c989d05b34eccba6eb2fd97c8b254cc2 100644
 --- a/net/minecraft/world/entity/PortalProcessor.java
 +++ b/net/minecraft/world/entity/PortalProcessor.java
 @@ -11,6 +11,7 @@ public class PortalProcessor {
@@ -1006,7 +1006,7 @@ index a3c119c89aff9eb776b647a811ac9e4d8c0b7d25..6c918b4c1290a4d1a3bb1d174ad32801
          if (!this.insidePortalThisTick) {
              this.decayTick();
              return false;
-@@ -51,7 +53,7 @@ public class PortalProcessor {
+@@ -41,7 +43,7 @@ public class PortalProcessor {
      }
  
      public boolean hasExpired() {
@@ -1015,7 +1015,7 @@ index a3c119c89aff9eb776b647a811ac9e4d8c0b7d25..6c918b4c1290a4d1a3bb1d174ad32801
      }
  
      public BlockPos getEntryPosition() {
-@@ -77,4 +79,30 @@ public class PortalProcessor {
+@@ -67,4 +69,30 @@ public class PortalProcessor {
      public boolean isSamePortal(final Portal portal) {
          return this.portal == portal;
      }
@@ -1648,7 +1648,7 @@ index c6ebd031389108a7506232386322ecd706fde84d..214ae1535cbadf5649c39458d893fdfe
      // CraftBukkit end
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index acd6cc948a1b42892193de33a0bfa12b3fb8f841..8749314a20d62f37890e075efde50c586ec0ba90 100644
+index 40f0220d6037da1c26b6eb127f69139f2f343bcd..12ad6a7d9b895115fa4cff49660d3eb271b71b2f 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -376,6 +376,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

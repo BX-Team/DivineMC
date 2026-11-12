@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize natural spawning
 
 
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 8a323abd5a062246b39affc7eca86610bff3930f..76fc3e97c8315d7996d66939a643b59f8bca8a7a 100644
+index 8772885cc50fe2b1f3a03f712107344f94ef9998..13739c12f5737966639bcb2770e7215c02ad7572 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -864,6 +864,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

@@ -71,10 +71,10 @@ index d8cacf975c2c35e5fe7370bd5b007fbe0d4bd031..444428283839c106f4859fcf2cb6ab24
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 2d6a995adb0d305cf0721419e4aa723a04c2fcc7..0971f93079aeb094230bdd9a4f70a29fd700d6fc 100644
+index 331d7bd9051f15ea8cc03683e9c54234812e3063..8b3b8ae2333f035bdd0d6f705d96692f72b4b737 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2940,6 +2940,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2937,6 +2937,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
          for (TickingBlockEntity ticker : this.blockEntityTickers) {
              BlockPos blockPos = ticker.getPos();
@@ -119,7 +119,7 @@ index 867b450f04f68837de592646059923adeb3420e6..7133a094673cd98ae338a7a47282b602
  
      public void checkDespawn() {
 diff --git a/net/minecraft/world/entity/item/ItemEntity.java b/net/minecraft/world/entity/item/ItemEntity.java
-index ba64e30c30fcb878be3c06ae3790c6058a8911fe..85df91a8176adca3ad2e8b471393b498e659c5cc 100644
+index d48781789c08cf6cd48ab5157cb5e3fe55519844..e77372a7770007c644ad8cce4cd419cdf687a41c 100644
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
 @@ -37,7 +37,7 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -131,7 +131,7 @@ index ba64e30c30fcb878be3c06ae3790c6058a8911fe..85df91a8176adca3ad2e8b471393b498
      private static final EntityDataAccessor<ItemStack> DATA_ITEM = SynchedEntityData.defineId(ItemEntity.class, EntityDataSerializers.ITEM_STACK);
      private static final float FLOAT_HEIGHT = 0.1F;
      public static final float EYE_HEIGHT = 0.2125F;
-@@ -546,6 +546,25 @@ public class ItemEntity extends Entity implements TraceableEntity {
+@@ -529,6 +529,25 @@ public class ItemEntity extends Entity implements TraceableEntity {
      }
  
      public void setItem(final ItemStack itemStack) {
@@ -157,7 +157,7 @@ index ba64e30c30fcb878be3c06ae3790c6058a8911fe..85df91a8176adca3ad2e8b471393b498
          this.getEntityData().set(DATA_ITEM, itemStack);
          this.despawnRate = this.level().paperConfig().entities.spawning.altItemDespawnRate.enabled ? this.level().paperConfig().entities.spawning.altItemDespawnRate.items.getOrDefault(itemStack.getItem(), this.level().spigotConfig.itemDespawnRate) : this.level().spigotConfig.itemDespawnRate; // Paper - Alternative item-despawn-rate
          // Purpur start - Item entity immunities
-@@ -624,4 +643,75 @@ public class ItemEntity extends Entity implements TraceableEntity {
+@@ -607,4 +626,75 @@ public class ItemEntity extends Entity implements TraceableEntity {
      public MoveSimulationType getMoveSimulationType() {
          return MoveSimulationType.SERVER_AND_CLIENT;
      }
@@ -2606,7 +2606,7 @@ index e427e7291e897cbee0221801f85a9d3eeab1bac3..f98ab7ecc9c6191dcc7c7d64a3b06f74
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 58da6c986924121f93fa2385f561cbaf0b93f8dd..5a820b1bf1d49b305f061750397b165231ffd5ef 100644
+index 8f504f2a36490e9afcdedfc89b91fc3f420820be..8257d1b8742a59771c65a60a6c4495ab9ae49b33 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -82,7 +82,7 @@ import net.minecraft.world.phys.shapes.Shapes;
@@ -2627,7 +2627,7 @@ index 58da6c986924121f93fa2385f561cbaf0b93f8dd..5a820b1bf1d49b305f061750397b1652
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 7291cd946d837e65e79d872b167ab77bff16438f..a49a291b5327b677d1faa2cff377306fccd5afc2 100644
+index 2cfa6bb88c7a473df2ee33b5c3172883f2c4a722..31e8938bab4fef661b385e54f4891d1e9e0d60d0 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -924,10 +924,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

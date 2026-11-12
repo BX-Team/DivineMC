@@ -498,7 +498,7 @@ index 4c641ff02afb17530d6a619cea14460607172c1b..ffab1335060813315a7bd4b74faa98bd
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 44bf1622e2212689d6702ea4a7f6a6b480df1748..2d6a995adb0d305cf0721419e4aa723a04c2fcc7 100644
+index 45725ee1937a9a6f85e6e0bb3edb6804a6690d52..331d7bd9051f15ea8cc03683e9c54234812e3063 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -197,6 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -509,7 +509,7 @@ index 44bf1622e2212689d6702ea4a7f6a6b480df1748..2d6a995adb0d305cf0721419e4aa723a
      public final EntityTickList entityTickList = new EntityTickList(this); // DivineMC - Parallel world ticking
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
-@@ -791,6 +792,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -790,6 +791,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          // Paper start - rewrite chunk system
          this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup((ServerLevel)(Object)this, ((ServerLevel)(Object)this).new EntityCallbacks()));
          this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler((ServerLevel)(Object)this);
@@ -517,7 +517,7 @@ index 44bf1622e2212689d6702ea4a7f6a6b480df1748..2d6a995adb0d305cf0721419e4aa723a
          this.entityDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController(
              new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController.EntityRegionFileStorage(
                  new RegionStorageInfo(levelStorage.getLevelId(), dimension, "entities"),
-@@ -1039,8 +1041,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1036,8 +1038,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public boolean shouldTickBlocksAt(final long chunkPos) {
          // Paper start - rewrite chunk system
@@ -527,7 +527,7 @@ index 44bf1622e2212689d6702ea4a7f6a6b480df1748..2d6a995adb0d305cf0721419e4aa723a
          // Paper end - rewrite chunk system
      }
  
-@@ -3088,16 +3089,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3085,16 +3086,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      public boolean isPositionTickingWithEntitiesLoaded(final long key) {
          // Paper start - rewrite chunk system

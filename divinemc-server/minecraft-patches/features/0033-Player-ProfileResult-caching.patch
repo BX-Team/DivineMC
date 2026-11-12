@@ -5,7 +5,7 @@ Subject: [PATCH] Player ProfileResult caching
 
 
 diff --git a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index bf87abc39fc510bebcdb83b94989103fc63f14e4..f444f29e37aaa23b90e1538966804740feb40e47 100644
+index a9f98078888568ddd8dd4ce4e401d80a1d70eb45..7cf84440fce4111d295182ae08fbc08228ab454b 100644
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 @@ -70,6 +70,11 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,

@@ -868,17 +868,6 @@ public class DivineConfig {
         public static HashingVersion secureSeedHashingVersion = HashingVersion.BLAKE2B;
         private static boolean secureSeedLoaded = false;
 
-        // Lag compensation
-        public static boolean lagCompensationEnabled = true;
-        public static boolean blockEntityAcceleration = false;
-        public static boolean blockBreakingAcceleration = true;
-        public static boolean eatingAcceleration = true;
-        public static boolean potionEffectAcceleration = true;
-        public static boolean fluidAcceleration = true;
-        public static boolean pickupAcceleration = true;
-        public static boolean portalAcceleration = true;
-        public static boolean randomTickSpeedAcceleration = true;
-
         // Sentry
         public static String sentryDsn = "";
         public static String logLevel = "WARN";
@@ -927,16 +916,20 @@ public class DivineConfig {
         }
 
         private static void lagCompensation() {
-            lagCompensationEnabled = getBoolean(ConfigCategory.MISC.key("lag-compensation.enabled"), lagCompensationEnabled,
-                "Improves the player experience when TPS is low");
-            blockEntityAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.block-entity-acceleration"), blockEntityAcceleration);
-            blockBreakingAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.block-breaking-acceleration"), blockBreakingAcceleration);
-            eatingAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.eating-acceleration"), eatingAcceleration);
-            potionEffectAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.potion-effect-acceleration"), potionEffectAcceleration);
-            fluidAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.fluid-acceleration"), fluidAcceleration);
-            pickupAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.pickup-acceleration"), pickupAcceleration);
-            portalAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.portal-acceleration"), portalAcceleration);
-            randomTickSpeedAcceleration = getBoolean(ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration"), randomTickSpeedAcceleration);
+            if (config.getBoolean(ConfigCategory.MISC.key("lag-compensation.enabled"), false)) {
+                LOGGER.warn("Lag compensation has been removed from DivineMC; misc.lag-compensation is ignored and will be deleted from the config.");
+            }
+            removeLegacy(
+                ConfigCategory.MISC.key("lag-compensation.enabled"),
+                ConfigCategory.MISC.key("lag-compensation.block-entity-acceleration"),
+                ConfigCategory.MISC.key("lag-compensation.block-breaking-acceleration"),
+                ConfigCategory.MISC.key("lag-compensation.eating-acceleration"),
+                ConfigCategory.MISC.key("lag-compensation.potion-effect-acceleration"),
+                ConfigCategory.MISC.key("lag-compensation.fluid-acceleration"),
+                ConfigCategory.MISC.key("lag-compensation.pickup-acceleration"),
+                ConfigCategory.MISC.key("lag-compensation.portal-acceleration"),
+                ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration")
+            );
         }
 
         private static void sentrySettings() {
