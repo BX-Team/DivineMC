@@ -33,18 +33,19 @@ index 41a725e9926767fbbf2a3e3558f850f0d57c5945..39d22b9b4e8a48b7b42a9cd7f94680ec
  
          final int previous = this.indexMap.putIfAbsent(element, listSize);
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
-index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acde8aeb09c 100644
+index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..46742e9c41e6dcc446b92afe8007e24f273bc607 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
-@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
+@@ -14,6 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  public class TickThread extends Thread {
  
      private static final Logger LOGGER = LoggerFactory.getLogger(TickThread.class);
 +    public static final boolean HARD_THROW = !org.bxteam.divinemc.config.DivineConfig.AsyncCategory.disableHardThrow; // DivineMC - Parallel world ticking
++    public final org.bxteam.divinemc.util.HopperEventFlags hopperEventFlags = new org.bxteam.divinemc.util.HopperEventFlags(); // DivineMC - Parallel world ticking - per-thread hopper event flags
  
      private static String getThreadContext() {
          return "thread=" + Thread.currentThread().getName();
-@@ -26,14 +27,14 @@ public class TickThread extends Thread {
+@@ -26,14 +28,14 @@ public class TickThread extends Thread {
      public static void ensureTickThread(final String reason) {
          if (!isTickThread()) {
              LOGGER.error("Thread failed main thread check: " + reason + ", context=" + getThreadContext(), new Throwable());
@@ -61,7 +62,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
              LOGGER.error(ex, new Throwable());
              throw new IllegalStateException(ex);
          }
-@@ -42,7 +43,7 @@ public class TickThread extends Thread {
+@@ -42,7 +44,7 @@ public class TickThread extends Thread {
      public static void ensureTickThread(final Level world, final BlockPos pos, final int blockRadius, final String reason) {
          if (!isTickThreadFor(world, pos, blockRadius)) {
              final String ex = "Thread failed main thread check: " +
@@ -70,7 +71,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
              LOGGER.error(ex, new Throwable());
              throw new IllegalStateException(ex);
          }
-@@ -60,7 +61,7 @@ public class TickThread extends Thread {
+@@ -60,7 +62,7 @@ public class TickThread extends Thread {
      public static void ensureTickThread(final Level world, final int chunkX, final int chunkZ, final String reason) {
          if (!isTickThreadFor(world, chunkX, chunkZ)) {
              final String ex = "Thread failed main thread check: " +
@@ -79,7 +80,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
              LOGGER.error(ex, new Throwable());
              throw new IllegalStateException(ex);
          }
-@@ -69,7 +70,7 @@ public class TickThread extends Thread {
+@@ -69,7 +71,7 @@ public class TickThread extends Thread {
      public static void ensureTickThread(final Entity entity, final String reason) {
          if (!isTickThreadFor(entity)) {
              final String ex = "Thread failed main thread check: " +
@@ -88,7 +89,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
              LOGGER.error(ex, new Throwable());
              throw new IllegalStateException(ex);
          }
-@@ -78,7 +79,7 @@ public class TickThread extends Thread {
+@@ -78,7 +80,7 @@ public class TickThread extends Thread {
      public static void ensureTickThread(final Level world, final AABB aabb, final String reason) {
          if (!isTickThreadFor(world, aabb)) {
              final String ex = "Thread failed main thread check: " +
@@ -97,7 +98,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
              LOGGER.error(ex, new Throwable());
              throw new IllegalStateException(ex);
          }
-@@ -87,12 +88,67 @@ public class TickThread extends Thread {
+@@ -87,12 +89,67 @@ public class TickThread extends Thread {
      public static void ensureTickThread(final Level world, final double blockX, final double blockZ, final String reason) {
          if (!isTickThreadFor(world, blockX, blockZ)) {
              final String ex = "Thread failed main thread check: " +
@@ -166,7 +167,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..73475f21a65395ab3f888d04d4860acd
      public final int id; /* We don't override getId as the spec requires that it be unique (with respect to all other threads) */
  
      private static final AtomicInteger ID_GENERATOR = new AtomicInteger();
-@@ -126,47 +182,71 @@ public class TickThread extends Thread {
+@@ -126,47 +183,71 @@ public class TickThread extends Thread {
          return false;
      }
  

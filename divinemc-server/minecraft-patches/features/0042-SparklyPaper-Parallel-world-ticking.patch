@@ -389,7 +389,7 @@ index c1257e0413c4ee5e924a5a8db7205514d411b4fb..e6c567f6ede8c7cde651666af506c403
                  // Paper end
                  // CraftBukkit start
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index b56d4349e43ac905699f3c0c75a85ca4342d645a..a81ded45996750ac15c0b713360bcb8d1d1f4be0 100644
+index 848b88fa76a1ae53ea9570e59c5b54c885507960..fe7ff1bde6e71efafb2196dc520d661783874127 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -336,6 +336,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -469,7 +469,7 @@ index b56d4349e43ac905699f3c0c75a85ca4342d645a..a81ded45996750ac15c0b713360bcb8d
      protected void tickChildren(final BooleanSupplier haveTime) {
          ProfilerFiller profiler = Profiler.get();
          this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.suspendFlushing());
-@@ -1834,26 +1859,54 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1836,26 +1861,55 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          this.updateEffectiveRespawnData();
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
@@ -490,6 +490,7 @@ index b56d4349e43ac905699f3c0c75a85ca4342d645a..a81ded45996750ac15c0b713360bcb8d
 +                level.hasRidableMoveEvent = org.purpurmc.purpur.event.entity.RidableMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Purpur - Ridables
 +                level.updateLagCompensationTick(); // Paper - lag compensation
 +                net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents = level.paperConfig().hopper.disableMoveEvent || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper - Perf: Optimize Hoppers
++                level.skipHopperEvents = net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents; // DivineMC - Parallel world ticking - Paper's static is overwritten for the next level before this one ticks
 +                profiler.push(() -> level + " " + level.dimension().identifier());
 +                profiler.push("tick");
 +
@@ -541,7 +542,7 @@ index b56d4349e43ac905699f3c0c75a85ca4342d645a..a81ded45996750ac15c0b713360bcb8d
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
-@@ -1945,6 +1998,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1947,6 +2001,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
          Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
          newLevels.remove(level.dimension());
@@ -1251,10 +1252,18 @@ index effc0a3a934a6355da5210ed6fcb49d8b106b802..555b61b4439f3e5eaa30bb351168c2de
  
              DataComponentPatch newPatch = this.components.asPatch();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9037c08af 100644
+index 4414d6770dd8f09585d4b0aaf440d303086d610f..fa3b74c9a45e1cc3904501fde9c91406e7db33af 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -175,6 +175,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -118,6 +118,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         .add(new ExplosionParticleInfo(ParticleTypes.SMOKE, 1.0F, 1.0F))
+         .build();
+     public final it.unimi.dsi.fastutil.objects.ObjectArrayList<TickingBlockEntity> blockEntityTickers = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(); // DivineMC - compact block entity tickers in place - Fix MC-117075
++    public boolean skipHopperEvents; // DivineMC - Parallel world ticking - Paper's static is overwritten for the next level before this one ticks
+     protected final CollectingNeighborUpdater neighborUpdater;
+     private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
+     private boolean tickingBlockEntities;
+@@ -175,6 +176,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public static @Nullable BlockPos lastPhysicsProblem; // Spigot
      public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
      public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
@@ -1262,7 +1271,7 @@ index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9
  
      // Purpur start - Add adjustable breeding cooldown to config
      private com.google.common.cache.Cache<BreedingCooldownPair, Object> playerBreedingCooldowns;
-@@ -928,6 +929,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -928,6 +930,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          this.damageSources = new DamageSources(registryAccess);
          this.entityLookup = new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.dfl.DefaultEntityLookup(this); // Paper - rewrite chunk system
          this.chunkPacketBlockController = this.paperConfig().anticheat.antiXray.enabled ? new io.papermc.paper.antixray.ChunkPacketBlockControllerAntiXray(this, executor) : io.papermc.paper.antixray.ChunkPacketBlockController.NO_OPERATION_INSTANCE; // Paper - Anti-Xray
@@ -1270,7 +1279,7 @@ index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9
      }
  
      public int getNextEntityId() {
-@@ -1102,6 +1104,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1102,6 +1105,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
      @Override
      public boolean setBlock(final BlockPos pos, final BlockState blockState, final @Block.UpdateFlags int updateFlags, final int updateLimit) {
@@ -1278,7 +1287,7 @@ index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9
          // CraftBukkit start - tree generation
          if (this.captureTreeGeneration) {
              // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
-@@ -1566,11 +1569,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1566,11 +1570,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
                  if (!ticker.isRemoved()) {
                      if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
                          ticker.tick();
@@ -1295,7 +1304,7 @@ index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9
                      }
  
                      if (writeIndex != scanIndex) {
-@@ -1606,7 +1610,11 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1606,7 +1611,11 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
              // Paper end - Prevent block entity and entity crashes
          }
@@ -1308,7 +1317,7 @@ index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9
      }
  
      // Paper start - Option to prevent armor stands from doing entity lookups
-@@ -1757,6 +1765,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1757,6 +1766,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
      @Override
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos) {
@@ -1316,7 +1325,7 @@ index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9
          // Paper start - Perf: Optimize capturedTileEntities lookup
          net.minecraft.world.level.block.entity.BlockEntity blockEntity;
          if (!this.capturedBlockEntities.isEmpty() && (blockEntity = this.capturedBlockEntities.get(pos)) != null) {
-@@ -1773,6 +1782,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1773,6 +1783,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      }
  
      public void setBlockEntity(final BlockEntity blockEntity) {
@@ -1324,7 +1333,7 @@ index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
              // CraftBukkit start
-@@ -1845,6 +1855,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1845,6 +1856,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
      @Override
      public List<Entity> getEntities(final @Nullable Entity except, final AABB bb, final Predicate<? super Entity> selector) {
@@ -1332,7 +1341,7 @@ index 4414d6770dd8f09585d4b0aaf440d303086d610f..f7201576842918db65c90ceecdb92ec9
          Profiler.get().incrementCounter("getEntities");
          // Paper start - rewrite chunk system
          final List<Entity> ret = new java.util.ArrayList<>();
-@@ -2203,8 +2214,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2203,8 +2215,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public abstract RecipeAccess recipeAccess();
  
      public BlockPos getBlockRandomPos(final int xo, final int yo, final int zo, final int yMask) {
@@ -1547,6 +1556,70 @@ index 5564a54f23aab158b9506325953ec70cab55c961..b6643db28a20f858b224f7f16f2bced3
                          org.bukkit.Bukkit.getPluginManager().callEvent(event);
                      }
                      if (event == null || !event.isCancelled()) {
+diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..69afaf29a2178b0ca9436c3a51df09dfa10aefb0 100644
+--- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -219,11 +219,11 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+ 
+     // Paper start - Perf: Optimize Hoppers
+     public static boolean skipHopperEvents;
+-    private static boolean skipPullModeEventFire;
+-    private static boolean skipPushModeEventFire;
++    // DivineMC - Parallel world ticking - skipPullModeEventFire and skipPushModeEventFire moved to org.bxteam.divinemc.util.HopperEventFlags
+ 
+     private static boolean hopperPush(final Level level, final Container destination, final Direction direction, final HopperBlockEntity hopper) {
+-        skipPushModeEventFire = skipHopperEvents;
++        final org.bxteam.divinemc.util.HopperEventFlags eventFlags = org.bxteam.divinemc.util.HopperEventFlags.current(); // DivineMC - Parallel world ticking - per-thread hopper event flags
++        eventFlags.skipPush = level.skipHopperEvents; // DivineMC - Parallel world ticking - per-thread hopper event flags
+         final long disallowedSlots = callPrepareTransferEvent(level, hopper, destination, true); // Paper - Add PrepareHopperTransferEvent
+         boolean foundItem = false;
+         for (int i = 0; i < hopper.getContainerSize(); ++i) {
+@@ -240,7 +240,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+ 
+                 // We only need to fire the event once to give protection plugins a chance to cancel this event
+                 // Because nothing uses getItem, every event call should end up the same result.
+-                if (!skipPushModeEventFire) {
++                if (!eventFlags.skipPush) { // DivineMC - Parallel world ticking - per-thread hopper event flags
+                     movedItem = callPushMoveEvent(destination, movedItem, hopper);
+                     if (movedItem == null) { // cancelled
+                         origItemStack.setCount(originalItemCount);
+@@ -275,7 +275,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         final int movedItemCount = Math.min(level.spigotConfig.hopperAmount, originalItemCount);
+         movedItem.setCount(movedItemCount);
+ 
+-        if (!skipPullModeEventFire) {
++        if (!org.bxteam.divinemc.util.HopperEventFlags.current().skipPull) { // DivineMC - Parallel world ticking - per-thread hopper event flags
+             movedItem = callPullMoveEvent(hopper, container, movedItem);
+             if (movedItem == null) { // cancelled
+                 origItemStack.setCount(originalItemCount);
+@@ -327,7 +327,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         );
+         final boolean result = event.callEvent();
+         if (!event.calledGetItem && !event.calledSetItem) {
+-            skipPushModeEventFire = true;
++            org.bxteam.divinemc.util.HopperEventFlags.current().skipPush = true; // DivineMC - Parallel world ticking - per-thread hopper event flags
+         }
+         if (!result) {
+             applyCooldown(hopper);
+@@ -350,7 +350,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         final io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent event = new io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent(sourceInventory, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(itemstack), destination, false);
+         final boolean result = event.callEvent();
+         if (!event.calledGetItem && !event.calledSetItem) {
+-            skipPullModeEventFire = true;
++            org.bxteam.divinemc.util.HopperEventFlags.current().skipPull = true; // DivineMC - Parallel world ticking - per-thread hopper event flags
+         }
+         if (!result) {
+             applyCooldown(hopper);
+@@ -510,7 +510,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         Container container = getSourceContainer(level, hopper, blockPos, blockState);
+         if (container != null) {
+             Direction direction = Direction.DOWN;
+-            skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
++            org.bxteam.divinemc.util.HopperEventFlags.current().skipPull = level.skipHopperEvents; // Paper - Perf: Optimize Hoppers // DivineMC - Parallel world ticking - per-thread hopper event flags
+             final long disallowedSlots = callPrepareTransferEvent(level, container, hopper, false); // Paper - Add PrepareHopperTransferEvent
+ 
+             for (int slot : getSlots(container, direction)) {
 diff --git a/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java b/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 index a1b0168077b83575f16dd377da2e1ba520d3bd19..5c75db9d7766c97ef4deeaeb3712361690ac179f 100644
 --- a/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java

@@ -71,7 +71,7 @@ index d8cacf975c2c35e5fe7370bd5b007fbe0d4bd031..444428283839c106f4859fcf2cb6ab24
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index cd3ca00cca9f8fd2d6c5b9d2686bc1de3408d939..49471d16868b8dfa92e0103181f89f71011687ac 100644
+index 2d6a995adb0d305cf0721419e4aa723a04c2fcc7..0971f93079aeb094230bdd9a4f70a29fd700d6fc 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2940,6 +2940,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -119,7 +119,7 @@ index 867b450f04f68837de592646059923adeb3420e6..7133a094673cd98ae338a7a47282b602
  
      public void checkDespawn() {
 diff --git a/net/minecraft/world/entity/item/ItemEntity.java b/net/minecraft/world/entity/item/ItemEntity.java
-index 3641edda8b06cc454d8c05ab6ec9624cf81d88f1..eb3553b92fe02e80ecc95c7d1bef953494c97691 100644
+index ba64e30c30fcb878be3c06ae3790c6058a8911fe..85df91a8176adca3ad2e8b471393b498e659c5cc 100644
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
 @@ -37,7 +37,7 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -417,10 +417,10 @@ index b6cd6d7d526022d875deb20375423fc7188f4229..f5b63a7215de9b32214c72073944ee4b
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index cd3ec1f9f9d134fb1cd70fdae480abe4b7c5d1d1..e4a91abedc17cc2286f54d5b54d64eb8f11772a8 100644
+index 694040e1e34d7ef92b9314cc83990870dd6a45a8..80c392555d789fd2b5ab5f6a1ccdee8758455482 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1582,7 +1582,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1583,7 +1583,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              while (scanIndex < this.blockEntityTickers.size()) {
                  final TickingBlockEntity ticker = this.blockEntityTickers.get(scanIndex);
                  if (!ticker.isRemoved()) {
@@ -429,7 +429,7 @@ index cd3ec1f9f9d134fb1cd70fdae480abe4b7c5d1d1..e4a91abedc17cc2286f54d5b54d64eb8
                          ticker.tick();
                          // DivineMC start - Parallel world ticking
                          ++tickedEntities;
-@@ -2333,4 +2333,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2334,4 +2334,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option
@@ -1378,7 +1378,7 @@ index c669d0ad531fc43bb7799bd011ed73ccf7b6244a..144ae81daf6a1bbecd4fa0a733fd6d5d
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4bf9559255 100644
+index 69afaf29a2178b0ca9436c3a51df09dfa10aefb0..9baf7886d00877b3ed9e1d1b6280b223cde0c29d 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,7 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -1458,7 +1458,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
 +        Container container = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity ? getExtractInventory(level, hopper, blockPos, blockState) : getSourceContainer(level, hopper, blockPos, blockState); // DivineMC - lithium: sleeping_block_entity
          if (container != null) {
              Direction direction = Direction.DOWN;
-             skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
+             org.bxteam.divinemc.util.HopperEventFlags.current().skipPull = level.skipHopperEvents; // Paper - Perf: Optimize Hoppers // DivineMC - Parallel world ticking - per-thread hopper event flags
 +            // DivineMC start - lithium: sleeping_block_entity
 +            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity && !hasPrepareTransferListeners(level)) {
 +                Boolean res = lithiumExtract(level, hopper, container);
@@ -1516,7 +1516,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
      }
  
      public static void entityInside(final Level level, final BlockPos pos, final BlockState blockState, final Entity entity, final HopperBlockEntity hopper) {
-@@ -807,4 +847,755 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -807,4 +847,756 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      protected AbstractContainerMenu createMenu(final int containerId, final Inventory inventory) {
          return new HopperMenu(containerId, inventory, this);
      }
@@ -2170,7 +2170,8 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
 +                hopperBlockEntity.insertStackList.getOccupiedSlots() == 0 :
 +                insertInventory.isEmpty();
 +
-+        skipPushModeEventFire = skipHopperEvents;
++        final org.bxteam.divinemc.util.HopperEventFlags eventFlags = org.bxteam.divinemc.util.HopperEventFlags.current(); // DivineMC - Parallel world ticking - per-thread hopper event flags
++        eventFlags.skipPush = world.skipHopperEvents; // DivineMC - Parallel world ticking - per-thread hopper event flags
 +        //noinspection ConstantConditions
 +        if (!(hopperBlockEntity.insertInventory == insertInventory && hopperBlockEntity.insertStackList.getFullSlots() == hopperBlockEntity.insertStackList.size())) {
 +            Direction fromDirection = hopperBlockEntity.facing.getOpposite();
@@ -2178,7 +2179,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
 +            for (int i = 0; i < size; ++i) {
 +                ItemStack transferStack = hopperStackList.get(i);
 +                if (!transferStack.isEmpty()) {
-+                    if (!skipPushModeEventFire && canTakeItemFromContainer(insertInventory, hopperBlockEntity, transferStack, i, Direction.DOWN)) {
++                    if (!eventFlags.skipPush && canTakeItemFromContainer(insertInventory, hopperBlockEntity, transferStack, i, Direction.DOWN)) {
 +                        transferStack = callPushMoveEvent(insertInventory, transferStack, hopperBlockEntity);
 +                        if (transferStack == null) { // cancelled
 +                            break;
@@ -2238,7 +2239,7 @@ index f8691085df98c2cd1bafc9eb27d776c0511aa2f6..ed55184469907f0af35e960d67594c4b
 +            int fromSlot = availableSlots != null ? availableSlots[i] : i;
 +            ItemStack itemStack = fromStackList.get(fromSlot);
 +            if (!itemStack.isEmpty() && canTakeItemFromContainer(to, from, itemStack, fromSlot, Direction.DOWN)) {
-+                if (!skipPullModeEventFire) {
++                if (!org.bxteam.divinemc.util.HopperEventFlags.current().skipPull) { // DivineMC - Parallel world ticking - per-thread hopper event flags
 +                    itemStack = callPullMoveEvent(to, from, itemStack);
 +                    if (itemStack == null) { // cancelled
 +                        return true;
@@ -2371,7 +2372,7 @@ index 58da6c986924121f93fa2385f561cbaf0b93f8dd..5a820b1bf1d49b305f061750397b1652
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index cc703e5f22e69162857820cd9c54ad988e416ef8..ac07d014ec61e9687d72506f02977e8c0ce8b9c0 100644
+index 7291cd946d837e65e79d872b167ab77bff16438f..a49a291b5327b677d1faa2cff377306fccd5afc2 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -924,10 +924,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
