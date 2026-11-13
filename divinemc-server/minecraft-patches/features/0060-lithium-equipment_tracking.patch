@@ -16,14 +16,14 @@ As part of: Lithium (https://github.com/CaffeineMC/lithium)
 Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index de933a672c13bc0290d3c4109b3209c0ac1f4988..e11ef1dc58858c9562a365575cc88ae0d324d9f3 100644
+index 01861ba65b5b65b9ea75e1321288d5db751dd240..f5ac5d2b643ae35ab12aada930cee62f689d1620 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5465,6 +5465,7 @@ public abstract class Entity
+@@ -5467,6 +5467,7 @@ public abstract class Entity
      @Override
      public void setLevelCallback(final EntityInLevelCallback levelCallback) {
          this.levelCallback = levelCallback;
-+        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking && this instanceof LivingEntity livingEntity) livingEntity.equipment.lithium$setInLevel(levelCallback != EntityInLevelCallback.NULL); // DivineMC - lithium: equipment_tracking - equipment of entities outside a level must not stay subscribed to its stacks
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.equipmentTracking && this instanceof LivingEntity livingEntity) livingEntity.equipment.lithium$setInLevel(levelCallback != EntityInLevelCallback.NULL); // DivineMC - lithium: equipment_tracking - unsubscribe outside a level
      }
  
      @Override

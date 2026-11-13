@@ -5,7 +5,7 @@ Subject: [PATCH] Configurable files locations and plugin loading
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
-index f2ffd08c716af60434d073916e2c658d71b000fc..e7b2048e3dac723f79fcaac9ed4c58691865db98 100644
+index f2ffd08c716af60434d073916e2c658d71b000fc..66d65359ea00863e9ada5922b73c3cd97533c6e6 100644
 --- a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
 +++ b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
 @@ -28,7 +28,7 @@ public final class PaperConsole extends SimpleTerminalConsole {
@@ -13,7 +13,7 @@ index f2ffd08c716af60434d073916e2c658d71b000fc..e7b2048e3dac723f79fcaac9ed4c5869
          builder
                  .appName("DivineMC") // DivineMC - Rebrand
 -                .variable(LineReader.HISTORY_FILE, PaperCacheDir.moveFromServerRootAndGet(".console_history", "console_history"))
-+                .variable(LineReader.HISTORY_FILE, historyFile(this.server)) // DivineMC - make configurable location of files
++                .variable(LineReader.HISTORY_FILE, historyFile(this.server)) // DivineMC - Configurable files locations and plugin loading
                  .completer(new ConsoleCommandCompleter(this.server))
                  .option(LineReader.Option.COMPLETE_IN_WORD, true);
          if (io.papermc.paper.configuration.GlobalConfiguration.get().console.enableBrigadierHighlighting) {
@@ -21,27 +21,27 @@ index f2ffd08c716af60434d073916e2c658d71b000fc..e7b2048e3dac723f79fcaac9ed4c5869
          return super.buildReader(builder);
      }
  
-+    // DivineMC start - make configurable location of files
++    // DivineMC start - Configurable files locations and plugin loading
 +    private static java.nio.file.Path historyFile(DedicatedServer server) {
 +        if (server.options.has("console-history")) { // only when explicitly passed, otherwise keep the upstream location and migration
 +            return ((java.io.File) server.options.valueOf("console-history")).toPath();
 +        }
 +        return PaperCacheDir.moveFromServerRootAndGet(".console_history", "console_history");
 +    }
-+    // DivineMC end - make configurable location of files
++    // DivineMC end - Configurable files locations and plugin loading
 +
      @Override
      protected boolean isRunning() {
          return !this.server.isStopped() && this.server.isRunning();
 diff --git a/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java b/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
-index 5741a60faba70da485053599c9370f0e27e868f4..d4dbd4eccc49192bdc4aa44aef8a1714b6399543 100644
+index 5741a60faba70da485053599c9370f0e27e868f4..602cdf655bf8706cda16385a006fa56d3cb13a74 100644
 --- a/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
 @@ -108,9 +108,19 @@ public class PluginInitializerManager {
          java.util.List<Path> files = ((java.util.List<File>) optionSet.valuesOf("add-plugin")).stream().map(File::toPath).toList();
          io.papermc.paper.plugin.util.EntrypointUtil.registerProvidersFromSource(io.papermc.paper.plugin.provider.source.PluginFlagProviderSource.INSTANCE, files);
  
-+        // DivineMC start - Register the plugin directory from flags
++        // DivineMC start - Configurable files locations and plugin loading
          @SuppressWarnings("unchecked")
 -        java.util.List<Path> dirs = ((java.util.List<File>) optionSet.valuesOf("add-plugin-dir")).stream().map(File::toPath).toList();
 -        dirs.forEach(pluginDir -> io.papermc.paper.plugin.util.EntrypointUtil.registerProvidersFromSource(io.papermc.paper.plugin.provider.source.DirectoryProviderSource.INSTANCE_NO_CREATE, pluginDir));
@@ -55,12 +55,12 @@ index 5741a60faba70da485053599c9370f0e27e868f4..d4dbd4eccc49192bdc4aa44aef8a1714
 +            .toList();
 +
 +        io.papermc.paper.plugin.util.EntrypointUtil.registerProvidersFromSource(io.papermc.paper.plugin.provider.source.PluginFlagProviderSource.INSTANCE, pluginList);
-+        // DivineMC end - Register the plugin directory from flags
++        // DivineMC end - Configurable files locations and plugin loading
  
          final Set<String> paperPluginNames = new TreeSet<>();
          final Set<String> legacyPluginNames = new TreeSet<>();
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 97fc092aaf0e78e52945bd882f36d42d35be962f..693526a04c681773fd5cd5bd1880cd779628b714 100644
+index 97fc092aaf0e78e52945bd882f36d42d35be962f..832f168dcf9768c0bc26a95570c4498937ff900a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
 @@ -138,12 +138,6 @@ public class Main {
@@ -80,15 +80,15 @@ index 97fc092aaf0e78e52945bd882f36d42d35be962f..693526a04c681773fd5cd5bd1880cd77
                      .describedAs("Yml file");
                  // DivineMC end - Configuration
  
-+                // DivineMC start - Implement loading plugins from external folder
++                // DivineMC start - Configurable files locations and plugin loading
 +                this.acceptsAll(asList("add-plugin-dir", "add-extra-plugin-dir"), "Specify paths to directories containing extra plugin jars to be loaded in addition to those in the plugins folder. This argument can be specified multiple times, once for each extra plugin directory path.")
 +                    .withRequiredArg()
 +                    .ofType(File.class)
 +                    .defaultsTo(new File("extra"))
 +                    .describedAs("Directory");
-+                // DivineMC end - Implement loading plugins from external folder
++                // DivineMC end - Configurable files locations and plugin loading
 +
-+                // DivineMC start - make configurable location of files start
++                // DivineMC start - Configurable files locations and plugin loading
 +                accepts("help-location", "Location of the help file")
 +                    .withRequiredArg()
 +                    .ofType(File.class)
@@ -124,13 +124,13 @@ index 97fc092aaf0e78e52945bd882f36d42d35be962f..693526a04c681773fd5cd5bd1880cd77
 +                    .ofType(File.class)
 +                    .defaultsTo(new File(".paper/console_history"))
 +                    .describedAs("Console history file");
-+                // DivineMC end - make configurable location of files end
++                // DivineMC end - Configurable files locations and plugin loading
 +
                  this.accepts("server-name", "Name of the server")
                          .withRequiredArg()
                          .ofType(String.class)
 diff --git a/src/main/java/org/bukkit/craftbukkit/help/HelpYamlReader.java b/src/main/java/org/bukkit/craftbukkit/help/HelpYamlReader.java
-index 63fee4f7fb347e608c18901f8d92b0d8c8bdd2b0..4a7159431fee157fe1ab5786e15929aaaf842327 100644
+index 63fee4f7fb347e608c18901f8d92b0d8c8bdd2b0..04014998397621ca48c4e2f109b63227dd2dd10f 100644
 --- a/src/main/java/org/bukkit/craftbukkit/help/HelpYamlReader.java
 +++ b/src/main/java/org/bukkit/craftbukkit/help/HelpYamlReader.java
 @@ -23,7 +23,7 @@ public class HelpYamlReader {
@@ -138,7 +138,7 @@ index 63fee4f7fb347e608c18901f8d92b0d8c8bdd2b0..4a7159431fee157fe1ab5786e15929aa
          this.server = server;
  
 -        File helpYamlFile = new File("help.yml");
-+        File helpYamlFile = (File) net.minecraft.server.dedicated.DedicatedServer.getServer().options.valueOf("help-location"); // DivineMC - make configurable location of files
++        File helpYamlFile = (File) net.minecraft.server.dedicated.DedicatedServer.getServer().options.valueOf("help-location"); // DivineMC - Configurable files locations and plugin loading
          YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/help.yml"), StandardCharsets.UTF_8));
          this.helpYaml = defaultConfig;
  

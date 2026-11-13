@@ -9,10 +9,10 @@ so the world can't mutate. Sensors unsafe off-thread opt out via
 divinemc$canRunAsync, and TargetingConditions are made thread-local.
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 603d3c0daff8220d17233dcc7f7c64ddb7e571c6..69798f8d7999adaa83158249f418113cd703240d 100644
+index ca0686fb7c6f4b36c996101172519680610f95a5..6afe6aa55b9b04b3654340a730c692464618649b 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -966,6 +966,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -968,6 +968,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  this.spigotConfig.currentPrimedTnt = 0; // Spigot
              } else {
                  io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -21,7 +21,7 @@ index 603d3c0daff8220d17233dcc7f7c64ddb7e571c6..69798f8d7999adaa83158249f418113c
                      .forEach(
                          entity -> {
 diff --git a/net/minecraft/world/entity/ai/sensing/Sensor.java b/net/minecraft/world/entity/ai/sensing/Sensor.java
-index 8b13b810f2265d2bbb7b69a47f5c5421235d19dc..a2438c3e9add401445cb608b00635a018f000a11 100644
+index 8b13b810f2265d2bbb7b69a47f5c5421235d19dc..f2c9749a735c687b687021214b51f748483d6266 100644
 --- a/net/minecraft/world/entity/ai/sensing/Sensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/Sensor.java
 @@ -13,19 +13,21 @@ import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -90,33 +90,39 @@ index 8b13b810f2265d2bbb7b69a47f5c5421235d19dc..a2438c3e9add401445cb608b00635a01
      }
  
      protected abstract void doTick(final ServerLevel level, final E body);
-@@ -74,14 +90,14 @@ public abstract class Sensor<E extends LivingEntity> {
+@@ -74,14 +90,18 @@ public abstract class Sensor<E extends LivingEntity> {
  
      public static boolean isEntityTargetable(final ServerLevel level, final LivingEntity body, final LivingEntity entity) {
          return body.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, entity)
 -            ? TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.test(level, body, entity)
 -            : TARGET_CONDITIONS.test(level, body, entity);
-+            ? TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.get().test(level, body, entity) // DivineMC - Parallel sensor phase
-+            : TARGET_CONDITIONS.get().test(level, body, entity); // DivineMC - Parallel sensor phase
++            // DivineMC start - Parallel sensor phase
++            ? TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.get().test(level, body, entity)
++            : TARGET_CONDITIONS.get().test(level, body, entity);
++            // DivineMC end - Parallel sensor phase
      }
  
      public static boolean isEntityAttackable(final ServerLevel level, final LivingEntity body, final LivingEntity target) {
          return body.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, target)
 -            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.test(level, body, target)
 -            : ATTACK_TARGET_CONDITIONS.test(level, body, target);
-+            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.get().test(level, body, target) // DivineMC - Parallel sensor phase
-+            : ATTACK_TARGET_CONDITIONS.get().test(level, body, target); // DivineMC - Parallel sensor phase
++            // DivineMC start - Parallel sensor phase
++            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.get().test(level, body, target)
++            : ATTACK_TARGET_CONDITIONS.get().test(level, body, target);
++            // DivineMC end - Parallel sensor phase
      }
  
      public static BiPredicate<ServerLevel, LivingEntity> wasEntityAttackableLastNTicks(final LivingEntity body, final int ticks) {
-@@ -90,8 +106,8 @@ public abstract class Sensor<E extends LivingEntity> {
+@@ -90,8 +110,10 @@ public abstract class Sensor<E extends LivingEntity> {
  
      public static boolean isEntityAttackableIgnoringLineOfSight(final ServerLevel level, final LivingEntity body, final LivingEntity target) {
          return body.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, target)
 -            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.test(level, body, target)
 -            : ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.test(level, body, target);
-+            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.get().test(level, body, target) // DivineMC - Parallel sensor phase
-+            : ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.get().test(level, body, target); // DivineMC - Parallel sensor phase
++            // DivineMC start - Parallel sensor phase
++            ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.get().test(level, body, target)
++            : ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.get().test(level, body, target);
++            // DivineMC end - Parallel sensor phase
      }
  
      public static <T, U> BiPredicate<T, U> rememberPositives(final int invocations, final BiPredicate<T, U> predicate) {

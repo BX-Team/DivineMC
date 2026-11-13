@@ -5,24 +5,24 @@ Subject: [PATCH] Optimize natural spawning
 
 
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 8772885cc50fe2b1f3a03f712107344f94ef9998..13739c12f5737966639bcb2770e7215c02ad7572 100644
+index 5484224bd28644723ef3afb7213eafbb73eb5d3e..e430d1c0ca4def496c888ad383ef88dcc9a56d63 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -864,6 +864,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
       */
      @Override
      public Holder<Biome> getNoiseBiome(final int x, final int y, final int z) {
-+        // DivineMC start - Optimize natural spawning - a loaded full chunk answers without the chunk holder lookup
++        // DivineMC start - Optimize natural spawning - a loaded full chunk skips the chunk holder lookup
 +        final ChunkAccess loaded = this.getChunkIfLoadedImmediately(x >> 2, z >> 2);
 +        if (loaded != null) {
 +            return loaded.getNoiseBiome(x, y, z);
 +        }
-+        // DivineMC end - Optimize natural spawning
++        // DivineMC end - Optimize natural spawning - a loaded full chunk skips the chunk holder lookup
          final ChunkAccess chunk = this.getChunk(x >> 2, z >> 2, ChunkStatus.BIOMES, false);
  
          return chunk != null ? chunk.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
 diff --git a/net/minecraft/world/level/NaturalSpawner.java b/net/minecraft/world/level/NaturalSpawner.java
-index 99aec13322ff30aea4d8e2059401f481b635d780..cd322b10c2d0c1be8baea70d83464fe806913e25 100644
+index 99aec13322ff30aea4d8e2059401f481b635d780..a5165aaa61f2780af4b7406f481eaf142a37c0f6 100644
 --- a/net/minecraft/world/level/NaturalSpawner.java
 +++ b/net/minecraft/world/level/NaturalSpawner.java
 @@ -317,10 +317,11 @@ public final class NaturalSpawner {
@@ -57,7 +57,8 @@ index 99aec13322ff30aea4d8e2059401f481b635d780..cd322b10c2d0c1be8baea70d83464fe8
      ) {
          // Paper start - PreCreatureSpawnEvent
          EntityType<?> type = currentSpawnData.type();
-+        // DivineMC start - Optimize natural spawning - nobody listens: skip the event, and nothing ran since the mob was picked from the list at this position
+-        com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
++        // DivineMC start - Optimize natural spawning - skip the event when nobody listens
 +        final boolean unobserved = com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent.getHandlerList().getRegisteredListeners().length == 0;
 +        if (!unobserved) {
 +            com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
@@ -76,7 +77,7 @@ index 99aec13322ff30aea4d8e2059401f481b635d780..cd322b10c2d0c1be8baea70d83464fe8
              }
 -            return PreSpawnStatus.CANCELLED;
          }
-+        // DivineMC end - Optimize natural spawning
++        // DivineMC end - Optimize natural spawning - skip the event when nobody listens
          final boolean success = type.getCategory() != MobCategory.MISC
          // Paper end - PreCreatureSpawnEvent
              && (type.canSpawnFarFromPlayer() || !(nearestPlayerDistanceSqr > type.getCategory().getDespawnDistance() * type.getCategory().getDespawnDistance()))

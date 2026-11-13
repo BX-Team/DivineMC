@@ -12,7 +12,7 @@ The "distanceToSqr" call is a bit expensive, so avoiding it is pretty nice, arou
 We could also check if the x,y,z coordinates are equal, but for now, let's just keep the identity check, which also helps us since Minecraft's code does reuse the original delta movement Vec3 object
 
 diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
-index e46f95b19da1c14f240ec6697f22b5e220e0a835..432dd83733d871c94a644ff3405c5970a607b125 100644
+index e46f95b19da1c14f240ec6697f22b5e220e0a835..42f9b2fe9c97dfed617851ba3c56f284b453fbc7 100644
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
 @@ -192,23 +192,27 @@ public class ServerEntity {
@@ -29,7 +29,7 @@ index e46f95b19da1c14f240ec6697f22b5e220e0a835..432dd83733d871c94a644ff3405c5970
 -                                        List.of(
 -                                            new ClientboundSetEntityMotionPacket(this.entity.getId(), this.lastSentMovement),
 -                                            new ClientboundProjectilePowerPacket(projectile.getId(), projectile.accelerationPower)
-+                    // DivineMC start - Skip "distanceToSqr" call in "ServerEntity#sendChanges" if the delta movement hasn't changed
++                    // DivineMC start - SparklyPaper: Skip distanceToSqr call in ServerEntity#sendChanges if the delta movement hasn't changed
 +                    if (movement != this.lastSentMovement) {
 +                        double diff = movement.distanceToSqr(this.lastSentMovement);
 +                        if (diff > 1.0E-7 || diff > 0.0 && movement.lengthSqr() == 0.0) {
@@ -53,7 +53,7 @@ index e46f95b19da1c14f240ec6697f22b5e220e0a835..432dd83733d871c94a644ff3405c5970
 +                            }
                          }
                      }
-+                    // DivineMC end - Skip "distanceToSqr" call in "ServerEntity#sendChanges" if the delta movement hasn't changed
++                    // DivineMC end - SparklyPaper: Skip distanceToSqr call in ServerEntity#sendChanges if the delta movement hasn't changed
                  }
  
                  if (packet != null) {

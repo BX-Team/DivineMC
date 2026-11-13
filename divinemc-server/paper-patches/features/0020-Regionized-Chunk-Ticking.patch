@@ -8,10 +8,10 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
-index e970526494e406fc71a0387d6fd3ae8856a47d71..9dd59c0ddc538d61c3df4b055fcdfeae0b256952 100644
+index 987dae50827dedb9e939016702be0556d1695bc0..2a31cf3dab1c8a81d202ab59efb201229bcd16c9 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
-@@ -105,7 +105,7 @@ public class TickThread extends Thread {
+@@ -107,7 +107,7 @@ public class TickThread extends Thread {
  
      public static void ensureOnlyTickThread(final String reason) {
          boolean isTickThread = isTickThread();
@@ -20,7 +20,7 @@ index e970526494e406fc71a0387d6fd3ae8856a47d71..9dd59c0ddc538d61c3df4b055fcdfeae
          if (!isTickThread || isServerLevelTickThread) {
              LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread ONLY tick thread check: " + reason, new Throwable());
              throw new IllegalStateException(reason);
-@@ -137,6 +137,12 @@ public class TickThread extends Thread {
+@@ -139,6 +139,12 @@ public class TickThread extends Thread {
                  sb.append("null");
              }
          }
@@ -33,22 +33,22 @@ index e970526494e406fc71a0387d6fd3ae8856a47d71..9dd59c0ddc538d61c3df4b055fcdfeae
          sb.append("; Is iterating over levels? ");
          sb.append(minecraftServer.isIteratingOverLevels);
          return sb.toString();
-@@ -224,7 +230,13 @@ public class TickThread extends Thread {
+@@ -226,7 +232,13 @@ public class TickThread extends Thread {
      public static boolean isTickThreadFor(final Level world) {
          if (Thread.currentThread() instanceof ServerLevelTickThread serverLevelTickThread) {
              return serverLevelTickThread.currentlyTickingServerLevel == world || org.bxteam.divinemc.async.world.LevelHandoff.holds(serverLevelTickThread, world);
 -        } else return isTickThread();
 +        }
-+        // DivineMC start - Regionized Chunk Ticking - a region worker belongs to the level it is ticking, so the parallel world ticking checks hold on it
++        // DivineMC start - Regionized Chunk Ticking - a region worker belongs to the level it ticks
 +        if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED && Thread.currentThread() instanceof RegionTickThread regionTickThread) {
 +            return regionTickThread.currentlyTickingServerLevel == world || org.bxteam.divinemc.async.world.LevelHandoff.holds(regionTickThread, world);
 +        }
-+        // DivineMC end - Regionized Chunk Ticking - a region worker belongs to the level it is ticking, so the parallel world ticking checks hold on it
++        // DivineMC end - Regionized Chunk Ticking - a region worker belongs to the level it ticks
 +        return isTickThread();
      }
  
      public static boolean isTickThreadFor(final Entity entity) {
-@@ -247,4 +259,15 @@ public class TickThread extends Thread {
+@@ -249,4 +261,15 @@ public class TickThread extends Thread {
          public net.minecraft.server.level.ServerLevel currentlyTickingServerLevel;
      }
      // DivineMC end - Parallel world ticking

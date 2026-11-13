@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize entities
 
 
 diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
-index 2b92de5075c7257e71dfd1f8e207a96abd24599d..62008222acdac96ed70ccec230d40a57934b8aae 100644
+index 2b92de5075c7257e71dfd1f8e207a96abd24599d..5a13eeeff36b816334914c94ccb075e645122ef7 100644
 --- a/net/minecraft/world/entity/ai/Brain.java
 +++ b/net/minecraft/world/entity/ai/Brain.java
 @@ -37,16 +37,96 @@ import org.jspecify.annotations.Nullable;
@@ -112,7 +112,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..62008222acdac96ed70ccec230d40a57
      }
  
      public void clearMemories() {
-+        this.memoryModCount++; // DivineMC - Optimize entities - HappyGhast keeps ticking this brain after clearing it
++        this.memoryModCount++; // DivineMC - Optimize entities - HappyGhast ticks a cleared brain
          this.memories.values().forEach(MemorySlot::clear);
      }
  
@@ -174,16 +174,18 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..62008222acdac96ed70ccec230d40a57
      }
  
      public void useDefaultActivity() {
-@@ -309,6 +384,8 @@ public class Brain<E extends LivingEntity> {
+@@ -309,6 +384,10 @@ public class Brain<E extends LivingEntity> {
              this.activeActivities.clear();
              this.activeActivities.addAll(this.coreActivities);
              this.activeActivities.add(activity);
-+            this.activeActivitiesBitset = this.coreActivitiesBitset | activityBit(activity); // DivineMC - Optimize entities - activity bitsets
-+            this.onPossibleActivitiesChanged(); // DivineMC - Optimize entities
++            // DivineMC start - Optimize entities
++            this.activeActivitiesBitset = this.coreActivitiesBitset | activityBit(activity);
++            this.onPossibleActivitiesChanged();
++            // DivineMC end - Optimize entities
          }
      }
  
-@@ -329,7 +406,7 @@ public class Brain<E extends LivingEntity> {
+@@ -329,7 +408,7 @@ public class Brain<E extends LivingEntity> {
          if (gameTime - this.lastScheduleUpdate > 20L) {
              this.lastScheduleUpdate = gameTime;
              Activity scheduledActivity = this.schedule != null ? environmentAttributes.getValue(this.schedule, pos) : Activity.IDLE;
@@ -192,7 +194,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..62008222acdac96ed70ccec230d40a57
                  this.setActiveActivityIfPossible(scheduledActivity);
              }
          }
-@@ -371,15 +448,17 @@ public class Brain<E extends LivingEntity> {
+@@ -371,15 +450,17 @@ public class Brain<E extends LivingEntity> {
                  .computeIfAbsent(activity, key -> Sets.newLinkedHashSet())
                  .add(behavior);
          }
@@ -211,7 +213,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..62008222acdac96ed70ccec230d40a57
      }
  
      public void tick(final ServerLevel level, final E body) {
-@@ -396,7 +475,15 @@ public class Brain<E extends LivingEntity> {
+@@ -396,7 +477,15 @@ public class Brain<E extends LivingEntity> {
      }
  
      private void forgetOutdatedMemories() {
@@ -228,7 +230,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..62008222acdac96ed70ccec230d40a57
      }
  
      public void stopAll(final ServerLevel level, final E body) {
-@@ -404,31 +491,38 @@ public class Brain<E extends LivingEntity> {
+@@ -404,31 +493,38 @@ public class Brain<E extends LivingEntity> {
  
          for (BehaviorControl<? super E> behavior : this.getRunningBehaviors()) {
              behavior.doStop(level, body, timestamp);
@@ -278,7 +280,7 @@ index 2b92de5075c7257e71dfd1f8e207a96abd24599d..62008222acdac96ed70ccec230d40a57
      }
  
 diff --git a/net/minecraft/world/entity/ai/behavior/Behavior.java b/net/minecraft/world/entity/ai/behavior/Behavior.java
-index f78464bcbf82fdc7cbf43c2ee586586b2cdfa552..98b777bfe850952829cdb0fd584222bcb7504970 100644
+index f78464bcbf82fdc7cbf43c2ee586586b2cdfa552..f8f370779ed087f31ffa784cb0dbd1657bc06a73 100644
 --- a/net/minecraft/world/entity/ai/behavior/Behavior.java
 +++ b/net/minecraft/world/entity/ai/behavior/Behavior.java
 @@ -15,6 +15,10 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
@@ -297,7 +299,7 @@ index f78464bcbf82fdc7cbf43c2ee586586b2cdfa552..98b777bfe850952829cdb0fd584222bc
          this.minDuration = minDuration;
          this.maxDuration = maxDuration;
 -        this.entryCondition = entryCondition;
-+        this.entryCondition = new it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap<>(entryCondition); // DivineMC - Optimize entities - Use fastutil
++        this.entryCondition = new it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap<>(entryCondition); // DivineMC - Optimize entities
          // Paper start - configurable behavior tick rate and timings
          String key = this.getClass().getName();
          int lastSeparator = key.lastIndexOf('.');
@@ -385,14 +387,14 @@ index fe7403770b6c117cc2b9e5a3ab9f8554deed703c..eb8c1ed37d5133099d6fc75b1d4105a1
      private boolean isAcceptableLandingPosition(final ServerLevel level, final E body, final BlockPos targetPos) {
          BlockPos bodyPos = body.blockPosition();
 diff --git a/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java b/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
-index 3578ece216827fd5d8c1206c689fc608e97b50df..48477d2d246dc48ec2ac35dd24f668ccbd94face 100644
+index 3578ece216827fd5d8c1206c689fc608e97b50df..34de001ff0b156bd9ddb46ab2090144266b9de40 100644
 --- a/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
 @@ -17,8 +17,14 @@ public class NearestLivingEntitySensor<T extends LivingEntity> extends Sensor<T>
      protected void doTick(final ServerLevel level, final T body) {
          double followRange = body.getAttributeValue(Attributes.FOLLOW_RANGE);
          AABB boundingBox = body.getBoundingBox().inflate(followRange, followRange, followRange);
-+        // DivineMC start - Optimize collections
++        // DivineMC start - Optimize entities
          List<LivingEntity> livingEntities = level.getEntitiesOfClass(LivingEntity.class, boundingBox, mob -> mob != body && mob.isAlive());
 -        livingEntities.sort(Comparator.comparingDouble(body::distanceToSqr));
 +        if (livingEntities instanceof it.unimi.dsi.fastutil.objects.ObjectArrayList<LivingEntity> fastList) {
@@ -400,7 +402,7 @@ index 3578ece216827fd5d8c1206c689fc608e97b50df..48477d2d246dc48ec2ac35dd24f668cc
 +        } else {
 +            livingEntities.sort(Comparator.comparingDouble(body::distanceToSqr));
 +        }
-+        // DivineMC end - Optimize collections
++        // DivineMC end - Optimize entities
          Brain<?> brain = body.getBrain();
          brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, livingEntities);
          brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(level, body, livingEntities));

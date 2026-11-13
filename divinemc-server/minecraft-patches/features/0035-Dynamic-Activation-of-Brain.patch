@@ -329,19 +329,21 @@ index 9302e5ba66e9cedec25b868ff51954c888b76a22..d96102bbea87e8e1bb9994f91830479c
          profiler.pop();
          super.customServerAiStep(level);
 diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
-index b7d5037ebfd306f37f689df161406a72645d1e9a..02751452ada4d4fd882b2f089bd96e3549389654 100644
+index b7d5037ebfd306f37f689df161406a72645d1e9a..45fed60c9af32e8d0dac3ec15ebc0311b30ab964 100644
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
-@@ -180,6 +180,8 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
+@@ -180,6 +180,10 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
      );
      private boolean isLobotomized = false; public boolean isLobotomized() { return this.isLobotomized; } // Purpur - Lobotomize stuck villagers
      private int notLobotomizedCount = 0; // Purpur - Lobotomize stuck villagers
-+    public long lastGolemPanicTick; // DivineMC - Dynamic Activation of Brain
-+    private int behaviorTick = 0; // DivineMC - Dynamic Activation of Brain
++    // DivineMC start - Dynamic Activation of Brain
++    public long lastGolemPanicTick;
++    private int behaviorTick = 0;
++    // DivineMC end - Dynamic Activation of Brain
  
      public Villager(final EntityType<? extends Villager> entityType, final Level level) {
          super(entityType, level);
-@@ -386,7 +388,7 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
+@@ -386,7 +390,7 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
          } else {
              this.isLobotomized = false;
          }

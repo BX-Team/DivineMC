@@ -10,14 +10,14 @@ As part of: Velocity (https://github.com/PaperMC/Velocity)
 Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 
 diff --git a/net/minecraft/network/VarInt.java b/net/minecraft/network/VarInt.java
-index 1428ce80e8316a24cfca7b6aafdea8588a5a790e..f03a902d1839d920d2b081fe58a4e3bfabc0077d 100644
+index 1428ce80e8316a24cfca7b6aafdea8588a5a790e..f281466fd17425f6ace3691e6010ac482eb03296 100644
 --- a/net/minecraft/network/VarInt.java
 +++ b/net/minecraft/network/VarInt.java
 @@ -50,28 +50,45 @@ public class VarInt {
          return out;
      }
  
-+    // DivineMC start - Optimize VarInt
++    // DivineMC start - Optimize VarInt and VarLong write
      public static ByteBuf write(final ByteBuf output, int value) {
 -        // Paper start - Optimize VarInts
 -        // Peel the one and two byte count cases explicitly as they are the most common VarInt sizes
@@ -76,17 +76,17 @@ index 1428ce80e8316a24cfca7b6aafdea8588a5a790e..f03a902d1839d920d2b081fe58a4e3bf
 -        output.writeByte(value);
          return output;
      }
-+    // DivineMC end - Optimize VarInt
++    // DivineMC end - Optimize VarInt and VarLong write
  }
 diff --git a/net/minecraft/network/VarLong.java b/net/minecraft/network/VarLong.java
-index 913442a641134fed4ad5669f190c508c3109ab6a..d80d7985041ce6aaa1970b815d2a640b06efbc0e 100644
+index 913442a641134fed4ad5669f190c508c3109ab6a..cfd5ff90ed42cec51f4facd490a1f285b95ffb45 100644
 --- a/net/minecraft/network/VarLong.java
 +++ b/net/minecraft/network/VarLong.java
 @@ -38,13 +38,122 @@ public class VarLong {
          return out;
      }
  
-+    // DivineMC start - Optimize VarLong
++    // DivineMC start - Optimize VarInt and VarLong write
      public static ByteBuf write(final ByteBuf output, long value) {
 -        while ((value & -128L) != 0L) {
 -            output.writeByte((int)(value & DATA_BITS_MASK) | CONTINUATION_BIT_MASK);
@@ -208,5 +208,5 @@ index 913442a641134fed4ad5669f190c508c3109ab6a..d80d7985041ce6aaa1970b815d2a640b
 -        output.writeByte((int)value);
          return output;
      }
-+    // DivineMC end - Optimize VarLong
++    // DivineMC end - Optimize VarInt and VarLong write
  }

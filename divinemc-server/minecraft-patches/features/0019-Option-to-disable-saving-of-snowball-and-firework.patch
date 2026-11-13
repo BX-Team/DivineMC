@@ -5,7 +5,7 @@ Subject: [PATCH] Option to disable saving of snowball and firework
 
 
 diff --git a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
-index 5b61c20fcac6825a1891c674870f40074eff22d3..31ccddfd24eba5d4a60ab731699ed1891a651b8d 100644
+index 5b61c20fcac6825a1891c674870f40074eff22d3..15f31d8af9b12ce6d6fe52153fec7bb6b590031b 100644
 --- a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 +++ b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 @@ -350,4 +350,14 @@ public class FireworkRocketEntity extends Projectile implements ItemSupplier {
@@ -13,7 +13,7 @@ index 5b61c20fcac6825a1891c674870f40074eff22d3..31ccddfd24eba5d4a60ab731699ed189
          return DoubleDoubleImmutablePair.of(dx, dz);
      }
 +
-+    // DivineMC start - Option to disable saving firework
++    // DivineMC start - Option to disable saving of snowball and firework
 +    @Override
 +    public boolean shouldBeSaved() {
 +        if (this.level().divineConfig.disableFireworkSaving) {
@@ -21,10 +21,10 @@ index 5b61c20fcac6825a1891c674870f40074eff22d3..31ccddfd24eba5d4a60ab731699ed189
 +        }
 +        return super.shouldBeSaved();
 +    }
-+    // DivineMC end - Option to disable saving firework
++    // DivineMC end - Option to disable saving of snowball and firework
  }
 diff --git a/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java b/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
-index fdf11fa854b26ee31c862c3c3d9c158539048fb7..3e0822dab24e4d7f99338e240184311a9382d60f 100644
+index fdf11fa854b26ee31c862c3c3d9c158539048fb7..7d580376822eb4600ae4c59354d945db514a02ce 100644
 --- a/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/Snowball.java
 @@ -97,4 +97,14 @@ public class Snowball extends ThrowableItemProjectile {
@@ -32,7 +32,7 @@ index fdf11fa854b26ee31c862c3c3d9c158539048fb7..3e0822dab24e4d7f99338e240184311a
          }
      }
 +
-+    // DivineMC start - Option to disable snowball saving
++    // DivineMC start - Option to disable saving of snowball and firework
 +    @Override
 +    public boolean shouldBeSaved() {
 +        if (this.level().divineConfig.disableSnowballSaving) {
@@ -40,5 +40,5 @@ index fdf11fa854b26ee31c862c3c3d9c158539048fb7..3e0822dab24e4d7f99338e240184311a
 +        }
 +        return super.shouldBeSaved();
 +    }
-+    // DivineMC end - Option to disable snowball saving
++    // DivineMC end - Option to disable saving of snowball and firework
  }

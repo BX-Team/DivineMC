@@ -5,14 +5,14 @@ Subject: [PATCH] Optimize Moonrise
 
 
 diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c051784dbd 100644
+index fff7a796a61542213bdaa417d44e25cd05f7e774..f73ae6dc48c1a87a589be7c0856ec7b152035c71 100644
 --- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 +++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 @@ -59,71 +59,90 @@ public final class NearbyPlayers {
      public static final int GENERAL_REALLY_SMALL_AREA_VIEW_DISTANCE_BLOCKS = (GENERAL_REALLY_SMALL_VIEW_DISTANCE << 4);
  
      private final ServerLevel world;
-+    // DivineMC start - Optimize collections
++    // DivineMC start - Optimize Moonrise
 +    private final Object mutex = new Object();
      private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
 -    private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
@@ -25,7 +25,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
 +            this.directByChunk[i] = new ca.spottedleaf.concurrentutil.map.SWMRLong2ObjectHashTable<>();
          }
      }
-+    // DivineMC end - Optimize collections
++    // DivineMC end - Optimize Moonrise
  
      public NearbyPlayers(final ServerLevel world) {
          this.world = world;
@@ -36,7 +36,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
 -        if (this.players.putIfAbsent(player, newTrackers) != null) {
 -            throw new IllegalStateException("Already have player " + player);
 -        }
-+        // DivineMC start - Optimize collections
++        // DivineMC start - Optimize Moonrise
 +        synchronized (this.mutex) {
 +            final TrackedPlayer[] newTrackers = new TrackedPlayer[TOTAL_MAP_TYPES];
 +            if (this.players.putIfAbsent(player, newTrackers) != null) {
@@ -60,7 +60,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
 +            // update view distances
 +            this.tickPlayer(player);
 +        }
-+        // DivineMC end - Optimize collections
++        // DivineMC end - Optimize Moonrise
      }
  
      public void removePlayer(final ServerPlayer player) {
@@ -68,7 +68,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
 -        if (players == null) {
 -            return; // May be called during teleportation before the player is actually placed
 -        }
-+        // DivineMC start - Optimize collections
++        // DivineMC start - Optimize Moonrise
 +        synchronized (this.mutex) {
 +            final TrackedPlayer[] players = this.players.remove(player);
 +            if (players == null) {
@@ -81,14 +81,14 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
 +                tracker.remove();
 +            }
          }
-+        // DivineMC end - Optimize collections
++        // DivineMC end - Optimize Moonrise
      }
  
      public void clear() {
 -        if (this.players.isEmpty()) {
 -            return;
 -        }
-+        // DivineMC start - Optimize collections
++        // DivineMC start - Optimize Moonrise
 +        synchronized (this.mutex) {
 +            if (this.players.isEmpty()) {
 +                return;
@@ -100,7 +100,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
 +                this.removePlayer(player);
 +            }
          }
-+        // DivineMC end - Optimize collections
++        // DivineMC end - Optimize Moonrise
      }
  
      public void tickPlayer(final ServerPlayer player) {
@@ -108,7 +108,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
 -        if (players == null) {
 -            throw new IllegalStateException("Don't have player " + player);
 -        }
-+        // DivineMC start - Optimize collections
++        // DivineMC start - Optimize Moonrise
 +        synchronized (this.mutex) {
 +            final TrackedPlayer[] players = this.players.get(player);
 +            if (players == null) {
@@ -131,12 +131,12 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
 +            players[NearbyMapType.VIEW_DISTANCE.ordinal()].update(chunk.x(), chunk.z(), PlatformHooks.get().getViewDistance(player));
 +            players[NearbyMapType.SPAWN_RANGE.ordinal()].update(chunk.x(), chunk.z(), ChunkTickConstants.PLAYER_SPAWN_TRACK_RANGE); // Moonrise - chunk tick iteration
 +        }
-+        // DivineMC end - Optimize collections
++        // DivineMC end - Optimize Moonrise
      }
  
      public TrackedChunk getChunk(final ChunkPos pos) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 84f188b196a4cc615740005d91b988326b94e946..52397243a237d8a2e08ee7fae95cfe36ba939edf 100644
+index 84f188b196a4cc615740005d91b988326b94e946..0b5c3189ac59dd068b1c5b470a050280db58196c 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -85,28 +85,40 @@ public final class ChunkHolderManager {
@@ -290,7 +290,7 @@ index 84f188b196a4cc615740005d91b988326b94e946..52397243a237d8a2e08ee7fae95cfe36
          }
      }
  
-+    // DivineMC start - Optimize Moonrise - primitive long sets
++    // DivineMC start - Optimize Moonrise
 +    public final it.unimi.dsi.fastutil.longs.LongSet blockTickingChunkHolders = org.bxteam.divinemc.util.collections.PlatformCollections.longSet();
 +    public final it.unimi.dsi.fastutil.longs.LongSet entityTickingChunkHolders = org.bxteam.divinemc.util.collections.PlatformCollections.longSet();
 +
@@ -309,7 +309,7 @@ index 84f188b196a4cc615740005d91b988326b94e946..52397243a237d8a2e08ee7fae95cfe36
 +    public void markNonEntityTickingIfPossible(@org.jetbrains.annotations.NotNull NewChunkHolder newChunkHolder) {
 +        this.entityTickingChunkHolders.remove(newChunkHolder.getCachedLongPos());
 +    }
-+    // DivineMC end - Optimize Moonrise - primitive long sets
++    // DivineMC end - Optimize Moonrise
 +
      public enum TicketOperationType {
          ADD, REMOVE, ADD_IF_REMOVED, ADD_AND_REMOVE
@@ -436,7 +436,7 @@ index 1dc745d058d605dde0d10dea82c31b3303d670be..78a4f465beb82a5434920e3ccb4255ad
      void addFullStatusConsumer(final FullChunkStatus status, final Consumer<LevelChunk> consumer) {
          this.fullStatusWaiters.computeIfAbsent(status, (final FullChunkStatus keyInMap) -> {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/util/ParallelSearchRadiusIteration.java b/ca/spottedleaf/moonrise/patches/chunk_system/util/ParallelSearchRadiusIteration.java
-index 4e7138bce3b479f7013e929c870f69bfd775fcb9..6f47f9b1369a959ca10cf73613fc4047e8af3e22 100644
+index 4e7138bce3b479f7013e929c870f69bfd775fcb9..0b4facfbb1824da9af66ab6809605b2ccb9876b2 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/util/ParallelSearchRadiusIteration.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/util/ParallelSearchRadiusIteration.java
 @@ -58,7 +58,7 @@ public final class ParallelSearchRadiusIteration {
@@ -444,7 +444,7 @@ index 4e7138bce3b479f7013e929c870f69bfd775fcb9..6f47f9b1369a959ca10cf73613fc4047
  
      public static long[] getSearchIteration(final int radius) {
 -        return SEARCH_RADIUS_ITERATION_LIST[radius];
-+        return SEARCH_RADIUS_ITERATION_LIST[Math.min(SEARCH_RADIUS_ITERATION_LIST.length - 1, radius)]; // DivineMC - Optimize Moonrise - Fix #130
++        return SEARCH_RADIUS_ITERATION_LIST[Math.min(SEARCH_RADIUS_ITERATION_LIST.length - 1, radius)]; // DivineMC - Optimize Moonrise - fix #130
      }
  
      public static long[] getEuclideanIteration(final int radius) {
@@ -484,7 +484,7 @@ index 63cc7970b9df5e84743084ca99650bc3d13b970e..14d0afdb35f889693423a00b22aa4074
      }
  
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 1f2fb453ef1f1521d95a97ca98f497caf1813002..16dd46c56b1f99da99da0302f79a0c6fee8200bb 100644
+index 41dc41cb1a5fe6711648a1d0c61da4232a4794d9..f8fcf88b87c9c5508033284ffb7b03333fc81a18 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -463,8 +463,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
@@ -498,7 +498,7 @@ index 1f2fb453ef1f1521d95a97ca98f497caf1813002..16dd46c56b1f99da99da0302f79a0c6f
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 6606a24d5853ce558fb797e27b52e895c0ec136b..d48b78bdeeeefaf29c5ed55264e3d53e0bd7689c 100644
+index e3ec9a5f5fbd59ce63f44246675572a95548fcb6..94071e57f65c222231082683893408bd8fd8e152 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -197,6 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -509,7 +509,7 @@ index 6606a24d5853ce558fb797e27b52e895c0ec136b..d48b78bdeeeefaf29c5ed55264e3d53e
      public final EntityTickList entityTickList = new EntityTickList(this); // DivineMC - Parallel world ticking
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
-@@ -787,6 +788,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -789,6 +790,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          // Paper start - rewrite chunk system
          this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup((ServerLevel)(Object)this, ((ServerLevel)(Object)this).new EntityCallbacks()));
          this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler((ServerLevel)(Object)this);
@@ -517,7 +517,7 @@ index 6606a24d5853ce558fb797e27b52e895c0ec136b..d48b78bdeeeefaf29c5ed55264e3d53e
          this.entityDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController(
              new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController.EntityRegionFileStorage(
                  new RegionStorageInfo(levelStorage.getLevelId(), dimension, "entities"),
-@@ -1020,8 +1022,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1022,8 +1024,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public boolean shouldTickBlocksAt(final long chunkPos) {
          // Paper start - rewrite chunk system
@@ -527,7 +527,7 @@ index 6606a24d5853ce558fb797e27b52e895c0ec136b..d48b78bdeeeefaf29c5ed55264e3d53e
          // Paper end - rewrite chunk system
      }
  
-@@ -3069,16 +3070,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3071,16 +3072,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      public boolean isPositionTickingWithEntitiesLoaded(final long key) {
          // Paper start - rewrite chunk system

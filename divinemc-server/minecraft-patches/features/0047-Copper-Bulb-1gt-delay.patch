@@ -5,7 +5,7 @@ Subject: [PATCH] Copper Bulb 1gt delay
 
 
 diff --git a/net/minecraft/world/level/block/CopperBulbBlock.java b/net/minecraft/world/level/block/CopperBulbBlock.java
-index 181b11733cee06c09592645e5043983300f22490..6da18eb66197d5d2864b00a17647139f76931cd7 100644
+index 181b11733cee06c09592645e5043983300f22490..8126e1d21add75b878a15d924e864935e3751b27 100644
 --- a/net/minecraft/world/level/block/CopperBulbBlock.java
 +++ b/net/minecraft/world/level/block/CopperBulbBlock.java
 @@ -26,7 +26,13 @@ public class CopperBulbBlock extends Block {
@@ -23,7 +23,7 @@ index 181b11733cee06c09592645e5043983300f22490..6da18eb66197d5d2864b00a17647139f
          }
      }
  
-@@ -35,9 +41,23 @@ public class CopperBulbBlock extends Block {
+@@ -35,9 +41,24 @@ public class CopperBulbBlock extends Block {
          final BlockState state, final Level level, final BlockPos pos, final Block block, final @Nullable Orientation orientation, final boolean movedByPiston
      ) {
          if (level instanceof ServerLevel serverLevel) {
@@ -34,6 +34,7 @@ index 181b11733cee06c09592645e5043983300f22490..6da18eb66197d5d2864b00a17647139f
 +            } else {
 +                level.scheduleTick(pos, this, 1);
 +            }
++            // DivineMC end - Copper Bulb 1gt delay
 +        }
 +    }
 +

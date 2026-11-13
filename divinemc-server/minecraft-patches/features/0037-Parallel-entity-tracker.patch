@@ -7,7 +7,7 @@ Derived from Petal's multithreaded tracker; rewritten into a three-phase
 scan/apply/send model with join barriers.
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index c7f57a8a01532ca153f5f7b537cd708c7528e562..4acbf63ae4fdeed7c8789f8d62853fadae90c6f8 100644
+index c7f57a8a01532ca153f5f7b537cd708c7528e562..15db1280c1ac4f559299adcadb9f8a07bd64e25c 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -251,9 +251,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -195,18 +195,18 @@ index c7f57a8a01532ca153f5f7b537cd708c7528e562..4acbf63ae4fdeed7c8789f8d62853fad
 -                        // Paper end - entity tracking events
 -                        this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
 -                    }
-+                if (player == null) return; // DivineMC - Parallel entity tracker - raw nearby-player arrays may contain nulls
-+                // DivineMC start - Parallel entity tracker - visibility check extracted into wantsToSee for the parallel scan phase
++                if (player == null) return; // DivineMC - Parallel entity tracker - raw arrays may contain nulls
++                // DivineMC start - Parallel entity tracker - read-only check for the parallel scan
 +                if (this.wantsToSee(player)) {
 +                    this.addPlayer(player);
                  } else {
                      this.removePlayer(player);
                  }
-+                // DivineMC end - Parallel entity tracker - visibility check extracted into wantsToSee for the parallel scan phase
++                // DivineMC end - Parallel entity tracker - read-only check for the parallel scan
 +            }
 +        }
 +
-+        // DivineMC start - Parallel entity tracker - split updatePlayer into a read-only predicate and a mutating apply
++        // DivineMC start - Parallel entity tracker - split into a read-only check and an apply
 +        private boolean wantsToSee(final ServerPlayer player) {
 +            // Paper start - remove allocation of Vec3 here
 +            // Vec3 deltaToPlayer = player.position().subtract(this.entity.position());
@@ -255,7 +255,7 @@ index c7f57a8a01532ca153f5f7b537cd708c7528e562..4acbf63ae4fdeed7c8789f8d62853fad
 +            this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
 +            return true;
          }
-+        // DivineMC end - Parallel entity tracker - split updatePlayer into a read-only predicate and a mutating apply
++        // DivineMC end - Parallel entity tracker - split into a read-only check and an apply
  
          private int scaledRange(final int range) {
              return ChunkMap.this.level.getServer().getScaledTrackingDistance(range);

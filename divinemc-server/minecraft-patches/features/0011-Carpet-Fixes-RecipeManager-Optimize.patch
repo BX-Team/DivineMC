@@ -9,7 +9,7 @@ This is a fully vanilla optimization. Improves: [Blast]Furnace/Campfire/Smoker/S
 This was mostly made for the auto crafting table, since the performance boost is much more visible while using that mod
 
 diff --git a/net/minecraft/world/item/crafting/RecipeManager.java b/net/minecraft/world/item/crafting/RecipeManager.java
-index d9ac0c84285c96df934d8649ea659ab11925cb9a..953a8caa5f4907b7a8e7795de5f74a007b413b14 100644
+index d9ac0c84285c96df934d8649ea659ab11925cb9a..fda16504e203e4e59f05f9f09f09cdfaffa13f59 100644
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
 @@ -136,7 +136,20 @@ public class RecipeManager implements RecipeAccess {
@@ -17,7 +17,7 @@ index d9ac0c84285c96df934d8649ea659ab11925cb9a..953a8caa5f4907b7a8e7795de5f74a00
  
      public <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeHolder<T>> getRecipeFor(final RecipeType<T> type, final I input, final Level level) {
 -        return this.recipes.getRecipesFor(type, input, level).reduce((first, second) -> second.runtimeAddedRecipe() ? second : first); // Paper - prioritize runtime added recipes and prioritize these by insertion order.
-+        // DivineMC start - Carpet-Fixes: Remove streams to be faster
++        // DivineMC start - Carpet-Fixes: RecipeManager Optimize
 +        List<RecipeHolder<T>> list = this.recipes.getRecipesForList(type, input, level);
 +        if (list.isEmpty()) {
 +            return Optional.empty();
@@ -30,12 +30,12 @@ index d9ac0c84285c96df934d8649ea659ab11925cb9a..953a8caa5f4907b7a8e7795de5f74a00
 +            }
 +        }
 +        return Optional.of(result);
-+        // DivineMC end - Carpet-Fixes: Remove streams to be faster
++        // DivineMC end - Carpet-Fixes: RecipeManager Optimize
      }
  
      public Optional<RecipeHolder<?>> byKey(final ResourceKey<Recipe<?>> recipeId) {
 diff --git a/net/minecraft/world/item/crafting/RecipeMap.java b/net/minecraft/world/item/crafting/RecipeMap.java
-index b6142dc1f3b8b358965c16dcacf5a5979470b239..c4f77e8de1ea509da162e09afa43ac71ed98df5b 100644
+index b6142dc1f3b8b358965c16dcacf5a5979470b239..e6182c86047c70cdb3ff1d3d5ada40f483269a62 100644
 --- a/net/minecraft/world/item/crafting/RecipeMap.java
 +++ b/net/minecraft/world/item/crafting/RecipeMap.java
 @@ -77,4 +77,24 @@ public class RecipeMap {
@@ -43,7 +43,7 @@ index b6142dc1f3b8b358965c16dcacf5a5979470b239..c4f77e8de1ea509da162e09afa43ac71
          return container.isEmpty() ? Stream.empty() : this.byType(type).stream().filter(r -> r.value().matches(container, level));
      }
 +
-+    // DivineMC start - Carpet-Fixes - Remove streams to be faster
++    // DivineMC start - Carpet-Fixes: RecipeManager Optimize
 +    public <I extends RecipeInput, T extends Recipe<I>> java.util.List<RecipeHolder<T>> getRecipesForList(RecipeType<T> type, I input, Level world) {
 +        java.util.List<RecipeHolder<T>> list;
 +
@@ -61,5 +61,5 @@ index b6142dc1f3b8b358965c16dcacf5a5979470b239..c4f77e8de1ea509da162e09afa43ac71
 +
 +        return list;
 +    }
-+    // DivineMC end - Carpet-Fixes - Remove streams to be faster
++    // DivineMC end - Carpet-Fixes: RecipeManager Optimize
  }

@@ -54,7 +54,7 @@ index 7fed43a1e7bcf35c4d7fd3224837a47fedd59860..58d2dc471ca424bac62b99d9b5cf62b8
              private Entity lastRet;
              private int current;
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
-index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..0ffb135e99752ad8bf3874d5701618dbfccdc754 100644
+index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..19011fbc6fb6ec0692e4654afefd346a64a86489 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
 @@ -10,8 +10,10 @@ public final class ReferenceList<E> implements Iterable<E> {
@@ -63,10 +63,10 @@ index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..0ffb135e99752ad8bf3874d5701618db
      private final Reference2IntOpenHashMap<E> referenceToIndex;
 -    private E[] references;
 -    private int count;
-+    // DivineMC start - Optimize Moonrise - writers lock, readers of size()/raw data stay lock-free
++    // DivineMC start - Optimize Moonrise - readers stay lock-free
 +    private volatile E[] references;
 +    private volatile int count;
-+    // DivineMC end - Optimize Moonrise
++    // DivineMC end - Optimize Moonrise - readers stay lock-free
  
      public ReferenceList() {
          this((E[])EMPTY_LIST);
@@ -167,7 +167,7 @@ index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..5fee420fc3bac4b0cc1196931114f6ca
          this.map.clear();
      }
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
-index 460e27ab0506c83a28934800ee74ee886d4b025e..bb00fd994abe98df8e10619e7b4b1d318d0354db 100644
+index 460e27ab0506c83a28934800ee74ee886d4b025e..d58468b3d24345a0f163934ddb4ff0b41d25098e 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
 @@ -38,11 +38,12 @@ public final class Delayed26WayDistancePropagator3D {
@@ -175,7 +175,7 @@ index 460e27ab0506c83a28934800ee74ee886d4b025e..bb00fd994abe98df8e10619e7b4b1d31
      }
  
 -    public int getLevel(final long pos) {
-+    // DivineMC - Optimize Moonrise - villager AI calls propagateUpdates/getLevel from RCT region threads
++    // DivineMC - Optimize Moonrise - called from region threads
 +    public synchronized int getLevel(final long pos) {
          return this.levels.get(pos);
      }
@@ -213,14 +213,14 @@ index 460e27ab0506c83a28934800ee74ee886d4b025e..bb00fd994abe98df8e10619e7b4b1d31
              return false;
          }
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/SingleUserAreaMap.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/SingleUserAreaMap.java
-index 7e85bb58b8a5de17fdab9ad3c574f2f80952e1ca..cd442923c3f52e6ab00b9e8d805095929446fad5 100644
+index 7e85bb58b8a5de17fdab9ad3c574f2f80952e1ca..f0bfa2218b3176d8868aa0616f47cc8881388553 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/misc/SingleUserAreaMap.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/misc/SingleUserAreaMap.java
 @@ -87,6 +87,8 @@ public abstract class SingleUserAreaMap<T> {
              return false;
          }
  
-+        if (fromX == toX && fromZ == toZ && oldViewDistance == newViewDistance) return true; // DivineMC - Optimize Moonrise - by Leaf
++        if (fromX == toX && fromZ == toZ && oldViewDistance == newViewDistance) return true; // DivineMC - Optimize Moonrise
 +
          this.lastChunkX = toX;
          this.lastChunkZ = toZ;
