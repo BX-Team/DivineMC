@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 15 Nov 2026 18:45:16 +0300
+Subject: [PATCH] Player data writer
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java b/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java
+index de552ee1b59e8dd5b3d7c9ba5c578f28039d5ca5..05da2e48167b98e39547f7fc6e7deab21ae9c924 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java
+@@ -211,6 +211,7 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
+     }
+ 
+     private File getDataFile() {
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.await(this.storage.getPlayerDir().toPath().resolve(this.getUniqueId() + ".dat")); // DivineMC - Player data writer
+         return new File(this.storage.getPlayerDir(), this.getUniqueId() + ".dat");
+     }
+ 
+@@ -753,15 +754,27 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
+      */
+     private void save(CompoundTag compoundTag) {
+         File playerDir = server.console.playerDataStorage.getPlayerDir();
++        // DivineMC start - Player data writer - a direct write could be overwritten by an older queued one
++        final byte[] encoded;
+         try {
+-            File tempFile = File.createTempFile(this.getUniqueId()+"-", ".dat", playerDir);
+-            net.minecraft.nbt.NbtIo.writeCompressed(compoundTag, tempFile.toPath());
+-            File playerDataFile = new File(playerDir, this.getUniqueId()+".dat");
+-            File playerDataFileOld = new File(playerDir, this.getUniqueId()+".dat_old");
+-            net.minecraft.util.Util.safeReplaceFile(playerDataFile.toPath(), tempFile.toPath(), playerDataFileOld.toPath());
++            encoded = org.bxteam.divinemc.async.PlayerFileWriter.encode(compoundTag);
+         } catch (java.io.IOException e) {
+             e.printStackTrace();
++            return;
+         }
++        File playerDataFile = new File(playerDir, this.getUniqueId()+".dat");
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.submit(playerDataFile.toPath(), () -> {
++            try {
++                File tempFile = File.createTempFile(this.getUniqueId()+"-", ".dat", playerDir);
++                org.bxteam.divinemc.async.PlayerFileWriter.writeCompressed(encoded, tempFile.toPath());
++                File playerDataFileOld = new File(playerDir, this.getUniqueId()+".dat_old");
++                net.minecraft.util.Util.safeReplaceFile(playerDataFile.toPath(), tempFile.toPath(), playerDataFileOld.toPath());
++            } catch (java.io.IOException e) {
++                e.printStackTrace();
++            }
++        });
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.await(playerDataFile.toPath());
++        // DivineMC end - Player data writer - a direct write could be overwritten by an older queued one
+     }
+     // Purpur end - OfflinePlayer API
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 021404c50d2ac0f46742b35f0aa921f61a4fb8cf..d8d7e9ce5c409e01adea1ccd6d05bdac5e3f3626 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -2258,6 +2258,7 @@ public final class CraftServer implements Server {
+     public OfflinePlayer[] getOfflinePlayers() {
+         PlayerDataStorage storage = this.console.getPlayerList().playerIo;
+         String[] files = storage.getPlayerDir().list((dir, name) -> name.endsWith(".dat"));
++        files = org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.withPending(storage.getPlayerDir().toPath(), files, ".dat"); // DivineMC - Player data writer - a player who just quit for the first time has no file yet
+         Set<OfflinePlayer> players = new HashSet<>();
+ 
+         for (String file : files) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index bdc6523c3ed62c2fb38b4910d3c73f7461a9375b..5a9da1a4e90d876baf638cde8ea0ee555a9530c9 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -1435,6 +1435,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
+     @Override
+     public void saveData() {
+         this.server.getHandle().playerIo.save(this.getHandle());
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.await(this.server.getHandle().playerIo.getPlayerDir().toPath().resolve(this.getHandle().getStringUUID() + ".dat")); // DivineMC - Player data writer - plugins expect the file on disk when this returns
+     }
+ 
+     @Deprecated
