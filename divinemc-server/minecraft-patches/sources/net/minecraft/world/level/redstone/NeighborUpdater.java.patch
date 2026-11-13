@@ -1,0 +1,27 @@
+--- a/net/minecraft/world/level/redstone/NeighborUpdater.java
++++ b/net/minecraft/world/level/redstone/NeighborUpdater.java
+@@ -73,14 +_,18 @@
+     static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston, BlockPos sourcePos) {
+         // Paper end - Add source block to BlockPhysicsEvent
+         try {
+-            // CraftBukkit start
+-            org.bukkit.event.block.BlockPhysicsEvent event = new org.bukkit.event.block.BlockPhysicsEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), state.asBlockData(), org.bukkit.craftbukkit.block.CraftBlock.at(level, sourcePos)); // Paper - Add source block to BlockPhysicsEvent
+-            level.getCraftServer().getPluginManager().callEvent(event);
++            // DivineMC start - Skip events without listeners
++            if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel) || serverLevel.hasPhysicsEvent) {
++                // CraftBukkit start
++                org.bukkit.event.block.BlockPhysicsEvent event = new org.bukkit.event.block.BlockPhysicsEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), state.asBlockData(), org.bukkit.craftbukkit.block.CraftBlock.at(level, sourcePos)); // Paper - Add source block to BlockPhysicsEvent
++                level.getCraftServer().getPluginManager().callEvent(event);
+ 
+-            if (event.isCancelled()) {
+-                return;
++                if (event.isCancelled()) {
++                    return;
++                }
++                // CraftBukkit end
+             }
+-            // CraftBukkit end
++            // DivineMC end - Skip events without listeners
+             state.handleNeighborChanged(level, pos, changedBlock, orientation, movedByPiston);
+             // Spigot start
+         } catch (StackOverflowError ex) {
