@@ -136,7 +136,7 @@ index fff7a796a61542213bdaa417d44e25cd05f7e774..08eaf67cd926a15c8c5ba90ab27e97c0
  
      public TrackedChunk getChunk(final ChunkPos pos) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 8c37dd08ae5b3e9f4d0d6d8f159dbe224caed20a..ffebf9b696969ea45298694dfe8d791bf28152a9 100644
+index 84f188b196a4cc615740005d91b988326b94e946..52397243a237d8a2e08ee7fae95cfe36ba939edf 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -85,28 +85,40 @@ public final class ChunkHolderManager {
@@ -256,7 +256,7 @@ index 8c37dd08ae5b3e9f4d0d6d8f159dbe224caed20a..ffebf9b696969ea45298694dfe8d791b
          }).addTo(chunkKey, 1);
      }
 @@ -1171,21 +1187,26 @@ public final class ChunkHolderManager {
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && !TickThread.isTickThreadFor(world) || !TickThread.isTickThread()) { // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED && !TickThread.isTickThreadFor(world) || !TickThread.isTickThread()) { // DivineMC - Parallel world ticking
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
 -            this.offThreadPendingFullLoadUpdate.addAll(changedFullStatus);
@@ -484,10 +484,10 @@ index 63cc7970b9df5e84743084ca99650bc3d13b970e..14d0afdb35f889693423a00b22aa4074
      }
  
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index 4c641ff02afb17530d6a619cea14460607172c1b..ffab1335060813315a7bd4b74faa98bd0e992078 100644
+index 1f2fb453ef1f1521d95a97ca98f497caf1813002..16dd46c56b1f99da99da0302f79a0c6fee8200bb 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -468,8 +468,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -463,8 +463,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
  
      public boolean isPositionTicking(final long chunkKey) {
          // Paper start - rewrite chunk system
@@ -498,7 +498,7 @@ index 4c641ff02afb17530d6a619cea14460607172c1b..ffab1335060813315a7bd4b74faa98bd
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 45725ee1937a9a6f85e6e0bb3edb6804a6690d52..331d7bd9051f15ea8cc03683e9c54234812e3063 100644
+index 6606a24d5853ce558fb797e27b52e895c0ec136b..d48b78bdeeeefaf29c5ed55264e3d53e0bd7689c 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -197,6 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -509,7 +509,7 @@ index 45725ee1937a9a6f85e6e0bb3edb6804a6690d52..331d7bd9051f15ea8cc03683e9c54234
      public final EntityTickList entityTickList = new EntityTickList(this); // DivineMC - Parallel world ticking
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
-@@ -790,6 +791,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -787,6 +788,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          // Paper start - rewrite chunk system
          this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup((ServerLevel)(Object)this, ((ServerLevel)(Object)this).new EntityCallbacks()));
          this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler((ServerLevel)(Object)this);
@@ -517,7 +517,7 @@ index 45725ee1937a9a6f85e6e0bb3edb6804a6690d52..331d7bd9051f15ea8cc03683e9c54234
          this.entityDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController(
              new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController.EntityRegionFileStorage(
                  new RegionStorageInfo(levelStorage.getLevelId(), dimension, "entities"),
-@@ -1036,8 +1038,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1020,8 +1022,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public boolean shouldTickBlocksAt(final long chunkPos) {
          // Paper start - rewrite chunk system
@@ -527,7 +527,7 @@ index 45725ee1937a9a6f85e6e0bb3edb6804a6690d52..331d7bd9051f15ea8cc03683e9c54234
          // Paper end - rewrite chunk system
      }
  
-@@ -3085,16 +3086,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3069,16 +3070,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      public boolean isPositionTickingWithEntitiesLoaded(final long key) {
          // Paper start - rewrite chunk system

@@ -271,11 +271,10 @@ public class DivineConfig {
         // Parallel world ticking settings
         @Experimental("Parallel World Ticking")
         public static boolean enableParallelWorldTicking = false;
-        public static int parallelThreadCount = 4;
-        public static boolean logContainerCreationStacktraces = false;
-        public static boolean disableHardThrow = false;
+        public static int maxConcurrentWorlds = 4;
         public static boolean usePerWorldTpsBar = true;
         public static boolean showTPSOfServerInsteadOfWorld = true;
+        public static boolean serializePluginListeners = false;
 
         // Regionized chunk ticking
         @Experimental("Regionized Chunk Ticking")
@@ -301,7 +300,6 @@ public class DivineConfig {
 
         // Async mob spawning settings
         public static boolean enableAsyncSpawning = true;
-        public static boolean asyncNaturalSpawn = true;
 
         // Portal search prefetch settings
         public static boolean portalSearchPrefetchEnabled = true;
@@ -358,28 +356,28 @@ public class DivineConfig {
             int max = maxThreads - 1;
             switch (maxThreads) {
                 case 6, 7, 8 -> {
-                    parallelThreadCount = 2;
+                    maxConcurrentWorlds = 2;
                     max -= 2;
                     regionizedChunkTickingExecutorThreadCount = max; // 3 - 5
                 }
                 case 9, 10, 11 -> {
-                    parallelThreadCount = 3;
+                    maxConcurrentWorlds = 3;
                     max -= 4;
                     regionizedChunkTickingExecutorThreadCount = max; // 4 - 6
                 }
                 case 12, 13, 14, 15 -> {
-                    parallelThreadCount = 4;
+                    maxConcurrentWorlds = 4;
                     max -= 5;
                     regionizedChunkTickingExecutorThreadCount = max; // 6 - 9
                 }
                 default -> {
-                    parallelThreadCount = 5;
+                    maxConcurrentWorlds = 5;
                     max -= 5;
                     regionizedChunkTickingExecutorThreadCount = Math.min(max, 16); // 10 - 16
                 }
             }
 
-            LOGGER.info("Auto-thread-allocation enabled, using {} threads for parallel world ticking and {} threads for regionized chunk ticking.", parallelThreadCount, regionizedChunkTickingExecutorThreadCount);
+            LOGGER.info("Auto-thread-allocation enabled, ticking up to {} worlds at once and using {} threads for regionized chunk ticking.", maxConcurrentWorlds, regionizedChunkTickingExecutorThreadCount);
         }
 
         private static void parallelWorldTicking() {
@@ -387,14 +385,25 @@ public class DivineConfig {
                 "Enables Parallel World Ticking, which executes each world's tick in a separate thread while ensuring that all worlds complete their tick before the next cycle begins.",
                 "",
                 "Read more info about this feature at https://bxteam.org/docs/divinemc/features/parallel-world-ticking");
-            parallelThreadCount = getInt(ConfigCategory.ASYNC.key("parallel-world-ticking.thread-count"), parallelThreadCount);
-            logContainerCreationStacktraces = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.log-container-creation-stacktraces"), logContainerCreationStacktraces);
-            disableHardThrow = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.disable-hard-throw"), disableHardThrow,
-                "Disables annoying 'not on main thread' throws. But, THIS IS NOT RECOMMENDED because you SHOULD FIX THE ISSUES THEMSELVES instead of RISKING DATA CORRUPTION! If you lose something, take the blame on yourself.");
+            maxConcurrentWorlds = getInt(
+                ConfigCategory.ASYNC.key("parallel-world-ticking.max-concurrent-worlds"),
+                ConfigCategory.ASYNC.key("parallel-world-ticking.thread-count"),
+                maxConcurrentWorlds,
+                "How many worlds may tick at the same time. Every world has its own tick thread; this limits how many",
+                "of them run at once. A world that waits for another world during its tick keeps its slot while waiting.");
             usePerWorldTpsBar = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.use-per-world-tps-bar"), usePerWorldTpsBar,
                 "Enables per-world TPS bar, which shows the TPS of the world the player is currently in. TPS bar can be turned on/off with /tpsbar command.");
             showTPSOfServerInsteadOfWorld = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.show-tps-of-server-instead-of-world"), showTPSOfServerInsteadOfWorld,
                 "Enables showing the TPS of the entire server instead of the world in the TPS bar.");
+            removeLegacy(
+                ConfigCategory.ASYNC.key("parallel-world-ticking.log-container-creation-stacktraces"),
+                ConfigCategory.ASYNC.key("parallel-world-ticking.disable-hard-throw")
+            );
+            serializePluginListeners = getBoolean(ConfigCategory.ASYNC.key("serialize-plugin-listeners"), serializePluginListeners,
+                "With parallel world ticking or regionized chunk ticking, event listeners run on several threads at once.",
+                "Most plugins keep their own state in plain collections that are not safe for that. When enabled, listeners of",
+                "plugins that do not declare 'folia-supported: true' run one at a time across all threads, which protects such",
+                "plugins at the cost of waiting between threads whenever their listeners are called.");
         }
 
         private static void regionizedChunkTicking() {
@@ -506,8 +515,7 @@ public class DivineConfig {
         private static void asyncMobSpawning() {
             enableAsyncSpawning = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.enable"), enableAsyncSpawning,
                 "Enables optimization that will offload much of the computational effort involved with spawning new mobs to a different thread.");
-            asyncNaturalSpawn = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.async-natural-spawn"), asyncNaturalSpawn,
-                "Enables offloading of natural spawning to a different thread");
+            removeLegacy(ConfigCategory.ASYNC.key("mob-spawning.async-natural-spawn"));
         }
 
         private static void portalSearchPrefetch() {

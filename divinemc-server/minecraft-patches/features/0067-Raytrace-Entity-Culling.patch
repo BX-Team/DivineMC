@@ -10,7 +10,7 @@ improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
 cannot see mobs, players or items through walls anymore).
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 62ca863b526783e5613e711af4bf2c316260dcf4..068000e971dd813ba3545ab6ba1a7d2983968a76 100644
+index 0f6d4971c6b998956ed97b6e3a09e1d0a169eb08..8c886b6f25a8ac84e8a569a4f6b05e0ece4d6ecd 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -1556,6 +1556,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -22,7 +22,7 @@ index 62ca863b526783e5613e711af4bf2c316260dcf4..068000e971dd813ba3545ab6ba1a7d29
              if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
                  visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index f1dbac0f83d2ddc65db68d095e7456d5de706777..09737379b4796e91ff65513e3a87007190d4e4c4 100644
+index a41944693ac48aaa23e907066da8abb138200818..f87f18fd2d1e5fd5519eb727f0ab1ffe8090c16c 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -444,6 +444,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -33,7 +33,7 @@ index f1dbac0f83d2ddc65db68d095e7456d5de706777..09737379b4796e91ff65513e3a870071
      public com.destroystokyo.paper.event.entity.@Nullable PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
      public org.bukkit.event.player.PlayerQuitEvent.@Nullable QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
      private boolean tpsBar = false; // Purpur - Implement TPSBar
-@@ -834,6 +835,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -832,6 +833,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
  
      public void doTick() {
          try {
@@ -54,7 +54,7 @@ index 8f0893d42dd56d8a3cac5d142f7d2b0d23eb435c..78d0c7af20b1fabc3994d34dab685a42
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index dbf889a030260d89bf12433460d74f5a6b558999..8772885cc50fe2b1f3a03f712107344f94ef9998 100644
+index 93c5110fd65c88924cc08148f80955ace3062324..7dc6dd1250b84539f6462c3314b67686de54234e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1164,6 +1164,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
