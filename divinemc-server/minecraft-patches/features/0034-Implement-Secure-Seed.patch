@@ -7,14 +7,14 @@ Original license: GPLv3
 Original project: https://github.com/plasmoapp/matter
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index d4512910e751a3e198fd3cb2c56d40dcdb46996b..47193eedb223b1f68785fcc6307a6bec15edc977 100644
+index d4512910e751a3e198fd3cb2c56d40dcdb46996b..8c28e4a8e08d38cb4657b25a8c3c9585ab56ce33 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -96,6 +96,7 @@ public class Main {
              if (pidFilePath != null) {
                  writePidFile(pidFilePath);
              }
-+            org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("divinemc-settings")).getBoolean(org.bxteam.divinemc.config.ConfigCategory.MISC.key("secure-seed.enable"), false); // DivineMC - Implement Secure Seed - WorldOptions and server.properties read it before DivineConfig loads
++            org.bxteam.divinemc.config.DivineConfig.MiscCategory.enableSecureSeed = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("divinemc-settings")).getBoolean(org.bxteam.divinemc.config.ConfigCategory.MISC.key("secure-seed.enable"), false); // DivineMC - Implement Secure Seed - read before DivineConfig loads
  
              // Paper start - Perf: Run CrashReport preload asynchronously
              // The actual result is discarded/irrelevant, but hardware and software info is memoized
@@ -223,10 +223,10 @@ index 3536bc2287ab5b285790dc496836cf43020b698c..f653f187b24aec91f780bb4b4ca89067
              String stepName = this.targetStatus.getName();
  
 diff --git a/net/minecraft/world/level/levelgen/WorldOptions.java b/net/minecraft/world/level/levelgen/WorldOptions.java
-index 4ad94af024d81b7dfe910dcee2a6ec7a9b200d56..df70356d452ad4d0a9ad192930f0ed03f3cdbb69 100644
+index 4ad94af024d81b7dfe910dcee2a6ec7a9b200d56..d30aeda6db3c4b30371978f7e337f1dc84300b59 100644
 --- a/net/minecraft/world/level/levelgen/WorldOptions.java
 +++ b/net/minecraft/world/level/levelgen/WorldOptions.java
-@@ -10,17 +10,26 @@ import net.minecraft.util.RandomSource;
+@@ -10,17 +10,28 @@ import net.minecraft.util.RandomSource;
  import org.apache.commons.lang3.StringUtils;
  
  public class WorldOptions {
@@ -250,12 +250,14 @@ index 4ad94af024d81b7dfe910dcee2a6ec7a9b200d56..df70356d452ad4d0a9ad192930f0ed03
 +            : new WorldOptions("North Carolina".hashCode(), true, true);
 +    // DivineMC end - Implement Secure Seed
      private final long seed;
-+    private long[] featureSeed = su.plo.matter.Globals.createRandomWorldSeed(); // DivineMC - Implement Secure Seed
-+    private boolean featureSeedLoaded = false; // DivineMC - Implement Secure Seed
++    // DivineMC start - Implement Secure Seed
++    private long[] featureSeed = su.plo.matter.Globals.createRandomWorldSeed();
++    private boolean featureSeedLoaded = false;
++    // DivineMC end - Implement Secure Seed
      private final boolean generateStructures;
      private final boolean generateBonusChest;
      private final Optional<String> legacyCustomOptions;
-@@ -29,10 +38,19 @@ public class WorldOptions {
+@@ -29,10 +40,19 @@ public class WorldOptions {
          this(seed, generateStructures, generateBonusChest, Optional.empty());
      }
  
@@ -276,7 +278,7 @@ index 4ad94af024d81b7dfe910dcee2a6ec7a9b200d56..df70356d452ad4d0a9ad192930f0ed03
      public static WorldOptions testWorldWithRandomSeed() {
          return new WorldOptions(randomSeed(), false, false);
      }
-@@ -44,10 +62,45 @@ public class WorldOptions {
+@@ -44,10 +64,45 @@ public class WorldOptions {
          this.legacyCustomOptions = legacyCustomOptions;
      }
  
@@ -322,7 +324,7 @@ index 4ad94af024d81b7dfe910dcee2a6ec7a9b200d56..df70356d452ad4d0a9ad192930f0ed03
      public boolean generateStructures() {
          return this.generateStructures;
      }
-@@ -60,17 +113,21 @@ public class WorldOptions {
+@@ -60,17 +115,21 @@ public class WorldOptions {
          return this.legacyCustomOptions.isPresent();
      }
  

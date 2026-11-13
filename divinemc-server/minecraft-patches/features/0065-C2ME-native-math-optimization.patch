@@ -9,7 +9,7 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 47193eedb223b1f68785fcc6307a6bec15edc977..a76d70740383fc22e626d9f918cb377c68444411 100644
+index 8c28e4a8e08d38cb4657b25a8c3c9585ab56ce33..e02fffc4373a838abb3f20e95200bd01b63196f8 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -113,6 +113,26 @@ public class Main {
@@ -40,13 +40,13 @@ index 47193eedb223b1f68785fcc6307a6bec15edc977..a76d70740383fc22e626d9f918cb377c
              Bootstrap.bootStrap();
              Bootstrap.validate();
 diff --git a/net/minecraft/world/level/biome/BiomeManager.java b/net/minecraft/world/level/biome/BiomeManager.java
-index 99b4cf3529c973c154277e07108fc6d2d0bead76..73ad063a380c54e0804455ae66dc03459d640337 100644
+index 6143c0a4503474bdb3282da0aff9058217f8c989..ac4a130f581a2d497adf8779d7e13b52bb14b014 100644
 --- a/net/minecraft/world/level/biome/BiomeManager.java
 +++ b/net/minecraft/world/level/biome/BiomeManager.java
 @@ -37,6 +37,16 @@ public class BiomeManager {
      }
  
-     public Holder<Biome> getBiome(final int blockX, final int blockY, final int blockZ) { // DivineMC - Carpet-Fixes: Optimized getBiome method - rename params
+     public Holder<Biome> getBiome(final int blockX, final int blockY, final int blockZ) { // DivineMC - Carpet-Fixes: Optimized getBiome method
 +        // DivineMC start - C2ME: native math optimization
 +        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
 +            final int mask = org.bxteam.divinemc.math.Bindings.c2me_natives_biome_access_sample(this.biomeZoomSeed, blockX, blockY, blockZ);
@@ -162,30 +162,30 @@ index 6da4d95f6a5f6043aaea6d62c550cd9f991da9ec..4c7af47ffdb3337cd23c51e2af97d4f1
  
      protected int permute(final int x) {
 diff --git a/net/minecraft/world/level/levelgen/synth/NoiseStack.java b/net/minecraft/world/level/levelgen/synth/NoiseStack.java
-index 3cb7094148b00eba7c46c3ec56653c02d179c6bb..e63aa4e9a964a9c2bb5e5b1551052ee37c55f8e3 100644
+index 3cb7094148b00eba7c46c3ec56653c02d179c6bb..c5451081ee1eb7c151919bd23f4009cd641f9b55 100644
 --- a/net/minecraft/world/level/levelgen/synth/NoiseStack.java
 +++ b/net/minecraft/world/level/levelgen/synth/NoiseStack.java
 @@ -76,12 +76,23 @@ public class NoiseStack implements Noise {
          }
  
          public NoiseStack.Builder add(final Noise noise, final double frequency, final float amplitude) {
-+            // DivineMC start - C2ME: native math optimization - flatten nested stacks so the specialized Perlin stacks can be used
++            // DivineMC start - C2ME: native math optimization - flatten nested stacks for the specialized Perlin stacks
 +            if (noise instanceof NoiseStack nested && org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
 +                return this.addStack(nested, frequency, amplitude);
 +            }
-+            // DivineMC end - C2ME: native math optimization - flatten nested stacks so the specialized Perlin stacks can be used
++            // DivineMC end - C2ME: native math optimization - flatten nested stacks for the specialized Perlin stacks
              this.layers.add(new NoiseStack.Layer(noise, frequency, amplitude));
              return this;
          }
  
          public NoiseStack.Builder addStack(final NoiseStack stack, final double frequency, final float amplitude) {
              for (NoiseStack.Layer layer : stack.layers) {
-+                // DivineMC start - C2ME: native math optimization - flatten nested stacks so the specialized Perlin stacks can be used
++                // DivineMC start - C2ME: native math optimization - flatten nested stacks for the specialized Perlin stacks
 +                if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.nativeAccelerationEnabled) {
 +                    this.add(layer.noise, layer.frequency * frequency, layer.amplitude * amplitude);
 +                    continue;
 +                }
-+                // DivineMC end - C2ME: native math optimization - flatten nested stacks so the specialized Perlin stacks can be used
++                // DivineMC end - C2ME: native math optimization - flatten nested stacks for the specialized Perlin stacks
                  this.layers.add(new NoiseStack.Layer(layer.noise, layer.frequency * frequency, layer.amplitude * amplitude));
              }
  

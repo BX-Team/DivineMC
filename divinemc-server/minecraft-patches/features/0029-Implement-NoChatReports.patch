@@ -120,7 +120,7 @@ index 0a3cffd6346b0a27078efb5083e42d1d68421342..30a84749f3e917a982a4f991a67ce8c1
      }
  }
 diff --git a/net/minecraft/network/protocol/status/ServerStatus.java b/net/minecraft/network/protocol/status/ServerStatus.java
-index 5eb7d46bf0d84720662125711fa7b544e9299446..5aecaee50918d60e2a4cac47fd204891cf6879e7 100644
+index 5eb7d46bf0d84720662125711fa7b544e9299446..9993c1ccd9137c618bcdf8f59914aa5074662857 100644
 --- a/net/minecraft/network/protocol/status/ServerStatus.java
 +++ b/net/minecraft/network/protocol/status/ServerStatus.java
 @@ -14,13 +14,7 @@ import net.minecraft.network.chat.Component;
@@ -142,7 +142,7 @@ index 5eb7d46bf0d84720662125711fa7b544e9299446..5aecaee50918d60e2a4cac47fd204891
              .apply(i, ServerStatus::new)
      );
  
-+    // DivineMC start - Implement NoChatReports - convert to class
++    // DivineMC start - Implement NoChatReports
 +    private final Component description;
 +    private final Optional<Players> players;
 +    private final Optional<Version> version;

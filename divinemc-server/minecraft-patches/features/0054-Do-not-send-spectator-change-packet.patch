@@ -5,7 +5,7 @@ Subject: [PATCH] Do not send spectator change packet
 
 
 diff --git a/net/minecraft/server/level/ServerPlayerGameMode.java b/net/minecraft/server/level/ServerPlayerGameMode.java
-index 35145e2543400ad273db37e87b7387ff4a92b1bb..e6f2181ee097cd54d4599b542bfe21fe7a9c7446 100644
+index de935251f7960ec6dc62944415f38932b07d6143..6a4dfdf9a2780b663530bdb33499d119b97391ca 100644
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
 @@ -91,10 +91,7 @@ public class ServerPlayerGameMode {
@@ -39,7 +39,7 @@ index 35145e2543400ad273db37e87b7387ff4a92b1bb..e6f2181ee097cd54d4599b542bfe21fe
 +    // DivineMC end - Do not send spectator change packet
  }
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index a15493ab7019ca47cd65c2d588dfb4e9192b005e..c34f5ba84a4c202b797576984c5c5b6a1cc4d591 100644
+index dd7676ee205f80930a885373c064bec2030da776..7787e0abbfbc4e6743c123392c47c2f849e5b3a9 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -268,6 +268,7 @@ public abstract class PlayerList {
@@ -73,7 +73,7 @@ index a15493ab7019ca47cd65c2d588dfb4e9192b005e..c34f5ba84a4c202b797576984c5c5b6a
          player.sentListPacket = true;
 @@ -1353,4 +1357,69 @@ public abstract class PlayerList {
          }
-         org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleDataPackReload(); // DivineMC - Leaves Protocol Core
+         org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleDataPackReload(); // DivineMC - Leaves: Protocol Core
      }
 +
 +    // DivineMC start - Do not send spectator change packet

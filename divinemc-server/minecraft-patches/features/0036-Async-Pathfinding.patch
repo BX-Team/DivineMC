@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: NONPLAYT <nonplay@bxteam.org>
 Date: Wed, 10 Dec 2025 23:34:59 +0300
-Subject: [PATCH] Petal: Async Pathfinding
+Subject: [PATCH] Async Pathfinding
 
 This patch is based on the following patch:
 "feat: async path processing"
@@ -11,7 +11,7 @@ Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 Makes most pathfinding-related work happen asynchronously
 
 diff --git a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
-index 08c99d327bfaef2996a1fda6c0b065c861c9484c..30c0f8e49eefd6a247f4622382f679b784c5b4fc 100644
+index 08c99d327bfaef2996a1fda6c0b065c861c9484c..b849879c7e9be1e2c2af52f918b58695131280bf 100644
 --- a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
 +++ b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
 @@ -58,11 +58,23 @@ public class AcquirePoi {
@@ -20,13 +20,13 @@ index 08c99d327bfaef2996a1fda6c0b065c861c9484c..30c0f8e49eefd6a247f4622382f679b7
          Long2ObjectMap<AcquirePoi.JitteredLinearRetry> batchCache = new Long2ObjectOpenHashMap<>();
 +        // DivineMC start - Async Pathfinding - per-instance pending state for polling
 +        final PendingPath[] pending = new PendingPath[1];
-+        // DivineMC end - Async Pathfinding
++        // DivineMC end - Async Pathfinding - per-instance pending state for polling
          OneShot<PathfinderMob> acquirePoi = BehaviorBuilder.create(
              i -> i.group(i.absent(memoryToAcquire))
                  .apply(
                      i,
                      toAcquire -> (level, body, timestamp) -> {
-+                        // DivineMC start - Async Pathfinding - drain pending async path on main thread before doing anything else
++                        // DivineMC start - Async Pathfinding - drain the pending async path first
 +                        PendingPath pendingPath = pending[0];
 +                        if (pendingPath != null) {
 +                            if (!pendingPath.path.isProcessed()) return false;
@@ -34,7 +34,7 @@ index 08c99d327bfaef2996a1fda6c0b065c861c9484c..30c0f8e49eefd6a247f4622382f679b7
 +                            applyPathResult(poiType, onPoiAcquisitionEvent, batchCache, toAcquire, level, body, timestamp, level.getPoiManager(), pendingPath.pois, pendingPath.path);
 +                            return true;
 +                        }
-+                        // DivineMC end - Async Pathfinding
++                        // DivineMC end - Async Pathfinding - drain the pending async path first
                          if (onlyIfAdult && body.isBaby()) {
                              return false;
                          }
@@ -42,7 +42,7 @@ index 08c99d327bfaef2996a1fda6c0b065c861c9484c..30c0f8e49eefd6a247f4622382f679b7
                              }
                          }
                          // Paper end - optimise POI searches
-+                        // DivineMC start - Async Pathfinding - defer instead of using callback so memory is set on main thread
++                        // DivineMC start - Async Pathfinding - defer so memory is set on the main thread
                          Path path = findPathToPois(body, poiPositions);
 -                        if (path != null && path.canReach()) {
 -                            BlockPos targetPos = path.getTarget();
@@ -62,7 +62,7 @@ index 08c99d327bfaef2996a1fda6c0b065c861c9484c..30c0f8e49eefd6a247f4622382f679b7
 +                            return false;
                          }
 +                        applyPathResult(poiType, onPoiAcquisitionEvent, batchCache, toAcquire, level, body, timestamp, poiManager, poiPositions, path);
-+                        // DivineMC end - Async Pathfinding
++                        // DivineMC end - Async Pathfinding - defer so memory is set on the main thread
  
                          return true;
                      }
@@ -104,7 +104,7 @@ index 08c99d327bfaef2996a1fda6c0b065c861c9484c..30c0f8e49eefd6a247f4622382f679b7
          if (pois.isEmpty()) {
              return null;
 diff --git a/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java b/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java
-index b40da004b5281a041ee896ae176bfb9c4660f353..7db8a05e560b808f9b3c9d92487f1fddbdfde17a 100644
+index b40da004b5281a041ee896ae176bfb9c4660f353..3237c3d59c120e3deebb9cac3d6649c7e7b94566 100644
 --- a/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java
 +++ b/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java
 @@ -20,6 +20,7 @@ public class MoveToTargetSink extends Behavior<Mob> {
@@ -132,7 +132,7 @@ index b40da004b5281a041ee896ae176bfb9c4660f353..7db8a05e560b808f9b3c9d92487f1fdd
  
      @Override
      protected boolean canStillUse(final ServerLevel level, final Mob body, final long timestamp) {
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding && !this.finishedProcessing) return true; // DivineMC - wait for processing
++        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding && !this.finishedProcessing) return true; // DivineMC - Async Pathfinding - wait for processing
          if (this.path != null && this.lastTargetPos != null) {
              Optional<WalkTarget> walkTarget = body.getBrain().getMemory(MemoryModuleType.WALK_TARGET);
              boolean isSpectator = walkTarget.map(MoveToTargetSink::isWalkTargetSpectator).orElse(false);
@@ -140,7 +140,7 @@ index b40da004b5281a041ee896ae176bfb9c4660f353..7db8a05e560b808f9b3c9d92487f1fdd
  
      @Override
      protected void start(final ServerLevel level, final Mob body, final long timestamp) {
-+        // DivineMC start - Async Pathfinding - start processing
++        // DivineMC start - Async Pathfinding
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +            Brain<?> brain = body.getBrain();
 +            WalkTarget walkTarget = brain.getMemory(MemoryModuleType.WALK_TARGET).get();
@@ -246,7 +246,7 @@ index b40da004b5281a041ee896ae176bfb9c4660f353..7db8a05e560b808f9b3c9d92487f1fdd
      private boolean tryComputePath(final Mob body, final WalkTarget walkTarget, final long timestamp) {
          BlockPos targetPos = walkTarget.getTarget().currentBlockPosition();
 diff --git a/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java b/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
-index 5bd7473b0db1a87f905c01c19ddf99e3a447bcfa..999215d25e45814537eb52e8c9aafb2b78abfe00 100644
+index 5bd7473b0db1a87f905c01c19ddf99e3a447bcfa..539f4f4b61c55ac268bd2e125eb71d87c0ede1ee 100644
 --- a/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
 +++ b/net/minecraft/world/entity/ai/behavior/SetClosestHomeAsWalkTarget.java
 @@ -29,11 +29,23 @@ public class SetClosestHomeAsWalkTarget {
@@ -255,13 +255,13 @@ index 5bd7473b0db1a87f905c01c19ddf99e3a447bcfa..999215d25e45814537eb52e8c9aafb2b
          MutableLong lastUpdate = new MutableLong(0L);
 +        // DivineMC start - Async Pathfinding - per-instance pending state for polling
 +        final Pending[] pending = new Pending[1];
-+        // DivineMC end - Async Pathfinding
++        // DivineMC end - Async Pathfinding - per-instance pending state for polling
          return BehaviorBuilder.create(
              i -> i.group(i.absent(MemoryModuleType.WALK_TARGET), i.absent(MemoryModuleType.HOME))
                  .apply(
                      i,
                      (walkTarget, home) -> (level, body, timestamp) -> {
-+                        // DivineMC start - Async Pathfinding - drain pending async path on main thread before doing anything else
++                        // DivineMC start - Async Pathfinding - drain the pending async path first
 +                        Pending pendingPath = pending[0];
 +                        if (pendingPath != null) {
 +                            if (!pendingPath.path.isProcessed()) return false;
@@ -269,7 +269,7 @@ index 5bd7473b0db1a87f905c01c19ddf99e3a447bcfa..999215d25e45814537eb52e8c9aafb2b
 +                            applyPathResult(speedModifier, batchCache, lastUpdate, walkTarget, level, level.getPoiManager(), pendingPath.tried, pendingPath.path);
 +                            return true;
 +                        }
-+                        // DivineMC end - Async Pathfinding
++                        // DivineMC end - Async Pathfinding - drain the pending async path first
                          if (level.getGameTime() - lastUpdate.longValue() < RATE) {
                              return false;
                          }
@@ -277,7 +277,7 @@ index 5bd7473b0db1a87f905c01c19ddf99e3a447bcfa..999215d25e45814537eb52e8c9aafb2b
                                      p -> p.is(PoiTypes.HOME), cacheTest, body.blockPosition(), AcquirePoi.SCAN_RANGE, PoiManager.Occupancy.ANY
                                  )
                                  .collect(Collectors.toSet());
-+                            // DivineMC start - Async Pathfinding - defer instead of using callback so memory is set on main thread
++                            // DivineMC start - Async Pathfinding - defer so memory is set on the main thread
                              Path path = AcquirePoi.findPathToPois(body, pois);
 -                            if (path != null && path.canReach()) {
 -                                BlockPos targetPos = path.getTarget();
@@ -293,7 +293,7 @@ index 5bd7473b0db1a87f905c01c19ddf99e3a447bcfa..999215d25e45814537eb52e8c9aafb2b
 +                                return false;
                              }
 +                            applyPathResult(speedModifier, batchCache, lastUpdate, walkTarget, level, poiManager, triedCount.intValue(), path);
-+                            // DivineMC end - Async Pathfinding
++                            // DivineMC end - Async Pathfinding - defer so memory is set on the main thread
  
                              return true;
                          } else {
@@ -438,7 +438,7 @@ index 1f9575ce0ee72e95acb8f269328f06e1c262c71b..2981677f82006b85a1bfc0506cb855ce
      }
  
 diff --git a/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
-index 191127f2ffb09c5a709461753f4169731302eb3e..d1cebf851692fd4936d757c9444969e6aa31b5a4 100644
+index 191127f2ffb09c5a709461753f4169731302eb3e..ab310e2b01ab5014d04913fb89b31dbda92f5816 100644
 --- a/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 @@ -167,6 +167,12 @@ public abstract class PathNavigation {
@@ -496,8 +496,8 @@ index 191127f2ffb09c5a709461753f4169731302eb3e..d1cebf851692fd4936d757c9444969e6
  
 -        this.trimPath();
 -        if (this.path.getNodeCount() <= 0) {
-+        if (path.isProcessed()) this.trimPath(); // DivineMC - only trim if processed
-+        if (path.isProcessed() && this.path.getNodeCount() <= 0) { // DivineMC - only check node count if processed
++        if (path.isProcessed()) this.trimPath(); // DivineMC - Async Pathfinding - only trim if processed
++        if (path.isProcessed() && this.path.getNodeCount() <= 0) { // DivineMC - Async Pathfinding - only check node count if processed
              return false;
          }
  
@@ -505,7 +505,7 @@ index 191127f2ffb09c5a709461753f4169731302eb3e..d1cebf851692fd4936d757c9444969e6
          if (this.hasDelayedRecomputation) {
              this.recomputePath();
          }
-+        if (this.path != null && !this.path.isProcessed()) return; // DivineMC - skip pathfinding if we're still processing
++        if (this.path != null && !this.path.isProcessed()) return; // DivineMC - Async Pathfinding - skip while still processing
  
          if (!this.isDone()) {
              if (this.canUpdatePath()) {
@@ -513,7 +513,7 @@ index 191127f2ffb09c5a709461753f4169731302eb3e..d1cebf851692fd4936d757c9444969e6
      }
  
      protected void followThePath() {
-+        if (!this.path.isProcessed()) return; // DivineMC - skip if not processed
++        if (!this.path.isProcessed()) return; // DivineMC - Async Pathfinding - skip if not processed
          Vec3 mobPos = this.getTempMobPos();
          this.maxDistanceToWaypoint = this.mob.getBbWidth() > 0.75F ? this.mob.getBbWidth() / 2.0F : 0.75F - this.mob.getBbWidth() / 2.0F;
          Vec3i currentNodePos = this.path.getNextNodePos();
@@ -522,7 +522,7 @@ index 191127f2ffb09c5a709461753f4169731302eb3e..d1cebf851692fd4936d757c9444969e6
          if (this.hasDelayedRecomputation) {
              return false;
 -        } else if (this.path != null && !this.path.isDone() && this.path.getNodeCount() != 0) {
-+        } else if (this.path != null && this.path.isProcessed() && !this.path.isDone() && this.path.getNodeCount() != 0) { // DivineMC - Skip if not processed
++        } else if (this.path != null && this.path.isProcessed() && !this.path.isDone() && this.path.getNodeCount() != 0) { // DivineMC - Async Pathfinding - skip if not processed
              Node target = this.path.getEndNode();
              Vec3 middlePos = new Vec3((target.x + this.mob.getX()) / 2.0, (target.y + this.mob.getY()) / 2.0, (target.z + this.mob.getZ()) / 2.0);
              return pos.closerToCenterThan(middlePos, this.path.getNodeCount() - this.path.getNextNodeIndex());
@@ -559,7 +559,7 @@ index 87ccac321c3a087158602d87e4d05b3273545cf1..e03f508b9d9f4cb5410aa7a01132d977
      }
  
 diff --git a/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java b/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
-index 535cdcd8266dced3aca0e6b71806bbbd80c70228..a4add7896617aad918e3bc3f0ae24e753c9052b5 100644
+index 535cdcd8266dced3aca0e6b71806bbbd80c70228..0b704b5ac72ecab7e680f8c50a570ce5388b5853 100644
 --- a/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/NearestBedSensor.java
 @@ -26,6 +26,7 @@ public class NearestBedSensor extends Sensor<Mob> {
@@ -574,7 +574,7 @@ index 535cdcd8266dced3aca0e6b71806bbbd80c70228..a4add7896617aad918e3bc3f0ae24e75
  
      @Override
      protected void doTick(final ServerLevel level, final Mob body) {
-+        // DivineMC start - Async Pathfinding - drain pending async path on main thread
++        // DivineMC start - Async Pathfinding - drain the pending async path on the main thread
 +        if (this.pending != null) {
 +            if (!this.pending.isProcessed()) return;
 +            Path done = this.pending;
@@ -582,7 +582,7 @@ index 535cdcd8266dced3aca0e6b71806bbbd80c70228..a4add7896617aad918e3bc3f0ae24e75
 +            applyPathResult(body, level.getPoiManager(), done);
 +            return;
 +        }
-+        // DivineMC end - Async Pathfinding
++        // DivineMC end - Async Pathfinding - drain the pending async path on the main thread
          if (body.isBaby()) {
              this.triedCount = 0;
              this.lastUpdate = level.getGameTime() + level.getRandom().nextInt(20);
@@ -590,7 +590,7 @@ index 535cdcd8266dced3aca0e6b71806bbbd80c70228..a4add7896617aad918e3bc3f0ae24e75
                      e -> e.is(PoiTypes.HOME), cacheTest, body.blockPosition(), level.purpurConfig.villagerNearestBedSensorSearchRadius, PoiManager.Occupancy.ANY // Purpur - Configurable villager search radius
                  )
                  .collect(Collectors.toSet());
-+            // DivineMC start - Async Pathfinding - defer instead of using callback so memory is set on main thread
++            // DivineMC start - Async Pathfinding - defer so memory is set on the main thread
              Path path = AcquirePoi.findPathToPois(body, pois);
 -            if (path != null && path.canReach()) {
 -                BlockPos targetPos = path.getTarget();
@@ -605,7 +605,7 @@ index 535cdcd8266dced3aca0e6b71806bbbd80c70228..a4add7896617aad918e3bc3f0ae24e75
 +                return;
 +            }
 +            applyPathResult(body, poiManager, path);
-+            // DivineMC end - Async Pathfinding
++            // DivineMC end - Async Pathfinding - defer so memory is set on the main thread
 +        }
 +    }
 +
@@ -624,7 +624,7 @@ index 535cdcd8266dced3aca0e6b71806bbbd80c70228..a4add7896617aad918e3bc3f0ae24e75
 +    // DivineMC end - Async Pathfinding
  }
 diff --git a/net/minecraft/world/entity/animal/bee/Bee.java b/net/minecraft/world/entity/animal/bee/Bee.java
-index 1ec514e77fbd4b14508202a4a80543ac004fe2ea..b3e21f9b66f996a69109dae0447b9490a694c9dd 100644
+index 1ec514e77fbd4b14508202a4a80543ac004fe2ea..a72ca50b666c34e0188c4038e94b131cd6349e0e 100644
 --- a/net/minecraft/world/entity/animal/bee/Bee.java
 +++ b/net/minecraft/world/entity/animal/bee/Bee.java
 @@ -957,7 +957,7 @@ public class Bee extends Animal implements NeutralMob {
@@ -632,7 +632,7 @@ index 1ec514e77fbd4b14508202a4a80543ac004fe2ea..b3e21f9b66f996a69109dae0447b9490
                              Bee.this.pathfindRandomlyTowards(Bee.this.hivePos);
                          }
 -                    } else {
-+                    } else if (Bee.this.navigation.getPath() != null && Bee.this.navigation.getPath().isProcessed()) { // DivineMC - check processing
++                    } else if (Bee.this.navigation.getPath() != null && Bee.this.navigation.getPath().isProcessed()) { // DivineMC - Async Pathfinding
                          boolean canReachAllTheWayToTarget = this.pathfindDirectlyTowards(Bee.this.hivePos);
                          if (!canReachAllTheWayToTarget) {
                              this.dropAndBlacklistHive();
@@ -641,7 +641,7 @@ index 1ec514e77fbd4b14508202a4a80543ac004fe2ea..b3e21f9b66f996a69109dae0447b9490
  
              Path path = Bee.this.navigation.getPath();
 -            return path != null && path.getTarget().equals(targetPos) && path.canReach() && path.isDone();
-+            return path != null && path.isProcessed() && path.getTarget().equals(targetPos) && path.canReach() && path.isDone(); // DivineMC - ensure path is processed
++            return path != null && path.isProcessed() && path.getTarget().equals(targetPos) && path.canReach() && path.isDone(); // DivineMC - Async Pathfinding - ensure path is processed
          }
      }
  
@@ -699,7 +699,7 @@ index d976a02d034a589c9c0cbea0416cd996e54c2197..d8d04f336ae4399688544f1ed0aa752c
                  this.mob.setSpeedModifier(0.0);
              } else if (this.hasWanted() || this.operation == MoveControl.Operation.JUMPING) {
 diff --git a/net/minecraft/world/entity/monster/Strider.java b/net/minecraft/world/entity/monster/Strider.java
-index 7c910f14559f08ca2c73fd224f71e9c80dc95227..bdf6870656d7dec96e4c095b4c021e786af4534d 100644
+index 7c910f14559f08ca2c73fd224f71e9c80dc95227..41c6aae4a001e483a45170df7476fe09e3810748 100644
 --- a/net/minecraft/world/entity/monster/Strider.java
 +++ b/net/minecraft/world/entity/monster/Strider.java
 @@ -594,9 +594,25 @@ public class Strider extends Animal implements ItemSteerable {
@@ -724,7 +724,7 @@ index 7c910f14559f08ca2c73fd224f71e9c80dc95227..bdf6870656d7dec96e4c095b4c021e78
 +            if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfinding) {
 +                return new PathFinder(this.nodeEvaluator, maxVisitedNodes, nodeEvaluatorGenerator);
 +            }
-+            // DivineMC end
++            // DivineMC end - Async Pathfinding
              return new PathFinder(this.nodeEvaluator, maxVisitedNodes);
          }
  
@@ -816,14 +816,14 @@ index 62c7ba74e22df3a3d681c6e1c80e31d308aefe94..78ee202ca9cc1850b7325dc096f6c157
      }
  
 diff --git a/net/minecraft/world/level/pathfinder/PathFinder.java b/net/minecraft/world/level/pathfinder/PathFinder.java
-index b903ae067130b460fca782fa8f37e9405670eeee..3ca89a54244892ecd6fd0b83ab7397d7e0f21a32 100644
+index b903ae067130b460fca782fa8f37e9405670eeee..59e9d71a41a0f7cb81f01820c644363da7b9db99 100644
 --- a/net/minecraft/world/level/pathfinder/PathFinder.java
 +++ b/net/minecraft/world/level/pathfinder/PathFinder.java
 @@ -19,6 +19,8 @@ import net.minecraft.world.entity.Mob;
  import net.minecraft.world.level.PathNavigationRegion;
  import org.jspecify.annotations.Nullable;
  
-+import org.bxteam.divinemc.async.pathfinding.NodeEvaluatorGenerator; // DivineMC - Petal: Async Pathfinding
++import org.bxteam.divinemc.async.pathfinding.NodeEvaluatorGenerator; // DivineMC - Async Pathfinding
 +
  public class PathFinder {
      private static final float FUDGING = 1.5F;
@@ -953,16 +953,18 @@ index b903ae067130b460fca782fa8f37e9405670eeee..3ca89a54244892ecd6fd0b83ab7397d7
          ProfilerFiller profiler = Profiler.get();
          profiler.push("find_path");
          profiler.markForCharting(MetricCategory.PATH_FINDING);
-@@ -76,20 +155,20 @@ public class PathFinder {
+@@ -76,20 +155,22 @@ public class PathFinder {
          from.g = 0.0F;
          from.h = this.getBestH(from, targets);
          from.f = from.h;
 -        this.openSet.clear();
 -        this.openSet.insert(from);
 -        boolean captureDebug = this.captureDebug.getAsBoolean();
-+        openSet.clear(); // DivineMC - Async Pathfinding
-+        openSet.insert(from); // DivineMC - Async Pathfinding
-+        boolean captureDebug = captureDebugSupplier.getAsBoolean(); // DivineMC - Async Pathfinding
++        // DivineMC start - Async Pathfinding
++        openSet.clear();
++        openSet.insert(from);
++        boolean captureDebug = captureDebugSupplier.getAsBoolean();
++        // DivineMC end - Async Pathfinding
          Set<Node> closedSet = captureDebug ? new HashSet<>() : Set.of();
          int count = 0;
          List<Map.Entry<Target, BlockPos>> reachedTargets = Lists.newArrayListWithExpectedSize(targets.size()); // Paper - optimize collection
@@ -980,7 +982,7 @@ index b903ae067130b460fca782fa8f37e9405670eeee..3ca89a54244892ecd6fd0b83ab7397d7
              current.closed = true;
  
              // Paper start - Perf: remove streams and optimize collection
-@@ -112,10 +191,10 @@ public class PathFinder {
+@@ -112,10 +193,10 @@ public class PathFinder {
              }
  
              if (!(current.distanceTo(from) >= maxPathLength)) {
@@ -993,7 +995,7 @@ index b903ae067130b460fca782fa8f37e9405670eeee..3ca89a54244892ecd6fd0b83ab7397d7
                      float distance = this.distance(current, neighbor);
                      neighbor.walkedDistance = current.walkedDistance + distance;
                      float tentativeGScore = current.g + distance + neighbor.costMalus;
-@@ -124,10 +203,10 @@ public class PathFinder {
+@@ -124,10 +205,10 @@ public class PathFinder {
                          neighbor.g = tentativeGScore;
                          neighbor.h = this.getBestH(neighbor, targets) * 1.5F;
                          if (neighbor.inOpenSet()) {
@@ -1006,7 +1008,7 @@ index b903ae067130b460fca782fa8f37e9405670eeee..3ca89a54244892ecd6fd0b83ab7397d7
                          }
                      }
                  }
-@@ -152,9 +231,9 @@ public class PathFinder {
+@@ -152,9 +233,9 @@ public class PathFinder {
              for(Map.Entry<Target, BlockPos> entry : targets) {
                  set.add(entry.getKey());
              }

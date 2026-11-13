@@ -7,19 +7,19 @@ Original project: https://github.com/LeavesMC/Leaves
 Original license: GPLv3
 
 diff --git a/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java b/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
-index 08e253662a2c183c0ab53a51cc07485cff33bf2c..9ba33e2bbb7fb8309bfadecd6f5d370a7c9bead0 100644
+index 08e253662a2c183c0ab53a51cc07485cff33bf2c..950865b1f116a92f3425da53c310a180af015e14 100644
 --- a/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 +++ b/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 @@ -40,13 +40,22 @@ public interface CustomPacketPayload {
  
              @Override
              public void encode(final B output, final CustomPacketPayload value) {
-+                // DivineMC start - Leaves Protocol Core
++                // DivineMC start - Leaves: Protocol Core
 +                if (value instanceof org.leavesmc.leaves.protocol.core.LeavesCustomPayload payload) {
 +                    org.leavesmc.leaves.protocol.core.LeavesProtocolManager.encode(output, payload);
 +                    return;
 +                }
-+                // DivineMC end - Leaves Protocol Core
++                // DivineMC end - Leaves: Protocol Core
                  this.writeCap(output, value.type(), value);
              }
  
@@ -27,35 +27,35 @@ index 08e253662a2c183c0ab53a51cc07485cff33bf2c..9ba33e2bbb7fb8309bfadecd6f5d370a
              public CustomPacketPayload decode(final B input) {
                  Identifier identifier = input.readIdentifier();
 -                return (CustomPacketPayload)this.findCodec(identifier).decode(input);
-+                // DivineMC start - Leaves Protocol Core
++                // DivineMC start - Leaves: Protocol Core
 +                var payload = org.leavesmc.leaves.protocol.core.LeavesProtocolManager.decode(identifier, input);
 +                return java.util.Objects.requireNonNullElseGet(payload, () -> this.findCodec(identifier).decode(input));
-+                // DivineMC end - Leaves Protocol Core
++                // DivineMC end - Leaves: Protocol Core
              }
          };
      }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 7b832a51259e00ea6beab77bf38bf78630f52065..d2314304dd830a47cf8ff220f88dcd04b54a5f34 100644
+index 26b4f9cea06c45d208846009d4672080634173c1..177eb90e633c3e36584f1836583948c94de788fa 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1915,6 +1915,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          profiler.popPush("server gui refresh");
  
-+        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(tickCount); // DivineMC - Leaves Protocol Core
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(tickCount); // DivineMC - Leaves: Protocol Core
 +
          for (Runnable tickable : this.tickables) {
              tickable.run();
          }
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index fad5c662280084b734afd6a7d1c24d6caaa45637..2236cc746a7085a4c3b48f17fcf5493e4db9631c 100644
+index fad5c662280084b734afd6a7d1c24d6caaa45637..cee178c0e433c9178c8af18ea14d5b22f697838e 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -62,6 +62,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
      public @Nullable String clientBrand;
      public final java.util.Set<String> pluginMessagerChannels;
      // Paper end - retain certain values
-+    public final GameProfile profile; // DivineMC - Leaves Protocol Core
++    public final GameProfile profile; // DivineMC - Leaves: Protocol Core
  
      public ServerCommonPacketListenerImpl(final MinecraftServer server, final Connection connection, final CommonListenerCookie cookie) {
          this.server = server;
@@ -63,7 +63,7 @@ index fad5c662280084b734afd6a7d1c24d6caaa45637..2236cc746a7085a4c3b48f17fcf5493e
          this.pluginMessagerChannels = cookie.channels();
          this.keepAlive = cookie.keepAlive();
          // Paper end
-+        this.profile = cookie.gameProfile(); // DivineMC - Leaves Protocol Core
++        this.profile = cookie.gameProfile(); // DivineMC - Leaves: Protocol Core
      }
  
      // Paper start - configuration phase API
@@ -71,7 +71,7 @@ index fad5c662280084b734afd6a7d1c24d6caaa45637..2236cc746a7085a4c3b48f17fcf5493e
  
      @Override
      public void handleCustomPayload(final ServerboundCustomPayloadPacket packet) {
-+        // DivineMC start - Leaves Protocol Core
++        // DivineMC start - Leaves: Protocol Core
 +        if (packet.payload() instanceof org.leavesmc.leaves.protocol.core.LeavesCustomPayload leavesPayload) {
 +            org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePayload(org.leavesmc.leaves.protocol.core.ProtocolUtils.createSelector(this), leavesPayload);
 +            return;
@@ -81,7 +81,7 @@ index fad5c662280084b734afd6a7d1c24d6caaa45637..2236cc746a7085a4c3b48f17fcf5493e
 +                return;
 +            }
 +        }
-+        // DivineMC end - Leaves Protocol Core
++        // DivineMC end - Leaves: Protocol Core
          // Paper start
          if (!(packet.payload() instanceof final net.minecraft.network.protocol.common.custom.DiscardedPayload discardedPayload)) {
              return;
@@ -89,19 +89,19 @@ index fad5c662280084b734afd6a7d1c24d6caaa45637..2236cc746a7085a4c3b48f17fcf5493e
          final String channel = new String(data, from, length, java.nio.charset.StandardCharsets.US_ASCII);
          if (register) {
              bridge.addChannel(channel);
-+            org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleMinecraftRegister(channel, org.leavesmc.leaves.protocol.core.ProtocolUtils.createSelector(this)); // DivineMC - Leaves Protocol Core
++            org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleMinecraftRegister(channel, org.leavesmc.leaves.protocol.core.ProtocolUtils.createSelector(this)); // DivineMC - Leaves: Protocol Core
          } else {
              bridge.removeChannel(channel);
          }
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 2102d6c4f0bd6a662672361da1a37ba318933583..a15493ab7019ca47cd65c2d588dfb4e9192b005e 100644
+index 2102d6c4f0bd6a662672361da1a37ba318933583..dd7676ee205f80930a885373c064bec2030da776 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -256,6 +256,8 @@ public abstract class PlayerList {
              return;
          }
  
-+            org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerJoin(player); // DivineMC - Leaves Protocol Core
++            org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerJoin(player); // DivineMC - Leaves: Protocol Core
 +
          final net.kyori.adventure.text.Component jm = playerJoinEvent.joinMessage();
  
@@ -110,7 +110,7 @@ index 2102d6c4f0bd6a662672361da1a37ba318933583..a15493ab7019ca47cd65c2d588dfb4e9
          return this.remove(player, net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? player.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(player.getDisplayName())));
      }
      public net.kyori.adventure.text.@Nullable Component remove(final ServerPlayer player, final net.kyori.adventure.text.Component leaveMessage) {
-+        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerLeave(player); // DivineMC - Leaves Protocol Core
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerLeave(player); // DivineMC - Leaves: Protocol Core
          // Paper end - Fix kick event leave message not being sent
          org.purpurmc.purpur.task.BossBarTask.removeFromAll(player.getBukkitEntity()); // Purpur - Implement TPSBar
          ServerLevel level = player.level();
@@ -118,6 +118,6 @@ index 2102d6c4f0bd6a662672361da1a37ba318933583..a15493ab7019ca47cd65c2d588dfb4e9
              player.connection.send(recipes);
              player.getRecipeBook().sendInitialRecipeBook(player);
          }
-+        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleDataPackReload(); // DivineMC - Leaves Protocol Core
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleDataPackReload(); // DivineMC - Leaves: Protocol Core
      }
  }

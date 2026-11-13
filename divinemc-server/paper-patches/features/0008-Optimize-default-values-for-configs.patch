@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize default values for configs
 
 
 diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
-index 025ec3f3e84a3367b4d709c8c3ecd98f6dfecab4..2d980416885ec4b39aaf74509b5519f86ab29195 100644
+index 025ec3f3e84a3367b4d709c8c3ecd98f6dfecab4..c241bb05fe8f292ba198ec0f1bd5e95566ce789a 100644
 --- a/src/main/java/org/spigotmc/SpigotConfig.java
 +++ b/src/main/java/org/spigotmc/SpigotConfig.java
 @@ -284,7 +284,7 @@ public class SpigotConfig {
@@ -13,7 +13,7 @@ index 025ec3f3e84a3367b4d709c8c3ecd98f6dfecab4..2d980416885ec4b39aaf74509b5519f8
      public static boolean saveUserCacheOnStopOnly;
      private static void saveUserCacheOnStopOnly() {
 -        SpigotConfig.saveUserCacheOnStopOnly = SpigotConfig.getBoolean("settings.save-user-cache-on-stop-only", false);
-+        SpigotConfig.saveUserCacheOnStopOnly = SpigotConfig.getBoolean("settings.save-user-cache-on-stop-only", true); // DivineMC - Optimize default values for configs - usercache is a rebuildable cache, no need to rewrite it on every disconnect
++        SpigotConfig.saveUserCacheOnStopOnly = SpigotConfig.getBoolean("settings.save-user-cache-on-stop-only", true); // DivineMC - Optimize default values for configs - usercache is a rebuildable cache
      }
  
      public static double movedWronglyThreshold;

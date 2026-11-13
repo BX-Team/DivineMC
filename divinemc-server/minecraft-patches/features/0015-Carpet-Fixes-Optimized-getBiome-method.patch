@@ -7,7 +7,7 @@ Original license: MIT
 Original project: https://github.com/fxmorin/carpet-fixes
 
 diff --git a/net/minecraft/world/level/biome/BiomeManager.java b/net/minecraft/world/level/biome/BiomeManager.java
-index 65ac39fd0e481b83cb9fad00b6482051dce20759..99b4cf3529c973c154277e07108fc6d2d0bead76 100644
+index 65ac39fd0e481b83cb9fad00b6482051dce20759..6143c0a4503474bdb3282da0aff9058217f8c989 100644
 --- a/net/minecraft/world/level/biome/BiomeManager.java
 +++ b/net/minecraft/world/level/biome/BiomeManager.java
 @@ -14,6 +14,10 @@ public class BiomeManager {
@@ -52,7 +52,7 @@ index 65ac39fd0e481b83cb9fad00b6482051dce20759..99b4cf3529c973c154277e07108fc6d2
 -            if (minFiddledDistance > next) {
 -                minI = i;
 -                minFiddledDistance = next;
-+    public Holder<Biome> getBiome(final int blockX, final int blockY, final int blockZ) { // DivineMC - Carpet-Fixes: Optimized getBiome method - rename params
++    public Holder<Biome> getBiome(final int blockX, final int blockY, final int blockZ) { // DivineMC - Carpet-Fixes: Optimized getBiome method
 +        // DivineMC start - Carpet-Fixes: Optimized getBiome method
 +        int xMinus2 = blockX - 2;
 +        int yMinus2 = blockY - 2;

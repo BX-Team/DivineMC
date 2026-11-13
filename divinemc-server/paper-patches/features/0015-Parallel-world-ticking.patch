@@ -6,14 +6,14 @@ Subject: [PATCH] Parallel world ticking
 Original project: https://github.com/SparklyPower/SparklyPaper
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
-index 41a725e9926767fbbf2a3e3558f850f0d57c5945..f7548a5ced385e3cea4626e0dcf00ea471ab4f1b 100644
+index 41a725e9926767fbbf2a3e3558f850f0d57c5945..4d3c0c15477374a506343e4d02b29da2c0c1537a 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
 @@ -127,7 +127,18 @@ public final class IteratorSafeOrderedReferenceSet<E> {
          }
      }
  
-+    // DivineMC start - Parallel world ticking - locked only while a level can be touched by more than one thread
++    // DivineMC start - Parallel world ticking - locked only while levels are shared
      public boolean remove(final E element) {
 +        if (org.bxteam.divinemc.async.LevelThreads.SHARED) {
 +            synchronized (this) {
@@ -24,7 +24,7 @@ index 41a725e9926767fbbf2a3e3558f850f0d57c5945..f7548a5ced385e3cea4626e0dcf00ea4
 +    }
 +
 +    private boolean remove0(final E element) {
-+    // DivineMC end - Parallel world ticking - locked only while a level can be touched by more than one thread
++    // DivineMC end - Parallel world ticking - locked only while levels are shared
          final int index = this.indexMap.removeInt(element);
          if (index >= 0) {
              if (this.firstInvalidIndex < 0 || index < this.firstInvalidIndex) {
@@ -32,7 +32,7 @@ index 41a725e9926767fbbf2a3e3558f850f0d57c5945..f7548a5ced385e3cea4626e0dcf00ea4
          return false;
      }
  
-+    // DivineMC start - Parallel world ticking - locked only while a level can be touched by more than one thread
++    // DivineMC start - Parallel world ticking - locked only while levels are shared
      public boolean contains(final E element) {
 +        if (org.bxteam.divinemc.async.LevelThreads.SHARED) {
 +            synchronized (this) {
@@ -43,11 +43,11 @@ index 41a725e9926767fbbf2a3e3558f850f0d57c5945..f7548a5ced385e3cea4626e0dcf00ea4
 +    }
 +
 +    private boolean contains0(final E element) {
-+    // DivineMC end - Parallel world ticking - locked only while a level can be touched by more than one thread
++    // DivineMC end - Parallel world ticking - locked only while levels are shared
          return this.indexMap.containsKey(element);
      }
  
-+    // DivineMC start - Parallel world ticking - locked only while a level can be touched by more than one thread
++    // DivineMC start - Parallel world ticking - locked only while levels are shared
      public boolean add(final E element) {
 +        if (org.bxteam.divinemc.async.LevelThreads.SHARED) {
 +            synchronized (this) {
@@ -58,24 +58,26 @@ index 41a725e9926767fbbf2a3e3558f850f0d57c5945..f7548a5ced385e3cea4626e0dcf00ea4
 +    }
 +
 +    private boolean add0(final E element) {
-+    // DivineMC end - Parallel world ticking - locked only while a level can be touched by more than one thread
++    // DivineMC end - Parallel world ticking - locked only while levels are shared
          final int listSize = this.listSize;
  
          final int previous = this.indexMap.putIfAbsent(element, listSize);
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
-index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..e970526494e406fc71a0387d6fd3ae8856a47d71 100644
+index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..987dae50827dedb9e939016702be0556d1695bc0 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
-@@ -14,6 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger;
+@@ -14,6 +14,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  public class TickThread extends Thread {
  
      private static final Logger LOGGER = LoggerFactory.getLogger(TickThread.class);
-+    public final org.bxteam.divinemc.util.HopperEventFlags hopperEventFlags = new org.bxteam.divinemc.util.HopperEventFlags(); // DivineMC - Parallel world ticking - per-thread hopper event flags
-+    public final org.bxteam.divinemc.async.ThreadState threadState = new org.bxteam.divinemc.async.ThreadState(); // DivineMC - Parallel world ticking - per-thread copies of upstream statics
++    // DivineMC start - Parallel world ticking - per-thread copies of upstream statics
++    public final org.bxteam.divinemc.util.HopperEventFlags hopperEventFlags = new org.bxteam.divinemc.util.HopperEventFlags();
++    public final org.bxteam.divinemc.async.ThreadState threadState = new org.bxteam.divinemc.async.ThreadState();
++    // DivineMC end - Parallel world ticking - per-thread copies of upstream statics
  
      private static String getThreadContext() {
          return "thread=" + Thread.currentThread().getName();
-@@ -26,30 +28,30 @@ public class TickThread extends Thread {
+@@ -26,30 +30,30 @@ public class TickThread extends Thread {
      public static void ensureTickThread(final String reason) {
          if (!isTickThread()) {
              LOGGER.error("Thread failed main thread check: " + reason + ", context=" + getThreadContext(), new Throwable());
@@ -112,7 +114,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..e970526494e406fc71a0387d6fd3ae88
              final String ex = "Thread failed main thread check: " +
                  reason + ", context=" + getThreadContext() + ", world=" + WorldUtil.getWorldName(world) + ", chunk_pos=" + pos;
              LOGGER.error(ex, new Throwable());
-@@ -58,41 +60,93 @@ public class TickThread extends Thread {
+@@ -58,41 +62,93 @@ public class TickThread extends Thread {
      }
  
      public static void ensureTickThread(final Level world, final int chunkX, final int chunkZ, final String reason) {
@@ -214,7 +216,7 @@ index 69cdd304d255d52c9b7dc9b6a33ffdb630b79abe..e970526494e406fc71a0387d6fd3ae88
      public final int id; /* We don't override getId as the spec requires that it be unique (with respect to all other threads) */
  
      private static final AtomicInteger ID_GENERATOR = new AtomicInteger();
-@@ -126,47 +180,71 @@ public class TickThread extends Thread {
+@@ -126,47 +182,71 @@ public class TickThread extends Thread {
          return false;
      }
  
@@ -626,22 +628,24 @@ index cce0fb6d98cd0dd7c6cd02c3513b1a2649ee5ba9..1a4f8098d0739dba290bfc5ca0dd2534
          if (event.callEvent()) {
              boolean result = snapshot.place(flags);
 diff --git a/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboardManager.java b/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboardManager.java
-index 6d8a050a17dd9df9d8b49787e3821244e8e2b545..8f51e5d43458b94a4b8b7e9e9fba1d6c3be59340 100644
+index 6d8a050a17dd9df9d8b49787e3821244e8e2b545..df033107ee2f4f328723e99c36553e4cbfb72e0d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboardManager.java
 +++ b/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboardManager.java
 @@ -98,8 +98,15 @@ public final class CraftScoreboardManager implements ScoreboardManager {
  
      // CraftBukkit method
      public void forAllObjectives(ObjectiveCriteria criteria, ScoreHolder holder, Consumer<ScoreAccess> consumer) {
-+        org.bxteam.divinemc.async.ServerStateLock.lock(); // DivineMC - Parallel world ticking - scoreboards are shared by every level thread
-+        try { // DivineMC - Parallel world ticking
-         for (CraftScoreboard scoreboard : this.scoreboards) {
-             scoreboard.getHandle().forAllObjectives(criteria, holder, consumer);
-         }
+-        for (CraftScoreboard scoreboard : this.scoreboards) {
+-            scoreboard.getHandle().forAllObjectives(criteria, holder, consumer);
 +        // DivineMC start - Parallel world ticking
++        org.bxteam.divinemc.async.ServerStateLock.lock();
++        try {
++            for (CraftScoreboard scoreboard : this.scoreboards) {
++                scoreboard.getHandle().forAllObjectives(criteria, holder, consumer);
++            }
 +        } finally {
 +            org.bxteam.divinemc.async.ServerStateLock.unlock();
-+        }
+         }
 +        // DivineMC end - Parallel world ticking
      }
  }

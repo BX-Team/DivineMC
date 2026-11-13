@@ -5,7 +5,7 @@ Subject: [PATCH] Async locate command
 
 
 diff --git a/net/minecraft/server/commands/LocateCommand.java b/net/minecraft/server/commands/LocateCommand.java
-index d018ec1c7876ddc883223d548fbe6a513e14bcfe..c9633a4e09bebb9107351b7965b00831898d81b0 100644
+index d018ec1c7876ddc883223d548fbe6a513e14bcfe..0e09c6cff0952ac60a261105c5b31d7e46b3f9a8 100644
 --- a/net/minecraft/server/commands/LocateCommand.java
 +++ b/net/minecraft/server/commands/LocateCommand.java
 @@ -93,33 +93,57 @@ public class LocateCommand {
@@ -27,7 +27,7 @@ index d018ec1c7876ddc883223d548fbe6a513e14bcfe..c9633a4e09bebb9107351b7965b00831
 -        } else {
 -            return showLocateResult(source, resourceOrTag, sourcePos, nearest, "commands.locate.structure.success", false, stopwatch.elapsed());
 -        }
-+        // DivineMC start - Async structure locate
++        // DivineMC start - Async locate command
 +        io.papermc.paper.util.MCUtil.scheduleAsyncTask(() -> {
 +            Registry<Structure> registry = source.getLevel().registryAccess().lookupOrThrow(Registries.STRUCTURE);
 +            HolderSet<Structure> target;
@@ -55,7 +55,7 @@ index d018ec1c7876ddc883223d548fbe6a513e14bcfe..c9633a4e09bebb9107351b7965b00831
 +        });
 +
 +        return 0;
-+        // DivineMC end - Async structure locate
++        // DivineMC end - Async locate command
      }
  
      private static int locateBiome(final CommandSourceStack source, final ResourceOrTagArgument.Result<Biome> elementOrTag) throws CommandSyntaxException {
@@ -68,7 +68,7 @@ index d018ec1c7876ddc883223d548fbe6a513e14bcfe..c9633a4e09bebb9107351b7965b00831
 -        } else {
 -            return showLocateResult(source, elementOrTag, sourcePos, nearest, "commands.locate.biome.success", true, stopwatch.elapsed());
 -        }
-+        // DivineMC start - Async biome locate
++        // DivineMC start - Async locate command
 +        io.papermc.paper.util.MCUtil.scheduleAsyncTask(() -> {
 +            BlockPos sourcePos = BlockPos.containing(source.getPosition());
 +            Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
@@ -86,7 +86,7 @@ index d018ec1c7876ddc883223d548fbe6a513e14bcfe..c9633a4e09bebb9107351b7965b00831
 +        });
 +
 +        return 0;
-+        // DivineMC end - Async biome locate
++        // DivineMC end - Async locate command
      }
  
      private static int locatePoi(final CommandSourceStack source, final ResourceOrTagArgument.Result<PoiType> resourceOrTag) throws CommandSyntaxException {
@@ -95,12 +95,12 @@ index d018ec1c7876ddc883223d548fbe6a513e14bcfe..c9633a4e09bebb9107351b7965b00831
              );
          source.sendSuccess(() -> Component.translatable(successMessageKey, foundName, coordinates, distance), false);
 -        LOGGER.info("Locating element {} took {} ms", foundName, taskDuration.toMillis());
-+        LOGGER.info("Locating element {} on Thread:{} took {} ms", foundName, Thread.currentThread().getName(), taskDuration.toMillis()); // DivineMC - Log thread name
++        LOGGER.info("Locating element {} on Thread:{} took {} ms", foundName, Thread.currentThread().getName(), taskDuration.toMillis()); // DivineMC - Async locate command
          return distance;
      }
  
 diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
-index cc4800823c20e8ecbf0b4d74fd85a22bcb70c74c..37cd7372c52e5a7bd5c9104edead729287514e54 100644
+index 221657b7387f4ab0a1862127c90499f97bcc2276..eb437e79832baa611c431511731db231159c0736 100644
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
 @@ -185,7 +185,12 @@ public abstract class ChunkGenerator {

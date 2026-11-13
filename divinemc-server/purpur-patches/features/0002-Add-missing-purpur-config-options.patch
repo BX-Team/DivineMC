@@ -25,7 +25,7 @@ index 586a3fa8595f7f2ac79cd3b222562c0347d3ed0e..4e0d10d48cd1f7edad8759a785bba463
          org.bukkit.event.inventory.InventoryType.ENDER_CHEST.setDefaultSize(enderChestSixRows ? 54 : 27);
          enderChestPermissionRows = getBoolean("settings.blocks.ender_chest.use-permissions-for-rows", enderChestPermissionRows);
 diff --git a/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java b/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
-index 431ac327da1c1cc051bc77d6fcf2a5aadfc307ed..11cc8ddbe6835289e3c17269c9a3768999f2772e 100644
+index 431ac327da1c1cc051bc77d6fcf2a5aadfc307ed..e9e5d93f57bbf785d33b9d4f1ddb3fdc8e678731 100644
 --- a/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
 +++ b/src/main/java/org/purpurmc/purpur/PurpurWorldConfig.java
 @@ -937,6 +937,10 @@ public class PurpurWorldConfig {
@@ -35,7 +35,7 @@ index 431ac327da1c1cc051bc77d6fcf2a5aadfc307ed..11cc8ddbe6835289e3c17269c9a37689
 +    // DivineMC start - Add missing purpur config options
 +    public boolean allayTakeDamageFromWater = false;
 +    public boolean allayAlwaysDropExp = false;
-+    // DivineMC end
++    // DivineMC end - Add missing purpur config options
      private void allaySettings() {
          allayRidable = getBoolean("mobs.allay.ridable", allayRidable);
          allayRidableInWater = getBoolean("mobs.allay.ridable-in-water", allayRidableInWater);

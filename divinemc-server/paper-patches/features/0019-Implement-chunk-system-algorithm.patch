@@ -7,7 +7,7 @@ This patch adds configurable chunk system algorithms for determining
 worker thread allocation for chunk loading and generation.
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
-index b9f788693b0c4be48e8a923a3dec50555d135e7e..4f727a8a6885d0b119fa1c1dfeb96960ba3977b4 100644
+index b9f788693b0c4be48e8a923a3dec50555d135e7e..f16ada6b7209e002bc5acaa58b0d9c777483b9e3 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/MoonriseCommon.java
 @@ -39,27 +39,17 @@ public final class MoonriseCommon {
@@ -41,7 +41,7 @@ index b9f788693b0c4be48e8a923a3dec50555d135e7e..4f727a8a6885d0b119fa1c1dfeb96960
          IO_POOL.adjustThreadCount(ioThreads);
  
 -        LOGGER.info(PlatformHooks.get().getBrand() + " is using " + workerThreads + " worker threads, " + ioThreads + " I/O threads");
-+        LOGGER.info("{} is using {} worker threads, {} I/O threads", PlatformHooks.get().getBrand(), workerThreads, ioThreads); // DivineMC - Implement chunk system algorithm - better logging
++        LOGGER.info("{} is using {} worker threads, {} I/O threads", PlatformHooks.get().getBrand(), workerThreads, ioThreads); // DivineMC - Implement chunk system algorithm
      }
  
      public static final long IO_QUEUE_HOLD_TIME = (long)(25.0e6); // 25ms

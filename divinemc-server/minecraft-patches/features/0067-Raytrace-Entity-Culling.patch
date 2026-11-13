@@ -10,7 +10,7 @@ improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
 cannot see mobs, players or items through walls anymore).
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 0f6d4971c6b998956ed97b6e3a09e1d0a169eb08..8c886b6f25a8ac84e8a569a4f6b05e0ece4d6ecd 100644
+index 6545e363c5f7ac70ae86c5ab0bacdf99b290e1a9..4840d11f1d789d3b298ab961b44189c5f812ba11 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -1556,6 +1556,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -22,7 +22,7 @@ index 0f6d4971c6b998956ed97b6e3a09e1d0a169eb08..8c886b6f25a8ac84e8a569a4f6b05e0e
              if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
                  visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index a41944693ac48aaa23e907066da8abb138200818..f87f18fd2d1e5fd5519eb727f0ab1ffe8090c16c 100644
+index 55b96bf8ef37686ddb989c1fd42cb78078dfa60f..115a86768d740516bf887be239d059283c013cbd 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -444,6 +444,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -54,12 +54,12 @@ index 8f0893d42dd56d8a3cac5d142f7d2b0d23eb435c..78d0c7af20b1fabc3994d34dab685a42
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 93c5110fd65c88924cc08148f80955ace3062324..7dc6dd1250b84539f6462c3314b67686de54234e 100644
+index 9f3ca8b876cde6a3edc3b24eea1035df45876516..5484224bd28644723ef3afb7213eafbb73eb5d3e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1164,6 +1164,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          }
-         // DivineMC end - Imanity: Raytrace AntiXraySDK integration
+         // DivineMC end - Raytrace AntiXray SDK integration
          this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
 +        org.bxteam.divinemc.culling.EntityCullingManager.onBlockChange(this, pos); // DivineMC - Raytrace Entity Culling
          if (oldState == null) {

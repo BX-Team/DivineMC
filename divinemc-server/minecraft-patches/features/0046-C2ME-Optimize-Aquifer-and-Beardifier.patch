@@ -11,21 +11,21 @@ As part of: C2ME (https://github.com/RelativityMC/C2ME-fabric)
 Licensed under: MIT (https://opensource.org/licenses/MIT)
 
 diff --git a/net/minecraft/world/level/levelgen/Aquifer.java b/net/minecraft/world/level/levelgen/Aquifer.java
-index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3a5ce8f51 100644
+index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..9027968360c940890a2dca95b8e612946a23da0d 100644
 --- a/net/minecraft/world/level/levelgen/Aquifer.java
 +++ b/net/minecraft/world/level/levelgen/Aquifer.java
 @@ -123,6 +123,14 @@ public interface Aquifer {
          private final int gridSizeZ;
          private final DensitySampler.Bound surfaceLevel;
          private final Long2IntMap surfaceLevelCache = new Long2IntOpenHashMap();
-+        // DivineMC start - C2ME: Optimize Aquifer
++        // DivineMC start - C2ME: Optimize Aquifer and Beardifier
 +        private int c2me$packed1;
 +        private int c2me$packed2;
 +        private int c2me$packed3;
 +        private int c2me$packed4;
 +        private double c2me$mutableDoubleThingy;
 +        private final short[] c2me$packedBlockPositions;
-+        // DivineMC end - C2ME: Optimize Aquifer
++        // DivineMC end - C2ME: Optimize Aquifer and Beardifier
          private static final int[][] SURFACE_SAMPLING_OFFSETS_IN_CHUNKS = new int[][]{
              {0, 0}, {-2, -1}, {-1, -1}, {0, -1}, {1, -1}, {-3, 0}, {-2, 0}, {-1, 0}, {1, 0}, {-2, 1}, {-1, 1}, {0, 1}, {1, 1}
          };
@@ -33,7 +33,7 @@ index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3
              this.aquiferCache = new Aquifer.FluidStatus[totalGridSize];
              this.aquiferLocationCache = new long[totalGridSize];
              Arrays.fill(this.aquiferLocationCache, Long.MAX_VALUE);
-+            // DivineMC start - C2ME: Optimize Aquifer - preload aquifer locations
++            // DivineMC start - C2ME: Optimize Aquifer and Beardifier - preload aquifer locations
 +            if (this.aquiferLocationCache.length % (this.gridSizeX * this.gridSizeZ) != 0) {
 +                throw new AssertionError("Array length");
 +            }
@@ -57,7 +57,7 @@ index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3
 +                    }
 +                }
 +            }
-+            // DivineMC end - C2ME: Optimize Aquifer - preload aquifer locations
++            // DivineMC end - C2ME: Optimize Aquifer and Beardifier - preload aquifer locations
              int maxAdjustedSurfaceLevel = this.adjustSurfaceLevel(
                  this.maxSurfaceLevel(fromGridX(this.minGridX, 0), fromGridZ(this.minGridZ, 0), fromGridX(maxGridX, 9), fromGridZ(maxGridZ, 9))
              );
@@ -194,10 +194,10 @@ index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3
 -
 -                return actualFluidState;
 -            }
-+            // DivineMC start - C2ME: Optimize Aquifer
++            // DivineMC start - C2ME: Optimize Aquifer and Beardifier
 +            this.c2me$refreshClosest(blockX, blockY, blockZ);
 +            return this.c2me$computeSubstancePost(blockX, blockY, blockZ, density);
-+            // DivineMC end - C2ME: Optimize Aquifer
++            // DivineMC end - C2ME: Optimize Aquifer and Beardifier
          }
  
          @Override
@@ -205,7 +205,7 @@ index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3
              }
          }
  
-+        // DivineMC start - C2ME: Optimize Aquifer
++        // DivineMC start - C2ME: Optimize Aquifer and Beardifier
 +        private @Nullable BlockState c2me$computeSubstancePost(final int blockX, final int blockY, final int blockZ, final double density) {
 +            Aquifer.FluidStatus closestStatus1 = this.getAquiferStatus(c2me$unpackPosIdx(this.c2me$packed1));
 +            double similarity12 = similarity(c2me$unpackDist(this.c2me$packed1), c2me$unpackDist(this.c2me$packed2));
@@ -397,7 +397,7 @@ index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3
 +        private static int c2me$unpackPosIdx(final int packed) {
 +            return packed & 0xffff;
 +        }
-+        // DivineMC end - C2ME: Optimize Aquifer
++        // DivineMC end - C2ME: Optimize Aquifer and Beardifier
 +
          private static int gridX(final int blockCoord) {
              return blockCoord >> 4;
@@ -408,7 +408,7 @@ index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3
                  int distanceBelowSurface = this.adjustSurfaceLevel(lowestSurfaceLevel) - y;
 -                int floodednessMaxDepth = 64;
 -                double floodednessFactor = surfaceAtCenterIsUnderGlobalFluidLevel ? Mth.clampedMap(distanceBelowSurface, 0.0, 64.0, 1.0, 0.0) : 0.0;
-+                // DivineMC start - C2ME: Optimize Aquifer - inline Mth.clampedMap and Mth.map
++                // DivineMC start - C2ME: Optimize Aquifer and Beardifier - inline Mth.clampedMap and Mth.map
 +                double floodednessFactor = surfaceAtCenterIsUnderGlobalFluidLevel ? Mth.clampedLerp(distanceBelowSurface / 64.0, 1.0, 0.0) : 0.0;
                  double floodednessNoiseValue = Mth.clamp(this.fluidLevelFloodednessNoise.sampleValue(x, y, z), -1.0, 1.0);
 -                double fullyFloodedThreshold = Mth.map(floodednessFactor, 1.0, 0.0, -0.3, 0.8);
@@ -417,7 +417,7 @@ index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3
 -                fullyFloodidness = floodednessNoiseValue - fullyFloodedThreshold;
 +                partiallyFloodedness = floodednessNoiseValue + 0.8 + (floodednessFactor - 1.0) * 1.2;
 +                fullyFloodidness = floodednessNoiseValue + 0.3 + (floodednessFactor - 1.0) * 1.1;
-+                // DivineMC end - C2ME: Optimize Aquifer - inline Mth.clampedMap and Mth.map
++                // DivineMC end - C2ME: Optimize Aquifer and Beardifier - inline Mth.clampedMap and Mth.map
              }
  
              int fluidSurfaceLevel;
@@ -428,17 +428,17 @@ index 7b53acc0c5f02bc1ae27852b36b6864baa1a72de..4189966e8247cbefea7a8c24b6cd3ca3
 -                int fluidTypeCellWidth = 64;
 -                int fluidTypeCellHeight = 40;
 -                int fluidTypeCellX = Math.floorDiv(x, 64);
-+                // DivineMC start - C2ME: Optimize Aquifer - use bit shift instead of Math.floorDiv for power-of-two divisors
++                // DivineMC start - C2ME: Optimize Aquifer and Beardifier - bit shift for power-of-two divisors
 +                int fluidTypeCellX = x >> 6;
                  int fluidTypeCellY = Math.floorDiv(y, 40);
 -                int fluidTypeCellZ = Math.floorDiv(z, 64);
 +                int fluidTypeCellZ = z >> 6;
-+                // DivineMC end - C2ME: Optimize Aquifer - use bit shift instead of Math.floorDiv for power-of-two divisors
++                // DivineMC end - C2ME: Optimize Aquifer and Beardifier - bit shift for power-of-two divisors
                  double lavaNoiseValue = this.lavaNoise.sampleValue(fluidTypeCellX, fluidTypeCellY, fluidTypeCellZ);
                  if (Math.abs(lavaNoiseValue) > 0.3) {
                      fluidType = Blocks.LAVA.defaultBlockState();
 diff --git a/net/minecraft/world/level/levelgen/LegacyRandomSource.java b/net/minecraft/world/level/levelgen/LegacyRandomSource.java
-index 81e02ed613d8122074be7893d7ba33241e6137b2..957bd83dc66e8b93b1172e29bef32220d34d4201 100644
+index 81e02ed613d8122074be7893d7ba33241e6137b2..f473b2bd33291ce5f7da052960155d023dbedc5f 100644
 --- a/net/minecraft/world/level/levelgen/LegacyRandomSource.java
 +++ b/net/minecraft/world/level/levelgen/LegacyRandomSource.java
 @@ -53,13 +53,7 @@ public class LegacyRandomSource implements BitRandomSource {
@@ -452,12 +452,12 @@ index 81e02ed613d8122074be7893d7ba33241e6137b2..957bd83dc66e8b93b1172e29bef32220
 -            this.seed = seed;
 -        }
 -
-+    public record LegacyPositionalRandomFactory(long seed) implements PositionalRandomFactory { // DivineMC - make record
++    public record LegacyPositionalRandomFactory(long seed) implements PositionalRandomFactory { // DivineMC - C2ME: Optimize Aquifer and Beardifier
          @Override
          public RandomSource at(final int x, final int y, final int z) {
              long positionalSeed = Mth.getSeed(x, y, z);
 diff --git a/net/minecraft/world/level/levelgen/XoroshiroRandomSource.java b/net/minecraft/world/level/levelgen/XoroshiroRandomSource.java
-index e3acb8578ebcd1a533d7b65331cf6e5da0714481..bfad38d70138a526bdfe866e9d4ee527e63d16d4 100644
+index e3acb8578ebcd1a533d7b65331cf6e5da0714481..f0059a44074f3489ead23a505cc54157a0001260 100644
 --- a/net/minecraft/world/level/levelgen/XoroshiroRandomSource.java
 +++ b/net/minecraft/world/level/levelgen/XoroshiroRandomSource.java
 @@ -109,15 +109,7 @@ public class XoroshiroRandomSource implements RandomSource {
@@ -473,7 +473,7 @@ index e3acb8578ebcd1a533d7b65331cf6e5da0714481..bfad38d70138a526bdfe866e9d4ee527
 -            this.seedHi = seedHi;
 -        }
 -
-+    public record XoroshiroPositionalRandomFactory(long seedLo, long seedHi) implements PositionalRandomFactory { // DivineMC - make record
++    public record XoroshiroPositionalRandomFactory(long seedLo, long seedHi) implements PositionalRandomFactory { // DivineMC - C2ME: Optimize Aquifer and Beardifier
          @Override
          public RandomSource at(final int x, final int y, final int z) {
              long positionalSeed = Mth.getSeed(x, y, z);
