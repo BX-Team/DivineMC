@@ -23,8 +23,9 @@ import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.SavedDataStorage;
+import org.bxteam.divinemc.async.world.LevelHandoff;
+import org.bxteam.divinemc.async.world.ParallelWorldTicking;
 import org.bxteam.divinemc.util.NamedAgnosticThreadFactoryAffinity;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -45,6 +46,8 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     public static final Executor REGION_EXECUTOR = Executors.newFixedThreadPool(regionizedChunkTickingExecutorThreadCount,
         new NamedAgnosticThreadFactoryAffinity<>("Region Ticking", TickThread.RegionTickThread::new, regionizedChunkTickingExecutorThreadPriority, regionizedChunkTickingAffinity)
     );
+    private static final int REGION_THREADS = regionizedChunkTickingExecutorThreadCount;
+    private static int blockedWorkers;
     public static final boolean CHECK_OWNERSHIP = Boolean.getBoolean("divinemc.rct.checkOwnership");
     private static final int TILE_SHIFT = 3;
     private static final int COLORS = 4;
@@ -119,11 +122,11 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     }
 
     @Override
-    protected void iterateTickingChunksFaster(final @NotNull CompletableFuture<Void> spawns) {
+    protected void iterateTickingChunksFaster() {
         this.tickCount++;
         if (this.serialTicksLeft > 0) {
             this.serialTicksLeft--;
-            super.iterateTickingChunksFaster(spawns);
+            super.iterateTickingChunksFaster();
             return;
         }
 
@@ -147,7 +150,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                 tile.lastCost = 0;
             }
             this.logUnits("Ticking serially for " + SERIAL_HOLD_TICKS + " ticks\n");
-            super.iterateTickingChunksFaster(spawns);
+            super.iterateTickingChunksFaster();
             return;
         }
 
@@ -160,8 +163,6 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         for (final Tile tile : this.mainThreadTiles) {
             this.tickTileBlocks(tile, randomTickSpeed);
         }
-
-        RegionWorkerWait.join(this, spawns);
 
         this.pendingEntityTick = true;
         this.blockPhaseNanos = System.nanoTime() - start;
@@ -657,6 +658,25 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     }
 
     /**
+     * Called by a region worker before it blocks on another level or on the server state lock. The pool is shared by
+     * every level, and the level it waits for may need a pool thread to finish its own tick, so the pool gets one more
+     * thread for as long as the worker blocks.
+     */
+    public static synchronized void beginBlocking() {
+        final java.util.concurrent.ThreadPoolExecutor pool = (java.util.concurrent.ThreadPoolExecutor) REGION_EXECUTOR;
+        blockedWorkers++;
+        pool.setMaximumPoolSize(REGION_THREADS + blockedWorkers);
+        pool.setCorePoolSize(REGION_THREADS + blockedWorkers);
+    }
+
+    public static synchronized void endBlocking() {
+        final java.util.concurrent.ThreadPoolExecutor pool = (java.util.concurrent.ThreadPoolExecutor) REGION_EXECUTOR;
+        blockedWorkers--;
+        pool.setCorePoolSize(REGION_THREADS + blockedWorkers);
+        pool.setMaximumPoolSize(REGION_THREADS + blockedWorkers);
+    }
+
+    /**
      * Runs {@code task} with the current region worker marked as ticking {@code level}, so that thread checks done
      * under parallel world ticking accept this level and reject every other one.
      */
@@ -667,9 +687,15 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         }
         final ServerLevel previous = thread.currentlyTickingServerLevel;
         thread.currentlyTickingServerLevel = level;
+        if (ParallelWorldTicking.ENABLED) {
+            LevelHandoff.enterLevel(level);
+        }
         try {
             task.run();
         } finally {
+            if (ParallelWorldTicking.ENABLED) {
+                LevelHandoff.leaveLevel(level);
+            }
             thread.currentlyTickingServerLevel = previous;
         }
     }

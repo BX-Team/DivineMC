@@ -1,0 +1,127 @@
+package org.bxteam.divinemc.async;
+
+import ca.spottedleaf.moonrise.common.util.TickThread;
+import java.util.concurrent.locks.ReentrantLock;
+import org.bxteam.divinemc.async.rct.RegionizedChunkTicking;
+import org.bxteam.divinemc.async.world.LevelHandoff;
+import org.bxteam.divinemc.async.world.ParallelWorldTicking;
+import org.jspecify.annotations.NullMarked;
+
+/**
+ * Serializes writes to server-wide state that levels ticking in parallel reach from their own threads: command
+ * execution (scoreboard, command storage, boss bars, functions), scoreboard criteria and loot random sequences.
+ * {@link #lock} and {@link #lockLendable} do nothing unless parallel world ticking is enabled; {@link ListenerSerialization}
+ * also takes it under regionized chunk ticking.
+ * <p>
+ * A level thread that waits for the lock in {@link #lockLendable} or {@link #lockAlways} (a command or a plugin
+ * listener is about to run) lends its levels to the holder, see {@link LevelHandoff}.
+ */
+@NullMarked
+public final class ServerStateLock {
+    private static final ReentrantLock LOCK = new ReentrantLock();
+
+    private ServerStateLock() {
+    }
+
+    public static void lock() {
+        if (ParallelWorldTicking.ENABLED) {
+            acquire(false);
+        }
+    }
+
+    public static void lockLendable() {
+        if (ParallelWorldTicking.ENABLED) {
+            acquire(true);
+        }
+    }
+
+    public static void unlock() {
+        if (ParallelWorldTicking.ENABLED) {
+            release();
+        }
+    }
+
+    public static void lockAlways() {
+        if (ParallelWorldTicking.ENABLED) {
+            acquire(true);
+        } else {
+            LOCK.lock();
+        }
+    }
+
+    public static void unlockAlways() {
+        if (ParallelWorldTicking.ENABLED) {
+            release();
+        } else {
+            LOCK.unlock();
+        }
+    }
+
+    /**
+     * Fully releases the lock if the current thread holds it, before that thread waits for another level or for
+     * another thread to run chunk tasks; whoever it waits for may need the lock to get there.
+     *
+     * @return the hold count to pass to {@link #reacquireAfterWait}
+     */
+    public static int releaseForWait() {
+        if (!LOCK.isHeldByCurrentThread()) {
+            return 0;
+        }
+        final int holds = LOCK.getHoldCount();
+        if (ParallelWorldTicking.ENABLED) {
+            LevelHandoff.stateLockReleasing(Thread.currentThread());
+        }
+        for (int i = 0; i < holds; i++) {
+            LOCK.unlock();
+        }
+        return holds;
+    }
+
+    public static void reacquireAfterWait(final int holds) {
+        if (holds == 0) {
+            return;
+        }
+        if (ParallelWorldTicking.ENABLED) {
+            acquire(true);
+        } else {
+            LOCK.lock();
+        }
+        for (int i = 1; i < holds; i++) {
+            LOCK.lock();
+        }
+    }
+
+    public static boolean isHeldByCurrentThread() {
+        return LOCK.isHeldByCurrentThread();
+    }
+
+    private static void acquire(final boolean lendable) {
+        if (!LOCK.tryLock()) {
+            final boolean registered = LevelHandoff.waitForStateLock(lendable);
+            final boolean worker = registered && Thread.currentThread() instanceof TickThread.RegionTickThread;
+            if (worker) {
+                RegionizedChunkTicking.beginBlocking();
+            }
+            try {
+                LOCK.lock();
+            } finally {
+                if (worker) {
+                    RegionizedChunkTicking.endBlocking();
+                }
+                if (registered) {
+                    LevelHandoff.stopWaitingForStateLock();
+                }
+            }
+        }
+        if (LOCK.getHoldCount() == 1) {
+            LevelHandoff.stateLockAcquired(Thread.currentThread());
+        }
+    }
+
+    private static void release() {
+        if (LOCK.getHoldCount() == 1) {
+            LevelHandoff.stateLockReleasing(Thread.currentThread());
+        }
+        LOCK.unlock();
+    }
+}

@@ -35,10 +35,10 @@ index 08e253662a2c183c0ab53a51cc07485cff33bf2c..9ba33e2bbb7fb8309bfadecd6f5d370a
          };
      }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 57358e5cd3edf3a5bc65a02bd9e869403e69170c..1f48736d3329e2f0eecc3e32a8ac8696c868efed 100644
+index 7b832a51259e00ea6beab77bf38bf78630f52065..d2314304dd830a47cf8ff220f88dcd04b54a5f34 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1937,6 +1937,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1915,6 +1915,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          profiler.popPush("server gui refresh");
  
@@ -94,7 +94,7 @@ index fad5c662280084b734afd6a7d1c24d6caaa45637..2236cc746a7085a4c3b48f17fcf5493e
              bridge.removeChannel(channel);
          }
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 5ff4e10d1a5460a5868fedd97912e23f15dc690f..0e106111d79ac6dbbd08328b852a938033e6fc5c 100644
+index 2102d6c4f0bd6a662672361da1a37ba318933583..a15493ab7019ca47cd65c2d588dfb4e9192b005e 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -256,6 +256,8 @@ public abstract class PlayerList {
@@ -114,7 +114,7 @@ index 5ff4e10d1a5460a5868fedd97912e23f15dc690f..0e106111d79ac6dbbd08328b852a9380
          // Paper end - Fix kick event leave message not being sent
          org.purpurmc.purpur.task.BossBarTask.removeFromAll(player.getBukkitEntity()); // Purpur - Implement TPSBar
          ServerLevel level = player.level();
-@@ -1349,5 +1352,6 @@ public abstract class PlayerList {
+@@ -1348,5 +1351,6 @@ public abstract class PlayerList {
              player.connection.send(recipes);
              player.getRecipeBook().sendInitialRecipeBook(player);
          }

@@ -2,7 +2,9 @@ package org.bxteam.divinemc.async.rct;
 
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
-import org.bxteam.divinemc.config.DivineConfig;
+import org.bxteam.divinemc.async.ServerStateLock;
+import org.bxteam.divinemc.async.world.LevelHandoff;
+import org.bxteam.divinemc.async.world.ParallelWorldTicking;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.Set;
@@ -27,18 +29,27 @@ public final class RegionWorkerWait {
     }
 
     public static void block(final ServerChunkCache chunkSource, final BooleanSupplier condition) {
-        chunkSource.blockedRegionWorkers.incrementAndGet();
-        BLOCKED.incrementAndGet();
+        // the chunk tasks fire events on the level's thread, whose listeners take this lock
+        final int stateLockHolds = ServerStateLock.releaseForWait();
         try {
-            for (final Thread joiner : JOINERS) {
-                LockSupport.unpark(joiner);
-            }
-            while (!condition.getAsBoolean()) {
-                LockSupport.parkNanos(chunkSource, POLL_NANOS);
+            chunkSource.blockedRegionWorkers.incrementAndGet();
+            BLOCKED.incrementAndGet();
+            // the level's thread may itself be waiting for another level, whose tick needs a pool thread
+            RegionizedChunkTicking.beginBlocking();
+            try {
+                for (final Thread joiner : JOINERS) {
+                    LockSupport.unpark(joiner);
+                }
+                while (!condition.getAsBoolean()) {
+                    LockSupport.parkNanos(chunkSource, POLL_NANOS);
+                }
+            } finally {
+                RegionizedChunkTicking.endBlocking();
+                BLOCKED.decrementAndGet();
+                chunkSource.blockedRegionWorkers.decrementAndGet();
             }
         } finally {
-            BLOCKED.decrementAndGet();
-            chunkSource.blockedRegionWorkers.decrementAndGet();
+            ServerStateLock.reacquireAfterWait(stateLockHolds);
         }
     }
 
@@ -46,6 +57,9 @@ public final class RegionWorkerWait {
         if (!future.isDone()) {
             final Thread thread = Thread.currentThread();
             JOINERS.add(thread);
+            if (ParallelWorldTicking.ENABLED) {
+                LevelHandoff.beginJoin((ServerLevel) chunkSource.getLevel());
+            }
             try {
                 future.whenComplete((result, throwable) -> LockSupport.unpark(thread));
                 while (!future.isDone()) {
@@ -56,6 +70,9 @@ public final class RegionWorkerWait {
                     }
                 }
             } finally {
+                if (ParallelWorldTicking.ENABLED) {
+                    LevelHandoff.endJoin();
+                }
                 JOINERS.remove(thread);
             }
         }
@@ -63,7 +80,7 @@ public final class RegionWorkerWait {
     }
 
     private static boolean runTasks(final ServerChunkCache chunkSource) {
-        if (DivineConfig.AsyncCategory.enableParallelWorldTicking) {
+        if (ParallelWorldTicking.ENABLED) {
             return chunkSource.blockedRegionWorkers.get() > 0 && chunkSource.pollTask();
         }
         // without parallel world ticking this thread owns every level, and a worker can wait on another one (portals)

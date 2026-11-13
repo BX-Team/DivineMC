@@ -85,7 +85,7 @@ index 706f529a7d1064aad128b1ee8c82f6319daa8d01..ac2321daac5943a026cae858695e5629
      }
  }
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java
-index 130fc0ea8326ab406910b5429acd99ea91708db2..11284ed2fc79bf5a1ae65293205813d1e45ddfc6 100644
+index 130fc0ea8326ab406910b5429acd99ea91708db2..42ce8ca5ed88731611148d92e9680d17e7119b1b 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java
 @@ -561,7 +561,7 @@ public final class ChunkTaskScheduler {
@@ -93,7 +93,7 @@ index 130fc0ea8326ab406910b5429acd99ea91708db2..11284ed2fc79bf5a1ae65293205813d1
      public void scheduleChunkLoad(final int chunkX, final int chunkZ, final ChunkStatus toStatus, final boolean addTicket,
                                    final Priority priority, final Consumer<ChunkAccess> onComplete) {
 -        if (!TickThread.isTickThreadFor(this.world, chunkX, chunkZ)) {
-+        if (!TickThread.isTickThreadFor(this.world, chunkX, chunkZ) || Thread.currentThread() instanceof TickThread.RegionTickThread) { // DivineMC - Regionized Chunk Ticking - a region worker waits for the level's thread to run the tasks
++        if (!TickThread.isTickThreadFor(this.world, chunkX, chunkZ) || (Thread.currentThread() instanceof TickThread.RegionTickThread worker && !org.bxteam.divinemc.async.world.LevelHandoff.holds(worker, this.world))) { // DivineMC - Regionized Chunk Ticking - a region worker waits for the level's thread to run the tasks
              this.scheduleChunkTask(chunkX, chunkZ, () -> {
                  ChunkTaskScheduler.this.scheduleChunkLoad(chunkX, chunkZ, toStatus, addTicket, priority, onComplete);
              }, priority);
@@ -138,12 +138,12 @@ index 3bd459b28aa59ba312de141cdca444bc05773ddd..e5d2b0a96a3951848463f8ab6e368496
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 0019412ef38a220bf67166c4ec1cfe9baa9b3068..57358e5cd3edf3a5bc65a02bd9e869403e69170c 100644
+index d98b28f4cc8c7915e28947e3b00eb9aeaa5f1e8e..7b832a51259e00ea6beab77bf38bf78630f52065 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -463,6 +463,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -462,6 +462,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          // DivineMC start - Parallel world ticking
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking && Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.ServerLevelTickThread levelThread) {
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED && Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.ServerLevelTickThread levelThread) {
              return this.tickLevelMidTickTasks(levelThread.currentlyTickingServerLevel);
 +        } else if (Thread.currentThread() != this.getRunningThread()) {
 +            return false; // DivineMC - Regionized Chunk Ticking - chunk system tasks belong to the tick thread that owns the level
@@ -151,7 +151,7 @@ index 0019412ef38a220bf67166c4ec1cfe9baa9b3068..57358e5cd3edf3a5bc65a02bd9e86940
              boolean executed = false;
              for (final ServerLevel world : this.getAllLevels()) {
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index f61479e08441fa5b89c636e8a233cfc33de5bec7..5696cce53e7500f8b6fc1d8a36725d894f323ade 100644
+index 6bd1486a41910844d620ebbed5448e1d20b2f6ec..4239e46de7c9a10074f017ffc22f6af22f258b18 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -750,25 +750,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -160,11 +160,10 @@ index f61479e08441fa5b89c636e8a233cfc33de5bec7..5696cce53e7500f8b6fc1d8a36725d89
  
 -    public void collectSpawningChunks(final List<LevelChunk> output) {
 +    // DivineMC start - Regionized Chunk Ticking
-+    synchronized void collectSpawningChunks(final List<LevelChunk> output) {
++    void collectSpawningChunks(final List<LevelChunk> output) {
          // Paper start - optimise chunk tick iteration
--        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks();
-+        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks;
-+        synchronized (tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks()) {
+         final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks();
++        synchronized (this.level.playerTickingLock) {
 +            final LevelChunk[] raw = tickingChunks.getRawDataUnchecked();
 +            final int size = tickingChunks.size();
  
@@ -235,7 +234,7 @@ index f61479e08441fa5b89c636e8a233cfc33de5bec7..5696cce53e7500f8b6fc1d8a36725d89
          } finally {
              this.iteratingTrackerEntities = false;
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index e693e8027f783c231d5fd10ffa85d03cb91b9d12..4c641ff02afb17530d6a619cea14460607172c1b 100644
+index b81eae482bd7d6cadbc424c01c592459575b92bb..1f2fb453ef1f1521d95a97ca98f497caf1813002 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -55,10 +55,10 @@ import org.jspecify.annotations.Nullable;
@@ -266,39 +265,16 @@ index e693e8027f783c231d5fd10ffa85d03cb91b9d12..4c641ff02afb17530d6a619cea144606
      @VisibleForDebug
      private NaturalSpawner.@Nullable SpawnState lastSpawnState;
      // DivineMC start - Pufferfish: Optimize mob spawning
-@@ -163,7 +166,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -164,7 +167,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      // Paper end - rewrite chunk system
      // Paper start - chunk tick iteration optimisations
      private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom shuffleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(0L);
 -    private void iterateTickingChunksFaster() {
-+    protected void iterateTickingChunksFaster(final CompletableFuture<Void> spawns) { // DivineMC - Regionized Chunk Ticking - private -> protected
++    protected void iterateTickingChunksFaster() { // DivineMC - Regionized Chunk Ticking - private -> protected
          final ServerLevel world = this.level;
          final int randomTickSpeed = world.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
  
-@@ -183,14 +186,16 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
- 
-             // call mid-tick tasks for chunk system
-             if ((i & 7) == 0) {
--                // DivineMC start - Parallel world ticking
--                if (!org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
--                    ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer) this.level.getServer()).moonrise$executeMidTickTasks();
--                    continue;
--                }
--                // DivineMC end - Parallel world ticking
-+                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
-+                continue;
-             }
-         }
-+
-+        // DivineMC start - Regionized Chunk Ticking
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncNaturalSpawn) {
-+            org.bxteam.divinemc.async.rct.RegionWorkerWait.join(this, spawns);
-+        }
-+        // DivineMC end - Regionized Chunk Ticking
-     }
-     // Paper end - chunk tick iteration optimisations
- 
-@@ -524,19 +529,27 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -521,19 +524,27 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      }
  
      private void tickChunks() {
@@ -314,10 +290,10 @@ index e693e8027f783c231d5fd10ffa85d03cb91b9d12..4c641ff02afb17530d6a619cea144606
 +        if (this.level.isDebug()) {
 +            return;
 +        }
- 
++
 +        ProfilerFiller profiler = Profiler.get();
 +        profiler.push("pollingChunks");
-+
+ 
 +        if (!this.level.tickRateManager().runsNormally() || !this.level.paperConfig().unsupportedSettings.ticking.chunks) { // DivineMC - when frozen only broadcast changed chunks and don't run async mob spawning // Paper - option to disable ticking
              this.broadcastChangedChunks(profiler);
              profiler.pop();
@@ -334,7 +310,7 @@ index e693e8027f783c231d5fd10ffa85d03cb91b9d12..4c641ff02afb17530d6a619cea144606
          // DivineMC start - Pufferfish: Optimize mob spawning
          if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning) {
              for (ServerPlayer player : this.level.players()) {
-@@ -583,14 +596,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -580,14 +591,18 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
      private void broadcastChangedChunks(final ProfilerFiller profiler) {
          profiler.push("broadcast");
  
@@ -359,57 +335,20 @@ index e693e8027f783c231d5fd10ffa85d03cb91b9d12..4c641ff02afb17530d6a619cea144606
          profiler.pop();
      }
  
-@@ -641,6 +658,28 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
-             spawningCategories = List.of();
-         }
+@@ -669,6 +684,12 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+         profiler.pop();
+     }
  
-+        // DivineMC start - Regionized Chunk Ticking
-+        final CompletableFuture<Void> spawns;
-+        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncNaturalSpawn) {
-+            spawns = CompletableFuture.runAsync(() -> org.bxteam.divinemc.async.rct.RegionizedChunkTicking.runInLevel(this.level, () -> naturalSpawn(profiler, spawningCategories)), org.bxteam.divinemc.async.rct.RegionizedChunkTicking.REGION_EXECUTOR);
-+        } else {
-+            naturalSpawn(profiler, spawningCategories);
-+            spawns = CompletableFuture.completedFuture(null);
-+        }
-+
-+        profiler.popPush("tickTickingChunks");
-+        this.iterateTickingChunksFaster(spawns); // Paper - chunk tick iteration optimizations // DivineMC - Regionized Chunk Ticking
-+        if (doMobSpawning) {
-+            profiler.popPush("customSpawners");
-+            this.level.tickCustomSpawners(this.spawnEnemies);
-+        }
-+
-+        profiler.pop();
-+        // DivineMC end - Regionized Chunk Ticking
-+    }
-+
 +    // DivineMC start - Regionized Chunk Ticking
-+    private void naturalSpawn(final ProfilerFiller profiler, final List<MobCategory> spawningCategories) {
-         List<LevelChunk> spawningChunks = this.spawningChunks;
- 
-         try {
-@@ -661,16 +700,12 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
-         } finally {
-             spawningChunks.clear();
-         }
-+    }
- 
--        profiler.popPush("tickTickingChunks");
--        this.iterateTickingChunksFaster(); // Paper - chunk tick iteration optimizations
--        if (doMobSpawning) {
--            profiler.popPush("customSpawners");
--            this.level.tickCustomSpawners(this.spawnEnemies);
--        }
--
--        profiler.pop();
 +    protected net.minecraft.world.level.entity.EntityTickList getEntityTickList() {
 +       return level.entityTickList;
-     }
++    }
 +    // DivineMC end - Regionized Chunk Ticking
- 
++
      private void tickSpawningChunk(final LevelChunk chunk, final List<MobCategory> spawningCategories, final NaturalSpawner.SpawnState spawnCookie) {
          ChunkPos chunkPos = chunk.getPos();
-@@ -908,5 +943,16 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+         chunk.incrementInhabitedTime();
+@@ -905,5 +926,16 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              // Paper - rewrite chunk system
              return super.pollTask() | ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)ServerChunkCache.this.level).moonrise$getChunkTaskScheduler().executeMainThreadTask(); // Paper - rewrite chunk system
          }
@@ -417,7 +356,7 @@ index e693e8027f783c231d5fd10ffa85d03cb91b9d12..4c641ff02afb17530d6a619cea144606
 +        // DivineMC start - Regionized Chunk Ticking - a region worker waits for the level's thread to run the tasks
 +        @Override
 +        public void managedBlock(final BooleanSupplier condition) {
-+            if (Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.RegionTickThread) {
++            if (Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.RegionTickThread worker && !org.bxteam.divinemc.async.world.LevelHandoff.holds(worker, ServerChunkCache.this.level)) { // a worker that took over another level runs that level's tasks itself
 +                org.bxteam.divinemc.async.rct.RegionWorkerWait.block(ServerChunkCache.this, condition);
 +                return;
 +            }
@@ -427,7 +366,7 @@ index e693e8027f783c231d5fd10ffa85d03cb91b9d12..4c641ff02afb17530d6a619cea144606
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f6d59ec4e 100644
+index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..0983b34728c2480cc83ced88a29b767b3df397af 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -209,8 +209,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -441,32 +380,24 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
      private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
-@@ -541,75 +541,88 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -540,6 +540,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
     }
      // Paper end - rewrite chunk system
      // Paper start - chunk tick iteration
 +    // DivineMC start - RCT sync fix
-+    private final Object lock = new Object();
++    public final Object playerTickingLock = new Object();
      private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> playerTickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
      private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap playerTickingRequests = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
  
-     @Override
--    public final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> moonrise$getPlayerTickingChunks() {
--        return this.playerTickingChunks;
-+    public synchronized final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> moonrise$getPlayerTickingChunks() {
-+        synchronized (lock) {
-+            return this.playerTickingChunks;
-+        }
-     }
+@@ -550,65 +552,74 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
--    public final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
+     public final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
 -        final ChunkPos pos = chunk.getPos();
 -        if (!this.playerTickingRequests.containsKey(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(pos))) {
 -            return;
 -        }
-+    public synchronized final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
-+        synchronized (lock) {
++        synchronized (this.playerTickingLock) {
 +            final ChunkPos pos = chunk.getPos();
 +            if (!this.playerTickingRequests.containsKey(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(pos))) {
 +                return;
@@ -478,20 +409,18 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
      }
  
      @Override
--    public final void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk) {
+     public final void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk) {
 -        this.playerTickingChunks.remove(chunk);
-+    public synchronized final void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk) {
-+        synchronized (lock) {
++        synchronized (this.playerTickingLock) {
 +            this.playerTickingChunks.remove(chunk);
 +        }
      }
  
      @Override
--    public final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
+     public final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
 -        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot add ticking request async");
-+    public synchronized final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
-+        synchronized (lock) {
-+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) (Object) this, chunkX, chunkZ, "Cannot add ticking request async");
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) (Object) this, chunkX, chunkZ, "Cannot add ticking request async");
++        synchronized (this.playerTickingLock) {
  
 -        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
 +            final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
@@ -523,11 +452,10 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
      }
  
      @Override
--    public final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
+     public final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
 -        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot remove ticking request async");
-+    public synchronized final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
-+        synchronized (lock) {
-+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) (Object) this, chunkX, chunkZ, "Cannot remove ticking request async");
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) (Object) this, chunkX, chunkZ, "Cannot remove ticking request async");
++        synchronized (this.playerTickingLock) {
  
 -        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
 -        final int val = this.playerTickingRequests.addTo(chunkKey, -1);
@@ -570,7 +498,7 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
      // Paper end - chunk tick iteration
  
      // DivineMC start - MSPT Tracking for each world
-@@ -705,19 +718,37 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -704,19 +715,37 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          boolean syncWrites = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          // Paper - rewrite chunk system
@@ -621,7 +549,7 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
          this.portalForcer = new PortalForcer(this);
          if (this.canHaveWeather()) {
-@@ -934,40 +965,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -920,40 +949,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  profiler.pop();
              }
  
@@ -706,15 +634,15 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
          }
  
          profiler.push("entityManagement");
-@@ -1734,6 +1781,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1720,6 +1765,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
      private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
 +        if (org.bxteam.divinemc.async.rct.RegionizedChunkTicking.CHECK_OWNERSHIP) org.bxteam.divinemc.async.rct.RegionizedChunkTicking.checkOwnership(this, entity.getBlockX() >> 4, entity.getBlockZ() >> 4); // DivineMC - Regionized Chunk Ticking
          // DivineMC start - Parallel world ticking
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) {
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) {
              ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot add entity off-main");
-@@ -1755,10 +1803,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1741,10 +1787,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -728,7 +656,7 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1962,7 +2013,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1948,7 +1997,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
@@ -737,7 +665,7 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
          }
-@@ -1975,31 +2026,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1961,31 +2010,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -773,7 +701,7 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
              }
          }
          } // Paper - option to disable pathfinding updates
-@@ -2008,17 +2051,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1994,17 +2035,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -794,7 +722,7 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, null, orientation);
      }
  
-@@ -2152,7 +2195,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2138,7 +2179,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void blockEvent(final BlockPos pos, final Block block, final int b0, final int b1) {
@@ -807,7 +735,7 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
      }
  
      private void runBlockEvents() {
-@@ -3230,7 +3277,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3216,7 +3261,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -816,7 +744,7 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -3300,7 +3347,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3286,7 +3331,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -826,13 +754,13 @@ index e9fa42fd46d08495d1a9293cf957be1a96d508f1..6f1f5e1193f7299fc1c911b5e4e5c48f
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index ae91c051940974bc24a86c3d267904de35ac5074..f1dbac0f83d2ddc65db68d095e7456d5de706777 100644
+index a72b7bb5c3ad20fe1cc7c4b30bbe98904f82f2d4..55b96bf8ef37686ddb989c1fd42cb78078dfa60f 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -450,6 +450,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -449,6 +449,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+     private boolean tpsBar = false; // Purpur - Implement TPSBar
      private boolean compassBar = false; // Purpur - Add compass command
      private boolean ramBar = false; // Purpur - Implement rambar commands
-     public boolean hasTickedAtLeastOnceInNewWorld = false; // DivineMC - Parallel world ticking
 +    // DivineMC start - Regionized Chunk Ticking
 +    public final org.bxteam.divinemc.async.rct.RollingLongBuffer avgTickTimeNanos = new org.bxteam.divinemc.async.rct.RollingLongBuffer(100);
 +    public int lastRegionChunkSize, lastRegionEntityAmount, regionHash;
@@ -868,7 +796,7 @@ index 11e1507f2c97abc32f135fd686d77da2051ed9a9..35145e2543400ad273db37e87b7387ff
              org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, bState, this.player, itemsToDrop); // Paper - capture all item additions to the world
          }
 diff --git a/net/minecraft/server/waypoints/ServerWaypointManager.java b/net/minecraft/server/waypoints/ServerWaypointManager.java
-index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34cccecfbf80c2 100644
+index d674340ffcc681692999488b706adb36bcc73e8e..ead1b80db3f7e7644fe16cb9e167a8a3108875b2 100644
 --- a/net/minecraft/server/waypoints/ServerWaypointManager.java
 +++ b/net/minecraft/server/waypoints/ServerWaypointManager.java
 @@ -30,7 +30,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
@@ -877,7 +805,7 @@ index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34ccce
      @Override
 -    public void trackWaypoint(final WaypointTransmitter waypoint) {
 +    public synchronized void trackWaypoint(final WaypointTransmitter waypoint) { // DivineMC - Regionized Chunk Ticking - entities move on region workers
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot track waypoints off-main"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot track waypoints off-main"); // DivineMC - Parallel world ticking
          this.waypoints.add(waypoint);
  
 @@ -41,7 +41,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
@@ -886,7 +814,7 @@ index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34ccce
      @Override
 -    public void updateWaypoint(final WaypointTransmitter waypoint) {
 +    public synchronized void updateWaypoint(final WaypointTransmitter waypoint) { // DivineMC - Regionized Chunk Ticking - entities move on region workers
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update waypoints off-main"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update waypoints off-main"); // DivineMC - Parallel world ticking
          if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
          if (this.waypoints.contains(waypoint)) {
 @@ -59,14 +59,14 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
@@ -895,7 +823,7 @@ index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34ccce
      @Override
 -    public void untrackWaypoint(final WaypointTransmitter waypoint) {
 +    public synchronized void untrackWaypoint(final WaypointTransmitter waypoint) { // DivineMC - Regionized Chunk Ticking - entities move on region workers
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot untrack waypoints off-main"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot untrack waypoints off-main"); // DivineMC - Parallel world ticking
          this.connections.column(waypoint).forEach((player, connection) -> connection.disconnect());
          Tables.transpose(this.connections).row(waypoint).clear();
          this.waypoints.remove(waypoint);
@@ -903,7 +831,7 @@ index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34ccce
  
 -    public void addPlayer(final ServerPlayer player) {
 +    public synchronized void addPlayer(final ServerPlayer player) { // DivineMC - Regionized Chunk Ticking - entities move on region workers
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot add player to waypoints off-main"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot add player to waypoints off-main"); // DivineMC - Parallel world ticking
          this.players.add(player);
  
 @@ -81,7 +81,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
@@ -912,7 +840,7 @@ index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34ccce
  
 -    public void updatePlayer(final ServerPlayer player) {
 +    public synchronized void updatePlayer(final ServerPlayer player) { // DivineMC - Regionized Chunk Ticking - entities move on region workers
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update player for waypoints off-main"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update player for waypoints off-main"); // DivineMC - Parallel world ticking
          if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
          Map<WaypointTransmitter, WaypointTransmitter.Connection> waypointConnections = this.connections.row(player);
 @@ -96,7 +96,7 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
@@ -921,7 +849,7 @@ index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34ccce
  
 -    public void removePlayer(final ServerPlayer player) {
 +    public synchronized void removePlayer(final ServerPlayer player) { // DivineMC - Regionized Chunk Ticking - entities move on region workers
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot remove player from waypoints off-main"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot remove player from waypoints off-main"); // DivineMC - Parallel world ticking
          this.connections.row(player).values().removeIf(connection -> {
              connection.disconnect();
 @@ -106,13 +106,13 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
@@ -930,7 +858,7 @@ index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34ccce
  
 -    public void breakAllConnections() {
 +    public synchronized void breakAllConnections() { // DivineMC - Regionized Chunk Ticking - entities move on region workers
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking)  ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot break all waypoint connections off-main"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED)  ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot break all waypoint connections off-main"); // DivineMC - Parallel world ticking
          this.connections.values().forEach(WaypointTransmitter.Connection::disconnect);
          this.connections.clear();
      }
@@ -940,6 +868,27 @@ index 3342bf3f8d0ed7b23d573f21b9e337353afc04b5..d505384cba2ef55b75c5f4af1a34ccce
          if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
          for (ServerPlayer player : this.players) {
              this.createConnection(player, waypoint);
+diff --git a/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
+index d1cebf851692fd4936d757c9444969e6aa31b5a4..283402f482a2727bd13c74048c3378dd9801a31a 100644
+--- a/net/minecraft/world/entity/ai/navigation/PathNavigation.java
++++ b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
+@@ -485,12 +485,13 @@ public abstract class PathNavigation {
+     }
+ 
+     public boolean shouldRecomputePath(final BlockPos pos) {
++        final Path path = this.path; // DivineMC - Regionized Chunk Ticking - the worker ticking this mob may clear the path meanwhile
+         if (this.hasDelayedRecomputation) {
+             return false;
+-        } else if (this.path != null && this.path.isProcessed() && !this.path.isDone() && this.path.getNodeCount() != 0) { // DivineMC - Skip if not processed
+-            Node target = this.path.getEndNode();
++        } else if (path != null && path.isProcessed() && !path.isDone() && path.getNodeCount() != 0) { // DivineMC - Skip if not processed // DivineMC - Regionized Chunk Ticking
++            Node target = path.getEndNode(); // DivineMC - Regionized Chunk Ticking
+             Vec3 middlePos = new Vec3((target.x + this.mob.getX()) / 2.0, (target.y + this.mob.getY()) / 2.0, (target.z + this.mob.getZ()) / 2.0);
+-            return pos.closerToCenterThan(middlePos, this.path.getNodeCount() - this.path.getNextNodeIndex());
++            return pos.closerToCenterThan(middlePos, path.getNodeCount() - path.getNextNodeIndex()); // DivineMC - Regionized Chunk Ticking
+         } else {
+             return false;
+         }
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
 index 555b61b4439f3e5eaa30bb351168c2de0d99a3eb..b6cd6d7d526022d875deb20375423fc7188f4229 100644
 --- a/net/minecraft/world/item/ItemStack.java
@@ -979,7 +928,7 @@ index 555b61b4439f3e5eaa30bb351168c2de0d99a3eb..b6cd6d7d526022d875deb20375423fc7
                  // DivineMC start - Parallel world ticking
                  treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index fa3b74c9a45e1cc3904501fde9c91406e7db33af..694040e1e34d7ef92b9314cc83990870dd6a45a8 100644
+index 401cce58c7f9a12f3ea04e1e4bf4616d0b3e7087..5a9b005ce369784bc1a00e57e0637f5afcb24a5f 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -120,7 +120,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -1043,7 +992,7 @@ index fa3b74c9a45e1cc3904501fde9c91406e7db33af..694040e1e34d7ef92b9314cc83990870
 @@ -1106,21 +1107,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Override
      public boolean setBlock(final BlockPos pos, final BlockState blockState, final @Block.UpdateFlags int updateFlags, final int updateLimit) {
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // DivineMC - Parallel world ticking (additional concurrency issues logs)
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // DivineMC - Parallel world ticking (additional concurrency issues logs)
 +        if (org.bxteam.divinemc.async.rct.RegionizedChunkTicking.CHECK_OWNERSHIP) org.bxteam.divinemc.async.rct.RegionizedChunkTicking.checkOwnership(this, pos.getX() >> 4, pos.getZ() >> 4); // DivineMC - Regionized Chunk Ticking
          // CraftBukkit start - tree generation
 -        if (this.captureTreeGeneration) {
@@ -1152,10 +1101,10 @@ index fa3b74c9a45e1cc3904501fde9c91406e7db33af..694040e1e34d7ef92b9314cc83990870
  
          // Paper - Fix MC-117075 use removeAll - remove iterator in favour of indexed for loop, ensuring compile error if something uses iter incorrectly
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
-@@ -1767,12 +1782,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1762,12 +1777,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Override
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos) {
-         if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableParallelWorldTicking) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // DivineMC - Parallel world ticking
 -        // Paper start - Perf: Optimize capturedTileEntities lookup
 +        // Paper start - Perf: Optimize capturedBlockEntities lookup
 +        // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
@@ -1171,7 +1120,7 @@ index fa3b74c9a45e1cc3904501fde9c91406e7db33af..694040e1e34d7ef92b9314cc83990870
          if (!this.isInValidBounds(pos)) {
              return null;
          } else {
-@@ -1787,8 +1805,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1782,8 +1800,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
              // CraftBukkit start
@@ -1204,10 +1153,10 @@ index 6e8bd9247fc5f381c695f2a28fe6814faf7b673f..ccdb21e2c8fb489586914f0ef2604d45
          }
      }
 diff --git a/net/minecraft/world/level/block/SaplingBlock.java b/net/minecraft/world/level/block/SaplingBlock.java
-index b6643db28a20f858b224f7f16f2bced3ad404b09..36a86e99aa9a0e813f93b8ee9c0e956e5d020659 100644
+index bb05a000f3471be27d788e554db5473b4af30592..2b1a58a1eba4341f458c65a65059845523dcb33c 100644
 --- a/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/net/minecraft/world/level/block/SaplingBlock.java
-@@ -66,19 +66,20 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
+@@ -59,19 +59,20 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
              level.setBlock(pos, state.cycle(STAGE), Block.UPDATE_NONE);
          } else {
              // CraftBukkit start
@@ -1233,7 +1182,7 @@ index b6643db28a20f858b224f7f16f2bced3ad404b09..36a86e99aa9a0e813f93b8ee9c0e956e
  
                      // DivineMC start - Parallel world ticking
                      treeTypeLocal = SaplingBlock.getTreeTypeTL();
-@@ -100,6 +101,7 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
+@@ -93,6 +94,7 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
                      }
                  }
              }
@@ -1255,7 +1204,7 @@ index 6cabc49464d34cb5282b7fa3bcfee20953d7e347..bf6d1391ca191eddaefda11946ba767c
          }
      }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 12ad6a7d9b895115fa4cff49660d3eb271b71b2f..40787016988262dfb7a41ba6e15006c9b2247101 100644
+index 5a87e5135d5e3682b98da5213858f25af056cd23..185234e615a92360e8f1827be537bd64b4f638d1 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -436,7 +436,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
@@ -1293,7 +1242,7 @@ index 12ad6a7d9b895115fa4cff49660d3eb271b71b2f..40787016988262dfb7a41ba6e15006c9
                  }
                  server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkPopulateEvent(bukkitChunk));
 diff --git a/net/minecraft/world/level/entity/EntityTickList.java b/net/minecraft/world/level/entity/EntityTickList.java
-index 9f340f8ed56e1218f268e4f418dd6ddd87b1902a..a342ffd6b60744b65416baff2b1a46958b14397a 100644
+index a8c743b579c055cbb64d73c5a397d246f779e664..228b44e052e57736ff937fe02822bb1bf33a9c6a 100644
 --- a/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/net/minecraft/world/level/entity/EntityTickList.java
 @@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerLevel; // DivineMC - Parallel world tick
@@ -1328,7 +1277,7 @@ index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..05a9b7e75d158c845f18f953ce00a95a
              while (!this.stack.isEmpty() || !this.addedThisLayer.isEmpty()) {
                  for (int i = this.addedThisLayer.size() - 1; i >= 0; i--) {
 diff --git a/net/minecraft/world/ticks/LevelTicks.java b/net/minecraft/world/ticks/LevelTicks.java
-index 59b3911ad089b06c8be162aea40d81d934149eef..9accbd86b0e8ae035774ca3527ad9b04d9ad58fd 100644
+index de3a26ade7eebb6bd2c312a8172969590ab3148b..2139114927373909e65cb5c83935084627031f47 100644
 --- a/net/minecraft/world/ticks/LevelTicks.java
 +++ b/net/minecraft/world/ticks/LevelTicks.java
 @@ -55,7 +55,11 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
