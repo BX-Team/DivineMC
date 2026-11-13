@@ -299,10 +299,13 @@ public class DivineConfig {
         public static int asyncChunkSendingMaxThreads = 1;
 
         // Async mob spawning settings
-        public static boolean enableAsyncSpawning = true;
+        public static boolean enableAsyncSpawning = false;
 
         // Portal search prefetch settings
         public static boolean portalSearchPrefetchEnabled = true;
+
+        // Player data writer settings
+        public static boolean playerDataWriterEnabled = true;
 
         // Parallel sensor phase settings
         @Experimental("Parallel Sensor Phase")
@@ -319,6 +322,7 @@ public class DivineConfig {
             asyncMobSpawning();
             portalSearchPrefetch();
             parallelSensors();
+            playerDataWriter();
             autoAllocation();
         }
 
@@ -378,6 +382,13 @@ public class DivineConfig {
             }
 
             LOGGER.info("Auto-thread-allocation enabled, ticking up to {} worlds at once and using {} threads for regionized chunk ticking.", maxConcurrentWorlds, regionizedChunkTickingExecutorThreadCount);
+        }
+
+        private static void playerDataWriter() {
+            playerDataWriterEnabled = getBoolean(ConfigCategory.ASYNC.key("player-data-writer.enable"), playerDataWriterEnabled,
+                "Writes player data, statistics and advancements files on a separate thread instead of the tick thread.",
+                "Every player file is written with a synchronous disk write, so saving many players in one tick stalls it.",
+                "Files on disk are the same; anything reading a player file waits for its pending write first.");
         }
 
         private static void parallelWorldTicking() {
@@ -595,7 +606,7 @@ public class DivineConfig {
         public static boolean reduceChuckLoadAndLookup = true;
         public static boolean createSnapshotOnRetrievingBlockState = true;
         public static boolean sleepingBlockEntity = false;
-        public static boolean equipmentTracking = false;
+        public static boolean equipmentTracking = true;
         public static boolean hopperThrottleWhenFull = false;
         public static int hopperThrottleSkipTicks = 0;
         public static boolean skipFullHopperMinecart = false;

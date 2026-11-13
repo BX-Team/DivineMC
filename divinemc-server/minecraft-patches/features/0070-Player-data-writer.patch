@@ -1,0 +1,176 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sun, 15 Nov 2026 18:45:16 +0300
+Subject: [PATCH] Player data writer
+
+
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index 177eb90e633c3e36584f1836583948c94de788fa..8b345a74d8e193bbd7cbe39bb47a4f29f3c42ab3 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -516,6 +516,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         LOGGER.warn("Performing emergency save...");
+         LOGGER.info("Saving all players...");
+         this.getPlayerList().saveAll();
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.awaitAll(); // DivineMC - Player data writer
+         LOGGER.info("Saved all players");
+         LOGGER.info("Saving all worlds...");
+         for (final ServerLevel world : this.getAllLevels()) {
+@@ -983,6 +984,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         try {
+             this.isSaving = true;
+             this.getPlayerList().saveAll(); // Paper - Incremental chunk and player saving; diff on change
++            if (flush) org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.awaitAll(); // DivineMC - Player data writer
+             boolean result = this.saveAllChunks(silent, flush, force);
+             this.warnOnLowDiskSpace();
+             return result;
+@@ -1056,6 +1058,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             this.playerList.removeAll(this.isRestarting); // Paper
+             this.getConnection().handleAllDisconnections(); // Paper
+         }
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.awaitAll(); // DivineMC - Player data writer
+ 
+         LOGGER.info("Saving worlds");
+ 
+diff --git a/net/minecraft/server/PlayerAdvancements.java b/net/minecraft/server/PlayerAdvancements.java
+index 9dc6f4484f4db44210aeb082f08354b428b83081..d8662d429fcef978c763197f3adb00727fd2bfd9 100644
+--- a/net/minecraft/server/PlayerAdvancements.java
++++ b/net/minecraft/server/PlayerAdvancements.java
+@@ -111,6 +111,7 @@ public class PlayerAdvancements {
+     }
+ 
+     private void load(final ServerAdvancementManager manager) {
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.await(this.playerSavePath); // DivineMC - Player data writer - reload re-reads the file of online players
+         if (Files.isRegularFile(this.playerSavePath)) {
+             try (Reader reader = Files.newBufferedReader(this.playerSavePath, StandardCharsets.UTF_8)) {
+                 JsonElement json = StrictJsonParser.parse(reader);
+@@ -131,15 +132,20 @@ public class PlayerAdvancements {
+         if (org.spigotmc.SpigotConfig.disableAdvancementSaving) return; // Spigot
+         JsonElement json = this.codec.encodeStart(JsonOps.INSTANCE, this.asData()).getOrThrow();
+ 
+-        try {
+-            FileUtil.createDirectoriesSafe(this.playerSavePath.getParent());
++        // DivineMC start - Player data writer
++        Path playerSavePath = this.playerSavePath;
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.submit(playerSavePath, () -> {
++            try {
++                FileUtil.createDirectoriesSafe(playerSavePath.getParent());
+ 
+-            try (Writer outputWriter = Files.newBufferedWriter(this.playerSavePath, StandardCharsets.UTF_8)) {
+-                GSON.toJson(json, GSON.newJsonWriter(outputWriter));
++                try (Writer outputWriter = Files.newBufferedWriter(playerSavePath, StandardCharsets.UTF_8)) {
++                    GSON.toJson(json, GSON.newJsonWriter(outputWriter));
++                }
++            } catch (IOException | JsonIOException e) {
++                LOGGER.error("Couldn't save player advancements to {}", playerSavePath, e);
+             }
+-        } catch (IOException | JsonIOException e) {
+-            LOGGER.error("Couldn't save player advancements to {}", this.playerSavePath, e);
+-        }
++        });
++        // DivineMC end - Player data writer
+     }
+ 
+     private void applyFrom(final ServerAdvancementManager manager, final PlayerAdvancements.Data data) {
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index 0931b8cfc109a16b5dddaa7a789d8c8603952931..aae0eb2371e1535a82e1065feaefe3951d43c34b 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -1254,6 +1254,7 @@ public abstract class PlayerList {
+     private Path locateStatsFile(final GameProfile gameProfile) {
+         Path statFolder = this.server.getWorldPath(LevelResource.PLAYER_STATS_DIR);
+         Path uuidStatsFile = statFolder.resolve(gameProfile.id() + ".json");
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.await(uuidStatsFile); // DivineMC - Player data writer
+         if (Files.exists(uuidStatsFile)) {
+             return uuidStatsFile;
+         }
+@@ -1261,6 +1262,7 @@ public abstract class PlayerList {
+         String playerNameStatsFile = gameProfile.name() + ".json";
+         if (FileUtil.isValidPathSegment(playerNameStatsFile)) {
+             Path playerNameStatsPath = statFolder.resolve(playerNameStatsFile);
++            org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.await(playerNameStatsPath); // DivineMC - Player data writer
+             if (Files.isRegularFile(playerNameStatsPath)) {
+                 try {
+                     return Files.move(playerNameStatsPath, uuidStatsFile);
+diff --git a/net/minecraft/stats/ServerStatsCounter.java b/net/minecraft/stats/ServerStatsCounter.java
+index f383497aca63d0ddb0e8fe93602c8a47753f9dd3..c35d5bd28f6822a52b6dec47098a99322c4f405d 100644
+--- a/net/minecraft/stats/ServerStatsCounter.java
++++ b/net/minecraft/stats/ServerStatsCounter.java
+@@ -65,6 +65,7 @@ public class ServerStatsCounter extends StatsCounter {
+ 
+     public ServerStatsCounter(final MinecraftServer server, final Path file) {
+         this.file = file;
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.await(file); // DivineMC - Player data writer
+         if (Files.isRegularFile(file)) {
+             try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                 JsonElement element = StrictJsonParser.parse(reader);
+@@ -90,15 +91,21 @@ public class ServerStatsCounter extends StatsCounter {
+ 
+     public void save() {
+         if (org.spigotmc.SpigotConfig.disableStatSaving) return; // Spigot
+-        try {
+-            FileUtil.createDirectoriesSafe(this.file.getParent());
++        // DivineMC start - Player data writer
++        JsonElement json = this.toJson();
++        Path file = this.file;
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.submit(file, () -> {
++            try {
++                FileUtil.createDirectoriesSafe(file.getParent());
+ 
+-            try (Writer writer = Files.newBufferedWriter(this.file, StandardCharsets.UTF_8)) {
+-                GSON.toJson(this.toJson(), GSON.newJsonWriter(writer));
++                try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
++                    GSON.toJson(json, GSON.newJsonWriter(writer));
++                }
++            } catch (IOException | JsonIOException e) {
++                LOGGER.error("Couldn't save stats to {}", file, e);
+             }
+-        } catch (IOException | JsonIOException e) {
+-            LOGGER.error("Couldn't save stats to {}", this.file, e);
+-        }
++        });
++        // DivineMC end - Player data writer
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/level/storage/PlayerDataStorage.java b/net/minecraft/world/level/storage/PlayerDataStorage.java
+index 142a34eb046c87f16b73023c83218d8752922fbe..6d7ae98c560a1b7558caaa9532f5820f13551aab 100644
+--- a/net/minecraft/world/level/storage/PlayerDataStorage.java
++++ b/net/minecraft/world/level/storage/PlayerDataStorage.java
+@@ -36,12 +36,23 @@ public class PlayerDataStorage {
+             TagValueOutput output = TagValueOutput.createWithContext(reporter, player.registryAccess());
+             player.saveWithoutId(output);
+             Path playerDirPath = this.playerDir.toPath();
+-            Path tmpFile = Files.createTempFile(playerDirPath, player.getStringUUID() + "-", ".dat");
++            // DivineMC start - Player data writer - the tag can share sub-tags with live objects, so only its bytes leave this thread
+             CompoundTag dataToStore = output.buildResult();
+-            NbtIo.writeCompressed(dataToStore, tmpFile);
+-            Path realFile = playerDirPath.resolve(player.getStringUUID() + ".dat");
+-            Path oldFile = playerDirPath.resolve(player.getStringUUID() + ".dat_old");
+-            Util.safeReplaceFile(realFile, tmpFile, oldFile);
++            byte[] encoded = org.bxteam.divinemc.async.PlayerFileWriter.encode(dataToStore);
++            String uuid = player.getStringUUID();
++            String name = player.getPlainTextName();
++            Path realFile = playerDirPath.resolve(uuid + ".dat");
++            org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.submit(realFile, () -> {
++                try {
++                    Path tmpFile = Files.createTempFile(playerDirPath, uuid + "-", ".dat");
++                    org.bxteam.divinemc.async.PlayerFileWriter.writeCompressed(encoded, tmpFile);
++                    Path oldFile = playerDirPath.resolve(uuid + ".dat_old");
++                    Util.safeReplaceFile(realFile, tmpFile, oldFile);
++                } catch (Exception ignored) {
++                    LOGGER.warn("Failed to save player data for {}", name, ignored); // Paper - Print exception
++                }
++            });
++            // DivineMC end - Player data writer - the tag can share sub-tags with live objects, so only its bytes leave this thread
+         } catch (Exception ignored) {
+             LOGGER.warn("Failed to save player data for {}", player.getPlainTextName(), ignored); // Paper - Print exception
+         }
+@@ -62,6 +73,7 @@ public class PlayerDataStorage {
+     }
+ 
+     private Optional<CompoundTag> load(final NameAndId nameAndId, final String suffix) {
++        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.await(this.playerDir.toPath().resolve(nameAndId.id() + ".dat")); // DivineMC - Player data writer - a .dat write also rotates .dat_old
+         File realFile = new File(this.playerDir, nameAndId.id() + suffix);
+         // Spigot start
+         boolean usingWrongFile = false;
