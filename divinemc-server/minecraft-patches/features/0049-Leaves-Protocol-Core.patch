@@ -48,7 +48,7 @@ index 26b4f9cea06c45d208846009d4672080634173c1..177eb90e633c3e36584f1836583948c9
              tickable.run();
          }
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index fad5c662280084b734afd6a7d1c24d6caaa45637..cee178c0e433c9178c8af18ea14d5b22f697838e 100644
+index fad5c662280084b734afd6a7d1c24d6caaa45637..19141cb0cfa9881fb84cc4c5395c7030408137ec 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -62,6 +62,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
@@ -67,25 +67,33 @@ index fad5c662280084b734afd6a7d1c24d6caaa45637..cee178c0e433c9178c8af18ea14d5b22
      }
  
      // Paper start - configuration phase API
-@@ -160,6 +162,17 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -160,6 +162,13 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
  
      @Override
      public void handleCustomPayload(final ServerboundCustomPayloadPacket packet) {
 +        // DivineMC start - Leaves: Protocol Core
 +        if (packet.payload() instanceof org.leavesmc.leaves.protocol.core.LeavesCustomPayload leavesPayload) {
++            net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());
 +            org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePayload(org.leavesmc.leaves.protocol.core.ProtocolUtils.createSelector(this), leavesPayload);
 +            return;
-+        }
-+        if (packet.payload() instanceof net.minecraft.network.protocol.common.custom.DiscardedPayload(net.minecraft.resources.Identifier id, byte[] data)) {
-+            if (org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleBytebuf(org.leavesmc.leaves.protocol.core.ProtocolUtils.createSelector(this), id, io.netty.buffer.Unpooled.wrappedBuffer(data))) {
-+                return;
-+            }
 +        }
 +        // DivineMC end - Leaves: Protocol Core
          // Paper start
          if (!(packet.payload() instanceof final net.minecraft.network.protocol.common.custom.DiscardedPayload discardedPayload)) {
              return;
-@@ -225,6 +238,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -169,6 +178,11 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+ 
+         final net.minecraft.resources.Identifier identifier = packet.payload().type().id();
+         final byte[] data = discardedPayload.data();
++        // DivineMC start - Leaves: Protocol Core
++        if (org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleBytebuf(org.leavesmc.leaves.protocol.core.ProtocolUtils.createSelector(this), identifier, io.netty.buffer.Unpooled.wrappedBuffer(data))) {
++            return;
++        }
++        // DivineMC end - Leaves: Protocol Core
+         try {
+             final boolean registerChannel = CUSTOM_REGISTER.equals(identifier);
+             if (registerChannel || CUSTOM_UNREGISTER.equals(identifier)) {
+@@ -225,6 +239,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          final String channel = new String(data, from, length, java.nio.charset.StandardCharsets.US_ASCII);
          if (register) {
              bridge.addChannel(channel);

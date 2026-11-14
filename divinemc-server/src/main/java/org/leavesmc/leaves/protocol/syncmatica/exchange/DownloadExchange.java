@@ -51,6 +51,11 @@ public class DownloadExchange extends AbstractExchange {
         packetBuf.readUUID();
         if (id.equals(PacketType.SEND_LITEMATIC.identifier)) {
             final int size = packetBuf.readInt();
+            // a negative size would shrink bytesSent and slip past the quota
+            if (size < 0 || size > packetBuf.readableBytes()) {
+                close(true);
+                return;
+            }
             bytesSent += size;
             if (SyncmaticaProtocol.isOverQuota(bytesSent)) {
                 close(true);
