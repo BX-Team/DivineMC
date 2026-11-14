@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize natural spawning
 
 
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 5484224bd28644723ef3afb7213eafbb73eb5d3e..e430d1c0ca4def496c888ad383ef88dcc9a56d63 100644
+index 76fb78b2fe67f9bf8e7ceb8b1848d0878855bf8f..5b6160b17b1fa2ff9feeb523de974345915b63ec 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -864,6 +864,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -863,6 +863,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
       */
      @Override
      public Holder<Biome> getNoiseBiome(final int x, final int y, final int z) {

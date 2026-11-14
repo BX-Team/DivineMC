@@ -25,8 +25,8 @@ import org.jspecify.annotations.Nullable;
  * command call, where its levels may be changed anyway. Its levels can then be borrowed: by any thread while it waits
  * for a level (until the borrower's tick ends or it leaves its level), by the holder of the server state lock while it
  * waits for that lock (until the holder releases it). A level whose region workers are running is never lent. A wait
- * that no thread can resolve throws {@link IllegalStateException} in the thread that waits for a level; a thread
- * waiting for the server state lock never throws.
+ * that no thread can resolve throws {@link IllegalStateException} in the thread that waits for a level, once none of
+ * its levels is lent any more; a thread waiting for the server state lock never throws.
  */
 @NullMarked
 public final class LevelHandoff {
@@ -157,6 +157,7 @@ public final class LevelHandoff {
 
     private static boolean waitAndTake(final Thread thread, final Holder holder, final ServerLevel own, final Slot slot, final ServerLevel level) {
         boolean compensated = false;
+        @Nullable InterruptedException interrupted = null;
         synchronized (MONITOR) {
             holder.waitingFor = slot;
             holder.inAcquire = true;
@@ -169,20 +170,30 @@ public final class LevelHandoff {
                     if (holder.lent.isEmpty() && tryTake(thread, holder, slot)) {
                         return true;
                     }
-                    final String cycle = findCycle(thread);
-                    if (cycle != null) {
-                        throw new IllegalStateException("Cross-world wait that no level can resolve, cannot take level " + level.getWorld().getName() + ": " + cycle);
+                    // leaving while a level is lent would let this thread and the borrower run in it at once
+                    if (holder.lent.isEmpty()) {
+                        if (interrupted != null) {
+                            throw new IllegalStateException("Interrupted while waiting for level " + level.getWorld().getName(), interrupted);
+                        }
+                        final String cycle = findCycle(thread);
+                        if (cycle != null) {
+                            throw new IllegalStateException("Cross-world wait that no level can resolve, cannot take level " + level.getWorld().getName() + ": " + cycle);
+                        }
                     }
                     if (!compensated && thread instanceof TickThread.RegionTickThread) {
                         RegionizedChunkTicking.beginBlocking();
                         compensated = true;
                     }
-                    MONITOR.wait();
+                    try {
+                        MONITOR.wait();
+                    } catch (final InterruptedException exception) {
+                        interrupted = exception;
+                    }
                 }
-            } catch (final InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("Interrupted while waiting for level " + level.getWorld().getName(), interrupted);
             } finally {
+                if (interrupted != null) {
+                    Thread.currentThread().interrupt();
+                }
                 holder.waitingFor = null;
                 holder.inAcquire = false;
                 WAITING_REGION_WORKERS.remove(thread);
@@ -395,10 +406,12 @@ public final class LevelHandoff {
         if (holder != null && holder.waitingFor != null) {
             if (holder.waitingFor instanceof Slot slot) {
                 final boolean free = slot.owner == null && slot.lentTo == null;
-                if (holder.lent.isEmpty() && (free || (holder.inAcquire && canBorrow(thread, slot)))) {
+                final boolean takeable = free || (holder.inAcquire && canBorrow(thread, slot));
+                if (holder.lent.isEmpty() && takeable) {
                     return next;
                 }
-                final Thread owner = slot.effectiveOwner();
+                // a takeable level only waits for this thread's lent levels to come back, not for its owner
+                final Thread owner = takeable ? null : slot.effectiveOwner();
                 if (owner != null) {
                     next.add(owner);
                 }
