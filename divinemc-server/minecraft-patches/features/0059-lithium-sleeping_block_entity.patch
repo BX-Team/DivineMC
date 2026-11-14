@@ -417,10 +417,10 @@ index 265433b4daa615ef67ed02ea7c7714d0538ea969..afbbf3de339e5396e23e82c789896730
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 04d85eed8bbb63abc60e088515810078430f2abc..9f3ca8b876cde6a3edc3b24eea1035df45876516 100644
+index 2305e870a296fb6a9ebbfda551bb08ac1eccc2e1..92bdbd3e0c3f768badc7414b9ef4046db39d0e1f 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1156,6 +1156,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1154,6 +1154,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
          // CraftBukkit end - capture blockstates
          BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
@@ -428,7 +428,7 @@ index 04d85eed8bbb63abc60e088515810078430f2abc..9f3ca8b876cde6a3edc3b24eea1035df
          // DivineMC start - Raytrace AntiXray SDK integration
          dev.imanity.antixray.sdk.AntiXrayAdapter adapter = dev.imanity.antixray.sdk.AntiXraySDK.getAdapter();
          if (adapter != null) {
-@@ -1583,7 +1584,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1581,7 +1582,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              while (scanIndex < this.blockEntityTickers.size()) {
                  final TickingBlockEntity ticker = this.blockEntityTickers.get(scanIndex);
                  if (!ticker.isRemoved()) {
@@ -437,7 +437,7 @@ index 04d85eed8bbb63abc60e088515810078430f2abc..9f3ca8b876cde6a3edc3b24eea1035df
                          ticker.tick();
                          // Paper start - rewrite chunk system
                          if ((++tickedEntities & 7) == 0) {
-@@ -2322,4 +2323,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2320,4 +2321,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option

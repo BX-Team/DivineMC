@@ -140,7 +140,7 @@ index 3bd459b28aa59ba312de141cdca444bc05773ddd..02759d41005a7537a053f5f76881d009
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index a8b9f76c56da61f39c88efbc54e1e4273c7630f0..26b4f9cea06c45d208846009d4672080634173c1 100644
+index b9f695807e490fb4efd0d0abc8755ddf36aed139..ae5dbc3aeedaacd57c0e879c396f3a3e05ca1360 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -462,6 +462,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -934,7 +934,7 @@ index 555b61b4439f3e5eaa30bb351168c2de0d99a3eb..265433b4daa615ef67ed02ea7c7714d0
                  // DivineMC start - Parallel world ticking
                  treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078430f2abc 100644
+index f6b6758e9d8ddd6dac239ca43ded26aafbf8a43a..2305e870a296fb6a9ebbfda551bb08ac1eccc2e1 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -120,7 +120,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -982,9 +982,9 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
 -    public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
 +    public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - Optimize explosions // DivineMC - Regionized Chunk Ticking - explosions run on region workers
      public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
-     public io.papermc.paper.redstone.RedstoneWireTurbo turbo; // DivineMC - Parallel world ticking
  
-@@ -1047,8 +1048,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     // Purpur start - Add adjustable breeding cooldown to config
+@@ -1045,8 +1046,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Nullable
      public final BlockState getBlockStateIfLoaded(BlockPos pos) {
          // CraftBukkit start - tree generation
@@ -995,7 +995,7 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
              if (previous != null) {
                  return previous.getHandle();
              }
-@@ -1106,21 +1107,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1104,21 +1105,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Override
      public boolean setBlock(final BlockPos pos, final BlockState blockState, final @Block.UpdateFlags int updateFlags, final int updateLimit) {
          if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // DivineMC - Parallel world ticking
@@ -1024,7 +1024,7 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
          // CraftBukkit end
          if (!this.isInValidBounds(pos)) {
              return false;
-@@ -1134,17 +1139,21 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1132,17 +1137,21 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          Block block = blockState.getBlock();
          // CraftBukkit start - capture blockstates
          boolean captured = false;
@@ -1050,7 +1050,7 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
          // CraftBukkit end - capture blockstates
          BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
          // DivineMC start - Raytrace AntiXray SDK integration
-@@ -1156,8 +1165,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1154,8 +1163,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
          if (oldState == null) {
              // CraftBukkit start - remove blockstate if failed (or the same)
@@ -1061,7 +1061,7 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
              }
              // CraftBukkit end
              return false;
-@@ -1195,7 +1204,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1193,7 +1202,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          */ // CraftBukkit
  
          // CraftBukkit start
@@ -1070,7 +1070,7 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
              // Modularize client and physic updates
              // Spigot start
              try {
-@@ -1364,8 +1373,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1362,8 +1371,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Override
      public BlockState getBlockState(final BlockPos pos) {
          // CraftBukkit start - tree generation
@@ -1081,7 +1081,7 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
              if (previous != null) {
                  return previous.getHandle();
              }
-@@ -1547,15 +1556,21 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1545,15 +1554,21 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
      public void addBlockEntityTicker(final TickingBlockEntity ticker) {
          if (!this.paperConfig().unsupportedSettings.ticking.blockEntities) return; // Paper - option to disable ticking
@@ -1107,7 +1107,7 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
  
          // Paper - Fix MC-117075 use removeAll - remove iterator in favour of indexed for loop, ensuring compile error if something uses iter incorrectly
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
-@@ -1762,12 +1777,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1760,12 +1775,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      @Override
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos) {
          if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // DivineMC - Parallel world ticking
@@ -1126,7 +1126,7 @@ index b508a7816983106542585c7f20c345486b53ec3b..04d85eed8bbb63abc60e088515810078
          if (!this.isInValidBounds(pos)) {
              return null;
          } else {
-@@ -1782,8 +1800,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1780,8 +1798,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
              // CraftBukkit start
@@ -1263,27 +1263,53 @@ index a8c743b579c055cbb64d73c5a397d246f779e664..33081b26234be0a90288770e9346ec65
      // DivineMC start - Parallel world ticking
      @Nullable
 diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..bbd84c3accec68afbe9c947d9714a5c4d2a0bb0f 100644
+index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..53fd48a1c9f4ca080e6ec6705527d53f4bc4ea43 100644
 --- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-@@ -65,7 +65,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
-         this.addAndRun(pos, new CollectingNeighborUpdater.MultiNeighborUpdate(pos.immutable(), block, orientation, skipDirection));
+@@ -18,6 +18,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final Level level;
+     private final int maxChainedNeighborUpdates;
++    private final @Nullable CollectingNeighborUpdater regionWorkerUpdater; // DivineMC - Regionized Chunk Ticking
+     private final ArrayDeque<CollectingNeighborUpdater.NeighborUpdates> stack = new ArrayDeque<>();
+     private final List<CollectingNeighborUpdater.NeighborUpdates> addedThisLayer = new ArrayList<>();
+     private int count = 0;
+@@ -26,10 +27,20 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+     public CollectingNeighborUpdater(final Level level, final int maxChainedNeighborUpdates) {
+         this.level = level;
+         this.maxChainedNeighborUpdates = maxChainedNeighborUpdates;
++        // DivineMC start - Regionized Chunk Ticking - region workers chain on their own updater, so the level's thread never waits for a worker's chain
++        this.regionWorkerUpdater = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking ? new CollectingNeighborUpdater(level, maxChainedNeighborUpdates, true) : null;
      }
  
--    private void addAndRun(final BlockPos pos, final CollectingNeighborUpdater.NeighborUpdates update) {
-+    private synchronized void addAndRun(final BlockPos pos, final CollectingNeighborUpdater.NeighborUpdates update) { // DivineMC - Regionized Chunk Ticking
++    private CollectingNeighborUpdater(final Level level, final int maxChainedNeighborUpdates, final boolean regionWorkers) {
++        this.level = level;
++        this.maxChainedNeighborUpdates = maxChainedNeighborUpdates;
++        this.regionWorkerUpdater = null;
++    }
++    // DivineMC end - Regionized Chunk Ticking
++
+     public void setDebugListener(final @Nullable Consumer<BlockPos> debugListener) {
+         this.debugListener = debugListener;
++        if (this.regionWorkerUpdater != null) this.regionWorkerUpdater.setDebugListener(debugListener); // DivineMC - Regionized Chunk Ticking
+     }
+ 
+     @Override
+@@ -66,6 +77,14 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+     }
+ 
+     private void addAndRun(final BlockPos pos, final CollectingNeighborUpdater.NeighborUpdates update) {
++        // DivineMC start - Regionized Chunk Ticking - workers stay serialized among themselves: chains are not confined to a region
++        if (this.regionWorkerUpdater != null && Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.RegionTickThread) {
++            synchronized (this.regionWorkerUpdater) {
++                this.regionWorkerUpdater.addAndRun(pos, update);
++            }
++            return;
++        }
++        // DivineMC end - Regionized Chunk Ticking
          boolean runningAlready = this.count > 0;
          boolean tooManyUpdates = this.maxChainedNeighborUpdates >= 0 && this.count >= this.maxChainedNeighborUpdates;
          this.count++;
-@@ -84,7 +84,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
-         }
-     }
- 
--    private void runUpdates() {
-+    private synchronized void runUpdates() { // DivineMC - Regionized Chunk Ticking
-         try {
-             while (!this.stack.isEmpty() || !this.addedThisLayer.isEmpty()) {
-                 for (int i = this.addedThisLayer.size() - 1; i >= 0; i--) {
 diff --git a/net/minecraft/world/ticks/LevelTicks.java b/net/minecraft/world/ticks/LevelTicks.java
 index a6a521815fc7c933cb0262281cd622978b034085..b4fbc46ba4edae9952289802f16e20919a5e045c 100644
 --- a/net/minecraft/world/ticks/LevelTicks.java

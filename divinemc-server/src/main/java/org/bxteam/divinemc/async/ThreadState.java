@@ -2,8 +2,10 @@ package org.bxteam.divinemc.async;
 
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import io.papermc.paper.entity.activation.ActivationType;
+import io.papermc.paper.redstone.RedstoneWireTurbo;
 import java.util.Arrays;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.phys.AABB;
 import org.bukkit.TreeType;
 import org.jspecify.annotations.NullMarked;
@@ -23,9 +25,22 @@ public final class ThreadState {
     public @Nullable TreeType treeType;
     public @Nullable BlockPos sourceBlockOverride;
     public final AABB[] activationBoxes = new AABB[ActivationType.values().length];
+    private @Nullable RedstoneWireTurbo redstoneWireTurbo;
 
     public ThreadState() {
         Arrays.fill(this.activationBoxes, new AABB(0, 0, 0, 0, 0, 0));
+    }
+
+    /**
+     * The Eigencraft wire evaluator keeps its work queues in the instance, which upstream holds on the wire block.
+     */
+    public RedstoneWireTurbo redstoneWireTurbo(final RedstoneWireBlock wire) {
+        RedstoneWireTurbo turbo = this.redstoneWireTurbo;
+        if (turbo == null) {
+            turbo = new RedstoneWireTurbo(wire);
+            this.redstoneWireTurbo = turbo;
+        }
+        return turbo;
     }
 
     public static ThreadState current() {

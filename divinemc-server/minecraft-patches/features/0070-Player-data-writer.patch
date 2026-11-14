@@ -5,7 +5,7 @@ Subject: [PATCH] Player data writer
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 177eb90e633c3e36584f1836583948c94de788fa..8b345a74d8e193bbd7cbe39bb47a4f29f3c42ab3 100644
+index 8e8679840433e093f2fb0fd5a9f0cfda6f011a27..a063cb287532b49198ec7d5e9a6fff3c0e7b641d 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -516,6 +516,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -73,10 +73,10 @@ index 9dc6f4484f4db44210aeb082f08354b428b83081..d8662d429fcef978c763197f3adb0072
  
      private void applyFrom(final ServerAdvancementManager manager, final PlayerAdvancements.Data data) {
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 0931b8cfc109a16b5dddaa7a789d8c8603952931..aae0eb2371e1535a82e1065feaefe3951d43c34b 100644
+index a257a9a383c6f7a6d42e20d79cecf935d0f34d0c..dee927c60cc0866af65347939524109f69cf068b 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -1254,6 +1254,7 @@ public abstract class PlayerList {
+@@ -1255,6 +1255,7 @@ public abstract class PlayerList {
      private Path locateStatsFile(final GameProfile gameProfile) {
          Path statFolder = this.server.getWorldPath(LevelResource.PLAYER_STATS_DIR);
          Path uuidStatsFile = statFolder.resolve(gameProfile.id() + ".json");
@@ -84,7 +84,7 @@ index 0931b8cfc109a16b5dddaa7a789d8c8603952931..aae0eb2371e1535a82e1065feaefe395
          if (Files.exists(uuidStatsFile)) {
              return uuidStatsFile;
          }
-@@ -1261,6 +1262,7 @@ public abstract class PlayerList {
+@@ -1262,6 +1263,7 @@ public abstract class PlayerList {
          String playerNameStatsFile = gameProfile.name() + ".json";
          if (FileUtil.isValidPathSegment(playerNameStatsFile)) {
              Path playerNameStatsPath = statFolder.resolve(playerNameStatsFile);

@@ -8,16 +8,19 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Holder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.entity.ai.village.poi.PoiType;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.level.portal.TeleportTransition;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.jspecify.annotations.NullMarked;
 
 /**
  * Vanilla's own operations that cross from one level into another while levels tick in parallel: portal travel, an
- * ender pearl whose owner is in another level, a villager releasing a point of interest in another level. They are
+ * ender pearl whose owner is in another level, a villager releasing a point of interest in another level, a respawn
+ * requested by a plugin from a level's tick (it moves the player between levels and edits the server's player list). They are
  * queued per source level and run on the server thread once every level has ticked, in level order and then in the
  * order they were queued, so the result does not depend on which level thread got there first.
  */
@@ -54,6 +57,19 @@ public final class CrossWorldTasks {
             if (transition != null) {
                 entity.teleportToPortalDestination(level, transition);
             }
+        });
+        return true;
+    }
+
+    public static boolean deferRespawn(final ServerPlayer player, final boolean keepAllPlayerData, final Entity.RemovalReason removalReason, final PlayerRespawnEvent.RespawnReason respawnReason) {
+        if (!shouldDefer()) {
+            return false;
+        }
+        defer(player.level(), () -> {
+            if (player.hasDisconnected() || (!keepAllPlayerData && player.getHealth() > 0.0F)) {
+                return;
+            }
+            player.level().getServer().getPlayerList().respawn(player, keepAllPlayerData, removalReason, respawnReason);
         });
         return true;
     }
