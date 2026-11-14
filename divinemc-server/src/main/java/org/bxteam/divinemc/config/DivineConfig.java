@@ -1011,6 +1011,7 @@ public class DivineConfig {
         public static double raytraceCullingAabbExpansion = 0.5D;
         public static int raytraceCullingBoundingBoxLimit = 20;
         public static boolean raytraceCullingCullPlayers = true;
+        public static boolean raytraceCullingHideCulledPlayersOnLocatorBar = false;
         public static boolean raytraceCullingSkipMarkerArmorStands = true;
         public static List<String> raytraceCullingSkippedEntityTypes = new ArrayList<>();
 
@@ -1125,6 +1126,10 @@ public class DivineConfig {
                 "Whether player entities may be culled too. This is the main anti-ESP protection,",
                 "but on PvP servers with high-ping players it can give a slight disadvantage when",
                 "peeking around corners - disable it if that matters more to you.");
+            raytraceCullingHideCulledPlayersOnLocatorBar = getBoolean(ConfigCategory.NETWORK.key("raytrace-entity-culling.hide-culled-players-on-locator-bar"), raytraceCullingHideCulledPlayersOnLocatorBar,
+                "Whether a culled player also disappears from the locator bar of the player who",
+                "cannot see them. Off (default) keeps vanilla behaviour: the locator bar shows every",
+                "player in range, including ones hidden behind walls. On hides their direction too.");
             raytraceCullingSkipMarkerArmorStands = getBoolean(ConfigCategory.NETWORK.key("raytrace-entity-culling.skip-marker-armor-stands"), raytraceCullingSkipMarkerArmorStands,
                 "Whether invisible armor stands (often used as plugin markers/holograms) are",
                 "always visible and never raytraced.");
