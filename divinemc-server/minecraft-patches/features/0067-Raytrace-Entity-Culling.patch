@@ -54,10 +54,10 @@ index 8f0893d42dd56d8a3cac5d142f7d2b0d23eb435c..78d0c7af20b1fabc3994d34dab685a42
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 9f3ca8b876cde6a3edc3b24eea1035df45876516..5484224bd28644723ef3afb7213eafbb73eb5d3e 100644
+index 92bdbd3e0c3f768badc7414b9ef4046db39d0e1f..76fb78b2fe67f9bf8e7ceb8b1848d0878855bf8f 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1164,6 +1164,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1162,6 +1162,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          }
          // DivineMC end - Raytrace AntiXray SDK integration
          this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
@@ -66,14 +66,14 @@ index 9f3ca8b876cde6a3edc3b24eea1035df45876516..5484224bd28644723ef3afb7213eafbb
              // CraftBukkit start - remove blockstate if failed (or the same)
              if (captureBlockStates && captured) { // DivineMC - Regionized Chunk Ticking - thread-safe block capture
 diff --git a/net/minecraft/world/waypoints/WaypointTransmitter.java b/net/minecraft/world/waypoints/WaypointTransmitter.java
-index 07af92310ee5c8bba04e6175b6faac629632e4de..5f3059c4342b59664fa2da97832815fa5024391e 100644
+index 07af92310ee5c8bba04e6175b6faac629632e4de..376f1e474ff8df7893e6f4cfe0c1ec8af87a53e8 100644
 --- a/net/minecraft/world/waypoints/WaypointTransmitter.java
 +++ b/net/minecraft/world/waypoints/WaypointTransmitter.java
 @@ -21,6 +21,7 @@ public interface WaypointTransmitter extends Waypoint {
  
      static boolean doesSourceIgnoreReceiver(final LivingEntity source, final ServerPlayer receiver) {
          if (!receiver.getBukkitEntity().canSee(source.getBukkitEntity())) return true; // Paper - ignore if entity is hidden from player
-+        if (org.bxteam.divinemc.culling.EntityCullingManager.isCulled(receiver, source)) return true; // DivineMC - Raytrace Entity Culling - hide culled players from locator bar
++        if (org.bxteam.divinemc.config.DivineConfig.NetworkCategory.raytraceCullingHideCulledPlayersOnLocatorBar && org.bxteam.divinemc.culling.EntityCullingManager.isCulled(receiver, source)) return true; // DivineMC - Raytrace Entity Culling - hide culled players from locator bar
          if (receiver.isSpectator()) {
              return false;
          } else if (!source.isSpectator() && !source.hasIndirectPassenger(receiver)) {
