@@ -255,11 +255,20 @@ public class CommunicationManager implements LeavesProtocol {
         buf.writeUtf(SyncmaticaProtocol.sanitizeFileName(metaData.getName()));
         buf.writeUUID(metaData.getHash());
 
+        if (exchangeTarget.getFeatureSet().hasFeature(Feature.DISPLAY_NAME)) {
+            buf.writeUtf(metaData.getDisplayName());
+        }
+
         if (exchangeTarget.getFeatureSet().hasFeature(Feature.CORE_EX)) {
             buf.writeUUID(metaData.getOwner().uuid);
             buf.writeUtf(metaData.getOwner().getName());
             buf.writeUUID(metaData.getLastModifiedBy().uuid);
             buf.writeUtf(metaData.getLastModifiedBy().getName());
+        }
+
+        if (exchangeTarget.getFeatureSet().hasFeature(Feature.VERSION)) {
+            buf.writeVarInt(metaData.getLitematicVersion());
+            buf.writeVarInt(metaData.getDataVersion());
         }
 
         putPositionData(metaData, buf, exchangeTarget);
@@ -298,6 +307,11 @@ public class CommunicationManager implements LeavesProtocol {
         PlayerIdentifier owner = PlayerIdentifier.MISSING_PLAYER;
         PlayerIdentifier lastModifiedBy = PlayerIdentifier.MISSING_PLAYER;
 
+        String displayName = null;
+        if (exchangeTarget.getFeatureSet().hasFeature(Feature.DISPLAY_NAME)) {
+            displayName = buf.readUtf(32767);
+        }
+
         if (exchangeTarget.getFeatureSet().hasFeature(Feature.CORE_EX)) {
             final PlayerIdentifierProvider provider = SyncmaticaProtocol.getPlayerIdentifierProvider();
             owner = provider.createOrGet(buf.readUUID(), buf.readUtf(32767));
@@ -306,6 +320,13 @@ public class CommunicationManager implements LeavesProtocol {
 
         final ServerPlacement placement = new ServerPlacement(id, fileName, hash, owner);
         placement.setLastModifiedBy(lastModifiedBy);
+        if (displayName != null) {
+            placement.setDisplayName(displayName);
+        }
+
+        if (exchangeTarget.getFeatureSet().hasFeature(Feature.VERSION)) {
+            placement.setVersion(buf.readVarInt(), buf.readVarInt());
+        }
 
         receivePositionData(placement, buf, exchangeTarget);
 

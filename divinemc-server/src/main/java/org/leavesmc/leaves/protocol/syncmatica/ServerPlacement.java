@@ -26,9 +26,14 @@ public class ServerPlacement {
 
     private SubRegionData subRegionData = new SubRegionData();
 
+    private String displayName;
+    private int litematicVersion = -1;
+    private int dataVersion = -1;
+
     public ServerPlacement(final UUID id, final String fileName, final UUID hashValue, final PlayerIdentifier owner) {
         this.id = id;
         this.fileName = removeExtension(fileName);
+        this.displayName = this.fileName;
         this.hashValue = hashValue;
         this.owner = owner;
         lastModifiedBy = owner;
@@ -79,6 +84,16 @@ public class ServerPlacement {
                 newPlacement.subRegionData = SubRegionData.fromJson(obj.get("subregionData"));
             }
 
+            if (obj.has("display_name")) {
+                newPlacement.displayName = obj.get("display_name").getAsString();
+            }
+            if (obj.has("litematicVersion")) {
+                newPlacement.litematicVersion = obj.get("litematicVersion").getAsInt();
+            }
+            if (obj.has("dataVersion")) {
+                newPlacement.dataVersion = obj.get("dataVersion").getAsInt();
+            }
+
             return newPlacement;
         }
 
@@ -91,6 +106,27 @@ public class ServerPlacement {
 
     public String getName() {
         return fileName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(final String displayName) {
+        this.displayName = displayName;
+    }
+
+    public int getLitematicVersion() {
+        return litematicVersion;
+    }
+
+    public int getDataVersion() {
+        return dataVersion;
+    }
+
+    public void setVersion(final int litematicVersion, final int dataVersion) {
+        this.litematicVersion = litematicVersion;
+        this.dataVersion = dataVersion;
     }
 
     public UUID getHash() {
@@ -167,6 +203,14 @@ public class ServerPlacement {
 
         if (subRegionData.isModified()) {
             obj.add("subregionData", subRegionData.toJson());
+        }
+
+        obj.add("display_name", new JsonPrimitive(displayName));
+        if (litematicVersion > -1) {
+            obj.add("litematicVersion", new JsonPrimitive(litematicVersion));
+        }
+        if (dataVersion > -1) {
+            obj.add("dataVersion", new JsonPrimitive(dataVersion));
         }
 
         return obj;
