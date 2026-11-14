@@ -236,7 +236,7 @@ index 6a2a685f9213cb8cca7c293bf4e5442051770916..7e5d295fd75be224ce2e18b07a1fb016
          } finally {
              this.iteratingTrackerEntities = false;
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index b81eae482bd7d6cadbc424c01c592459575b92bb..41dc41cb1a5fe6711648a1d0c61da4232a4794d9 100644
+index 9fc1b67d83257886330927a0b64f139e780aaa6e..de8853142d9930678b83a601828563614a907b9f 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -55,10 +55,10 @@ import org.jspecify.annotations.Nullable;
@@ -337,7 +337,7 @@ index b81eae482bd7d6cadbc424c01c592459575b92bb..41dc41cb1a5fe6711648a1d0c61da423
          profiler.pop();
      }
  
-@@ -669,6 +684,12 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -667,6 +682,12 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
          profiler.pop();
      }
  
@@ -350,7 +350,7 @@ index b81eae482bd7d6cadbc424c01c592459575b92bb..41dc41cb1a5fe6711648a1d0c61da423
      private void tickSpawningChunk(final LevelChunk chunk, final List<MobCategory> spawningCategories, final NaturalSpawner.SpawnState spawnCookie) {
          ChunkPos chunkPos = chunk.getPos();
          chunk.incrementInhabitedTime();
-@@ -905,5 +926,16 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+@@ -903,5 +924,16 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
              // Paper - rewrite chunk system
              return super.pollTask() | ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)ServerChunkCache.this.level).moonrise$getChunkTaskScheduler().executeMainThreadTask(); // Paper - rewrite chunk system
          }
