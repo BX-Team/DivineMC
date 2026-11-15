@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [ "ver/26.3" ]
 
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: blacksmith-8vcpu-ubuntu-2404
