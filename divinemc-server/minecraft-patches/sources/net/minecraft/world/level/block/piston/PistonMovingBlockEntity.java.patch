@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
++++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+@@ -44,6 +_,7 @@
+     private float progressO = 0.0F;
+     private long lastTicked;
+     private int deathTicks;
++    private org.bxteam.divinemc.util.cache.@org.jspecify.annotations.Nullable MovingPistonShapeCache shapeCache; // DivineMC - Cache moving piston collision shapes
+ 
+     public PistonMovingBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
+         super(BlockEntityTypes.PISTON, worldPosition, blockState);
+@@ -374,11 +_,13 @@
+             blockState = this.movedState;
+         }
+ 
+-        float extendedProgress = this.getExtendedProgress(this.progress);
+-        double dx = this.direction.getStepX() * extendedProgress;
+-        double dy = this.direction.getStepY() * extendedProgress;
+-        double dz = this.direction.getStepZ() * extendedProgress;
+-        return Shapes.or(pistonHeadShape, blockState.getCollisionShape(level, pos).move(dx, dy, dz));
++        // DivineMC start - Cache moving piston collision shapes - entities and neighbours ask many times per tick
++        org.bxteam.divinemc.util.cache.MovingPistonShapeCache shapeCache = org.bxteam.divinemc.util.cache.MovingPistonShapeCache.lookup(this.shapeCache, this.progress, this.direction, this.extending, pistonHeadShape, blockState.getCollisionShape(level, pos));
++        if (shapeCache != this.shapeCache) {
++            this.shapeCache = shapeCache;
++        }
++        return shapeCache.result();
++        // DivineMC end - Cache moving piston collision shapes - entities and neighbours ask many times per tick
+     }
+ 
+     public long getLastTicked() {
