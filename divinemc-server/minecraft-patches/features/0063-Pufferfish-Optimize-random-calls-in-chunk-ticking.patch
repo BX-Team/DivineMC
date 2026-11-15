@@ -10,10 +10,10 @@ As part of: Airplane (https://github.com/TECHNOVE/Airplane)
 Licensed under: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html)
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 53fb140d648a5446db6d3b915a54fe3e3317b698..ca0686fb7c6f4b36c996101172519680610f95a5 100644
+index ff53e10f694319f3f759b6e17b1baf6a59e2e584..3c1201521623a59ada6ff2af45adb78b03db7454 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1129,7 +1129,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1141,7 +1141,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          int minZ = chunkPos.getMinBlockZ();
          ProfilerFiller profiler = Profiler.get();
          profiler.push("thunder");

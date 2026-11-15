@@ -24,7 +24,9 @@ import org.jspecify.annotations.Nullable;
  * A level thread that is parked here, or on the server state lock in a listener or a command, is inside a plugin or
  * command call, where its levels may be changed anyway. Its levels can then be borrowed: by any thread while it waits
  * for a level (until the borrower's tick ends or it leaves its level), by the holder of the server state lock while it
- * waits for that lock (until the holder releases it). A level whose region workers are running is never lent. A wait
+ * waits for that lock (until the holder's outermost unlock, even if the holder lets the lock go in between to wait for
+ * something else; the lender takes the lock only once all its levels are back, and until then any thread may borrow
+ * its other levels). A level whose region workers are running is never lent. A wait
  * that no thread can resolve throws {@link IllegalStateException} in the thread that waits for a level, once none of
  * its levels is lent any more; a thread waiting for the server state lock never throws.
  */
@@ -32,7 +34,7 @@ import org.jspecify.annotations.Nullable;
 public final class LevelHandoff {
     private static final Object MONITOR = new Object();
     private static final Object STATE_LOCK = new Object();
-    private static final Map<Thread, ServerLevel> WAITING_REGION_WORKERS = new IdentityHashMap<>();
+    private static final Map<Thread, Object> WAITING_REGION_WORKERS = new IdentityHashMap<>();
     private static final Map<Thread, ServerLevel> JOINING = new IdentityHashMap<>();
     private static volatile @Nullable Thread stateLockOwner;
 
@@ -43,13 +45,19 @@ public final class LevelHandoff {
      * Ownership of one level, guarded by {@link #MONITOR}.
      */
     static final class Slot {
-        final ServerLevel level;
+        final Object level;
+        final String name;
         @Nullable Thread owner;
         @Nullable Thread lentTo;
         int activeWorkers;
 
         Slot(final ServerLevel level) {
+            this(level, level.getWorld().getName());
+        }
+
+        Slot(final Object level, final String name) {
             this.level = level;
+            this.name = name;
         }
 
         @Nullable Thread effectiveOwner() {
@@ -70,11 +78,11 @@ public final class LevelHandoff {
         private boolean inAcquire;
         private boolean lendable;
 
-        boolean holds(final Level level) {
+        boolean holds(final Object level) {
             return contains(this.held, level) || contains(this.borrowedForTick, level) || contains(this.borrowedForStateLock, level);
         }
 
-        private static boolean contains(final List<Slot> slots, final Level level) {
+        private static boolean contains(final List<Slot> slots, final Object level) {
             for (int i = 0, len = slots.size(); i < len; i++) {
                 if (slots.get(i).level == level) {
                     return true;
@@ -126,7 +134,10 @@ public final class LevelHandoff {
         if (slot == null) {
             return false;
         }
+        return acquireSlot(thread, holder, own, slot);
+    }
 
+    static boolean acquireSlot(final Thread thread, final Holder holder, final Object own, final Slot slot) {
         synchronized (MONITOR) {
             if (holder.lent.isEmpty() && tryTake(thread, holder, slot)) {
                 return true;
@@ -136,7 +147,7 @@ public final class LevelHandoff {
         // for the plugin this is like another listener running during an API call, which can happen without threads too
         final int stateLockHolds = ServerStateLock.releaseForWait();
         try {
-            return waitAndTake(thread, holder, own, slot, level);
+            return waitAndTake(thread, holder, own, slot);
         } finally {
             ServerStateLock.reacquireAfterWait(stateLockHolds);
         }
@@ -155,7 +166,7 @@ public final class LevelHandoff {
         return false;
     }
 
-    private static boolean waitAndTake(final Thread thread, final Holder holder, final ServerLevel own, final Slot slot, final ServerLevel level) {
+    private static boolean waitAndTake(final Thread thread, final Holder holder, final Object own, final Slot slot) {
         boolean compensated = false;
         @Nullable InterruptedException interrupted = null;
         synchronized (MONITOR) {
@@ -173,11 +184,11 @@ public final class LevelHandoff {
                     // leaving while a level is lent would let this thread and the borrower run in it at once
                     if (holder.lent.isEmpty()) {
                         if (interrupted != null) {
-                            throw new IllegalStateException("Interrupted while waiting for level " + level.getWorld().getName(), interrupted);
+                            throw new IllegalStateException("Interrupted while waiting for level " + slot.name, interrupted);
                         }
                         final String cycle = findCycle(thread);
                         if (cycle != null) {
-                            throw new IllegalStateException("Cross-world wait that no level can resolve, cannot take level " + level.getWorld().getName() + ": " + cycle);
+                            throw new IllegalStateException("Cross-world wait that no level can resolve, cannot take level " + slot.name + ": " + cycle);
                         }
                     }
                     if (!compensated && thread instanceof TickThread.RegionTickThread) {
@@ -206,18 +217,25 @@ public final class LevelHandoff {
 
     static void beginTick(final LevelTickThread thread, final Slot slot) {
         final Holder holder = thread.handoff;
+        boolean interrupted = false;
         synchronized (MONITOR) {
             holder.waitingFor = slot;
             try {
+                // an interrupt must not end the wait: taking a held level would give it two owners
                 while (slot.owner != null || slot.lentTo != null) {
-                    MONITOR.wait();
+                    try {
+                        MONITOR.wait();
+                    } catch (final InterruptedException exception) {
+                        interrupted = true;
+                    }
                 }
-            } catch (final InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
             } finally {
                 holder.waitingFor = null;
             }
             slot.owner = thread;
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -290,6 +308,68 @@ public final class LevelHandoff {
     }
 
     /**
+     * Called when the holder of the server state lock lets it go to wait for something else in the middle of its
+     * operation. The levels it borrowed for the lock stay with it until its outermost unlock.
+     */
+    public static void stateLockSuspending() {
+        stateLockOwner = null;
+    }
+
+    public static boolean hasLentLevels(final Thread thread) {
+        final Holder holder = holder(thread);
+        if (holder == null) {
+            return false;
+        }
+        synchronized (MONITOR) {
+            return !holder.lent.isEmpty();
+        }
+    }
+
+    /**
+     * Blocks a thread registered by {@link #waitForStateLock} until every level it lent has come back.
+     */
+    public static void awaitLentReturned() {
+        final Holder holder = holder(Thread.currentThread());
+        if (holder == null) {
+            return;
+        }
+        boolean interrupted = false;
+        synchronized (MONITOR) {
+            while (!holder.lent.isEmpty()) {
+                try {
+                    MONITOR.wait();
+                } catch (final InterruptedException exception) {
+                    interrupted = true;
+                }
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Ends the wait of a thread that has just taken the server state lock, unless one of its levels is still lent.
+     *
+     * @return false if a level is still lent; the caller then lets the lock go and waits again
+     */
+    public static boolean finishStateLockWait() {
+        final Thread current = Thread.currentThread();
+        final Holder holder = holder(current);
+        synchronized (MONITOR) {
+            if (holder != null) {
+                if (!holder.lent.isEmpty()) {
+                    return false;
+                }
+                holder.waitingFor = null;
+                holder.lendable = false;
+            }
+            WAITING_REGION_WORKERS.remove(current);
+        }
+        return true;
+    }
+
+    /**
      * Registers the current thread as waiting for the server state lock, which it is about to block on.
      *
      * @return whether {@link #stopWaitingForStateLock} has to be called once the lock is taken
@@ -348,7 +428,8 @@ public final class LevelHandoff {
             return false;
         }
         if (holder.waitingFor == STATE_LOCK) {
-            return holder.lendable && stateLockOwner == thread;
+            // an owner with a level still lent does not continue before it is back, so any thread may borrow meanwhile
+            return holder.lendable && (stateLockOwner == thread || !holder.lent.isEmpty());
         }
         return holder.inAcquire;
     }
@@ -360,7 +441,7 @@ public final class LevelHandoff {
         }
         slot.lentTo = thread;
         owner.lent.add(slot);
-        if (owner.waitingFor == STATE_LOCK) {
+        if (owner.waitingFor == STATE_LOCK && stateLockOwner == thread) {
             holder.borrowedForStateLock.add(slot);
         } else {
             holder.borrowedForTick.add(slot);
@@ -425,11 +506,16 @@ public final class LevelHandoff {
                 if (owner != null) {
                     next.add(owner);
                 }
+                for (final Slot lent : holder.lent) {
+                    if (lent.lentTo != null) {
+                        next.add(lent.lentTo);
+                    }
+                }
             }
         }
         final ServerLevel joined = JOINING.get(thread);
         if (joined != null) {
-            for (final Map.Entry<Thread, ServerLevel> worker : WAITING_REGION_WORKERS.entrySet()) {
+            for (final Map.Entry<Thread, Object> worker : WAITING_REGION_WORKERS.entrySet()) {
                 if (worker.getValue() == joined) {
                     next.add(worker.getKey());
                 }
@@ -451,7 +537,7 @@ public final class LevelHandoff {
         final Holder holder = holder(thread);
         final Object waitingFor = holder == null ? null : holder.waitingFor;
         if (waitingFor instanceof Slot slot) {
-            return "waits for level " + slot.level.getWorld().getName();
+            return "waits for level " + slot.name;
         }
         if (waitingFor == STATE_LOCK) {
             return "waits for the server state lock";

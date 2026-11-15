@@ -606,55 +606,6 @@ index 0c753500fe4f9b4cded92cb2e1f5ae194384017c..d1cde71595b64a7d8b628ff611e1dfa9
              this.managedBlock(result::isDone);
          }
  
-diff --git a/net/minecraft/server/PlayerAdvancements.java b/net/minecraft/server/PlayerAdvancements.java
-index 14591f7cbe9408e18ce14af0624b46d4d40c2891..9dc6f4484f4db44210aeb082f08354b428b83081 100644
---- a/net/minecraft/server/PlayerAdvancements.java
-+++ b/net/minecraft/server/PlayerAdvancements.java
-@@ -54,7 +54,7 @@ public class PlayerAdvancements {
-     private AdvancementTree tree;
-     private final Map<AdvancementHolder, AdvancementProgress> progress = new LinkedHashMap<>();
-     private final Set<AdvancementHolder> visible = new HashSet<>();
--    private final Set<AdvancementHolder> progressChanged = new HashSet<>();
-+    private final Set<AdvancementHolder> progressChanged = org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED ? java.util.concurrent.ConcurrentHashMap.newKeySet() : new HashSet<>(); // DivineMC - Parallel world ticking
-     private final Set<AdvancementNode> rootsToUpdate = new HashSet<>();
-     private ServerPlayer player;
-     private @Nullable AdvancementHolder lastSelectedTab;
-@@ -262,6 +262,7 @@ public class PlayerAdvancements {
-     }
- 
-     public void flushDirty(final ServerPlayer player, final boolean showAdvancements) {
-+        final boolean isConcurrent = org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED; // DivineMC - Parallel world ticking
-         if (this.isFirstPacket || !this.rootsToUpdate.isEmpty() || !this.progressChanged.isEmpty()) {
-             Map<Identifier, AdvancementProgress> progress = new HashMap<>();
-             Set<AdvancementNode> added = new java.util.TreeSet<>(java.util.Comparator.comparing(node -> node.holder().id().toString())); // Paper - Changed from HashSet to TreeSet ordered alphabetically.
-@@ -273,13 +274,22 @@ public class PlayerAdvancements {
- 
-             this.rootsToUpdate.clear();
- 
--            for (AdvancementHolder holder : this.progressChanged) {
--                if (this.visible.contains(holder)) {
--                    progress.put(holder.id(), this.progress.get(holder));
-+            // DivineMC start - Parallel world ticking
-+            if (!this.progressChanged.isEmpty()) {
-+                Set<AdvancementHolder> toProcess = isConcurrent ? new HashSet<>(this.progressChanged) : this.progressChanged;
-+
-+                for (AdvancementHolder holder : toProcess) {
-+                    if (this.visible.contains(holder)) {
-+                        progress.put(holder.id(), this.progress.get(holder));
-+                    }
-+                }
-+                if (isConcurrent) {
-+                    this.progressChanged.removeAll(toProcess);
-+                } else {
-+                    this.progressChanged.clear();
-                 }
-             }
--
--            this.progressChanged.clear();
-+            // DivineMC end - Parallel world ticking
-             if (!progress.isEmpty() || !added.isEmpty() || !removed.isEmpty()) {
-                 List<ClientboundUpdateAdvancementsPacket.PositionedAdvancement> convertedAdded = added.stream()
-                     .map(ClientboundUpdateAdvancementsPacket.PositionedAdvancement::fromNode)
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
 index 81a5dd6899f84d62bb1d15e47d536393b006ea41..b670bcd7c63881d3333f265d1ea20951fd27b263 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
@@ -692,7 +643,7 @@ index 15db1280c1ac4f559299adcadb9f8a07bd64e25c..6a2a685f9213cb8cca7c293bf4e54420
      public int serverViewDistance;
      public final WorldGenContext worldGenContext; // Paper - public
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
-index c14ccbf6e77db1a43bbd839be187d13294dabc33..b81eae482bd7d6cadbc424c01c592459575b92bb 100644
+index c7dfa3225acc9a483b773101073c2987889d0e34..9fc1b67d83257886330927a0b64f139e780aaa6e 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
 @@ -108,6 +108,7 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon

@@ -22,7 +22,8 @@ import org.jspecify.annotations.NullMarked;
  * ender pearl whose owner is in another level, a villager releasing a point of interest in another level, a respawn
  * requested by a plugin from a level's tick (it moves the player between levels and edits the server's player list). They are
  * queued per source level and run on the server thread once every level has ticked, in level order and then in the
- * order they were queued, so the result does not depend on which level thread got there first.
+ * order they were queued, so the result does not depend on which level thread got there first. Without parallel world
+ * ticking, a respawn requested on a region worker runs on the server thread before the next tick.
  */
 @NullMarked
 public final class CrossWorldTasks {
@@ -62,16 +63,22 @@ public final class CrossWorldTasks {
     }
 
     public static boolean deferRespawn(final ServerPlayer player, final boolean keepAllPlayerData, final Entity.RemovalReason removalReason, final PlayerRespawnEvent.RespawnReason respawnReason) {
-        if (!shouldDefer()) {
-            return false;
-        }
-        defer(player.level(), () -> {
+        final Runnable respawn = () -> {
             if (player.hasDisconnected() || (!keepAllPlayerData && player.getHealth() > 0.0F)) {
                 return;
             }
             player.level().getServer().getPlayerList().respawn(player, keepAllPlayerData, removalReason, respawnReason);
-        });
-        return true;
+        };
+        if (shouldDefer()) {
+            defer(player.level(), respawn);
+            return true;
+        }
+        // without parallel world ticking a region worker still shares the player list with the others
+        if (Thread.currentThread() instanceof TickThread.RegionTickThread) {
+            MinecraftServer.getServer().scheduleOnMain(respawn);
+            return true;
+        }
+        return false;
     }
 
     public static boolean deferPoiRelease(final Villager villager, final ServerLevel poiLevel, final GlobalPos memory, final BiPredicate<Villager, Holder<PoiType>> predicate) {

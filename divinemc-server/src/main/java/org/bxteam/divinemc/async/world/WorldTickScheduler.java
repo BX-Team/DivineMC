@@ -129,6 +129,7 @@ public final class WorldTickScheduler {
         private final WorldTickScheduler scheduler;
         private final ServerLevel level;
         private final LevelTickThread thread;
+        private final String name;
         private volatile boolean go;
         private volatile boolean stopped;
         private BooleanSupplier haveTime = () -> false;
@@ -141,9 +142,9 @@ public final class WorldTickScheduler {
             this.scheduler = scheduler;
             this.level = level;
             this.slot = new LevelHandoff.Slot(level);
-            final String name = level.getWorld().getName() + " - ServerLevel Tick Worker";
-            ThreadDumperRegistry.REGISTRY.add(name);
-            this.thread = new LevelTickThread(this, name);
+            this.name = level.getWorld().getName() + " - ServerLevel Tick Worker";
+            ThreadDumperRegistry.REGISTRY.add(this.name);
+            this.thread = new LevelTickThread(this, this.name);
             this.thread.currentlyTickingServerLevel = level;
             // only ever parked between ticks; the server thread waits for it during one
             this.thread.setDaemon(true);
@@ -156,6 +157,7 @@ public final class WorldTickScheduler {
         }
 
         private void stop() {
+            ThreadDumperRegistry.REGISTRY.remove(this.name);
             this.stopped = true;
             LockSupport.unpark(this.thread);
         }

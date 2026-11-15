@@ -43,6 +43,12 @@ public abstract class ChunkSectionEntityMovementTracker {
     }
 
     public void listenToEntityMovementOnce(ChunkSectionEntityMovementListener listener) {
+        if (org.bxteam.divinemc.async.LevelThreads.SHARED) {
+            synchronized (this.listeners) {
+                this.listeners.add(listener);
+            }
+            return;
+        }
         this.listeners.add(listener);
     }
 
@@ -59,6 +65,17 @@ public abstract class ChunkSectionEntityMovementTracker {
     }
 
     public void notifyAllListeners(long time) {
+        // region workers move entities of one section at once
+        if (org.bxteam.divinemc.async.LevelThreads.SHARED) {
+            synchronized (this.listeners) {
+                this.notifyListeners(time);
+            }
+            return;
+        }
+        this.notifyListeners(time);
+    }
+
+    private void notifyListeners(long time) {
         if (!listeners.isEmpty()) {
             for (ChunkSectionEntityMovementListener listener : listeners) {
                 listener.handleEntityMovement();
