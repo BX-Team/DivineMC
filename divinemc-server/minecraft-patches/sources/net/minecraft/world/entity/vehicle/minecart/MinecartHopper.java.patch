@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/MinecartHopper.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/MinecartHopper.java
-@@ -103,6 +_,7 @@
+@@ -96,7 +_,7 @@
      }
  
-     public boolean suckInItems() {
-+        if (HopperBlockEntity.isFullContainer(this, net.minecraft.core.Direction.DOWN)) return false; // DivineMC - Skip pulling into a full hopper minecart
-         if (HopperBlockEntity.suckInItems(this.level(), this)) {
-             this.immunize(); // Paper
-             return true;
+     private void tryConsumeItems() {
+-        if (!this.level().isClientSide() && this.isAlive() && this.isEnabled() && !this.consumedItemThisFrame && this.suckInItems()) {
++        if (!this.level().isClientSide() && this.isAlive() && this.isEnabled() && !this.consumedItemThisFrame && !org.bxteam.divinemc.util.entity.HopperMinecartHelper.skipPull(this) && this.suckInItems()) { // DivineMC - Skip pulling into a full hopper minecart
+             this.consumedItemThisFrame = true;
+             this.setChanged();
+         }
