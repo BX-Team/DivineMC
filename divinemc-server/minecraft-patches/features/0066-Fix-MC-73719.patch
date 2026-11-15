@@ -5,7 +5,7 @@ Subject: [PATCH] Fix MC-73719
 
 
 diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
-index 432dd83733d871c94a644ff3405c5970a607b125..52d424f9aa1a5f09cd9427423b9fa1fabf69f542 100644
+index 42f9b2fe9c97dfed617851ba3c56f284b453fbc7..24bebe12a0b5deaa9244fb14b61ee71b4df31a02 100644
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
 @@ -176,6 +176,25 @@ public class ServerEntity {

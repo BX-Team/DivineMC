@@ -1,23 +1,13 @@
 package org.bxteam.divinemc.async;
 
 import com.mojang.logging.LogUtils;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
-import java.util.zip.GZIPOutputStream;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtIo;
 import org.bxteam.divinemc.config.DivineConfig;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -160,21 +150,5 @@ public final class PlayerFileWriter {
 
     private static Path key(final Path path) {
         return path.toAbsolutePath().normalize();
-    }
-
-    public static byte[] encode(final CompoundTag tag) throws IOException {
-        final ByteArrayOutputStream bytes = new ByteArrayOutputStream(4096);
-        NbtIo.write(tag, new DataOutputStream(bytes));
-        return bytes.toByteArray();
-    }
-
-    // same bytes and open options as NbtIo.writeCompressed(CompoundTag, Path), from an already encoded tag
-    public static void writeCompressed(final byte[] encoded, final Path file) throws IOException {
-        try (
-            OutputStream out = Files.newOutputStream(file, StandardOpenOption.SYNC, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            GZIPOutputStream gzip = new GZIPOutputStream(new BufferedOutputStream(out))
-        ) {
-            gzip.write(encoded);
-        }
     }
 }

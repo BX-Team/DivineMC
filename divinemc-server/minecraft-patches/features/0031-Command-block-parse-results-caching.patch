@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sat, 15 Mar 2025 22:01:08 +0300
+Subject: [PATCH] Command block parse results caching
+
+
+diff --git a/net/minecraft/world/level/BaseCommandBlock.java b/net/minecraft/world/level/BaseCommandBlock.java
+index e73026529520c1bc641681ad0709906101b48a4f..3b5c1a5b8eb636015138447952005886e4bb8da2 100644
+--- a/net/minecraft/world/level/BaseCommandBlock.java
++++ b/net/minecraft/world/level/BaseCommandBlock.java
+@@ -30,6 +30,7 @@ public abstract class BaseCommandBlock {
+     private @Nullable Component lastOutput;
+     private String command = "";
+     private @Nullable Component customName;
++    private final org.bxteam.divinemc.command.CommandBlockParseCache parseCache = new org.bxteam.divinemc.command.CommandBlockParseCache(); // DivineMC - Command block parse results caching
+     // CraftBukkit start
+     protected abstract org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper);
+     public abstract ServerLevel getLevel();
+@@ -118,7 +119,13 @@ public abstract class BaseCommandBlock {
+                     if (!event.callEvent()) {
+                         return true;
+                     }
+-                    level.getServer().getCommands().performPrefixedCommand(commandSourceStack, event.getCommand());
++                    // DivineMC start - Command block parse results caching
++                    if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.commandBlockParseResultsCaching) {
++                        this.parseCache.perform(level.getServer().getCommands(), commandSourceStack, event.getCommand());
++                    } else {
++                        level.getServer().getCommands().performPrefixedCommand(commandSourceStack, event.getCommand());
++                    }
++                    // DivineMC end - Command block parse results caching
+                     // Paper end - ServerCommandEvent
+                 }
+             } catch (Throwable t) {

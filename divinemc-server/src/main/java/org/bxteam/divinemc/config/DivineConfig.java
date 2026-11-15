@@ -176,6 +176,35 @@ public class DivineConfig {
         if (comment.length > 0) config.setComment(key, String.join("\n", comment), CommentType.BLOCK);
     }
 
+    private static void removedOptions() {
+        if (config.getBoolean(ConfigCategory.MISC.key("lag-compensation.enabled"), false)) {
+            LOGGER.warn("Lag compensation has been removed from DivineMC; misc.lag-compensation is ignored and will be deleted from the config.");
+        }
+        if (config.getBoolean(ConfigCategory.NETWORK.key("player-profile-result-caching.enabled"), false)) {
+            LOGGER.warn("Player profile result caching has been removed from DivineMC: it let anyone join under a cached player name without a Mojang session check. network.player-profile-result-caching is ignored and will be deleted from the config.");
+        }
+        removeLegacy(
+            ConfigCategory.ASYNC.key("parallel-world-ticking.log-container-creation-stacktraces"),
+            ConfigCategory.ASYNC.key("parallel-world-ticking.disable-hard-throw"),
+            ConfigCategory.ASYNC.key("multithreaded-tracker.compat-mode"),
+            ConfigCategory.ASYNC.key("multithreaded-tracker.queue-size"),
+            ConfigCategory.ASYNC.key("mob-spawning.async-natural-spawn"),
+            ConfigCategory.MISC.key("lag-compensation.enabled"),
+            ConfigCategory.MISC.key("lag-compensation.block-entity-acceleration"),
+            ConfigCategory.MISC.key("lag-compensation.block-breaking-acceleration"),
+            ConfigCategory.MISC.key("lag-compensation.eating-acceleration"),
+            ConfigCategory.MISC.key("lag-compensation.potion-effect-acceleration"),
+            ConfigCategory.MISC.key("lag-compensation.fluid-acceleration"),
+            ConfigCategory.MISC.key("lag-compensation.pickup-acceleration"),
+            ConfigCategory.MISC.key("lag-compensation.portal-acceleration"),
+            ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration"),
+            ConfigCategory.PERFORMANCE.key("chunks.experimental.enable-structure-layout-optimizer"),
+            ConfigCategory.PERFORMANCE.key("chunks.experimental.deduplicate-shuffled-template-pool-element-list"),
+            ConfigCategory.NETWORK.key("player-profile-result-caching.enabled"),
+            ConfigCategory.NETWORK.key("player-profile-result-caching.timeout")
+        );
+    }
+
     private static void removeLegacy(String... keys) {
         for (String key : keys) {
             if (config.contains(key)) {
@@ -406,10 +435,6 @@ public class DivineConfig {
                 "Enables per-world TPS bar, which shows the TPS of the world the player is currently in. TPS bar can be turned on/off with /tpsbar command.");
             showTPSOfServerInsteadOfWorld = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.show-tps-of-server-instead-of-world"), showTPSOfServerInsteadOfWorld,
                 "Enables showing the TPS of the entire server instead of the world in the TPS bar.");
-            removeLegacy(
-                ConfigCategory.ASYNC.key("parallel-world-ticking.log-container-creation-stacktraces"),
-                ConfigCategory.ASYNC.key("parallel-world-ticking.disable-hard-throw")
-            );
             serializePluginListeners = getBoolean(ConfigCategory.ASYNC.key("serialize-plugin-listeners"), serializePluginListeners,
                 "With parallel world ticking or regionized chunk ticking, event listeners run on several threads at once.",
                 "Most plugins keep their own state in plain collections that are not safe for that. When enabled, listeners of",
@@ -492,11 +517,6 @@ public class DivineConfig {
                 parallelTrackerKeepalive,
                 "Seconds an idle worker thread is kept alive before being released.");
 
-            removeLegacy(
-                ConfigCategory.ASYNC.key("multithreaded-tracker.compat-mode"),
-                ConfigCategory.ASYNC.key("multithreaded-tracker.queue-size")
-            );
-
             if (parallelTrackerThreads <= 0) {
                 parallelTrackerThreads = Math.max(parallelTrackerThreads == 0
                     ? maxThreads / 4
@@ -526,7 +546,6 @@ public class DivineConfig {
         private static void asyncMobSpawning() {
             enableAsyncSpawning = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.enable"), enableAsyncSpawning,
                 "Enables optimization that will offload much of the computational effort involved with spawning new mobs to a different thread.");
-            removeLegacy(ConfigCategory.ASYNC.key("mob-spawning.async-natural-spawn"));
         }
 
         private static void portalSearchPrefetch() {
@@ -592,8 +611,6 @@ public class DivineConfig {
         public static boolean endBiomeCacheEnabled = false;
         public static int endBiomeCacheCapacity = 1024;
         public static boolean smoothBedrockLayer = false;
-        public static boolean enableStructureLayoutOptimizer = true;
-        public static boolean deduplicateShuffledTemplatePoolElementList = false;
 
         // General optimizations
         public static boolean disableMethodProfiler = true;
@@ -700,17 +717,6 @@ public class DivineConfig {
 
             smoothBedrockLayer = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer"), smoothBedrockLayer,
                 "Smoothens the bedrock layer at the bottom of overworld, and on the top of nether during the world generation.");
-
-            enableStructureLayoutOptimizer = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.experimental.enable-structure-layout-optimizer"), enableStructureLayoutOptimizer,
-                "Enables a port of the mod StructureLayoutOptimizer, which optimizes general Jigsaw structure generation");
-            deduplicateShuffledTemplatePoolElementList = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.experimental.deduplicate-shuffled-template-pool-element-list"), deduplicateShuffledTemplatePoolElementList,
-                "Whether to use an alternative strategy to make structure layouts generate slightly even faster than",
-                "the default optimization this mod has for template pool weights. This alternative strategy works by",
-                "changing the list of pieces that structures collect from the template pool to not have duplicate entries.",
-                "",
-                "This will not break the structure generation, but it will make the structure layout different than",
-                "if this config was off (breaking vanilla seed parity). The cost of speed may be worth it in large",
-                "modpacks where many structure mods are using very high weight values in their template pools.");
 
             if (playerNearChunkDetectionRange < 0) {
                 LOGGER.warn("Invalid player near chunk detection range: {}, resetting to default (128)", playerNearChunkDetectionRange);
@@ -898,7 +904,6 @@ public class DivineConfig {
 
         public static void load() {
             secureSeed();
-            lagCompensation();
             sentrySettings();
             oldFeatures();
         }
@@ -934,23 +939,6 @@ public class DivineConfig {
             secureSeedHashingVersion = hashingVersion;
         }
 
-        private static void lagCompensation() {
-            if (config.getBoolean(ConfigCategory.MISC.key("lag-compensation.enabled"), false)) {
-                LOGGER.warn("Lag compensation has been removed from DivineMC; misc.lag-compensation is ignored and will be deleted from the config.");
-            }
-            removeLegacy(
-                ConfigCategory.MISC.key("lag-compensation.enabled"),
-                ConfigCategory.MISC.key("lag-compensation.block-entity-acceleration"),
-                ConfigCategory.MISC.key("lag-compensation.block-breaking-acceleration"),
-                ConfigCategory.MISC.key("lag-compensation.eating-acceleration"),
-                ConfigCategory.MISC.key("lag-compensation.potion-effect-acceleration"),
-                ConfigCategory.MISC.key("lag-compensation.fluid-acceleration"),
-                ConfigCategory.MISC.key("lag-compensation.pickup-acceleration"),
-                ConfigCategory.MISC.key("lag-compensation.portal-acceleration"),
-                ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration")
-            );
-        }
-
         private static void sentrySettings() {
             sentryDsn = getString(ConfigCategory.MISC.key("sentry.dsn"), sentryDsn,
                 "The DSN for Sentry, a service that provides real-time crash reporting that helps you monitor and fix crashes in real time. Leave blank to disable. Obtain link at https://sentry.io");
@@ -978,8 +966,6 @@ public class DivineConfig {
         public static boolean disableDisconnectSpam = false;
         public static boolean dontRespondPingBeforeStart = true;
         public static boolean sendSpectatorChangePacket = true;
-        public static boolean playerProfileResultCachingEnabled = false;
-        public static int playerProfileResultCachingTimeout = 1440;
 
         // No chat reports
         public static boolean noChatReportsEnabled = false;
@@ -1033,15 +1019,6 @@ public class DivineConfig {
                 "Prevents the server from responding to pings before the server is fully booted.");
             sendSpectatorChangePacket = getBoolean(ConfigCategory.NETWORK.key("general.send-spectator-change-packet"), sendSpectatorChangePacket,
                 "When disabled, tab list will not show that the player have entered the spectator mode. Otherwise, it will act as normal spectator change packet.");
-
-            playerProfileResultCachingEnabled = getBoolean(ConfigCategory.NETWORK.key("player-profile-result-caching.enabled"), playerProfileResultCachingEnabled,
-                "Enables caching of player profile results on first join.",
-                "WARNING: When enabled, a cached premium profile can allow an offline (cracked) player",
-                "to bypass online-mode authentication by joining with the same username after the",
-                "premium player has logged in. Disable this if you run an online-mode server without",
-                "a proxy or login plugin. Default: false is recommended for online-mode servers.");
-            playerProfileResultCachingTimeout = getInt(ConfigCategory.NETWORK.key("player-profile-result-caching.timeout"), playerProfileResultCachingTimeout,
-                "The amount of time in minutes to cache player profile results.");
         }
 
         private static void noChatReports() {

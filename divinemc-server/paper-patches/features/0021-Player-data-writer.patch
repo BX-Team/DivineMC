@@ -5,7 +5,7 @@ Subject: [PATCH] Player data writer
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java b/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java
-index de552ee1b59e8dd5b3d7c9ba5c578f28039d5ca5..05da2e48167b98e39547f7fc6e7deab21ae9c924 100644
+index de552ee1b59e8dd5b3d7c9ba5c578f28039d5ca5..9dd60d12bf714a6f054df873cbf0d0d51941154b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java
 @@ -211,6 +211,7 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
@@ -16,28 +16,25 @@ index de552ee1b59e8dd5b3d7c9ba5c578f28039d5ca5..05da2e48167b98e39547f7fc6e7deab2
          return new File(this.storage.getPlayerDir(), this.getUniqueId() + ".dat");
      }
  
-@@ -753,15 +754,27 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
+@@ -753,15 +754,20 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
       */
      private void save(CompoundTag compoundTag) {
          File playerDir = server.console.playerDataStorage.getPlayerDir();
-+        // DivineMC start - Player data writer - a direct write could be overwritten by an older queued one
-+        final byte[] encoded;
-         try {
+-        try {
 -            File tempFile = File.createTempFile(this.getUniqueId()+"-", ".dat", playerDir);
 -            net.minecraft.nbt.NbtIo.writeCompressed(compoundTag, tempFile.toPath());
 -            File playerDataFile = new File(playerDir, this.getUniqueId()+".dat");
 -            File playerDataFileOld = new File(playerDir, this.getUniqueId()+".dat_old");
 -            net.minecraft.util.Util.safeReplaceFile(playerDataFile.toPath(), tempFile.toPath(), playerDataFileOld.toPath());
-+            encoded = org.bxteam.divinemc.async.PlayerFileWriter.encode(compoundTag);
-         } catch (java.io.IOException e) {
-             e.printStackTrace();
-+            return;
-         }
+-        } catch (java.io.IOException e) {
+-            e.printStackTrace();
+-        }
++        // DivineMC start - Player data writer - a direct write could be overwritten by an older queued one
 +        File playerDataFile = new File(playerDir, this.getUniqueId()+".dat");
 +        org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.submit(playerDataFile.toPath(), () -> {
 +            try {
 +                File tempFile = File.createTempFile(this.getUniqueId()+"-", ".dat", playerDir);
-+                org.bxteam.divinemc.async.PlayerFileWriter.writeCompressed(encoded, tempFile.toPath());
++                net.minecraft.nbt.NbtIo.writeCompressed(compoundTag, tempFile.toPath());
 +                File playerDataFileOld = new File(playerDir, this.getUniqueId()+".dat_old");
 +                net.minecraft.util.Util.safeReplaceFile(playerDataFile.toPath(), tempFile.toPath(), playerDataFileOld.toPath());
 +            } catch (java.io.IOException e) {
