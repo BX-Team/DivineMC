@@ -10,10 +10,10 @@ improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
 cannot see mobs, players or items through walls anymore).
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 6545e363c5f7ac70ae86c5ab0bacdf99b290e1a9..4840d11f1d789d3b298ab961b44189c5f812ba11 100644
+index 0e1af01c7c46cdcc6e10427ad5d878c3ed88618f..6c22bfc84e0bf69d6873d09261805de1da449c7c 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1556,6 +1556,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1559,6 +1559,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                  && this.entity.broadcastToPlayer(player)
                  && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
              // Paper end - Configurable entity tracking range by Y

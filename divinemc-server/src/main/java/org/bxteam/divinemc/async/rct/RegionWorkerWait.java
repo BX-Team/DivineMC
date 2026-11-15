@@ -35,7 +35,9 @@ public final class RegionWorkerWait {
             chunkSource.blockedRegionWorkers.incrementAndGet();
             BLOCKED.incrementAndGet();
             // the level's thread may itself be waiting for another level, whose tick needs a pool thread
-            RegionizedChunkTicking.beginBlocking();
+            if (ParallelWorldTicking.ENABLED) {
+                RegionizedChunkTicking.beginBlocking();
+            }
             try {
                 for (final Thread joiner : JOINERS) {
                     LockSupport.unpark(joiner);
@@ -44,7 +46,9 @@ public final class RegionWorkerWait {
                     LockSupport.parkNanos(chunkSource, POLL_NANOS);
                 }
             } finally {
-                RegionizedChunkTicking.endBlocking();
+                if (ParallelWorldTicking.ENABLED) {
+                    RegionizedChunkTicking.endBlocking();
+                }
                 BLOCKED.decrementAndGet();
                 chunkSource.blockedRegionWorkers.decrementAndGet();
             }

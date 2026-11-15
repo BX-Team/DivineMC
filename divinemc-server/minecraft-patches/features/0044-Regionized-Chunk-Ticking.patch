@@ -153,10 +153,10 @@ index b9f695807e490fb4efd0d0abc8755ddf36aed139..ae5dbc3aeedaacd57c0e879c396f3a3e
              boolean executed = false;
              for (final ServerLevel world : this.getAllLevels()) {
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 6a2a685f9213cb8cca7c293bf4e5442051770916..7e5d295fd75be224ce2e18b07a1fb016fe013548 100644
+index 6a2a685f9213cb8cca7c293bf4e5442051770916..6edafb4f1029659f4592c03bf5ea9253301465b0 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -750,25 +750,28 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -750,25 +750,31 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      }
      // Paper end - optimise chunk tick iteration
  
@@ -165,7 +165,8 @@ index 6a2a685f9213cb8cca7c293bf4e5442051770916..7e5d295fd75be224ce2e18b07a1fb016
 +    void collectSpawningChunks(final List<LevelChunk> output) {
          // Paper start - optimise chunk tick iteration
          final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks();
-+        synchronized (this.level.playerTickingLock) {
++        this.level.playerTickingLock.lock();
++        try {
 +            final LevelChunk[] raw = tickingChunks.getRawDataUnchecked();
 +            final int size = tickingChunks.size();
  
@@ -188,6 +189,8 @@ index 6a2a685f9213cb8cca7c293bf4e5442051770916..7e5d295fd75be224ce2e18b07a1fb016
              }
 -
 -            output.add(levelChunk);
++        } finally {
++            this.level.playerTickingLock.unlock();
          }
          // Paper end - optimise chunk tick iteration
      }
@@ -195,7 +198,7 @@ index 6a2a685f9213cb8cca7c293bf4e5442051770916..7e5d295fd75be224ce2e18b07a1fb016
  
      public void forEachBlockTickingChunk(final Consumer<LevelChunk> tickingChunkConsumer) {
          this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
-@@ -796,11 +799,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -796,11 +802,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      public boolean anyPlayerCloseEnoughTo(final BlockPos pos, final int maxDistance) {
          Vec3 target = new Vec3(pos);
  
@@ -214,7 +217,7 @@ index 6a2a685f9213cb8cca7c293bf4e5442051770916..7e5d295fd75be224ce2e18b07a1fb016
  
          return false;
      }
-@@ -1116,11 +1123,18 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1116,11 +1126,18 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                  if (tracker == null) {
                      continue;
                  }
@@ -368,7 +371,7 @@ index 9fc1b67d83257886330927a0b64f139e780aaa6e..de8853142d9930678b83a60182856361
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d249f96f28 100644
+index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..1d89d1da5a76f57efa761e16065069d25a3b83cb 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -209,8 +209,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -389,11 +392,11 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
      // Paper end - rewrite chunk system
      // Paper start - chunk tick iteration
 +    // DivineMC start - Regionized Chunk Ticking
-+    public final Object playerTickingLock = new Object();
++    public final java.util.concurrent.locks.Lock playerTickingLock = org.bxteam.divinemc.util.LevelLock.create();
      private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> playerTickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
      private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap playerTickingRequests = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
  
-@@ -550,65 +554,74 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -550,65 +554,86 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
@@ -401,7 +404,8 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
 -        if (!this.playerTickingRequests.containsKey(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(pos))) {
 -            return;
 -        }
-+        synchronized (this.playerTickingLock) {
++        this.playerTickingLock.lock();
++        try {
 +            final ChunkPos pos = chunk.getPos();
 +            if (!this.playerTickingRequests.containsKey(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(pos))) {
 +                return;
@@ -409,14 +413,19 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
  
 -        this.playerTickingChunks.add(chunk);
 +            this.playerTickingChunks.add(chunk);
++        } finally {
++            this.playerTickingLock.unlock();
 +        }
      }
  
      @Override
      public final void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk) {
 -        this.playerTickingChunks.remove(chunk);
-+        synchronized (this.playerTickingLock) {
++        this.playerTickingLock.lock();
++        try {
 +            this.playerTickingChunks.remove(chunk);
++        } finally {
++            this.playerTickingLock.unlock();
 +        }
      }
  
@@ -424,7 +433,8 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
      public final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
 -        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot add ticking request async");
 +        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) (Object) this, chunkX, chunkZ, "Cannot add ticking request async");
-+        synchronized (this.playerTickingLock) {
++        this.playerTickingLock.lock();
++        try {
  
 -        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
 +            final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
@@ -452,6 +462,8 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
  
 -        this.playerTickingChunks.add((LevelChunk)chunkHolder.getCurrentChunk());
 +            this.playerTickingChunks.add((LevelChunk) chunkHolder.getCurrentChunk());
++        } finally {
++            this.playerTickingLock.unlock();
 +        }
      }
  
@@ -459,7 +471,8 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
      public final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
 -        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot remove ticking request async");
 +        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) (Object) this, chunkX, chunkZ, "Cannot remove ticking request async");
-+        synchronized (this.playerTickingLock) {
++        this.playerTickingLock.lock();
++        try {
  
 -        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
 -        final int val = this.playerTickingRequests.addTo(chunkKey, -1);
@@ -496,13 +509,15 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
  
 -        this.playerTickingChunks.remove((LevelChunk)chunkHolder.getCurrentChunk());
 +            this.playerTickingChunks.remove((LevelChunk) chunkHolder.getCurrentChunk());
++        } finally {
++            this.playerTickingLock.unlock();
 +        }
      }
 +    // DivineMC end - Regionized Chunk Ticking
      // Paper end - chunk tick iteration
  
      // DivineMC start - MSPT Tracking for each world
-@@ -704,19 +717,37 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -704,19 +729,37 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          boolean syncWrites = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          // Paper - rewrite chunk system
@@ -553,7 +568,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
          this.portalForcer = new PortalForcer(this);
          if (this.canHaveWeather()) {
-@@ -920,40 +951,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -920,40 +963,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  profiler.pop();
              }
  
@@ -638,7 +653,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
          }
  
          profiler.push("entityManagement");
-@@ -1720,6 +1767,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1720,6 +1779,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
      private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
@@ -646,7 +661,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
          // DivineMC start - Parallel world ticking
          if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) {
              ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot add entity off-main");
-@@ -1741,10 +1789,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1741,10 +1801,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -660,7 +675,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1948,7 +1999,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1948,7 +2011,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
@@ -669,7 +684,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
          }
-@@ -1961,31 +2012,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1961,31 +2024,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -705,7 +720,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
              }
          }
          } // Paper - option to disable pathfinding updates
-@@ -1994,17 +2037,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1994,17 +2049,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -726,7 +741,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, null, orientation);
      }
  
-@@ -2138,7 +2181,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2138,7 +2193,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void blockEvent(final BlockPos pos, final Block block, final int b0, final int b1) {
@@ -739,7 +754,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
      }
  
      private void runBlockEvents() {
-@@ -3216,7 +3263,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3216,7 +3275,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -748,7 +763,7 @@ index 0a6f4f3c705597d458070f153c273c3ac0c26a1d..88081a1f6e238284a352c7a215a488d2
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -3286,7 +3333,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3286,7 +3345,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {

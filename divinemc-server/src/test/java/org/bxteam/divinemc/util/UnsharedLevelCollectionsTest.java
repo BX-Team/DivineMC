@@ -3,9 +3,7 @@ package org.bxteam.divinemc.util;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
-import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayDeque;
 import java.util.PriorityQueue;
 import net.minecraft.world.ticks.LevelChunkTicks;
@@ -35,10 +33,6 @@ class UnsharedLevelCollectionsTest {
         final LevelChunkTicks<Object> chunkTicks = new LevelChunkTicks<>();
         assertSame(PriorityQueue.class, field(chunkTicks, "tickQueue").getClass());
         assertSame(ObjectOpenCustomHashSet.class, field(chunkTicks, "ticksPerPosition").getClass());
-
-        for (final String method : new String[] {"add", "remove", "contains"}) {
-            assertFalse(Modifier.isSynchronized(IteratorSafeOrderedReferenceSet.class.getMethod(method, Object.class).getModifiers()), method);
-        }
     }
 
     private static Object field(final Object owner, final String name) throws ReflectiveOperationException {

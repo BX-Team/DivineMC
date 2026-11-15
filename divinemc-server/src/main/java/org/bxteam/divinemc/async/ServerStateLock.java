@@ -59,7 +59,8 @@ public final class ServerStateLock {
 
     /**
      * Fully releases the lock if the current thread holds it, before that thread waits for another level or for
-     * another thread to run chunk tasks; whoever it waits for may need the lock to get there.
+     * another thread to run chunk tasks; whoever it waits for may need the lock to get there. Levels borrowed for the
+     * lock stay borrowed until the outermost unlock.
      *
      * @return the hold count to pass to {@link #reacquireAfterWait}
      */
@@ -69,7 +70,7 @@ public final class ServerStateLock {
         }
         final int holds = LOCK.getHoldCount();
         if (ParallelWorldTicking.ENABLED) {
-            LevelHandoff.stateLockReleasing(Thread.currentThread());
+            LevelHandoff.stateLockSuspending();
         }
         for (int i = 0; i < holds; i++) {
             LOCK.unlock();
@@ -96,25 +97,45 @@ public final class ServerStateLock {
     }
 
     private static void acquire(final boolean lendable) {
+        final Thread current = Thread.currentThread();
         if (!LOCK.tryLock()) {
-            final boolean registered = LevelHandoff.waitForStateLock(lendable);
-            final boolean worker = registered && Thread.currentThread() instanceof TickThread.RegionTickThread;
-            if (worker) {
-                RegionizedChunkTicking.beginBlocking();
-            }
-            try {
-                LOCK.lock();
-            } finally {
-                if (worker) {
-                    RegionizedChunkTicking.endBlocking();
-                }
-                if (registered) {
-                    LevelHandoff.stopWaitingForStateLock();
-                }
-            }
+            waitForLock(current, lendable);
+        } else if (LOCK.getHoldCount() == 1 && LevelHandoff.hasLentLevels(current)) {
+            LOCK.unlock();
+            waitForLock(current, lendable);
         }
         if (LOCK.getHoldCount() == 1) {
-            LevelHandoff.stateLockAcquired(Thread.currentThread());
+            LevelHandoff.stateLockAcquired(current);
+        }
+    }
+
+    private static void waitForLock(final Thread current, final boolean lendable) {
+        final boolean registered = LevelHandoff.waitForStateLock(lendable);
+        final boolean worker = registered && current instanceof TickThread.RegionTickThread;
+        if (worker) {
+            RegionizedChunkTicking.beginBlocking();
+        }
+        boolean finished = !registered;
+        try {
+            while (true) {
+                if (registered) {
+                    LevelHandoff.awaitLentReturned();
+                }
+                LOCK.lock();
+                // a level lent to a holder that let the lock go mid-operation is still in use there
+                if (finished || LevelHandoff.finishStateLockWait()) {
+                    finished = true;
+                    return;
+                }
+                LOCK.unlock();
+            }
+        } finally {
+            if (worker) {
+                RegionizedChunkTicking.endBlocking();
+            }
+            if (!finished) {
+                LevelHandoff.stopWaitingForStateLock();
+            }
         }
     }
 
