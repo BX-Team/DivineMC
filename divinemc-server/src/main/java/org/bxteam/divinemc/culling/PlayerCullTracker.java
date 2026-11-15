@@ -18,6 +18,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.bxteam.divinemc.config.DivineConfig;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -43,6 +45,7 @@ public final class PlayerCullTracker implements Runnable {
     private final Vec3d aabbMax = new Vec3d(0, 0, 0);
     /** entity id -> epoch millis until which the entity is pinned visible (flicker hysteresis). */
     private final Int2LongOpenHashMap visibleUntil = new Int2LongOpenHashMap();
+    private final List<Entity> candidates = new ArrayList<>();
     private long lastCacheReset;
 
     // Published state, read from tick/scan/region threads
@@ -149,13 +152,17 @@ public final class PlayerCullTracker implements Runnable {
         IntOpenHashSet newCulled = null;
         int traceFailures = 0;
         Throwable lastTraceFailure = null;
-        for (final Entity entity : level.moonrise$getEntityLookup().getAllMapped()) {
-            if (entity == null || entity == this.player || this.isAlwaysVisible(entity)) {
+        final List<Entity> candidates = this.candidates;
+        candidates.clear();
+        level.moonrise$getEntityLookup().getEntities((Entity) null, new AABB(eye, eye).inflate(traceDistance), candidates, null);
+        for (int i = 0, size = candidates.size(); i < size; ++i) {
+            final Entity entity = candidates.get(i);
+            if (entity == this.player) {
                 continue;
             }
 
             final double distanceSqr = entity.distanceToSqr(eye.x, eye.y, eye.z);
-            if (distanceSqr < forceVisibleRadiusSqr || distanceSqr > traceDistanceSqr) {
+            if (distanceSqr < forceVisibleRadiusSqr || distanceSqr > traceDistanceSqr || this.isAlwaysVisible(entity)) {
                 continue;
             }
 
@@ -185,6 +192,8 @@ public final class PlayerCullTracker implements Runnable {
                 lastTraceFailure = throwable;
             }
         }
+
+        candidates.clear();
 
         if (traceFailures > 0) {
             EntityCullingManager.LOGGER.debug("{} culling trace(s) failed for {} this pass (entities kept visible)", traceFailures, this.player.getScoreboardName(), lastTraceFailure);
