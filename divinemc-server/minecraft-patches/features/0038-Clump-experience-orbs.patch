@@ -5,7 +5,7 @@ Subject: [PATCH] Clump experience orbs
 
 
 diff --git a/net/minecraft/world/entity/ExperienceOrb.java b/net/minecraft/world/entity/ExperienceOrb.java
-index 16f93e7a1a89a1581dbbe1235ced1863126dc007..f0ca37cee0a871a1326922e16691a68c494a2e40 100644
+index 16f93e7a1a89a1581dbbe1235ced1863126dc007..2ddf87a6179d3c36b2696ab40807695b482c2b19 100644
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
 @@ -46,6 +46,10 @@ public class ExperienceOrb extends Entity {
@@ -95,21 +95,23 @@ index 16f93e7a1a89a1581dbbe1235ced1863126dc007..f0ca37cee0a871a1326922e16691a68c
      }
  
      @Override
-@@ -349,10 +394,52 @@ public class ExperienceOrb extends Entity {
+@@ -349,10 +394,54 @@ public class ExperienceOrb extends Entity {
          this.setValue(input.getIntOr("Value", 0)); // Paper - load as Integer
          this.count = input.read("Count", ExtraCodecs.POSITIVE_INT).orElse(1);
          this.loadPaperNBT(input); // Paper
 +        // DivineMC start - Clump experience orbs
-+        java.util.Map<Integer, Integer> map = new java.util.HashMap<>();
-+        input.read("clumpedMap", net.minecraft.nbt.CompoundTag.CODEC).ifPresentOrElse(clumpedMap -> {
-+            for (String s : clumpedMap.keySet()) {
-+                clumpedMap.getInt(s).ifPresent(value -> {
-+                    map.put(Integer.parseInt(s), value);
-+                });
-+            }
-+        }, () -> map.put(getValue(), count));
++        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.clumpOrbs) { // resolving the map turns Value into Value * Count, which vanilla pickup would multiply by Count again
++            java.util.Map<Integer, Integer> map = new java.util.HashMap<>();
++            input.read("clumpedMap", net.minecraft.nbt.CompoundTag.CODEC).ifPresentOrElse(clumpedMap -> {
++                for (String s : clumpedMap.keySet()) {
++                    clumpedMap.getInt(s).ifPresent(value -> {
++                        map.put(Integer.parseInt(s), value);
++                    });
++                }
++            }, () -> map.put(getValue(), count));
 +
-+        clumps$setClumpedMap(map);
++            clumps$setClumpedMap(map);
++        }
 +        // DivineMC end - Clump experience orbs
      }
  
@@ -148,7 +150,7 @@ index 16f93e7a1a89a1581dbbe1235ced1863126dc007..f0ca37cee0a871a1326922e16691a68c
          if (player instanceof ServerPlayer serverPlayer) {
              if (player.takeXpDelay == 0 && new com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent(serverPlayer.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) { // Paper - PlayerPickupExperienceEvent
                  player.takeXpDelay = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerXpCooldownEvent(player, this.level().purpurConfig.playerExpPickupDelay, org.bukkit.event.player.PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - entity.takeXpDelay = 2; // Purpur - Configurable player pickup exp delay
-@@ -370,9 +457,61 @@ public class ExperienceOrb extends Entity {
+@@ -370,9 +459,61 @@ public class ExperienceOrb extends Entity {
          }
      }
  

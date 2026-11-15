@@ -5,7 +5,7 @@ Subject: [PATCH] Configurable Files Locations
 
 
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index cae8fc32b0841f8ab799a6f3de125b3763ae71de..adf357754c80b69792446f4139927380fed159eb 100644
+index 93d0a4865473ff624912cbff43977a525083e724..a257a9a383c6f7a6d42e20d79cecf935d0f34d0c 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -105,10 +105,12 @@ import org.jspecify.annotations.Nullable;

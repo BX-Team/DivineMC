@@ -33,7 +33,7 @@ index 8e8679840433e093f2fb0fd5a9f0cfda6f011a27..a063cb287532b49198ec7d5e9a6fff3c
          LOGGER.info("Saving worlds");
  
 diff --git a/net/minecraft/server/PlayerAdvancements.java b/net/minecraft/server/PlayerAdvancements.java
-index 9dc6f4484f4db44210aeb082f08354b428b83081..d8662d429fcef978c763197f3adb00727fd2bfd9 100644
+index 14591f7cbe9408e18ce14af0624b46d4d40c2891..8687a07d1a472ca3450ed2d65e16904ae6b168a7 100644
 --- a/net/minecraft/server/PlayerAdvancements.java
 +++ b/net/minecraft/server/PlayerAdvancements.java
 @@ -111,6 +111,7 @@ public class PlayerAdvancements {
@@ -134,39 +134,39 @@ index f383497aca63d0ddb0e8fe93602c8a47753f9dd3..c35d5bd28f6822a52b6dec47098a9932
  
      @Override
 diff --git a/net/minecraft/world/level/storage/PlayerDataStorage.java b/net/minecraft/world/level/storage/PlayerDataStorage.java
-index 142a34eb046c87f16b73023c83218d8752922fbe..6d7ae98c560a1b7558caaa9532f5820f13551aab 100644
+index 142a34eb046c87f16b73023c83218d8752922fbe..64a700b7a8431903ca318065f6bea08723fe6a86 100644
 --- a/net/minecraft/world/level/storage/PlayerDataStorage.java
 +++ b/net/minecraft/world/level/storage/PlayerDataStorage.java
-@@ -36,12 +36,23 @@ public class PlayerDataStorage {
+@@ -36,12 +36,22 @@ public class PlayerDataStorage {
              TagValueOutput output = TagValueOutput.createWithContext(reporter, player.registryAccess());
              player.saveWithoutId(output);
              Path playerDirPath = this.playerDir.toPath();
 -            Path tmpFile = Files.createTempFile(playerDirPath, player.getStringUUID() + "-", ".dat");
-+            // DivineMC start - Player data writer - the tag can share sub-tags with live objects, so only its bytes leave this thread
-             CompoundTag dataToStore = output.buildResult();
+-            CompoundTag dataToStore = output.buildResult();
 -            NbtIo.writeCompressed(dataToStore, tmpFile);
 -            Path realFile = playerDirPath.resolve(player.getStringUUID() + ".dat");
 -            Path oldFile = playerDirPath.resolve(player.getStringUUID() + ".dat_old");
 -            Util.safeReplaceFile(realFile, tmpFile, oldFile);
-+            byte[] encoded = org.bxteam.divinemc.async.PlayerFileWriter.encode(dataToStore);
++            // DivineMC start - Player data writer - the tag can share sub-tags with live objects, so only a deep copy leaves this thread
++            CompoundTag dataToStore = output.buildResult().copy();
 +            String uuid = player.getStringUUID();
 +            String name = player.getPlainTextName();
 +            Path realFile = playerDirPath.resolve(uuid + ".dat");
 +            org.bxteam.divinemc.async.PlayerFileWriter.INSTANCE.submit(realFile, () -> {
 +                try {
 +                    Path tmpFile = Files.createTempFile(playerDirPath, uuid + "-", ".dat");
-+                    org.bxteam.divinemc.async.PlayerFileWriter.writeCompressed(encoded, tmpFile);
++                    NbtIo.writeCompressed(dataToStore, tmpFile);
 +                    Path oldFile = playerDirPath.resolve(uuid + ".dat_old");
 +                    Util.safeReplaceFile(realFile, tmpFile, oldFile);
 +                } catch (Exception ignored) {
 +                    LOGGER.warn("Failed to save player data for {}", name, ignored); // Paper - Print exception
 +                }
 +            });
-+            // DivineMC end - Player data writer - the tag can share sub-tags with live objects, so only its bytes leave this thread
++            // DivineMC end - Player data writer - the tag can share sub-tags with live objects, so only a deep copy leaves this thread
          } catch (Exception ignored) {
              LOGGER.warn("Failed to save player data for {}", player.getPlainTextName(), ignored); // Paper - Print exception
          }
-@@ -62,6 +73,7 @@ public class PlayerDataStorage {
+@@ -62,6 +72,7 @@ public class PlayerDataStorage {
      }
  
      private Optional<CompoundTag> load(final NameAndId nameAndId, final String suffix) {

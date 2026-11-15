@@ -7,10 +7,19 @@ Original project: https://github.com/TelepathicGrunt/StructureLayoutOptimizer
 Original license: MIT
 
 diff --git a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
-index bc519bd6472959addac4d66a35c1a92a7fadc780..bcb5d2e1fb9fce73bfe2913912de47d45f412919 100644
+index bc519bd6472959addac4d66a35c1a92a7fadc780..525958b73d16309b5a29a70d457f6a6a1220306f 100644
 --- a/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
 +++ b/net/minecraft/world/level/levelgen/structure/pools/JigsawPlacement.java
-@@ -302,6 +302,108 @@ public class JigsawPlacement {
+@@ -144,7 +144,7 @@ public class JigsawPlacement {
+                                 Math.min(centerY + maxDistanceFromCenter.vertical() + 1, heightAccessor.getMaxY() + 1 - dimensionPadding.top()),
+                                 centerZ + maxDistanceFromCenter.horizontal() + 1
+                             );
+-                            VoxelShape shape = Shapes.join(Shapes.create(aabb), Shapes.create(AABB.of(box)), BooleanOp.ONLY_FIRST);
++                            VoxelShape shape = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer ? org.bxteam.divinemc.util.structure.TrojanVoxelShape.excluding(aabb, AABB.of(box)) : Shapes.join(Shapes.create(aabb), Shapes.create(AABB.of(box)), BooleanOp.ONLY_FIRST); // DivineMC - Optimize Structure Generation
+                             addPieces(
+                                 context.randomState(),
+                                 maxDepth,
+@@ -302,6 +302,97 @@ public class JigsawPlacement {
              this.random = random;
          }
  
@@ -20,17 +29,6 @@ index bc519bd6472959addac4d66a35c1a92a7fadc780..bcb5d2e1fb9fce73bfe2913912de47d4
 +                return JigsawBlock.canAttach(jigsaw1, jigsaw2);
 +            }
 +            return org.bxteam.divinemc.util.structure.GeneralUtils.canJigsawsAttach(jigsaw1, jigsaw2);
-+        }
-+
-+        private void structureLayoutOptimizer$replaceVoxelShape3(MutableObject<VoxelShape> instance, BoundingBox pieceBounds) {
-+            org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape = new org.bxteam.divinemc.util.structure.TrojanVoxelShape(new org.bxteam.divinemc.util.structure.BoxOctree(AABB.of(pieceBounds)));
-+            instance.setValue(trojanVoxelShape);
-+        }
-+
-+        private void structureLayoutOptimizer$replaceVoxelShape4(MutableObject<VoxelShape> instance, BoundingBox pieceBounds) {
-+            if (instance.getValue() instanceof org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape) {
-+                trojanVoxelShape.boxOctree.addBox(AABB.of(pieceBounds));
-+            }
 +        }
 +
 +        private List<StructurePoolElement> structureLayoutOptimizer$removeDuplicateTemplatePoolElementLists(StructureTemplatePool instance, RandomSource random) {
@@ -119,7 +117,20 @@ index bc519bd6472959addac4d66a35c1a92a7fadc780..bcb5d2e1fb9fce73bfe2913912de47d4
          private void tryPlacingChildren(
              final PoolElementStructurePiece sourcePiece,
              final MutableObject<VoxelShape> contextFree,
-@@ -358,9 +460,9 @@ public class JigsawPlacement {
+@@ -352,15 +443,21 @@ public class JigsawPlacement {
+                             if (attachInsideSource) {
+                                 childrenFree = sourceFree;
+                                 if (sourceFree.get() == null) {
+-                                    sourceFree.setValue(Shapes.create(AABB.of(sourceBB)));
++                                    // DivineMC start - Optimize Structure Generation
++                                    if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
++                                        sourceFree.setValue(org.bxteam.divinemc.util.structure.TrojanVoxelShape.excluding(AABB.of(sourceBB), null));
++                                    } else {
++                                        sourceFree.setValue(Shapes.create(AABB.of(sourceBB)));
++                                    }
++                                    // DivineMC end - Optimize Structure Generation
+                                 }
+                             } else {
                                  childrenFree = contextFree;
                              }
  
@@ -131,7 +142,7 @@ index bc519bd6472959addac4d66a35c1a92a7fadc780..bcb5d2e1fb9fce73bfe2913912de47d4
                              }
  
                              targetPieces.addAll(fallback.value().getShuffledTemplates(this.random));
-@@ -371,10 +473,14 @@ public class JigsawPlacement {
+@@ -371,10 +468,14 @@ public class JigsawPlacement {
                                      break;
                                  }
  
@@ -149,7 +160,7 @@ index bc519bd6472959addac4d66a35c1a92a7fadc780..bcb5d2e1fb9fce73bfe2913912de47d4
                                      BoundingBox hackBox = targetElement.getBoundingBox(this.structureTemplateManager, BlockPos.ZERO, targetRotation);
                                      int expandTo;
                                      if (doExpansionHack && hackBox.getYSpan() <= 16) {
-@@ -404,7 +510,7 @@ public class JigsawPlacement {
+@@ -404,7 +505,7 @@ public class JigsawPlacement {
                                      }
  
                                      for (StructureTemplate.JigsawBlockInfo targetJigsaw : targetJigsaws) {
@@ -158,13 +169,16 @@ index bc519bd6472959addac4d66a35c1a92a7fadc780..bcb5d2e1fb9fce73bfe2913912de47d4
                                              BlockPos targetJigsawLocalPos = targetJigsaw.pos();
                                              BlockPos rawTargetBoxPos = targetJigsawPos.subtract(targetJigsawLocalPos);
                                              BoundingBox rawTargetBB = targetElement.getBoundingBox(
-@@ -441,9 +547,26 @@ public class JigsawPlacement {
+@@ -441,12 +542,35 @@ public class JigsawPlacement {
                                                  targetBB.encapsulate(new BlockPos(targetBB.minX(), targetBB.minY() + newSize, targetBB.minZ()));
                                              }
  
 -                                            if (!Shapes.joinIsNotEmpty(
 -                                                childrenFree.get(), Shapes.create(AABB.of(targetBB).deflate(0.25)), BooleanOp.ONLY_SECOND
 -                                            )) {
+-                                                childrenFree.setValue(
+-                                                    Shapes.joinUnoptimized(childrenFree.get(), Shapes.create(AABB.of(targetBB)), BooleanOp.ONLY_FIRST)
+-                                                );
 +                                            // DivineMC start - Optimize Structure Generation
 +                                            boolean internal$joinIsNotEmpty;
 +                                            VoxelShape parentBounds = childrenFree.get();
@@ -185,44 +199,18 @@ index bc519bd6472959addac4d66a35c1a92a7fadc780..bcb5d2e1fb9fce73bfe2913912de47d4
 +                                            }
 +                                            if (!internal$joinIsNotEmpty) {
 +                                            // DivineMC end - Optimize Structure Generation
-                                                 childrenFree.setValue(
-                                                     Shapes.joinUnoptimized(childrenFree.get(), Shapes.create(AABB.of(targetBB)), BooleanOp.ONLY_FIRST)
-                                                 );
-diff --git a/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java b/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
-index 7a352bf170c5f004d35c3de89b152129c1124be0..e1d21dbb8a3e90d7cb7f2b25bb5e40daf36b54bb 100644
---- a/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
-+++ b/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
-@@ -117,8 +117,15 @@ public class SinglePoolElement extends StructurePoolElement {
-         final StructureTemplateManager structureTemplateManager, final BlockPos position, final Rotation rotation, final RandomSource random
-     ) {
-         List<StructureTemplate.JigsawBlockInfo> jigsaws = this.getTemplate(structureTemplateManager).getJigsaws(position, rotation);
--        Util.shuffle(jigsaws, random);
--        sortBySelectionPriority(jigsaws);
-+        // DivineMC start - Optimize Structure Generation
-+        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.enableStructureLayoutOptimizer) {
-+            structureLayoutOptimizer$fasterJigsawListShuffling1(jigsaws, random);
-+            structureLayoutOptimizer$fasterJigsawListShuffling2(jigsaws);
-+        } else {
-+            Util.shuffle(jigsaws, random);
-+            sortBySelectionPriority(jigsaws);
-+        }
-+        // DivineMC end - Optimize Structure Generation
-         return jigsaws;
-     }
- 
-@@ -196,4 +203,12 @@ public class SinglePoolElement extends StructurePoolElement {
-     public Identifier getTemplateLocation() {
-         return this.template.orThrow();
-     }
-+
-+    // DivineMC start - Optimize Structure Generation
-+    private void structureLayoutOptimizer$fasterJigsawListShuffling1(List<StructureTemplate.JigsawBlockInfo> list, RandomSource randomSource) {
-+        org.bxteam.divinemc.util.structure.GeneralUtils.shuffleAndPrioritize(list, randomSource);
-+    }
-+
-+    private void structureLayoutOptimizer$fasterJigsawListShuffling2(List<StructureTemplate.JigsawBlockInfo> structureBlockInfos) { }
-+    // DivineMC end - Optimize Structure Generation
- }
++                                                // DivineMC start - Optimize Structure Generation
++                                                if (childrenFree.get() instanceof org.bxteam.divinemc.util.structure.TrojanVoxelShape trojanVoxelShape) {
++                                                    trojanVoxelShape.boxOctree.addBox(AABB.of(targetBB));
++                                                } else {
++                                                    childrenFree.setValue(
++                                                        Shapes.joinUnoptimized(childrenFree.get(), Shapes.create(AABB.of(targetBB)), BooleanOp.ONLY_FIRST)
++                                                    );
++                                                }
++                                                // DivineMC end - Optimize Structure Generation
+                                                 int sourceGroundLevelDelta = sourcePiece.getGroundLevelDelta();
+                                                 int targetGroundLevelDelta;
+                                                 if (targetRigid) {
 diff --git a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 index 43cb206216179cde09ee340b69b77b8b8848940b..21f19ff305a34f0d70f391d4435b195bc1255068 100644
 --- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
