@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/vehicle/minecart/MinecartHopper.java
++++ b/net/minecraft/world/entity/vehicle/minecart/MinecartHopper.java
+@@ -96,7 +_,7 @@
+     }
+ 
+     private void tryConsumeItems() {
+-        if (!this.level().isClientSide() && this.isAlive() && this.isEnabled() && !this.consumedItemThisFrame && this.suckInItems()) {
++        if (!this.level().isClientSide() && this.isAlive() && this.isEnabled() && !this.consumedItemThisFrame && !org.bxteam.divinemc.util.entity.HopperMinecartHelper.skipPull(this) && this.suckInItems()) { // DivineMC - Skip pulling into a full hopper minecart
+             this.consumedItemThisFrame = true;
+             this.setChanged();
+         }

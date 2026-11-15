@@ -590,6 +590,7 @@ public class DivineConfig {
         public static boolean equipmentTracking = false;
         public static boolean hopperThrottleWhenFull = false;
         public static int hopperThrottleSkipTicks = 0;
+        public static boolean skipFullHopperMinecart = false;
 
         // DAB settings
         public static boolean dabEnabled = false;
@@ -727,6 +728,9 @@ public class DivineConfig {
                 "When enabled, hoppers will throttle if target container is full.");
             hopperThrottleSkipTicks = getInt(ConfigCategory.PERFORMANCE.key("optimizations.hopper-throttle-when-full.skip-ticks"), hopperThrottleSkipTicks,
                 "The amount of ticks to skip when the hopper is throttled.");
+
+            skipFullHopperMinecart = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.skip-full-hopper-minecart"), skipFullHopperMinecart,
+                "When enabled, a hopper minecart with every slot full no longer tries to pull items. InventoryMoveItemEvent, PrepareHopperTransferEvent and InventoryPickupItemEvent are not fired for it.");
         }
 
         private static void dab() {
