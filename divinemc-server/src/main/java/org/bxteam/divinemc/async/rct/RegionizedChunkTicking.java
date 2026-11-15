@@ -551,6 +551,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             }), REGION_EXECUTOR);
         }
         RegionWorkerWait.join(this, CompletableFuture.allOf(futures));
+        this.level.moonrise$getNearbyPlayers().applyDeferredUpdates();
         // the level's thread fails the tick, as it does when the same code throws without regions
         final Throwable thrown = failure.get();
         if (thrown instanceof Error error) {

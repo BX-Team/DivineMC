@@ -1,0 +1,360 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Sat, 23 May 2026 21:35:25 +0300
+Subject: [PATCH] Regionized Chunk Ticking
+
+This patch adds regionized chunk ticking feature, by grouping adjacent chunks into regions and processing each region on its own thread.
+
+Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
+index 7fed43a1e7bcf35c4d7fd3224837a47fedd59860..3bb72315084da393de2084f48d1aec3a6cc268fa 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
+@@ -27,11 +27,11 @@ public final class EntityList implements Iterable<Entity> {
+         return this.count;
+     }
+ 
+-    public boolean contains(final Entity entity) {
++    public synchronized boolean contains(final Entity entity) { // DivineMC - Regionized Chunk Ticking
+         return this.entityToIndex.containsKey(entity.getId());
+     }
+ 
+-    public boolean remove(final Entity entity) {
++    public synchronized boolean remove(final Entity entity) { // DivineMC - Regionized Chunk Ticking
+         final int index = this.entityToIndex.remove(entity.getId());
+         if (index == Integer.MIN_VALUE) {
+             return false;
+@@ -50,7 +50,7 @@ public final class EntityList implements Iterable<Entity> {
+         return true;
+     }
+ 
+-    public boolean add(final Entity entity) {
++    public synchronized boolean add(final Entity entity) { // DivineMC - Regionized Chunk Ticking
+         final int count = this.count;
+         final int currIndex = this.entityToIndex.putIfAbsent(entity.getId(), count);
+ 
+@@ -82,18 +82,18 @@ public final class EntityList implements Iterable<Entity> {
+         return this.entities[index];
+     }
+ 
+-    public Entity[] getRawData() {
++    public synchronized Entity[] getRawData() { // DivineMC - Regionized Chunk Ticking
+         return this.entities;
+     }
+ 
+-    public void clear() {
++    public synchronized void clear() { // DivineMC - Regionized Chunk Ticking
+         this.entityToIndex.clear();
+         Arrays.fill(this.entities, 0, this.count, null);
+         this.count = 0;
+     }
+ 
+     @Override
+-    public Iterator<Entity> iterator() {
++    public synchronized Iterator<Entity> iterator() { // DivineMC - Regionized Chunk Ticking
+         return new Iterator<>() {
+             private Entity lastRet;
+             private int current;
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
+index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..f119177f8476c529696a0694cce79f7835c4ec6e 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
+@@ -10,8 +10,10 @@ public final class ReferenceList<E> implements Iterable<E> {
+     private static final Object[] EMPTY_LIST = new Object[0];
+ 
+     private final Reference2IntOpenHashMap<E> referenceToIndex;
+-    private E[] references;
+-    private int count;
++    // DivineMC start - Regionized Chunk Ticking - readers stay lock-free
++    private volatile E[] references;
++    private volatile int count;
++    // DivineMC end - Regionized Chunk Ticking - readers stay lock-free
+ 
+     public ReferenceList() {
+         this((E[])EMPTY_LIST);
+@@ -29,7 +31,7 @@ public final class ReferenceList<E> implements Iterable<E> {
+         this.referenceToIndex = referenceToIndex;
+     }
+ 
+-    public ReferenceList<E> copy() {
++    public synchronized ReferenceList<E> copy() { // DivineMC - Regionized Chunk Ticking
+         return new ReferenceList<>(this.references.clone(), this.count, this.referenceToIndex.clone());
+     }
+ 
+@@ -37,11 +39,11 @@ public final class ReferenceList<E> implements Iterable<E> {
+         return this.count;
+     }
+ 
+-    public boolean contains(final E obj) {
++    public synchronized boolean contains(final E obj) { // DivineMC - Regionized Chunk Ticking
+         return this.referenceToIndex.containsKey(obj);
+     }
+ 
+-    public boolean remove(final E obj) {
++    public synchronized boolean remove(final E obj) { // DivineMC - Regionized Chunk Ticking
+         final int index = this.referenceToIndex.removeInt(obj);
+         if (index == Integer.MIN_VALUE) {
+             return false;
+@@ -60,7 +62,7 @@ public final class ReferenceList<E> implements Iterable<E> {
+         return true;
+     }
+ 
+-    public boolean add(final E obj) {
++    public synchronized boolean add(final E obj) { // DivineMC - Regionized Chunk Ticking
+         final int count = this.count;
+         final int currIndex = this.referenceToIndex.putIfAbsent(obj, count);
+ 
+@@ -100,7 +102,7 @@ public final class ReferenceList<E> implements Iterable<E> {
+         return this.references;
+     }
+ 
+-    public void clear() {
++    public synchronized void clear() { // DivineMC - Regionized Chunk Ticking
+         this.referenceToIndex.clear();
+         Arrays.fill(this.references, 0, this.count, null);
+         this.count = 0;
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
+index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..0e1120689e3ca0693d7035b6fcaf904843a39f9f 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
+@@ -13,17 +13,17 @@ public final class ShortList {
+     private static final short[] EMPTY_LIST = new short[0];
+ 
+     private short[] byIndex = EMPTY_LIST;
+-    private short count;
++    private volatile short count; // DivineMC - Regionized Chunk Ticking
+ 
+     public int size() {
+-        return (int)this.count;
++        return this.count; // DivineMC - Regionized Chunk Ticking
+     }
+ 
+-    public short getRaw(final int index) {
++    public synchronized short getRaw(final int index) { // DivineMC - Regionized Chunk Ticking
+         return this.byIndex[index];
+     }
+ 
+-    public void setMinCapacity(final int len) {
++    public synchronized void setMinCapacity(final int len) { // DivineMC - Regionized Chunk Ticking
+         if (len <= 0) {
+             return;
+         }
+@@ -34,8 +34,8 @@ public final class ShortList {
+         this.map.ensureCapacity(len);
+     }
+ 
+-    public boolean add(final short value) {
+-        final int count = (int)this.count;
++    public synchronized boolean add(final short value) { // DivineMC - Regionized Chunk Ticking
++        final int count = this.count; // DivineMC - Regionized Chunk Ticking
+         final short currIndex = this.map.putIfAbsent(value, (short)count);
+ 
+         if (currIndex != Short.MIN_VALUE) {
+@@ -55,7 +55,7 @@ public final class ShortList {
+         return true;
+     }
+ 
+-    public boolean remove(final short value) {
++    public synchronized boolean remove(final short value) { // DivineMC - Regionized Chunk Ticking
+         final short index = this.map.remove(value);
+         if (index == Short.MIN_VALUE) {
+             return false;
+@@ -74,7 +74,7 @@ public final class ShortList {
+         return true;
+     }
+ 
+-    public void clear() {
++    public synchronized void clear() { // DivineMC - Regionized Chunk Ticking
+         this.count = (short)0;
+         this.map.clear();
+     }
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
+index 460e27ab0506c83a28934800ee74ee886d4b025e..be5dca854a6feab23bea5c46a7ef18f6cec3ddb1 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
+@@ -38,11 +38,12 @@ public final class Delayed26WayDistancePropagator3D {
+         this.changeCallback = changeCallback;
+     }
+ 
+-    public int getLevel(final long pos) {
++    // DivineMC - Regionized Chunk Ticking - called from region threads
++    public synchronized int getLevel(final long pos) {
+         return this.levels.get(pos);
+     }
+ 
+-    public int getLevel(final int x, final int y, final int z) {
++    public synchronized int getLevel(final int x, final int y, final int z) { // DivineMC - Regionized Chunk Ticking
+         return this.levels.get(CoordinateUtils.getChunkSectionKey(x, y, z));
+     }
+ 
+@@ -50,7 +51,7 @@ public final class Delayed26WayDistancePropagator3D {
+         this.setSource(CoordinateUtils.getChunkSectionKey(x, y, z), level);
+     }
+ 
+-    public void setSource(final long coordinate, final int level) {
++    public synchronized void setSource(final long coordinate, final int level) { // DivineMC - Regionized Chunk Ticking
+         if ((level & 63) != level || level == 0) {
+             throw new IllegalArgumentException("Level must be in (0, 63], not " + level);
+         }
+@@ -70,7 +71,7 @@ public final class Delayed26WayDistancePropagator3D {
+         this.removeSource(CoordinateUtils.getChunkSectionKey(x, y, z));
+     }
+ 
+-    public void removeSource(final long coordinate) {
++    public synchronized void removeSource(final long coordinate) { // DivineMC - Regionized Chunk Ticking
+         if (this.sources.remove(coordinate) != 0) {
+             this.updatedSources.add(coordinate);
+         }
+@@ -116,7 +117,7 @@ public final class Delayed26WayDistancePropagator3D {
+         this.levelRemoveWorkQueueBitset |= (1L << level);
+     }
+ 
+-    public boolean propagateUpdates() {
++    public synchronized boolean propagateUpdates() { // DivineMC - Regionized Chunk Ticking
+         if (this.updatedSources.isEmpty()) {
+             return false;
+         }
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
+index 987dae50827dedb9e939016702be0556d1695bc0..2a31cf3dab1c8a81d202ab59efb201229bcd16c9 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
+@@ -107,7 +107,7 @@ public class TickThread extends Thread {
+ 
+     public static void ensureOnlyTickThread(final String reason) {
+         boolean isTickThread = isTickThread();
+-        boolean isServerLevelTickThread = isServerLevelTickThread();
++        boolean isServerLevelTickThread = isServerLevelTickThread() || Thread.currentThread() instanceof RegionTickThread; // DivineMC - Regionized Chunk Ticking - region workers tick inside a single level too
+         if (!isTickThread || isServerLevelTickThread) {
+             LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread ONLY tick thread check: " + reason, new Throwable());
+             throw new IllegalStateException(reason);
+@@ -139,6 +139,12 @@ public class TickThread extends Thread {
+                 sb.append("null");
+             }
+         }
++        // DivineMC start - Regionized Chunk Ticking
++        if (currentThread instanceof RegionTickThread regionTickThread) {
++            sb.append("; Region worker of level: ");
++            sb.append(regionTickThread.currentlyTickingServerLevel == null ? "null" : regionTickThread.currentlyTickingServerLevel.getWorld().getName());
++        }
++        // DivineMC end - Regionized Chunk Ticking
+         sb.append("; Is iterating over levels? ");
+         sb.append(minecraftServer.isIteratingOverLevels);
+         return sb.toString();
+@@ -226,7 +232,13 @@ public class TickThread extends Thread {
+     public static boolean isTickThreadFor(final Level world) {
+         if (Thread.currentThread() instanceof ServerLevelTickThread serverLevelTickThread) {
+             return serverLevelTickThread.currentlyTickingServerLevel == world || org.bxteam.divinemc.async.world.LevelHandoff.holds(serverLevelTickThread, world);
+-        } else return isTickThread();
++        }
++        // DivineMC start - Regionized Chunk Ticking - a region worker belongs to the level it ticks
++        if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED && Thread.currentThread() instanceof RegionTickThread regionTickThread) {
++            return regionTickThread.currentlyTickingServerLevel == world || org.bxteam.divinemc.async.world.LevelHandoff.holds(regionTickThread, world);
++        }
++        // DivineMC end - Regionized Chunk Ticking - a region worker belongs to the level it ticks
++        return isTickThread();
+     }
+ 
+     public static boolean isTickThreadFor(final Entity entity) {
+@@ -249,4 +261,15 @@ public class TickThread extends Thread {
+         public net.minecraft.server.level.ServerLevel currentlyTickingServerLevel;
+     }
+     // DivineMC end - Parallel world ticking
++
++    // DivineMC start - Regionized Chunk Ticking
++    public static final class RegionTickThread extends TickThread {
++        public final org.bxteam.divinemc.async.world.LevelHandoff.Holder handoff = new org.bxteam.divinemc.async.world.LevelHandoff.Holder(); // levels taken over from other levels while working in one
++        public RegionTickThread(final ThreadGroup group, final Runnable run, final String name) {
++            super(group, run, name);
++        }
++
++        public net.minecraft.server.level.ServerLevel currentlyTickingServerLevel;
++    }
++    // DivineMC end - Regionized Chunk Ticking
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 1d5e4446a200ccb5edb99719b6900e422d7a3232..58dbb3c39da6b85dd525119c8601ac3faaa7e6f2 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -770,21 +770,22 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+     @Override
+     public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
+         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, loc.getX(), loc.getZ(), "Cannot generate tree asynchronously"); // DivineMC - Parallel world ticking
+-        this.world.captureTreeGeneration = true;
+-        this.world.captureBlockStates = true;
+-        List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
++        // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
++        this.world.captureTreeGeneration.set(true);
++        this.world.captureBlockStates.set(true);
++        java.util.Map<BlockPos, CraftBlockState> capturedBlockStates;
+         boolean grownTree;
+         try {
+             grownTree = this.generateTree(loc, type);
+         } finally {
+-            this.world.captureTreeGeneration = false;
+-            this.world.captureBlockStates = false;
++            this.world.captureBlockStates.set(false);
++            this.world.captureTreeGeneration.set(false);
+ 
+-            capturedBlockStates = new ArrayList<>(this.world.capturedBlockStates.values());
+-            this.world.capturedBlockStates.clear();
++            capturedBlockStates = this.world.capturedBlockStates.get();
++            capturedBlockStates.clear();
+         }
+         if (grownTree) { // Copy block data to delegate
+-            for (CraftBlockState snapshot : capturedBlockStates) {
++            for (CraftBlockState snapshot : capturedBlockStates.values()) {
+                 BlockPos position = snapshot.getPosition();
+                 net.minecraft.world.level.block.state.BlockState oldBlock = this.world.getBlockState(position);
+                 int flags = snapshot.getFlags();
+@@ -794,6 +795,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+             }
+         }
+         return grownTree;
++        // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
+     }
+ 
+     @Override
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+index a1887676b5f2d56e775db06b20cdc212253913eb..714a327c1a2ba9975a07efdf7dba82454cd0abb9 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -570,17 +570,18 @@ public class CraftBlock implements Block {
+         UseOnContext context = new UseOnContext(world, null, InteractionHand.MAIN_HAND, Items.BONE_MEAL.getDefaultInstance(), new BlockHitResult(Vec3.ZERO, direction, this.getPosition(), false));
+ 
+         // SPIGOT-6895: Call StructureGrowEvent and BlockFertilizeEvent
+-        List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
+-        world.captureTreeGeneration = true;
++        // DivineMC start - Regionized Chunk Ticking - thread-safe block capture
++        java.util.Map<net.minecraft.core.BlockPos, CraftBlockState> capturedBlockStates;
++        world.captureTreeGeneration.set(true);
+         TreeType treeType;
+         InteractionResult result;
+         try {
+             result = BoneMealItem.applyBonemeal(context);
+         } finally {
+-            world.captureTreeGeneration = false;
++            world.captureTreeGeneration.set(false);
+ 
+-            capturedBlockStates = new ArrayList<>(world.capturedBlockStates.values());
+-            world.capturedBlockStates.clear();
++            capturedBlockStates = world.capturedBlockStates.get();
++            capturedBlockStates.clear();
+ 
+             // DivineMC start - Parallel world ticking
+             treeType = SaplingBlock.getTreeTypeTL();
+@@ -601,12 +602,13 @@ public class CraftBlock implements Block {
+             Bukkit.getPluginManager().callEvent(event);
+ 
+             if (!event.isCancelled()) {
+-                for (CraftBlockState snapshot : capturedBlockStates) {
++                for (CraftBlockState snapshot : capturedBlockStates.values()) {
+                     snapshot.place(snapshot.getFlags());
+                     world.checkCapturedTreeStateForObserverNotify(this.position, snapshot);
+                 }
+             }
+         }
++        // DivineMC end - Regionized Chunk Ticking - thread-safe block capture
+ 
+         return result instanceof InteractionResult.Success && (event == null || !event.isCancelled());
+     }
