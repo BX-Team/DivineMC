@@ -7,6 +7,50 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 
 Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
 
+diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
+index fff7a796a61542213bdaa417d44e25cd05f7e774..4a0cd70da12b12aeb4882a3de0d8392fd13e165f 100644
+--- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
++++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
+@@ -68,11 +68,23 @@ public final class NearbyPlayers {
+         }
+     }
+ 
++    private final org.bxteam.divinemc.async.rct.DeferredPlayerUpdates deferredUpdates; // DivineMC - Regionized Chunk Ticking
++
+     public NearbyPlayers(final ServerLevel world) {
+         this.world = world;
++        this.deferredUpdates = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking ? new org.bxteam.divinemc.async.rct.DeferredPlayerUpdates(world, this) : null; // DivineMC - Regionized Chunk Ticking
++    }
++
++    // DivineMC start - Regionized Chunk Ticking
++    public void applyDeferredUpdates() {
++        if (this.deferredUpdates != null) {
++            this.deferredUpdates.apply();
++        }
+     }
++    // DivineMC end - Regionized Chunk Ticking
+ 
+     public void addPlayer(final ServerPlayer player) {
++        if (this.deferredUpdates != null && this.deferredUpdates.defer(org.bxteam.divinemc.async.rct.DeferredPlayerUpdates.Kind.ADD, player)) return; // DivineMC - Regionized Chunk Ticking
+         final TrackedPlayer[] newTrackers = new TrackedPlayer[TOTAL_MAP_TYPES];
+         if (this.players.putIfAbsent(player, newTrackers) != null) {
+             throw new IllegalStateException("Already have player " + player);
+@@ -90,6 +102,7 @@ public final class NearbyPlayers {
+     }
+ 
+     public void removePlayer(final ServerPlayer player) {
++        if (this.deferredUpdates != null && this.deferredUpdates.defer(org.bxteam.divinemc.async.rct.DeferredPlayerUpdates.Kind.REMOVE, player)) return; // DivineMC - Regionized Chunk Ticking
+         final TrackedPlayer[] players = this.players.remove(player);
+         if (players == null) {
+             return; // May be called during teleportation before the player is actually placed
+@@ -111,6 +124,7 @@ public final class NearbyPlayers {
+     }
+ 
+     public void tickPlayer(final ServerPlayer player) {
++        if (this.deferredUpdates != null && this.deferredUpdates.defer(org.bxteam.divinemc.async.rct.DeferredPlayerUpdates.Kind.TICK, player)) return; // DivineMC - Regionized Chunk Ticking
+         final TrackedPlayer[] players = this.players.get(player);
+         if (players == null) {
+             throw new IllegalStateException("Don't have player " + player);
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
 index 99b5026d8dfa9668caf15e9ae27619d9d433b441..4e1a1c531f65eb54657e5da90b5389f74e1da38a 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
@@ -84,6 +128,71 @@ index 706f529a7d1064aad128b1ee8c82f6319daa8d01..ac2321daac5943a026cae858695e5629
 +        // DivineMC end - Regionized Chunk Ticking - ender pearls cross chunks on region threads
      }
  }
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
+index 84f188b196a4cc615740005d91b988326b94e946..01ed6edade1de20bbadb6d3571dbf018e876872d 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
+@@ -85,7 +85,7 @@ public final class ChunkHolderManager {
+     private final ChunkTaskScheduler taskScheduler;
+     private long currentTick;
+ 
+-    private final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = new ArrayDeque<>();
++    private final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = new java.util.concurrent.ConcurrentLinkedDeque<>(); // DivineMC - Regionized Chunk Ticking
+     private final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = new MultiThreadedQueue<>();
+     private final ObjectRBTreeSet<NewChunkHolder> autoSaveQueue = new ObjectRBTreeSet<>((final NewChunkHolder c1, final NewChunkHolder c2) -> {
+         if (c1 == c2) {
+@@ -230,14 +230,14 @@ public final class ChunkHolderManager {
+         this.taskScheduler.setShutdown(true);
+     }
+ 
+-    void ensureInAutosave(final NewChunkHolder holder) {
++    synchronized void ensureInAutosave(final NewChunkHolder holder) { // DivineMC - Regionized Chunk Ticking
+         if (!this.autoSaveQueue.contains(holder)) {
+             holder.lastAutoSave = this.currentTick;
+             this.autoSaveQueue.add(holder);
+         }
+     }
+ 
+-    public void autoSave() {
++    public synchronized void autoSave() { // DivineMC - Regionized Chunk Ticking
+         final List<NewChunkHolder> reschedule = new ArrayList<>();
+         final long currentTick = this.currentTick;
+         final long maxSaveTime = currentTick - Math.max(1L, PlatformHooks.get().configAutoSaveInterval(this.world));
+@@ -1173,14 +1173,14 @@ public final class ChunkHolderManager {
+             // which will invoke processTicketUpdates
+             this.offThreadPendingFullLoadUpdate.addAll(changedFullStatus);
+         } else {
+-            final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate;
++            final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate; // DivineMC - Regionized Chunk Ticking
+             for (int i = 0, len = changedFullStatus.size(); i < len; ++i) {
+                 pendingFullLoadUpdate.add(changedFullStatus.get(i));
+             }
+         }
+     }
+ 
+-    private void removeChunkHolder(final NewChunkHolder holder) {
++    private synchronized void removeChunkHolder(final NewChunkHolder holder) { // DivineMC - Regionized Chunk Ticking
+         holder.onUnload();
+         this.autoSaveQueue.remove(holder);
+         ((ChunkSystemServerChunkCache)this.world.getChunkSource()).moonrise$chunkHolderUnload(holder);
+@@ -1538,7 +1538,7 @@ public final class ChunkHolderManager {
+ 
+     // only call on tick thread
+     private void processOffThreadFullUpdates() {
+-        final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate;
++        final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate; // DivineMC - Regionized Chunk Ticking
+         final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = this.offThreadPendingFullLoadUpdate;
+ 
+         NewChunkHolder toUpdate;
+@@ -1551,7 +1551,7 @@ public final class ChunkHolderManager {
+     private boolean processPendingFullUpdate() {
+         this.processOffThreadFullUpdates();
+ 
+-        final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate;
++        final java.util.Deque<NewChunkHolder> pendingFullLoadUpdate = this.pendingFullLoadUpdate; // DivineMC - Regionized Chunk Ticking
+ 
+         boolean ret = false;
+ 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java
 index 130fc0ea8326ab406910b5429acd99ea91708db2..42ce8ca5ed88731611148d92e9680d17e7119b1b 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java
@@ -97,6 +206,19 @@ index 130fc0ea8326ab406910b5429acd99ea91708db2..42ce8ca5ed88731611148d92e9680d17
              this.scheduleChunkTask(chunkX, chunkZ, () -> {
                  ChunkTaskScheduler.this.scheduleChunkLoad(chunkX, chunkZ, toStatus, addTicket, priority, onComplete);
              }, priority);
+diff --git a/ca/spottedleaf/moonrise/patches/starlight/light/SWMRNibbleArray.java b/ca/spottedleaf/moonrise/patches/starlight/light/SWMRNibbleArray.java
+index 240416aba0ad4649e1db401aff2565f972f5ca11..7c551a360d7e0e484d4df81f6487711d6b83651d 100644
+--- a/ca/spottedleaf/moonrise/patches/starlight/light/SWMRNibbleArray.java
++++ b/ca/spottedleaf/moonrise/patches/starlight/light/SWMRNibbleArray.java
+@@ -330,7 +330,7 @@ public final class SWMRNibbleArray {
+     }
+ 
+     // operation type: updating
+-    public boolean updateVisible() {
++    public synchronized boolean updateVisible() { // DivineMC - Regionized Chunk Ticking
+         if (!this.isDirty()) {
+             return false;
+         }
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
 index e6c567f6ede8c7cde651666af506c4031fe1ffe4..ddeb5bcbb3b99eb37241647c3f266c61b2fa476d 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java

@@ -8,7 +8,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
-import org.bxteam.divinemc.chunk.ChunkSystemAlgorithm;
 import org.bxteam.divinemc.config.annotations.Experimental;
 import org.bxteam.divinemc.region.EnumRegionFileExtension;
 import org.bxteam.divinemc.region.Flusher;
@@ -200,6 +199,7 @@ public class DivineConfig {
             ConfigCategory.MISC.key("lag-compensation.random-tick-speed-acceleration"),
             ConfigCategory.PERFORMANCE.key("chunks.experimental.enable-structure-layout-optimizer"),
             ConfigCategory.PERFORMANCE.key("chunks.experimental.deduplicate-shuffled-template-pool-element-list"),
+            ConfigCategory.PERFORMANCE.key("chunks.chunk-worker-algorithm"),
             ConfigCategory.NETWORK.key("player-profile-result-caching.enabled"),
             ConfigCategory.NETWORK.key("player-profile-result-caching.timeout")
         );
@@ -607,7 +607,6 @@ public class DivineConfig {
         public static long chunkDataCacheLimit = 32678L;
         public static int maxViewDistance = 32;
         public static int playerNearChunkDetectionRange = 128;
-        public static ChunkSystemAlgorithm chunkWorkerAlgorithm = ChunkSystemAlgorithm.MOONRISE;
         public static boolean endBiomeCacheEnabled = false;
         public static int endBiomeCacheCapacity = 1024;
         public static boolean smoothBedrockLayer = false;
@@ -702,14 +701,6 @@ public class DivineConfig {
                 "This value is used in the calculation 'range/16' to get the distance in chunks any player must be to allow the check to pass.",
                 "By default, this range is computed to 8, meaning a player must be within an 8 chunk radius of a chunk position to pass.",
                 "Keep in mind the result is rounded to the nearest whole number.");
-            chunkWorkerAlgorithm = ChunkSystemAlgorithm.valueOf(getString(ConfigCategory.PERFORMANCE.key("chunks.chunk-worker-algorithm"), chunkWorkerAlgorithm.name(),
-                "Algorithm used to determine the number of worker threads for chunk loading and generation.",
-                "",
-                "Available algorithms:",
-                " - MOONRISE: Paper's default algorithm. Conservative approach, uses fewer threads (CPU cores / 2).",
-                " - C2ME: More aggressive thread allocation than MOONRISE. Considers both CPU cores and available memory. May use more threads on high-end systems.",
-                " - C2ME_NEW: Modern C2ME algorithm. Balanced approach between MOONRISE and C2ME. Optimized for current hardware, slightly less aggressive than old C2ME."));
-
             endBiomeCacheEnabled = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.end-biome-cache-enabled"), endBiomeCacheEnabled,
                 "Enables the end biome cache, which can accelerate The End worldgen.");
             endBiomeCacheCapacity = getInt(ConfigCategory.PERFORMANCE.key("chunks.end-biome-cache-capacity"), endBiomeCacheCapacity,
