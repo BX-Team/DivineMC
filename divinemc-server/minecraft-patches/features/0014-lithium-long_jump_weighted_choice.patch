@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 19 Nov 2026 02:18:38 +0300
+Subject: [PATCH] lithium: long_jump_weighted_choice
+
+This patch is based on the following mixins:
+* "net/caffeinemc/mods/lithium/mixin/ai/task/run/long_jump_weighted_choice/LongJumpToRandomPosMixin.java"
+By: 2No2Name <2No2Name@web.de>
+As part of: Lithium (https://github.com/CaffeineMC/lithium)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
+
+diff --git a/net/minecraft/world/entity/ai/behavior/LongJumpToRandomPos.java b/net/minecraft/world/entity/ai/behavior/LongJumpToRandomPos.java
+index fe7403770b6c117cc2b9e5a3ab9f8554deed703c..799a7956d335d5f300e8a49446e643286155e360 100644
+--- a/net/minecraft/world/entity/ai/behavior/LongJumpToRandomPos.java
++++ b/net/minecraft/world/entity/ai/behavior/LongJumpToRandomPos.java
+@@ -129,6 +129,12 @@ public class LongJumpToRandomPos<E extends Mob> extends Behavior<E> {
+         int mobX = mobPos.getX();
+         int mobY = mobPos.getY();
+         int mobZ = mobPos.getZ();
++        // DivineMC start - lithium: long_jump_weighted_choice
++        if (this.maxLongJumpWidth < 128 && this.maxLongJumpHeight < 128) {
++            this.jumpCandidates = net.caffeinemc.mods.lithium.common.util.collections.LongJumpChoiceList.forCenter(mobPos, (byte) this.maxLongJumpWidth, (byte) this.maxLongJumpHeight);
++            return;
++        }
++        // DivineMC end - lithium: long_jump_weighted_choice
+         this.jumpCandidates = BlockPos.betweenClosedStream(
+                 mobX - this.maxLongJumpWidth,
+                 mobY - this.maxLongJumpHeight,
+@@ -184,13 +190,27 @@ public class LongJumpToRandomPos<E extends Mob> extends Behavior<E> {
+         }
+     }
+ 
++    // DivineMC start - lithium: long_jump_weighted_choice
+     protected Optional<LongJumpToRandomPos.PossibleJump> getJumpCandidate(final ServerLevel level) {
+-        Optional<LongJumpToRandomPos.PossibleJump> randomItem = WeightedRandom.getRandomItem(
+-            level.getRandom(), this.jumpCandidates, LongJumpToRandomPos.PossibleJump::weight
+-        );
+-        randomItem.ifPresent(this.jumpCandidates::remove);
+-        return randomItem;
++        Optional<LongJumpToRandomPos.PossibleJump> optional = getRandomFast(level.getRandom(), this.jumpCandidates);
++        skipRemoveIfAlreadyRemoved(optional, this.jumpCandidates::remove);
++        return optional;
++    }
++
++    private Optional<LongJumpToRandomPos.PossibleJump> getRandomFast(net.minecraft.util.RandomSource random, List<LongJumpToRandomPos.PossibleJump> pool) {
++        if (pool instanceof net.caffeinemc.mods.lithium.common.util.collections.LongJumpChoiceList longJumpChoiceList) {
++            return Optional.ofNullable(longJumpChoiceList.removeRandomWeightedByDistanceSq(random));
++        } else {
++            return WeightedRandom.getRandomItem(random, pool, LongJumpToRandomPos.PossibleJump::weight);
++        }
++    }
++
++    private void skipRemoveIfAlreadyRemoved(Optional<LongJumpToRandomPos.PossibleJump> result, java.util.function.Consumer<? super net.minecraft.world.entity.ai.behavior.LongJumpToRandomPos.PossibleJump> removeAction) {
++        if (!(this.jumpCandidates instanceof net.caffeinemc.mods.lithium.common.util.collections.LongJumpChoiceList)) {
++            result.ifPresent(removeAction);
++        }
+     }
++    // DivineMC end - lithium: long_jump_weighted_choice
+ 
+     private boolean isAcceptableLandingPosition(final ServerLevel level, final E body, final BlockPos targetPos) {
+         BlockPos bodyPos = body.blockPosition();

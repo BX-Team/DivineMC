@@ -245,7 +245,7 @@ index c62021194a2675bf2f5c1fa618e0889caa7a7653..ce8be665e185e20f8880f2fb51d6dcda
          profiler.pop();
          profiler.push("tadpoleActivityUpdate");
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
-index c54e3441edd53a9db4006efbb39967a87ff806c1..b2eb72640d2f5a374e3d50777d77e397db134016 100644
+index 3b31b25602a940c247f1edc286c9c40bb1ad5cc9..87b634da251a1c11edbafc9bd829d7e4314977bf 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
 @@ -87,6 +87,7 @@ public class Goat extends Animal {
@@ -256,7 +256,7 @@ index c54e3441edd53a9db4006efbb39967a87ff806c1..b2eb72640d2f5a374e3d50777d77e397
  
      public Goat(final EntityType<? extends Goat> type, final Level level) {
          super(type, level);
-@@ -238,7 +239,7 @@ public class Goat extends Animal {
+@@ -232,7 +233,7 @@ public class Goat extends Animal {
      protected void customServerAiStep(final ServerLevel level) {
          ProfilerFiller profiler = Profiler.get();
          profiler.push("goatBrain");

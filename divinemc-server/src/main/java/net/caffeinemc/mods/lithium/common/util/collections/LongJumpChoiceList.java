@@ -1,4 +1,4 @@
-package org.bxteam.divinemc.util.collections;
+package net.caffeinemc.mods.lithium.common.util.collections;
 
 import it.unimi.dsi.fastutil.bytes.ByteBytePair;
 import it.unimi.dsi.fastutil.ints.IntArrayList;

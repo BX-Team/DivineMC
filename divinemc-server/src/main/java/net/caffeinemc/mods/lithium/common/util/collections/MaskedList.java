@@ -1,4 +1,4 @@
-package org.bxteam.divinemc.util.collections;
+package net.caffeinemc.mods.lithium.common.util.collections;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
