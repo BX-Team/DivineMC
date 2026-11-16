@@ -1,7 +1,7 @@
 package org.bxteam.divinemc.async;
 
+import org.bxteam.divinemc.concurrent.executor.NamedAgnosticThreadFactoryAffinity;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactoryAffinity;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;

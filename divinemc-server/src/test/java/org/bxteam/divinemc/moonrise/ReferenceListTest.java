@@ -1,12 +1,13 @@
 package org.bxteam.divinemc.moonrise;
 
 import ca.spottedleaf.moonrise.common.list.ReferenceList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import org.bukkit.support.environment.Normal;
 import org.jspecify.annotations.NullMarked;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

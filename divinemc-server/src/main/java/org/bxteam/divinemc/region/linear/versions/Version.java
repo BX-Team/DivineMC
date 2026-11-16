@@ -1,8 +1,9 @@
 package org.bxteam.divinemc.region.linear.versions;
 
+import org.bxteam.divinemc.region.linear.LinearImplementation;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import org.bxteam.divinemc.region.linear.LinearImplementation;
 
 public interface Version {
     LinearImplementation implementation();

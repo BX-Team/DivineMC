@@ -6,8 +6,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bxteam.divinemc.concurrent.executor.NamedAgnosticThreadFactory;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactory;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;

@@ -1,6 +1,5 @@
 package org.bxteam.divinemc.region.linear;
 
-import java.nio.file.Path;
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4FastDecompressor;
@@ -9,6 +8,8 @@ import org.bxteam.divinemc.region.linear.versions.V2Linear;
 import org.bxteam.divinemc.region.linear.versions.V3Linear;
 import org.bxteam.divinemc.region.linear.versions.Version;
 import org.slf4j.Logger;
+
+import java.nio.file.Path;
 
 public abstract class LinearBase implements Version {
 

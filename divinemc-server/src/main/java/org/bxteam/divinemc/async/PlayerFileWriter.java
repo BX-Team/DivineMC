@@ -1,6 +1,11 @@
 package org.bxteam.divinemc.async;
 
 import com.mojang.logging.LogUtils;
+import org.bxteam.divinemc.config.DivineConfig;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -8,10 +13,6 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
-import org.bxteam.divinemc.config.DivineConfig;
-import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
 
 /**
  * Write-behind queue for player files (.dat, stats, advancements), keyed by the target path.

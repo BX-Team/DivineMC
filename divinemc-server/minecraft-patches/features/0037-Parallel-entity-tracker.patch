@@ -7,7 +7,7 @@ Derived from Petal's multithreaded tracker; rewritten into a three-phase
 scan/apply/send model with join barriers.
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index c7f57a8a01532ca153f5f7b537cd708c7528e562..15db1280c1ac4f559299adcadb9f8a07bd64e25c 100644
+index c7f57a8a01532ca153f5f7b537cd708c7528e562..be2ecec6336a0c0b4bab6ac7319d84f6361c36b7 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -251,9 +251,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -40,7 +40,7 @@ index c7f57a8a01532ca153f5f7b537cd708c7528e562..15db1280c1ac4f559299adcadb9f8a07
 +        if (org.bxteam.divinemc.config.DivineConfig.AsyncCategory.parallelTrackerEnabled) {
 +            this.iteratingTrackerEntities = true;
 +            try {
-+                org.bxteam.divinemc.async.tracking.ParallelEntityTracker.tick(this.level, this.trackerEntities);
++                org.bxteam.divinemc.async.entity.ParallelEntityTracker.tick(this.level, this.trackerEntities);
 +            } finally {
 +                this.iteratingTrackerEntities = false;
 +            }
@@ -55,7 +55,7 @@ index c7f57a8a01532ca153f5f7b537cd708c7528e562..15db1280c1ac4f559299adcadb9f8a07
          private final int range;
          private SectionPos lastSectionPos;
 -        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
-+        public final Set<ServerPlayerConnection> seenBy = org.bxteam.divinemc.util.collections.PlatformCollections.referenceSet(); // Paper - Perf: optimise map impl // DivineMC - Parallel entity tracker
++        public final Set<ServerPlayerConnection> seenBy = org.bxteam.divinemc.concurrent.collections.PlatformCollections.referenceSet(); // Paper - Perf: optimise map impl // DivineMC - Parallel entity tracker
  
          // Paper start - optimise entity tracker
          private long lastChunkUpdate = -1L;
@@ -75,13 +75,13 @@ index c7f57a8a01532ca153f5f7b537cd708c7528e562..15db1280c1ac4f559299adcadb9f8a07
          }
  
 +        // DivineMC start - Parallel entity tracker
-+        public final org.bxteam.divinemc.async.tracking.ParallelEntityTracker.@Nullable ScanResult scanPlayers(final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk chunk) {
++        public final org.bxteam.divinemc.async.entity.ParallelEntityTracker.@Nullable ScanResult scanPlayers(final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk chunk) {
 +            final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> players =
 +                chunk == null ? null : chunk.getPlayers(ca.spottedleaf.moonrise.common.misc.NearbyPlayers.NearbyMapType.VIEW_DISTANCE);
 +            if (players == null) {
 +                return this.seenBy.isEmpty() && this.lastTrackedChunk == null
 +                    ? null
-+                    : new org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult(this, null, null, true);
++                    : new org.bxteam.divinemc.async.entity.ParallelEntityTracker.ScanResult(this, null, null, true);
 +            }
 +
 +            final long lastChunkUpdate = this.lastChunkUpdate;
@@ -122,10 +122,10 @@ index c7f57a8a01532ca153f5f7b537cd708c7528e562..15db1280c1ac4f559299adcadb9f8a07
 +
 +            return toAdd == null && toRemove == null
 +                ? null
-+                : new org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult(this, toAdd, toRemove, false);
++                : new org.bxteam.divinemc.async.entity.ParallelEntityTracker.ScanResult(this, toAdd, toRemove, false);
 +        }
 +
-+        public final void applyScan(final org.bxteam.divinemc.async.tracking.ParallelEntityTracker.ScanResult result) {
++        public final void applyScan(final org.bxteam.divinemc.async.entity.ParallelEntityTracker.ScanResult result) {
 +            if (result.clearAll()) {
 +                this.moonrise$clearPlayers();
 +                return;

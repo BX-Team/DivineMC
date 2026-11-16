@@ -3,7 +3,6 @@ package org.bxteam.divinemc.util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.support.environment.Normal;
-import org.bxteam.divinemc.util.entity.NavigatingMobIndex;
 import org.jspecify.annotations.NullMarked;
 import org.junit.jupiter.api.Test;
 

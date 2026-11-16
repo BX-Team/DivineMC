@@ -2,11 +2,12 @@ package org.bxteam.divinemc.async.rct;
 
 import ca.spottedleaf.moonrise.common.misc.NearbyPlayers;
 import ca.spottedleaf.moonrise.common.util.TickThread;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Keeps a level's {@link NearbyPlayers} read-only while its region workers run. Region workers of other players read

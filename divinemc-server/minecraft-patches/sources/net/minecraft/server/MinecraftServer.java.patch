@@ -18,7 +18,7 @@
          // Paper end - rewrite chunk system
          // Paper start - Improved watchdog support - move final shutdown items here
          Util.shutdownExecutors();
-+        org.bxteam.divinemc.async.ExecutorShutdown.shutdown(this); // DivineMC - Shutdown executors
++        org.bxteam.divinemc.concurrent.executor.ExecutorShutdown.shutdown(this); // DivineMC - Shutdown executors
          this.onServerExit();
          // Paper end - Improved watchdog support - move final shutdown items here
      }

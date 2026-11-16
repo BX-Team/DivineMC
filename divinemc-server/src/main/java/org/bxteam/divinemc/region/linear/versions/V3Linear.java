@@ -1,5 +1,9 @@
 package org.bxteam.divinemc.region.linear.versions;
 
+import net.openhft.hashing.LongHashFunction;
+import org.bxteam.divinemc.region.linear.LinearImplementation;
+import org.bxteam.divinemc.region.linear.V2LinearBase;
+
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -8,9 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import net.openhft.hashing.LongHashFunction;
-import org.bxteam.divinemc.region.linear.LinearImplementation;
-import org.bxteam.divinemc.region.linear.V2LinearBase;
 
 public class V3Linear extends V2LinearBase {
     public V3Linear(Path regionFilePath, int compressionLevel) {
