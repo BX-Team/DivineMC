@@ -23,9 +23,9 @@ import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.SavedDataStorage;
-import org.bxteam.divinemc.async.world.LevelHandoff;
-import org.bxteam.divinemc.async.world.ParallelWorldTicking;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactoryAffinity;
+import org.bxteam.divinemc.async.pwt.LevelHandoff;
+import org.bxteam.divinemc.async.pwt.ParallelWorldTicking;
+import org.bxteam.divinemc.concurrent.executor.NamedAgnosticThreadFactoryAffinity;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -179,7 +179,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         this.pendingEntityTick = false;
 
         final long start = System.nanoTime();
-        org.bxteam.divinemc.async.sensing.ParallelSensorTicker.preTickSensors(this.level);
+        org.bxteam.divinemc.async.entity.ParallelSensorTicker.preTickSensors(this.level);
 
         this.assignEntities();
         for (final ObjectArrayList<Tile> phase : this.phases) {

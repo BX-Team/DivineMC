@@ -71,7 +71,7 @@ index d8cacf975c2c35e5fe7370bd5b007fbe0d4bd031..444428283839c106f4859fcf2cb6ab24
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 5265909d178edfa607b35fa73dae6be79d099ca9..1d2fa38ea581919e8190c8e7b7b7d992446442a1 100644
+index c9134bc8d459936101373dae1deaa68fe8c83031..ecae603524db7108b1cabf7fbe6c123aba3db420 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2934,6 +2934,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -96,7 +96,7 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 3a74635654c116f86bd1fdc8c27a7d2e9af42f5d..01861ba65b5b65b9ea75e1321288d5db751dd240 100644
+index 37ebe56e106aed22c43a28854793b0848e7e6f6a..72b079b1108c5bf6f4489f1f5066ef26904c5a8e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -5280,6 +5280,18 @@ public abstract class Entity
@@ -417,7 +417,7 @@ index 265433b4daa615ef67ed02ea7c7714d0538ea969..afbbf3de339e5396e23e82c789896730
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 2305e870a296fb6a9ebbfda551bb08ac1eccc2e1..92bdbd3e0c3f768badc7414b9ef4046db39d0e1f 100644
+index 5d0bb01b488e4ae5a0db88f7174ed6cdc628b878..aadb8ff0e9d575f6ad5f05cfb3f5e800b1595824 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1154,6 +1154,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -881,7 +881,7 @@ index c2f8479eef826efca3ed2993973b2cfc2c51ed00..489074b8a282c75497de522ec40004fb
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/BlockEntity.java b/net/minecraft/world/level/block/entity/BlockEntity.java
-index de5f15f90e75698920be812a489d114be9daf8ae..190aa80bbbe996df7ff32643675d8cd107c56851 100644
+index 343feaa48eb5a0bf39165e4caed2261ac49239cf..bc14e00f2de9f75acd6951b09e9bbee743d014b3 100644
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
 @@ -38,7 +38,7 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -903,7 +903,7 @@ index de5f15f90e75698920be812a489d114be9daf8ae..190aa80bbbe996df7ff32643675d8cd1
      private void validateBlockState(final BlockState blockState) {
 @@ -212,6 +213,7 @@ public abstract class BlockEntity implements DebugValueSource, TypedInstance<Blo
          if (this.level != null) {
-             if (org.bxteam.divinemc.async.LevelThreads.SHARED ? org.bxteam.divinemc.async.ThreadState.current().ignoreBlockEntityUpdates : ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers // DivineMC - Parallel world ticking - per-thread copy while levels are shared
+             if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED ? org.bxteam.divinemc.concurrent.state.ThreadState.current().ignoreBlockEntityUpdates : ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers // DivineMC - Parallel world ticking - per-thread copy while levels are shared
              setChanged(this.level, this.worldPosition, this.blockState);
 +            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity) lithium$handleSetChanged(); // DivineMC - lithium: sleeping_block_entity
          }
@@ -1453,7 +1453,7 @@ index c669d0ad531fc43bb7799bd011ed73ccf7b6244a..13a6cc0b449ea5b269ce0d052d21d91e
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index dd6243b9c1a670524c7b5f3f9a40625ace6a39bc..2edadc6b70a22fb8fcfcc29cb2cfa28834c746d1 100644
+index 22263407bcd9eef5e0c1eac205b420b84219cfa1..37096c66c4b9f59ff75dd17f735b832c2a339ab8 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,7 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -1533,7 +1533,7 @@ index dd6243b9c1a670524c7b5f3f9a40625ace6a39bc..2edadc6b70a22fb8fcfcc29cb2cfa288
 +        Container container = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity ? getExtractInventory(level, hopper, blockPos, blockState) : getSourceContainer(level, hopper, blockPos, blockState); // DivineMC - lithium: sleeping_block_entity
          if (container != null) {
              Direction direction = Direction.DOWN;
-             org.bxteam.divinemc.util.HopperEventFlags.current().skipPull = level.skipHopperEvents; // Paper - Perf: Optimize Hoppers // DivineMC - Parallel world ticking - per-thread hopper event flags
+             org.bxteam.divinemc.concurrent.state.HopperEventFlags.current().skipPull = level.skipHopperEvents; // Paper - Perf: Optimize Hoppers // DivineMC - Parallel world ticking - per-thread hopper event flags
 +            // DivineMC start - lithium: sleeping_block_entity
 +            if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity && !hasPrepareTransferListeners(level)) {
 +                Boolean res = lithiumExtract(level, hopper, container);
@@ -2256,7 +2256,7 @@ index dd6243b9c1a670524c7b5f3f9a40625ace6a39bc..2edadc6b70a22fb8fcfcc29cb2cfa288
 +                insertInventory.isEmpty();
 +
 +        // DivineMC start - lithium: sleeping_block_entity
-+        final org.bxteam.divinemc.util.HopperEventFlags eventFlags = org.bxteam.divinemc.util.HopperEventFlags.current();
++        final org.bxteam.divinemc.concurrent.state.HopperEventFlags eventFlags = org.bxteam.divinemc.concurrent.state.HopperEventFlags.current();
 +        eventFlags.skipPush = world.skipHopperEvents;
 +        // DivineMC end - lithium: sleeping_block_entity
 +        //noinspection ConstantConditions
@@ -2326,7 +2326,7 @@ index dd6243b9c1a670524c7b5f3f9a40625ace6a39bc..2edadc6b70a22fb8fcfcc29cb2cfa288
 +            int fromSlot = availableSlots != null ? availableSlots[i] : i;
 +            ItemStack itemStack = fromStackList.get(fromSlot);
 +            if (!itemStack.isEmpty() && canTakeItemFromContainer(to, from, itemStack, fromSlot, Direction.DOWN)) {
-+                if (!org.bxteam.divinemc.util.HopperEventFlags.current().skipPull) { // DivineMC - lithium: sleeping_block_entity - per-thread hopper event flags
++                if (!org.bxteam.divinemc.concurrent.state.HopperEventFlags.current().skipPull) { // DivineMC - lithium: sleeping_block_entity - per-thread hopper event flags
 +                    itemStack = callPullMoveEvent(to, from, itemStack);
 +                    if (itemStack == null) { // cancelled
 +                        return true;
@@ -2361,7 +2361,7 @@ index dd6243b9c1a670524c7b5f3f9a40625ace6a39bc..2edadc6b70a22fb8fcfcc29cb2cfa288
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java b/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
-index c94647a38d0674d5298a2447543a6ecd69476853..fc8cef81c0bce7d2750138030222a45a2e194191 100644
+index c61931e4506275a01ba08c8b65345e2165104c1c..182f5df8711b60347945734465e955a0d207bf52 100644
 --- a/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 @@ -26,12 +26,13 @@ import net.minecraft.world.level.storage.ValueInput;
@@ -2380,9 +2380,9 @@ index c94647a38d0674d5298a2447543a6ecd69476853..fc8cef81c0bce7d2750138030222a45a
  
      // Paper start - Fix NPE in SculkBloomEvent world access
 @@ -46,12 +47,14 @@ public class SculkCatalystBlockEntity extends BlockEntity implements GameEventLi
-         if (org.bxteam.divinemc.async.LevelThreads.SHARED) org.bxteam.divinemc.async.ThreadState.current().sourceBlockOverride = pos; else org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = pos; // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPos up to five methods deep. // DivineMC - Parallel world ticking - per-thread copy while levels are shared
+         if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) org.bxteam.divinemc.concurrent.state.ThreadState.current().sourceBlockOverride = pos; else org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = pos; // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPos up to five methods deep. // DivineMC - Parallel world ticking - per-thread copy while levels are shared
          entity.catalystListener.getSculkSpreader().updateCursors(level, pos, level.getRandom(), true);
-         if (org.bxteam.divinemc.async.LevelThreads.SHARED) org.bxteam.divinemc.async.ThreadState.current().sourceBlockOverride = null; else org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = null; // CraftBukkit // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) org.bxteam.divinemc.concurrent.state.ThreadState.current().sourceBlockOverride = null; else org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = null; // CraftBukkit // DivineMC - Parallel world ticking
 +        if (org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.sleepingBlockEntity && entity.catalystListener.getSculkSpreader().getCursors().isEmpty()) entity.lithium$startSleeping(); // DivineMC - lithium: sleeping_block_entity
      }
  
@@ -2629,7 +2629,7 @@ index 8f504f2a36490e9afcdedfc89b91fc3f420820be..8257d1b8742a59771c65a60a6c4495ab
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index ccfcefa59dcbe88c6a14678614bf88227e72a958..eddfebe9481dfd8ed7adf588e26aa11e640004ba 100644
+index d977bbbc2387888f700d21487fb4ac57ff915b2a..7cf4c5f4e77dd34144f9d93f72adaec881307a14 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -924,10 +924,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot

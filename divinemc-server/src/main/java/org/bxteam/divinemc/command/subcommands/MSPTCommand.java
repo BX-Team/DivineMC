@@ -7,7 +7,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.PermissionDefault;
-import org.bxteam.divinemc.async.world.ParallelWorldTicking;
+import org.bxteam.divinemc.async.pwt.ParallelWorldTicking;
 import org.bxteam.divinemc.command.DivineCommand;
 import org.bxteam.divinemc.command.DivineSubCommandPermission;
 import org.checkerframework.checker.nullness.qual.NonNull;

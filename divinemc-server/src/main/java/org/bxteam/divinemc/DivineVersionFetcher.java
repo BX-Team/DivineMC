@@ -1,7 +1,7 @@
 package org.bxteam.divinemc;
 
-import com.destroystokyo.paper.util.VersionFetcher;
 import com.destroystokyo.paper.VersionHistoryManager;
+import com.destroystokyo.paper.util.VersionFetcher;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

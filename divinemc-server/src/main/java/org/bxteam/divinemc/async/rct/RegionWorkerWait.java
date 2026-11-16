@@ -2,9 +2,9 @@ package org.bxteam.divinemc.async.rct;
 
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
-import org.bxteam.divinemc.async.ServerStateLock;
-import org.bxteam.divinemc.async.world.LevelHandoff;
-import org.bxteam.divinemc.async.world.ParallelWorldTicking;
+import org.bxteam.divinemc.async.pwt.LevelHandoff;
+import org.bxteam.divinemc.async.pwt.ParallelWorldTicking;
+import org.bxteam.divinemc.concurrent.lock.ServerStateLock;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.Set;

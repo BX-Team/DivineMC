@@ -216,7 +216,7 @@ index 460e27ab0506c83a28934800ee74ee886d4b025e..be5dca854a6feab23bea5c46a7ef18f6
              return false;
          }
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
-index 987dae50827dedb9e939016702be0556d1695bc0..2a31cf3dab1c8a81d202ab59efb201229bcd16c9 100644
+index 976275d00edc96ec59e09a594a90e4e89d6a231b..dfe6bd16acdfe2c252df1fe064947fb9ccf5a406 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
 @@ -107,7 +107,7 @@ public class TickThread extends Thread {
@@ -244,12 +244,12 @@ index 987dae50827dedb9e939016702be0556d1695bc0..2a31cf3dab1c8a81d202ab59efb20122
 @@ -226,7 +232,13 @@ public class TickThread extends Thread {
      public static boolean isTickThreadFor(final Level world) {
          if (Thread.currentThread() instanceof ServerLevelTickThread serverLevelTickThread) {
-             return serverLevelTickThread.currentlyTickingServerLevel == world || org.bxteam.divinemc.async.world.LevelHandoff.holds(serverLevelTickThread, world);
+             return serverLevelTickThread.currentlyTickingServerLevel == world || org.bxteam.divinemc.async.pwt.LevelHandoff.holds(serverLevelTickThread, world);
 -        } else return isTickThread();
 +        }
 +        // DivineMC start - Regionized Chunk Ticking - a region worker belongs to the level it ticks
-+        if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED && Thread.currentThread() instanceof RegionTickThread regionTickThread) {
-+            return regionTickThread.currentlyTickingServerLevel == world || org.bxteam.divinemc.async.world.LevelHandoff.holds(regionTickThread, world);
++        if (org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED && Thread.currentThread() instanceof RegionTickThread regionTickThread) {
++            return regionTickThread.currentlyTickingServerLevel == world || org.bxteam.divinemc.async.pwt.LevelHandoff.holds(regionTickThread, world);
 +        }
 +        // DivineMC end - Regionized Chunk Ticking - a region worker belongs to the level it ticks
 +        return isTickThread();
@@ -263,7 +263,7 @@ index 987dae50827dedb9e939016702be0556d1695bc0..2a31cf3dab1c8a81d202ab59efb20122
 +
 +    // DivineMC start - Regionized Chunk Ticking
 +    public static final class RegionTickThread extends TickThread {
-+        public final org.bxteam.divinemc.async.world.LevelHandoff.Holder handoff = new org.bxteam.divinemc.async.world.LevelHandoff.Holder(); // levels taken over from other levels while working in one
++        public final org.bxteam.divinemc.async.pwt.LevelHandoff.Holder handoff = new org.bxteam.divinemc.async.pwt.LevelHandoff.Holder(); // levels taken over from other levels while working in one
 +        public RegionTickThread(final ThreadGroup group, final Runnable run, final String name) {
 +            super(group, run, name);
 +        }
@@ -273,13 +273,13 @@ index 987dae50827dedb9e939016702be0556d1695bc0..2a31cf3dab1c8a81d202ab59efb20122
 +    // DivineMC end - Regionized Chunk Ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 1d5e4446a200ccb5edb99719b6900e422d7a3232..58dbb3c39da6b85dd525119c8601ac3faaa7e6f2 100644
+index 48af128761c3cd46dfed32d2f69547092f9fd223..5e2a1e1a19e59ea172f548a01159996735ffc2bb 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -770,21 +770,22 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      @Override
      public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
-         if (org.bxteam.divinemc.async.world.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, loc.getX(), loc.getZ(), "Cannot generate tree asynchronously"); // DivineMC - Parallel world ticking
+         if (org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, loc.getX(), loc.getZ(), "Cannot generate tree asynchronously"); // DivineMC - Parallel world ticking
 -        this.world.captureTreeGeneration = true;
 -        this.world.captureBlockStates = true;
 -        List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
@@ -316,7 +316,7 @@ index 1d5e4446a200ccb5edb99719b6900e422d7a3232..58dbb3c39da6b85dd525119c8601ac3f
  
      @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
-index a1887676b5f2d56e775db06b20cdc212253913eb..714a327c1a2ba9975a07efdf7dba82454cd0abb9 100644
+index e33517e229069f27a6d8004247bbde6476424dc0..103b9a62d9538e16c8c1a5278eb95eb1902bb764 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 @@ -570,17 +570,18 @@ public class CraftBlock implements Block {

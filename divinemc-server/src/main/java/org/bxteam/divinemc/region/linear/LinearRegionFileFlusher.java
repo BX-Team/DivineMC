@@ -1,8 +1,9 @@
 package org.bxteam.divinemc.region.linear;
 
+import org.bxteam.divinemc.region.Flusher;
+
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.bxteam.divinemc.region.Flusher;
 
 public class LinearRegionFileFlusher extends Flusher<LinearRegionFile> {
     private final Queue<LinearRegionFile> savingQueue = new LinkedBlockingQueue<>();

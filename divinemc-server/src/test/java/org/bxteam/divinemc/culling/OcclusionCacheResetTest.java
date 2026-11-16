@@ -1,11 +1,12 @@
 package org.bxteam.divinemc.culling;
 
 import com.logisticscraft.occlusionculling.cache.ArrayOcclusionCache;
-import java.util.Arrays;
-import java.util.Random;
 import org.bukkit.support.environment.Normal;
 import org.jspecify.annotations.NullMarked;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

@@ -6,6 +6,7 @@ import org.bxteam.divinemc.region.buffered.BufferedRegionFile;
 import org.bxteam.divinemc.region.buffered.BufferedRegionFileFlusher;
 import org.bxteam.divinemc.region.linear.LinearRegionFile;
 import org.jetbrains.annotations.Nullable;
+
 import java.util.Arrays;
 
 public enum EnumRegionFileExtension {

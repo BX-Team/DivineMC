@@ -2,6 +2,9 @@ package org.bxteam.divinemc.region.linear.versions;
 
 import com.github.luben.zstd.ZstdInputStream;
 import com.github.luben.zstd.ZstdOutputStream;
+import org.bxteam.divinemc.region.linear.LinearBase;
+import org.bxteam.divinemc.region.linear.LinearImplementation;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -13,8 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import org.bxteam.divinemc.region.linear.LinearBase;
-import org.bxteam.divinemc.region.linear.LinearImplementation;
 
 public class V1Linear extends LinearBase {
     public V1Linear(Path regionFilePath, int compressionLevel) {
