@@ -43,7 +43,7 @@ index 3d2c7ab697c9b4dde7424aa4f8b6d1ce2204d0e5..7ed9c08e945738471a0006351bddecdf
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  profiler.push("checkDespawn");
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 879b6e155a9ac1e657498a936afa7171e0491b45..9ab60a38ca1bf8dd863a3b926e27e89cea27e111 100644
+index a2c88466743278e41342c4d9ff5f4cabc7cee1bb..04e87e66e546a72bbeb26dc1a1cf7fb457c1bd46 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -389,6 +389,13 @@ public abstract class Entity

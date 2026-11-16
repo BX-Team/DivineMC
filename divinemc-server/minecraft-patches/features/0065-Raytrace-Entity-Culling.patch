@@ -10,7 +10,7 @@ improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
 cannot see mobs, players or items through walls anymore).
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 0e1af01c7c46cdcc6e10427ad5d878c3ed88618f..6c22bfc84e0bf69d6873d09261805de1da449c7c 100644
+index 93cbb03202cbcc20db23f633583789e382caeedb..2e5f62397c0f76bf0ba2ddf8859f2fc0afdf54db 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -1559,6 +1559,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -22,7 +22,7 @@ index 0e1af01c7c46cdcc6e10427ad5d878c3ed88618f..6c22bfc84e0bf69d6873d09261805de1
              if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
                  visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 55b96bf8ef37686ddb989c1fd42cb78078dfa60f..115a86768d740516bf887be239d059283c013cbd 100644
+index b54def69b27b9206ca416c9aa78635d93322384f..a7ed7f344ce1de8cf351acb18c125239c2532a37 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -444,6 +444,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -54,7 +54,7 @@ index 8f0893d42dd56d8a3cac5d142f7d2b0d23eb435c..78d0c7af20b1fabc3994d34dab685a42
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 92bdbd3e0c3f768badc7414b9ef4046db39d0e1f..76fb78b2fe67f9bf8e7ceb8b1848d0878855bf8f 100644
+index aadb8ff0e9d575f6ad5f05cfb3f5e800b1595824..a70ec4a9b3b94d3fc85ca71076124985f5ddee54 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1162,6 +1162,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

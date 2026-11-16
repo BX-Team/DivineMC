@@ -23,7 +23,7 @@ index e9afd561973f764a1c14ec8d7fce99e93004a3f2..4eafbb76e210351ab83831b9b478ba06
          }
  
 diff --git a/net/minecraft/network/PacketProcessor.java b/net/minecraft/network/PacketProcessor.java
-index f398d48910dff89c41d1344ebf7b793c27dcb6aa..aa5989ed22b3b72137c5d037c7e1315a0e18b2d7 100644
+index 1a3b19c786d725eff5e0e343a3f68925fa14e597..8099592bf030dec91f9c515e4aac3f5f584bf5e7 100644
 --- a/net/minecraft/network/PacketProcessor.java
 +++ b/net/minecraft/network/PacketProcessor.java
 @@ -70,28 +70,8 @@ public class PacketProcessor implements AutoCloseable {
@@ -69,7 +69,7 @@ index f398d48910dff89c41d1344ebf7b793c27dcb6aa..aa5989ed22b3b72137c5d037c7e1315a
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 1d89d1da5a76f57efa761e16065069d25a3b83cb..5265909d178edfa607b35fa73dae6be79d099ca9 100644
+index fab7b2c2a3b6774132a7849fab20bd4d23992941..c9134bc8d459936101373dae1deaa68fe8c83031 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1540,11 +1540,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -99,7 +99,7 @@ index 1d89d1da5a76f57efa761e16065069d25a3b83cb..5265909d178edfa607b35fa73dae6be7
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index ea3e0756f5b915447a49ab0fb4eb7483cfb0b18b..3a74635654c116f86bd1fdc8c27a7d2e9af42f5d 100644
+index 828c6b38c9d445867e0f58a113b155cec49f2c13..37ebe56e106aed22c43a28854793b0848e7e6f6a 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1185,16 +1185,6 @@ public abstract class Entity
