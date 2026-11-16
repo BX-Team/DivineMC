@@ -1,4 +1,4 @@
-package org.bxteam.divinemc.util.entity;
+package net.caffeinemc.mods.lithium.common.ai.brain;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;

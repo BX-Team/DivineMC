@@ -1,0 +1,306 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 19 Nov 2026 02:18:38 +0300
+Subject: [PATCH] lithium: brain
+
+This patch is based on the following mixins:
+* "net/caffeinemc/mods/lithium/mixin/collections/brain/BrainMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/ai/task/launch/BrainMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/ai/task/memory_changes/BehaviorMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/ai/task/memory_changes/BrainMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/ai/task/memory_changes/MemorySlotMixin.java"
+By: 2No2Name <2No2Name@web.de>
+As part of: Lithium (https://github.com/CaffeineMC/lithium)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
+
+diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
+index 2b92de5075c7257e71dfd1f8e207a96abd24599d..f3e70488154fb8f5de764b985695ce109d7b00eb 100644
+--- a/net/minecraft/world/entity/ai/Brain.java
++++ b/net/minecraft/world/entity/ai/Brain.java
+@@ -37,16 +37,80 @@ import org.jspecify.annotations.Nullable;
+ 
+ public class Brain<E extends LivingEntity> {
+     private static final int SCHEDULE_UPDATE_DELAY = 20;
+-    private final Map<MemoryModuleType<?>, MemorySlot<?>> memories = Maps.newHashMap();
+-    public final Map<SensorType<? extends Sensor<? super E>>, Sensor<? super E>> sensors = Maps.newLinkedHashMap();
++    // DivineMC start - lithium: brain
++    private final Map<MemoryModuleType<?>, MemorySlot<?>> memories = new it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap<>();
++    public final Map<SensorType<? extends Sensor<? super E>>, Sensor<? super E>> sensors = new it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap<>();
+     private final Map<Integer, Map<Activity, Set<BehaviorControl<? super E>>>> availableBehaviorsByPriority = Maps.newTreeMap();
+     private @Nullable EnvironmentAttribute<Activity> schedule;
+-    private final Map<Activity, Set<Pair<MemoryModuleType<?>, MemoryStatus>>> activityRequirements = Maps.newHashMap();
++    private final Map<Activity, Set<Pair<MemoryModuleType<?>, MemoryStatus>>> activityRequirements = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>();
++    // DivineMC end - lithium: brain
+     private final Map<Activity, Set<MemoryModuleType<?>>> activityMemoriesToEraseWhenStopped = Maps.newHashMap();
+     private Set<Activity> coreActivities = Sets.newHashSet();
+     private final Set<Activity> activeActivities = Sets.newHashSet();
+     private Activity defaultActivity = Activity.IDLE;
+     private long lastScheduleUpdate = -9999L;
++    // DivineMC start - lithium: brain
++    private java.util.ArrayList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> possibleTasks;
++    private net.caffeinemc.mods.lithium.common.util.collections.MaskedList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> runningTasks;
++    private long memoryModCount = 1;
++
++    public long getMemoryModCount() {
++        return this.memoryModCount;
++    }
++
++    private void onTasksChanged() {
++        this.runningTasks = null;
++        this.onPossibleActivitiesChanged();
++    }
++
++    private void onPossibleActivitiesChanged() {
++        this.possibleTasks = null;
++    }
++
++    private void initPossibleTasks() {
++        this.possibleTasks = new java.util.ArrayList<>();
++        for (Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {
++            for (Map.Entry<Activity, Set<BehaviorControl<? super E>>> entry : map.entrySet()) {
++                Activity activity = entry.getKey();
++                if (!this.activeActivities.contains(activity)) {
++                    continue;
++                }
++                Set<BehaviorControl<? super E>> set = entry.getValue();
++                for (BehaviorControl<? super E> task : set) {
++                    //noinspection UseBulkOperation
++                    this.possibleTasks.add(task);
++                }
++            }
++        }
++    }
++
++    private java.util.ArrayList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> getPossibleTasks() {
++        if (this.possibleTasks == null) {
++            this.initPossibleTasks();
++        }
++        return this.possibleTasks;
++    }
++
++    private net.caffeinemc.mods.lithium.common.util.collections.MaskedList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> getCurrentlyRunningTasks() {
++        if (this.runningTasks == null) {
++            this.initCurrentlyRunningTasks();
++        }
++        return this.runningTasks;
++    }
++
++    private void initCurrentlyRunningTasks() {
++        net.caffeinemc.mods.lithium.common.util.collections.MaskedList<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super E>> list = new net.caffeinemc.mods.lithium.common.util.collections.MaskedList<>(new ObjectArrayList<>(), false);
++
++        for (Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {
++            for (Set<BehaviorControl<? super E>> set : map.values()) {
++                for (BehaviorControl<? super E> task : set) {
++                    list.addOrSet(task, task.getStatus() == Behavior.Status.RUNNING);
++                }
++            }
++        }
++        this.runningTasks = list;
++    }
++    // DivineMC end - lithium: brain
+ 
+     public static <E extends LivingEntity> Brain.Provider<E> provider(final Collection<? extends SensorType<? extends Sensor<? super E>>> sensorTypes) {
+         return new Brain.Provider<>(ImmutableList.of(), sensorTypes, var0 -> List.of());
+@@ -152,12 +216,14 @@ public class Brain<E extends LivingEntity> {
+     }
+ 
+     public void clearMemories() {
++        this.memoryModCount++; // DivineMC - lithium: brain - HappyGhast ticks a cleared brain
+         this.memories.values().forEach(MemorySlot::clear);
+     }
+ 
+     public <U> void eraseMemory(final MemoryModuleType<U> type) {
+         MemorySlot<U> slot = this.getMemorySlotIfPresent(type);
+         if (slot != null) {
++            if (slot.hasValue()) this.memoryModCount++; // DivineMC - lithium: brain
+             slot.clear();
+         }
+     }
+@@ -191,8 +257,10 @@ public class Brain<E extends LivingEntity> {
+             }
+ 
+             if (value == null) {
++                if (slot.hasValue()) this.memoryModCount++; // DivineMC - lithium: brain
+                 slot.clear();
+             } else {
++                if (!slot.hasValue()) this.memoryModCount++; // DivineMC - lithium: brain
+                 slot.set(value, tileToLive);
+             }
+         }
+@@ -206,8 +274,10 @@ public class Brain<E extends LivingEntity> {
+             }
+ 
+             if (value == null) {
++                if (slot.hasValue()) this.memoryModCount++; // DivineMC - lithium: brain
+                 slot.clear();
+             } else {
++                if (!slot.hasValue()) this.memoryModCount++; // DivineMC - lithium: brain
+                 slot.set(value);
+             }
+         }
+@@ -266,19 +336,7 @@ public class Brain<E extends LivingEntity> {
+     @Deprecated
+     @VisibleForDebug
+     public List<BehaviorControl<? super E>> getRunningBehaviors() {
+-        List<BehaviorControl<? super E>> runningBehaviours = new ObjectArrayList<>();
+-
+-        for (Map<Activity, Set<BehaviorControl<? super E>>> behavioursByActivities : this.availableBehaviorsByPriority.values()) {
+-            for (Set<BehaviorControl<? super E>> behaviors : behavioursByActivities.values()) {
+-                for (BehaviorControl<? super E> behavior : behaviors) {
+-                    if (behavior.getStatus() == Behavior.Status.RUNNING) {
+-                        runningBehaviours.add(behavior);
+-                    }
+-                }
+-            }
+-        }
+-
+-        return runningBehaviours;
++        return this.getCurrentlyRunningTasks(); // DivineMC - lithium: brain
+     }
+ 
+     public void useDefaultActivity() {
+@@ -309,6 +367,7 @@ public class Brain<E extends LivingEntity> {
+             this.activeActivities.clear();
+             this.activeActivities.addAll(this.coreActivities);
+             this.activeActivities.add(activity);
++            this.onPossibleActivitiesChanged(); // DivineMC - lithium: brain
+         }
+     }
+ 
+@@ -371,11 +430,13 @@ public class Brain<E extends LivingEntity> {
+                 .computeIfAbsent(activity, key -> Sets.newLinkedHashSet())
+                 .add(behavior);
+         }
++        this.onTasksChanged(); // DivineMC - lithium: brain
+     }
+ 
+     @VisibleForTesting
+     public void removeAllBehaviors() {
+         this.availableBehaviorsByPriority.clear();
++        this.onTasksChanged(); // DivineMC - lithium: brain
+     }
+ 
+     public boolean isActive(final Activity activity) {
+@@ -396,7 +457,15 @@ public class Brain<E extends LivingEntity> {
+     }
+ 
+     private void forgetOutdatedMemories() {
+-        this.memories.values().forEach(MemorySlot::tick);
++        // DivineMC start - lithium: brain
++        for (MemorySlot<?> slot : this.memories.values()) {
++            boolean had = slot.hasValue();
++            slot.tick();
++            if (had && !slot.hasValue()) {
++                this.memoryModCount++;
++            }
++        }
++        // DivineMC end - lithium: brain
+     }
+ 
+     public void stopAll(final ServerLevel level, final E body) {
+@@ -404,31 +473,38 @@ public class Brain<E extends LivingEntity> {
+ 
+         for (BehaviorControl<? super E> behavior : this.getRunningBehaviors()) {
+             behavior.doStop(level, body, timestamp);
++            // DivineMC start - lithium: brain
++            if (this.runningTasks != null) {
++                this.runningTasks.setVisible(behavior, false);
++            }
++            // DivineMC end - lithium: brain
+         }
+     }
+ 
++    // DivineMC start - lithium: brain
+     private void startEachNonRunningBehavior(final ServerLevel level, final E body) {
+         long time = level.getGameTime();
+-
+-        for (Map<Activity, Set<BehaviorControl<? super E>>> behavioursByActivities : this.availableBehaviorsByPriority.values()) {
+-            for (Entry<Activity, Set<BehaviorControl<? super E>>> behavioursForActivity : behavioursByActivities.entrySet()) {
+-                Activity activity = behavioursForActivity.getKey();
+-                if (this.activeActivities.contains(activity)) {
+-                    for (BehaviorControl<? super E> behavior : behavioursForActivity.getValue()) {
+-                        if (behavior.getStatus() == Behavior.Status.STOPPED) {
+-                            behavior.tryStart(level, body, time);
+-                        }
+-                    }
++        for (BehaviorControl<? super E> task : this.getPossibleTasks()) {
++            if (task.getStatus() == Behavior.Status.STOPPED) {
++                task.tryStart(level, body, time);
++                if (this.runningTasks != null && task.getStatus() == Behavior.Status.RUNNING) {
++                    this.runningTasks.setVisible(task, true);
+                 }
+             }
+         }
+     }
++    // DivineMC end - lithium: brain
+ 
+     private void tickEachRunningBehavior(final ServerLevel level, final E body) {
+         long timestamp = level.getGameTime();
+ 
+         for (BehaviorControl<? super E> behavior : this.getRunningBehaviors()) {
+             behavior.tickOrStop(level, body, timestamp);
++            // DivineMC start - lithium: brain
++            if (this.runningTasks != null && behavior.getStatus() != Behavior.Status.RUNNING) {
++                this.runningTasks.setVisible(behavior, false);
++            }
++            // DivineMC end - lithium: brain
+         }
+     }
+ 
+diff --git a/net/minecraft/world/entity/ai/behavior/Behavior.java b/net/minecraft/world/entity/ai/behavior/Behavior.java
+index f78464bcbf82fdc7cbf43c2ee586586b2cdfa552..25a1a26a9c12610f966da29872322dc34edcee99 100644
+--- a/net/minecraft/world/entity/ai/behavior/Behavior.java
++++ b/net/minecraft/world/entity/ai/behavior/Behavior.java
+@@ -15,6 +15,10 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+     private long endTimestamp;
+     private final int minDuration;
+     private final int maxDuration;
++    // DivineMC start - lithium: brain
++    private long cachedMemoryModCount = -1;
++    private boolean cachedHasRequiredMemoryState;
++    // DivineMC end - lithium: brain
+     private final String configKey; // Paper - configurable behavior tick rate and timings
+ 
+     public Behavior(final Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
+@@ -28,7 +32,7 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+     public Behavior(final Map<MemoryModuleType<?>, MemoryStatus> entryCondition, final int minDuration, final int maxDuration) {
+         this.minDuration = minDuration;
+         this.maxDuration = maxDuration;
+-        this.entryCondition = entryCondition;
++        this.entryCondition = new it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap<>(entryCondition); // DivineMC - lithium: brain
+         // Paper start - configurable behavior tick rate and timings
+         String key = this.getClass().getName();
+         int lastSeparator = key.lastIndexOf('.');
+@@ -109,17 +113,26 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+         return this.getClass().getSimpleName();
+     }
+ 
++    // DivineMC start - lithium: brain
+     protected boolean hasRequiredMemories(final E body) {
+-        for (Entry<MemoryModuleType<?>, MemoryStatus> entry : this.entryCondition.entrySet()) {
+-            MemoryModuleType<?> memoryType = entry.getKey();
+-            MemoryStatus requiredStatus = entry.getValue();
+-            if (!body.getBrain().checkMemory(memoryType, requiredStatus)) {
+-                return false;
++        net.minecraft.world.entity.ai.Brain<?> brain = body.getBrain();
++        long modCount = brain.getMemoryModCount();
++        if (this.cachedMemoryModCount == modCount) {
++            return this.cachedHasRequiredMemoryState;
++        }
++        this.cachedMemoryModCount = modCount;
++
++        it.unimi.dsi.fastutil.objects.ObjectIterator<it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<net.minecraft.world.entity.ai.memory.MemoryModuleType<?>, net.minecraft.world.entity.ai.memory.MemoryStatus>> fastIterator = ((it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap<net.minecraft.world.entity.ai.memory.MemoryModuleType<?>, net.minecraft.world.entity.ai.memory.MemoryStatus>) this.entryCondition).reference2ObjectEntrySet().fastIterator();
++        while (fastIterator.hasNext()) {
++            it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<MemoryModuleType<?>, MemoryStatus> entry = fastIterator.next();
++            if (!brain.checkMemory(entry.getKey(), entry.getValue())) {
++                return this.cachedHasRequiredMemoryState = false;
+             }
+         }
+ 
+-        return true;
++        return this.cachedHasRequiredMemoryState = true;
+     }
++    // DivineMC end - lithium: brain
+ 
+     public enum Status {
+         STOPPED,

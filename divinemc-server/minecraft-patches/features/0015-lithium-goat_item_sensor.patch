@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 19 Nov 2026 02:18:38 +0300
+Subject: [PATCH] lithium: goat_item_sensor
+
+This patch is based on the following mixins:
+* "net/caffeinemc/mods/lithium/mixin/ai/useless_sensors/goat_item_sensor/GoatMixin.java"
+By: 2No2Name <2No2Name@web.de>
+As part of: Lithium (https://github.com/CaffeineMC/lithium)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
+
+diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
+index b80f77a3b46737a46a053de197832aae35b31d58..3b31b25602a940c247f1edc286c9c40bb1ad5cc9 100644
+--- a/net/minecraft/world/entity/animal/goat/Goat.java
++++ b/net/minecraft/world/entity/animal/goat/Goat.java
+@@ -93,6 +93,7 @@ public class Goat extends Animal {
+         this.getNavigation().setCanFloat(true);
+         this.setPathfindingMalus(PathType.POWDER_SNOW, -1.0F);
+         this.setPathfindingMalus(PathType.ON_TOP_OF_POWDER_SNOW, -1.0F);
++        net.caffeinemc.mods.lithium.common.ai.brain.SensorHelper.disableSensor(this, SensorType.NEAREST_ITEMS); // DivineMC - lithium: goat_item_sensor - nothing reads the wanted item memory
+     }
+ 
+     public ItemStack createHorn() {
