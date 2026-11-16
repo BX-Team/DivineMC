@@ -201,7 +201,10 @@ public class DivineConfig {
             ConfigCategory.PERFORMANCE.key("chunks.experimental.deduplicate-shuffled-template-pool-element-list"),
             ConfigCategory.PERFORMANCE.key("chunks.chunk-worker-algorithm"),
             ConfigCategory.NETWORK.key("player-profile-result-caching.enabled"),
-            ConfigCategory.NETWORK.key("player-profile-result-caching.timeout")
+            ConfigCategory.NETWORK.key("player-profile-result-caching.timeout"),
+            ConfigCategory.ASYNC.key("chunk-sending.enable"),
+            ConfigCategory.ASYNC.key("chunk-sending.max-threads"),
+            ConfigCategory.GURU_MODE.key("async-chunk-sending-affinity")
         );
     }
 
@@ -323,10 +326,6 @@ public class DivineConfig {
         public static int parallelTrackerThreads = 0;
         public static int parallelTrackerKeepalive = 60;
 
-        // Async chunk sending settings
-        public static boolean asyncChunkSendingEnabled = false;
-        public static int asyncChunkSendingMaxThreads = 1;
-
         // Async mob spawning settings
         public static boolean enableAsyncSpawning = false;
 
@@ -347,7 +346,6 @@ public class DivineConfig {
             regionizedChunkTicking();
             asyncPathfinding();
             parallelEntityTracker();
-            asyncChunkSending();
             asyncMobSpawning();
             portalSearchPrefetch();
             parallelSensors();
@@ -528,21 +526,6 @@ public class DivineConfig {
             }
         }
 
-        private static void asyncChunkSending() {
-            asyncChunkSendingEnabled = getBoolean(ConfigCategory.ASYNC.key("chunk-sending.enable"), asyncChunkSendingEnabled,
-                "Offloads chunk packet serialization to a thread pool, which can significantly reduce",
-                "main thread load when many players are loading chunks. A consistent snapshot of the",
-                "chunk is taken on its owning thread, so packets are always internally consistent and",
-                "packet order is preserved per player.");
-            asyncChunkSendingMaxThreads = getInt(ConfigCategory.ASYNC.key("chunk-sending.max-threads"), asyncChunkSendingMaxThreads);
-
-            if (asyncChunkSendingMaxThreads < 0) {
-                asyncChunkSendingMaxThreads = Math.max(maxThreads + asyncChunkSendingMaxThreads, 1);
-            } else if (asyncChunkSendingMaxThreads == 0) {
-                asyncChunkSendingMaxThreads = Math.max(maxThreads / 4, 1);
-            }
-        }
-
         private static void asyncMobSpawning() {
             enableAsyncSpawning = getBoolean(ConfigCategory.ASYNC.key("mob-spawning.enable"), enableAsyncSpawning,
                 "Enables optimization that will offload much of the computational effort involved with spawning new mobs to a different thread.");
@@ -582,7 +565,6 @@ public class DivineConfig {
         public static int[] asyncPathfindingAffinity = new int[0];
         public static int[] parallelSensorsAffinity = new int[0];
         public static int[] parallelEntityTrackerAffinity = new int[0];
-        public static int[] asyncChunkSendingAffinity = new int[0];
 
         public static boolean shouldLoad() {
             return AsyncCategory.guruMode;
@@ -593,7 +575,6 @@ public class DivineConfig {
             asyncPathfindingAffinity = getIntArray(ConfigCategory.GURU_MODE.key("async-pathfinding-affinity"), asyncPathfindingAffinity);
             parallelSensorsAffinity = getIntArray(ConfigCategory.GURU_MODE.key("parallel-sensors-affinity"), parallelSensorsAffinity);
             parallelEntityTrackerAffinity = getIntArray(ConfigCategory.GURU_MODE.key("parallel-entity-tracker-affinity"), parallelEntityTrackerAffinity);
-            asyncChunkSendingAffinity = getIntArray(ConfigCategory.GURU_MODE.key("async-chunk-sending-affinity"), asyncChunkSendingAffinity);
         }
     }
 

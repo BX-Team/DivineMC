@@ -3,7 +3,6 @@ package org.bxteam.divinemc.concurrent.executor;
 import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bxteam.divinemc.async.AsyncChunkSend;
 import org.bxteam.divinemc.async.entity.ParallelEntityTracker;
 import org.bxteam.divinemc.async.pathfinding.AsyncPath;
 import org.bxteam.divinemc.config.DivineConfig;
@@ -21,15 +20,6 @@ public class ExecutorShutdown {
 
             try {
                 server.mobSpawnExecutor.join(3000L);
-            } catch (InterruptedException ignored) { }
-        }
-
-        if (AsyncChunkSend.POOL != null) {
-            LOGGER.info("Shutting down async chunk send executor...");
-            AsyncChunkSend.POOL.shutdown();
-
-            try {
-                AsyncChunkSend.POOL.awaitTermination(10L, TimeUnit.SECONDS);
             } catch (InterruptedException ignored) { }
         }
 

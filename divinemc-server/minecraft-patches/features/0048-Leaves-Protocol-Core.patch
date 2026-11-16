@@ -35,7 +35,7 @@ index 08e253662a2c183c0ab53a51cc07485cff33bf2c..950865b1f116a92f3425da53c310a180
          };
      }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index ae5dbc3aeedaacd57c0e879c396f3a3e05ca1360..8e8679840433e093f2fb0fd5a9f0cfda6f011a27 100644
+index 0583a02a53b39e03cbb4a6063cf0372e73d0e9fc..1422eda837fb573f9f1646e12891e688e93c5baf 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1915,6 +1915,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -102,7 +102,7 @@ index fad5c662280084b734afd6a7d1c24d6caaa45637..19141cb0cfa9881fb84cc4c5395c7030
              bridge.removeChannel(channel);
          }
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 7de810215fb554fea25cb0df756b66039d8fb501..a212ef5e26853185d2a975c2fc02e8f7161ae8f1 100644
+index 5ac9fd8f5dfa01e1cc016c1f2c5e631fbef3d856..605738bf9cbe89cd26af8fc37d13fe61007dccaa 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -256,6 +256,8 @@ public abstract class PlayerList {

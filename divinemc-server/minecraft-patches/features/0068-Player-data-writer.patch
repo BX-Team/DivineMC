@@ -5,7 +5,7 @@ Subject: [PATCH] Player data writer
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 8e8679840433e093f2fb0fd5a9f0cfda6f011a27..a063cb287532b49198ec7d5e9a6fff3c0e7b641d 100644
+index 1422eda837fb573f9f1646e12891e688e93c5baf..f229ff67d6da30f4cbcfd01b02d5d673343cd109 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -516,6 +516,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -73,7 +73,7 @@ index 14591f7cbe9408e18ce14af0624b46d4d40c2891..8687a07d1a472ca3450ed2d65e16904a
  
      private void applyFrom(final ServerAdvancementManager manager, final PlayerAdvancements.Data data) {
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index a257a9a383c6f7a6d42e20d79cecf935d0f34d0c..dee927c60cc0866af65347939524109f69cf068b 100644
+index a597852344f871a5182569b53d3aa6987bb62b1e..70cadb4085e6614c43884c9ec30f06f917f4b592 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -1255,6 +1255,7 @@ public abstract class PlayerList {
