@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 19 Nov 2026 01:38:50 +0300
+Subject: [PATCH] lithium: moving_block_shapes
+
+This patch is based on the following mixins:
+* "net/caffeinemc/mods/lithium/mixin/block/moving_block_shapes/PistonMovingBlockEntityMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/block/moving_block_shapes/VoxelShapeMixin.java"
+By: 2No2Name <2No2Name@web.de>
+As part of: Lithium (https://github.com/CaffeineMC/lithium)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
+
+diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+index 2126385a1fb5c89e01920f3a8cc77eb4ac78c87e..2af613569eef9c3b31021f191aa4289386db0b03 100644
+--- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
++++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+@@ -375,6 +375,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
+         }
+ 
+         float extendedProgress = this.getExtendedProgress(this.progress);
++        // DivineMC start - lithium: moving_block_shapes
++        VoxelShape cachedShape = net.caffeinemc.mods.lithium.common.shapes.MovingBlockShapes.getCollisionShape(blockState.getCollisionShape(level, pos), extendedProgress, this.direction, this.extending, this.isSourcePiston, this.movedState);
++        if (cachedShape != null) {
++            return cachedShape;
++        }
++        // DivineMC end - lithium: moving_block_shapes
+         double dx = this.direction.getStepX() * extendedProgress;
+         double dy = this.direction.getStepY() * extendedProgress;
+         double dz = this.direction.getStepZ() * extendedProgress;
+diff --git a/net/minecraft/world/phys/shapes/VoxelShape.java b/net/minecraft/world/phys/shapes/VoxelShape.java
+index cbf479b7337a78b9980926b8ba984c4546bf9c3d..fb45cd87eec571d22893148f975d54f1af5d4570 100644
+--- a/net/minecraft/world/phys/shapes/VoxelShape.java
++++ b/net/minecraft/world/phys/shapes/VoxelShape.java
+@@ -21,6 +21,7 @@ import org.jspecify.annotations.Nullable;
+ public abstract class VoxelShape implements ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape { // Paper - optimise collisions
+     public final DiscreteVoxelShape shape; // Paper - optimise collisions - public
+     private @Nullable VoxelShape @Nullable [] faces;
++    public volatile @Nullable VoxelShape @Nullable [] lithium$offsetAndSimplified; // DivineMC - lithium: moving_block_shapes
+ 
+     // Paper start - optimise collisions
+     private double offsetX;

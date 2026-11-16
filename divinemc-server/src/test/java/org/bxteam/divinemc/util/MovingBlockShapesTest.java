@@ -25,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @VanillaFeature
 @NullMarked
-class MovingPistonShapeCacheTest {
+class MovingBlockShapesTest {
     private static final float[] PROGRESS = {0.0F, 0.5F, 1.0F, 0.25F, 0.5F, 0.0F};
 
-    // one block entity is asked again after its progress, direction or moved block changed: a stale entry must not answer
+    // shapes cached on the moved shape and the precomputed piston shapes must give the vanilla shape for every input, also when one block entity changes between calls
     @Test
     void cachedShapeMatchesVanilla() throws ReflectiveOperationException {
         final Field progress = field("progress");
@@ -50,10 +50,13 @@ class MovingPistonShapeCacheTest {
         for (final boolean source : new boolean[] {false, true}) {
             final PistonMovingBlockEntity entity = new PistonMovingBlockEntity(pos, Blocks.MOVING_PISTON.defaultBlockState(), Blocks.PISTON.defaultBlockState(), Direction.UP, true, source);
             int checked = 0;
-            for (int i = 0; i < states.length; ++i) {
-                final BlockState moved = source ? Blocks.STICKY_PISTON.defaultBlockState() : states[i];
-                movedState.set(entity, moved);
+            // a source piston moves its own base: facing the movement (vanilla), or another way (a block entity from NBT)
+            final int variants = source ? 3 : states.length;
+            for (int i = 0; i < variants; ++i) {
                 for (final Direction dir : Direction.values()) {
+                    final BlockState moved = !source ? states[i]
+                        : (i == 1 ? Blocks.PISTON : Blocks.STICKY_PISTON).defaultBlockState().setValue(PistonBaseBlock.FACING, i == 2 ? dir.getOpposite() : dir);
+                    movedState.set(entity, moved);
                     direction.set(entity, dir);
                     for (final boolean ext : new boolean[] {true, false}) {
                         extending.set(entity, ext);
@@ -73,15 +76,12 @@ class MovingPistonShapeCacheTest {
                         }
                     }
                 }
-                if (source) {
-                    break;
-                }
             }
             assertFalse(checked == 0);
         }
     }
 
-    // the formula of PistonMovingBlockEntity#getCollisionShape before the cache, outside the noclip branch
+    // the vanilla formula of PistonMovingBlockEntity#getCollisionShape, outside the noclip branch
     private static VoxelShape vanilla(final BlockState movedState, final Direction direction, final boolean extending, final boolean source, final float progress, final BlockPos pos) {
         final VoxelShape head = !extending && source && movedState.getBlock() instanceof PistonBaseBlock
             ? movedState.setValue(PistonBaseBlock.EXTENDED, true).getCollisionShape(EmptyBlockGetter.INSTANCE, pos)

@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 19 Nov 2026 01:38:50 +0300
+Subject: [PATCH] lithium: non_poi_block_search
+
+This patch is based on the following mixins:
+* "net/caffeinemc/mods/lithium/mixin/ai/non_poi_block_search/MoveToBlockGoalMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/ai/non_poi_block_search/RemoveBlockGoalMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/ai/non_poi_block_search/PiglinSpecificSensorMixin.java"
+* "net/caffeinemc/mods/lithium/mixin/ai/non_poi_block_search/HoglinSpecificSensorMixin.java"
+By: jcw780
+As part of: Lithium (https://github.com/CaffeineMC/lithium)
+Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
+
+diff --git a/net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java b/net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java
+index c6e9b155c2341c13d569f28f54f0c1d2d7313676..7c43f9bd36385a86d7b824809accb045c3599c64 100644
+--- a/net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java
++++ b/net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java
+@@ -108,6 +108,18 @@ public abstract class MoveToBlockGoal extends Goal {
+         return this.reachedTarget;
+     }
+ 
++    // DivineMC start - lithium: non_poi_block_search
++    protected boolean lithium$findNearestBlock(final java.util.function.Predicate<net.minecraft.world.level.block.state.BlockState> requiredBlock, final java.util.function.BiPredicate<net.minecraft.world.level.chunk.ChunkAccess, BlockPos.MutableBlockPos> isValidTarget) {
++        BlockPos found = net.caffeinemc.mods.lithium.common.ai.non_poi_block_search.NonPoiBlockSearch.findNearestBlock(this.mob, this.mob.blockPosition().below(), this.searchRange, this.verticalSearchStart, this.verticalSearchRange, requiredBlock, isValidTarget);
++        if (found == null) {
++            return false;
++        }
++        this.blockPos = found;
++        this.mob.movingTarget = found; // Paper
++        return true;
++    }
++    // DivineMC end - lithium: non_poi_block_search
++
+     protected boolean findNearestBlock() {
+         int horizontalSearch = this.searchRange;
+         int verticalSearch = this.verticalSearchRange;
+diff --git a/net/minecraft/world/entity/ai/goal/RemoveBlockGoal.java b/net/minecraft/world/entity/ai/goal/RemoveBlockGoal.java
+index 800843c5c63fa4476a58d8119928e1286f98d922..1a0898a5804e56bb3d6e94b157cd1427bece3e32 100644
+--- a/net/minecraft/world/entity/ai/goal/RemoveBlockGoal.java
++++ b/net/minecraft/world/entity/ai/goal/RemoveBlockGoal.java
+@@ -39,7 +39,7 @@ public class RemoveBlockGoal extends MoveToBlockGoal {
+         } else if (this.nextStartTick > 0) {
+             this.nextStartTick--;
+             return false;
+-        } else if (this.findNearestBlock()) {
++        } else if (this.lithium$findTarget()) { // DivineMC - lithium: non_poi_block_search
+             this.nextStartTick = reducedTickDelay(20);
+             return true;
+         } else {
+@@ -48,6 +48,15 @@ public class RemoveBlockGoal extends MoveToBlockGoal {
+         }
+     }
+ 
++    // DivineMC start - lithium: non_poi_block_search
++    private boolean lithium$findTarget() {
++        if (net.caffeinemc.mods.lithium.common.ai.non_poi_block_search.NonPoiBlockSearch.overridesTargetTest(this.getClass())) {
++            return this.findNearestBlock();
++        }
++        return this.lithium$findNearestBlock(state -> state.is(this.blockToRemove), net.caffeinemc.mods.lithium.common.ai.non_poi_block_search.NonPoiBlockSearch::hasAirAboveTwice);
++    }
++    // DivineMC end - lithium: non_poi_block_search
++
+     @Override
+     public void stop() {
+         super.stop();
+diff --git a/net/minecraft/world/entity/ai/sensing/HoglinSpecificSensor.java b/net/minecraft/world/entity/ai/sensing/HoglinSpecificSensor.java
+index fd2dfb3079700f35579c2912dc828bc646d99470..b997fe01ec1cee3d108ccac68649a6dc140964aa 100644
+--- a/net/minecraft/world/entity/ai/sensing/HoglinSpecificSensor.java
++++ b/net/minecraft/world/entity/ai/sensing/HoglinSpecificSensor.java
+@@ -58,6 +58,7 @@ public class HoglinSpecificSensor extends Sensor<Hoglin> {
+     }
+ 
+     private Optional<BlockPos> findNearestRepellent(final ServerLevel level, final Hoglin body) {
++        if (net.caffeinemc.mods.lithium.common.ai.non_poi_block_search.NonPoiBlockSearch.hasNoMatch(level, body.blockPosition(), 8, 4, state -> state.is(BlockTags.HOGLIN_REPELLENTS))) return Optional.empty(); // DivineMC - lithium: non_poi_block_search
+         return level.findBlocksInBoxByManhattanDistance(body.blockPosition(), 8, 4).filterState(state -> state.is(BlockTags.HOGLIN_REPELLENTS)).findFirst();
+     }
+ }
+diff --git a/net/minecraft/world/entity/ai/sensing/PiglinSpecificSensor.java b/net/minecraft/world/entity/ai/sensing/PiglinSpecificSensor.java
+index 89d330f44b5ed85072d04dce20d396f51a26b3d3..bb62be7a1b9dccc805a2c855759aed5358f4f886 100644
+--- a/net/minecraft/world/entity/ai/sensing/PiglinSpecificSensor.java
++++ b/net/minecraft/world/entity/ai/sensing/PiglinSpecificSensor.java
+@@ -109,6 +109,7 @@ public class PiglinSpecificSensor extends Sensor<LivingEntity> {
+     }
+ 
+     private static Optional<BlockPos> findNearestRepellent(final ServerLevel level, final LivingEntity body) {
++        if (net.caffeinemc.mods.lithium.common.ai.non_poi_block_search.NonPoiBlockSearch.hasNoMatch(level, body.blockPosition(), 8, 4, PiglinSpecificSensor::isValidRepellent)) return Optional.empty(); // DivineMC - lithium: non_poi_block_search
+         return level.findBlocksInBoxByManhattanDistance(body.blockPosition(), 8, 4).filterState(PiglinSpecificSensor::isValidRepellent).findFirst();
+     }
+ 
