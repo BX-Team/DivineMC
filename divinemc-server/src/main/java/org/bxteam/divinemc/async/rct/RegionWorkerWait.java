@@ -31,6 +31,8 @@ public final class RegionWorkerWait {
     public static void block(final ServerChunkCache chunkSource, final BooleanSupplier condition) {
         // the chunk tasks fire events on the level's thread, whose listeners take this lock
         final int stateLockHolds = ServerStateLock.releaseForWait();
+        // a worker in the middle of a neighbour-update chain: the level's thread may chain while it brings the chunk
+        final int chainHolds = NeighborChainLock.releaseForWait();
         try {
             chunkSource.blockedRegionWorkers.incrementAndGet();
             BLOCKED.incrementAndGet();
@@ -54,6 +56,7 @@ public final class RegionWorkerWait {
             }
         } finally {
             ServerStateLock.reacquireAfterWait(stateLockHolds);
+            NeighborChainLock.reacquireAfterWait(chainHolds);
         }
     }
 

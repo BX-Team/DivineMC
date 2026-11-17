@@ -26,6 +26,7 @@ import net.minecraft.world.level.storage.SavedDataStorage;
 import org.bxteam.divinemc.async.pwt.LevelHandoff;
 import org.bxteam.divinemc.async.pwt.ParallelWorldTicking;
 import org.bxteam.divinemc.concurrent.executor.NamedAgnosticThreadFactoryAffinity;
+import org.bxteam.divinemc.concurrent.state.ThreadState;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -80,6 +81,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     private final ObjectArrayList<Tile> mainThreadTiles = new ObjectArrayList<>();
     private final ObjectArrayList<Tile> phaseUnits = new ObjectArrayList<>();
     private final ObjectArrayList<Entity> mainThreadEntities = new ObjectArrayList<>();
+    private final NeighborChainLock chainLock = new NeighborChainLock();
     private final RollingLongBuffer tileTimes = new RollingLongBuffer(PROBE_TICKS);
     private final RollingLongBuffer regionTimes = new RollingLongBuffer(PROBE_TICKS);
     private ObjectArrayList<Tile>[] phases;
@@ -166,6 +168,10 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
 
         this.pendingEntityTick = true;
         this.blockPhaseNanos = System.nanoTime() - start;
+    }
+
+    public NeighborChainLock chainLock() {
+        return this.chainLock;
     }
 
     public boolean hasPendingEntityTick() {
@@ -518,19 +524,26 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         work.unstableSort((a, b) -> Long.compare(b.lastCost, a.lastCost));
 
         final Tile[] ordered = work.toArray(new Tile[0]);
+        final long phaseSeed = this.level.getRandom().nextLong();
+        for (final Tile unit : ordered) {
+            unit.randoms.reseed(phaseSeed, unit.key);
+        }
         final boolean checkOwnership = CHECK_OWNERSHIP && !this.regionMode;
         final AtomicInteger next = new AtomicInteger();
         final AtomicReference<Throwable> failure = new AtomicReference<>();
         final int workers = Math.min(count, regionizedChunkTickingExecutorThreadCount);
         final CompletableFuture<?>[] futures = new CompletableFuture<?>[workers];
+        this.chainLock.workersRunning(true);
         for (int worker = 0; worker < workers; worker++) {
             futures[worker] = CompletableFuture.runAsync(() -> runInLevel(this.level, () -> {
+                final ThreadState state = ThreadState.current();
                 int index;
                 while (failure.get() == null && (index = next.getAndIncrement()) < ordered.length) {
                     final Tile unit = ordered[index];
                     if (checkOwnership) {
                         CURRENT_TILE.set(unit);
                     }
+                    state.unitRandoms = unit.randoms;
                     try {
                         if (entities) {
                             this.tickTileEntities(unit);
@@ -543,6 +556,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                             failure.get().addSuppressed(throwable);
                         }
                     } finally {
+                        state.unitRandoms = null;
                         if (checkOwnership) {
                             CURRENT_TILE.remove();
                         }
@@ -550,7 +564,11 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
                 }
             }), REGION_EXECUTOR);
         }
-        RegionWorkerWait.join(this, CompletableFuture.allOf(futures));
+        try {
+            RegionWorkerWait.join(this, CompletableFuture.allOf(futures));
+        } finally {
+            this.chainLock.workersRunning(false);
+        }
         this.level.moonrise$getNearbyPlayers().applyDeferredUpdates();
         // the level's thread fails the tick, as it does when the same code throws without regions
         final Throwable thrown = failure.get();
@@ -727,7 +745,9 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     private static boolean mustTickOnMainThread(Entity entity) {
         return entity instanceof net.minecraft.world.entity.item.PrimedTnt
             // runs arbitrary commands, which can reach anything in any world
-            || entity instanceof net.minecraft.world.entity.vehicle.minecart.MinecartCommandBlock;
+            || entity instanceof net.minecraft.world.entity.vehicle.minecart.MinecartCommandBlock
+            // a spectator looking through another entity moves its chunk loader and distance-manager tickets in its tick
+            || entity instanceof ServerPlayer player && player.getCamera() != player;
     }
 
     private void tickEntity(Entity entity) {
@@ -766,6 +786,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
         private final ObjectArrayList<Entity> entities = new ObjectArrayList<>();
         private final ObjectArrayList<ServerPlayer> players = new ObjectArrayList<>();
         private final ObjectArrayList<Tile> members;
+        private final UnitRandoms randoms;
         private int lastAssigned = -1;
         private long blockNanos;
         private long entityNanos;
@@ -780,6 +801,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
             this.key = key;
             this.color = color;
             this.members = members;
+            this.randoms = new UnitRandoms(level);
         }
 
         private static Tile region(final ServerLevel level, final int index) {

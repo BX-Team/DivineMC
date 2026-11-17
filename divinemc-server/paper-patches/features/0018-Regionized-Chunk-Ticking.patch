@@ -559,10 +559,10 @@ index 976275d00edc96ec59e09a594a90e4e89d6a231b..dfe6bd16acdfe2c252df1fe064947fb9
 +    // DivineMC end - Regionized Chunk Ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 48af128761c3cd46dfed32d2f69547092f9fd223..5e2a1e1a19e59ea172f548a01159996735ffc2bb 100644
+index cb1e27cb84d54164004cb7a8e8042e590a3242ae..da7d869f5e58cb01ae870a66c6e871396c466ef9 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -770,21 +770,22 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -775,21 +775,22 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      @Override
      public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
          if (org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED) ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, loc.getX(), loc.getZ(), "Cannot generate tree asynchronously"); // DivineMC - Parallel world ticking
@@ -593,7 +593,7 @@ index 48af128761c3cd46dfed32d2f69547092f9fd223..5e2a1e1a19e59ea172f548a011599967
                  BlockPos position = snapshot.getPosition();
                  net.minecraft.world.level.block.state.BlockState oldBlock = this.world.getBlockState(position);
                  int flags = snapshot.getFlags();
-@@ -794,6 +795,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -799,6 +800,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
              }
          }
          return grownTree;

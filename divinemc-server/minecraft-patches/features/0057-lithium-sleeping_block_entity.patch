@@ -71,7 +71,7 @@ index d8cacf975c2c35e5fe7370bd5b007fbe0d4bd031..444428283839c106f4859fcf2cb6ab24
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index a00710648972dd143aeb6a50593ed47fbc6c1cc2..d949bd99bf2856aab8b7dd9b3dedacb1a2b1a421 100644
+index d486b355c0ccca9ba0ad3d2f6906573e8f713788..d3b28fd03f7ca75315ab9b87a4bcbf8fa75048b9 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2934,6 +2934,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -96,10 +96,10 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 7df1670124a0e3895e75530bf2ce3d32ae232ef2..6daa22a61043d56406dba477be9a75b09394e6c9 100644
+index 57b4221306cc685092ce136302fb81145c322bbf..42c329a35549c407b94d821ea13b11c6ba050bd5 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5285,6 +5285,18 @@ public abstract class Entity
+@@ -5305,6 +5305,18 @@ public abstract class Entity
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box
@@ -417,7 +417,7 @@ index 265433b4daa615ef67ed02ea7c7714d0538ea969..afbbf3de339e5396e23e82c789896730
 +    // DivineMC end - lithium: sleeping_block_entity
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 5d0bb01b488e4ae5a0db88f7174ed6cdc628b878..aadb8ff0e9d575f6ad5f05cfb3f5e800b1595824 100644
+index 7b6592518ec8ddf752caf7c3026c9e6d6135e86c..9b085c999c3e983a296095037aae8191d5d33ada 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1154,6 +1154,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -437,7 +437,7 @@ index 5d0bb01b488e4ae5a0db88f7174ed6cdc628b878..aadb8ff0e9d575f6ad5f05cfb3f5e800
                          ticker.tick();
                          // Paper start - rewrite chunk system
                          if ((++tickedEntities & 7) == 0) {
-@@ -2320,4 +2321,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -2328,4 +2329,25 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END;
      }
      // Purpur end - Add allow water in end world option

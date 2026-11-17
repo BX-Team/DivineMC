@@ -493,7 +493,7 @@ index 7ea72f6843e2a5a2a4b17e589142cd780eb99aec..6c110f8d11117190edc7a40ea33dc1e8
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..b4fd2fb2e510c4b344c7cec72eb3c70c1b93708f 100644
+index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea325a1ceea4 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -209,8 +209,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -775,6 +775,24 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..b4fd2fb2e510c4b344c7cec72eb3c70c
          }
  
          profiler.push("entityManagement");
+@@ -1008,7 +1067,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+     private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
+         final LevelChunkSection[] sections = chunk.getSections();
+         final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this); // DivineMC - Optimize level ticking
+-        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
++        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = org.bxteam.divinemc.async.rct.UnitRandoms.simpleRandom(this, this.simpleRandom); // DivineMC - Regionized Chunk Ticking
+         final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
+ 
+         final ChunkPos cpos = chunk.getPos();
+@@ -1051,7 +1110,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+     // Paper end - optimise random ticking
+ 
+     public void tickChunk(final LevelChunk chunk, final int tickSpeed) {
+-        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom; // Paper - optimise random ticking
++        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = org.bxteam.divinemc.async.rct.UnitRandoms.simpleRandom(this, this.simpleRandom); // Paper - optimise random ticking // DivineMC - Regionized Chunk Ticking
+         ChunkPos chunkPos = chunk.getPos();
+         int minX = chunkPos.getMinBlockX();
+         int minZ = chunkPos.getMinBlockZ();
 @@ -1720,6 +1779,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
@@ -895,7 +913,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..b4fd2fb2e510c4b344c7cec72eb3c70c
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 812797935f833c911ba265a3fe37195995aa4404..b54def69b27b9206ca416c9aa78635d93322384f 100644
+index bf4b571987c24481f5ef9845888239e38350fb9b..2d18947df6aa70b7c7f4ac98570faea1b128b56a 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -449,6 +449,11 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -1009,6 +1027,37 @@ index bbbcf299cc9a5d5f921c98da7dc5154c6fc4f840..4528885df508826ea22c28f3a3ec6ac9
          if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
          for (ServerPlayer player : this.players) {
              this.createConnection(player, waypoint);
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index 186a6b4acca9bc4379f76c14dddc8393af7d357b..882a3827b5f0543b1d7eb811ae1afdef0ed892e9 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -189,6 +189,26 @@ public abstract class Entity
+         // Paper end - replace random
+         private boolean locked = false;
+ 
++        // DivineMC start - Regionized Chunk Ticking - concurrent tick threads would advance this one seed at once and draw equal values, UUIDs included
++        @Override
++        public int next(final int bits) {
++            final ca.spottedleaf.moonrise.common.util.ThreadUnsafeRandom own = org.bxteam.divinemc.async.rct.UnitRandoms.entityRandom();
++            return own != null ? own.next(bits) : super.next(bits);
++        }
++
++        @Override
++        public int nextInt() {
++            final ca.spottedleaf.moonrise.common.util.ThreadUnsafeRandom own = org.bxteam.divinemc.async.rct.UnitRandoms.entityRandom();
++            return own != null ? own.nextInt() : super.nextInt();
++        }
++
++        @Override
++        public double nextGaussian() {
++            final ca.spottedleaf.moonrise.common.util.ThreadUnsafeRandom own = org.bxteam.divinemc.async.rct.UnitRandoms.entityRandom();
++            return own != null ? own.nextGaussian() : super.nextGaussian();
++        }
++        // DivineMC end - Regionized Chunk Ticking
++
+         @Override
+         public synchronized void setSeed(long seed) {
+             if (locked) {
 diff --git a/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 index ab310e2b01ab5014d04913fb89b31dbda92f5816..691ede43af8c4c69a2713acb14ee03eca126ec71 100644
 --- a/net/minecraft/world/entity/ai/navigation/PathNavigation.java
@@ -1071,7 +1120,7 @@ index 555b61b4439f3e5eaa30bb351168c2de0d99a3eb..265433b4daa615ef67ed02ea7c7714d0
                  // DivineMC start - Parallel world ticking
                  treeType = net.minecraft.world.level.block.SaplingBlock.getTreeTypeTL();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index a637f2a5c43fe306ef7af03bf948e74fce49d280..5d0bb01b488e4ae5a0db88f7174ed6cdc628b878 100644
+index a637f2a5c43fe306ef7af03bf948e74fce49d280..7b6592518ec8ddf752caf7c3026c9e6d6135e86c 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -120,7 +120,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -1083,6 +1132,15 @@ index a637f2a5c43fe306ef7af03bf948e74fce49d280..5d0bb01b488e4ae5a0db88f7174ed6cd
      private boolean tickingBlockEntities;
      protected final Thread thread;
      private final boolean isDebug;
+@@ -131,7 +131,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public float rainLevel;
+     protected float oThunderLevel;
+     public float thunderLevel;
+-    protected final RandomSource random = new ca.spottedleaf.moonrise.common.util.ThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed()); // Paper - replace random
++    protected final RandomSource random = org.bxteam.divinemc.async.rct.RegionLevelRandom.create(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed(), this); // Paper - replace random // DivineMC - Regionized Chunk Ticking
+     @Deprecated
+     private final RandomSource soundSeedGenerator = RandomSource.createThreadSafe();
+     private final Holder<DimensionType> dimensionTypeRegistration;
 @@ -149,12 +149,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      private final CraftWorld world;
      public org.bukkit.generator.@Nullable ChunkGenerator generator;
@@ -1274,6 +1332,25 @@ index a637f2a5c43fe306ef7af03bf948e74fce49d280..5d0bb01b488e4ae5a0db88f7174ed6cd
                  return;
              }
              // CraftBukkit end
+@@ -2208,8 +2226,16 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public abstract RecipeAccess recipeAccess();
+ 
+     public BlockPos getBlockRandomPos(final int xo, final int yo, final int zo, final int yMask) {
+-        this.randValue = this.randValue * 3 + 1013904223;
+-        int val = this.randValue >> 2;
++        // DivineMC start - Regionized Chunk Ticking - randValue is one plain field for all region workers
++        final org.bxteam.divinemc.async.rct.UnitRandoms unit = org.bxteam.divinemc.concurrent.LevelThreads.SHARED ? org.bxteam.divinemc.async.rct.UnitRandoms.current(this) : null;
++        int val;
++        if (unit != null) {
++            val = unit.nextBlockRandom();
++        } else {
++            this.randValue = this.randValue * 3 + 1013904223;
++            val = this.randValue >> 2;
++        }
++        // DivineMC end - Regionized Chunk Ticking
+         return new BlockPos(xo + (val & 15), yo + (val >> 16 & yMask), zo + (val >> 8 & 15));
+     }
+ 
 diff --git a/net/minecraft/world/level/block/Block.java b/net/minecraft/world/level/block/Block.java
 index 6e8bd9247fc5f381c695f2a28fe6814faf7b673f..ccdb21e2c8fb489586914f0ef2604d454ae8d528 100644
 --- a/net/minecraft/world/level/block/Block.java
@@ -1400,18 +1477,22 @@ index 701c34c640f0406686ddf9b661f5bdc80c5de5ac..74a2bd14aeb11f39c3364ba3b3532849
      // DivineMC start - Parallel world ticking
      @Nullable
 diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..53fd48a1c9f4ca080e6ec6705527d53f4bc4ea43 100644
+index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..867bb01a47d39829b20f59dfc91a697fa6ab4020 100644
 --- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-@@ -18,6 +18,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+@@ -18,6 +18,11 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Level level;
      private final int maxChainedNeighborUpdates;
 +    private final @Nullable CollectingNeighborUpdater regionWorkerUpdater; // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking
++    private org.bxteam.divinemc.async.rct.@Nullable NeighborChainLock chainLock;
++    private boolean chainEntered;
++    // DivineMC end - Regionized Chunk Ticking
      private final ArrayDeque<CollectingNeighborUpdater.NeighborUpdates> stack = new ArrayDeque<>();
      private final List<CollectingNeighborUpdater.NeighborUpdates> addedThisLayer = new ArrayList<>();
      private int count = 0;
-@@ -26,10 +27,20 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+@@ -26,10 +31,20 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
      public CollectingNeighborUpdater(final Level level, final int maxChainedNeighborUpdates) {
          this.level = level;
          this.maxChainedNeighborUpdates = maxChainedNeighborUpdates;
@@ -1432,21 +1513,54 @@ index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..53fd48a1c9f4ca080e6ec6705527d53f
      }
  
      @Override
-@@ -66,6 +77,14 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+@@ -66,6 +81,29 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
      }
  
      private void addAndRun(final BlockPos pos, final CollectingNeighborUpdater.NeighborUpdates update) {
-+        // DivineMC start - Regionized Chunk Ticking - workers stay serialized among themselves: chains are not confined to a region
-+        if (this.regionWorkerUpdater != null && Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.RegionTickThread) {
-+            synchronized (this.regionWorkerUpdater) {
-+                this.regionWorkerUpdater.addAndRun(pos, update);
++        // DivineMC start - Regionized Chunk Ticking - chains are not confined to a region: workers and the level's thread joining them chain one at a time
++        if (this.regionWorkerUpdater != null && this.chainLock() instanceof org.bxteam.divinemc.async.rct.NeighborChainLock chains) {
++            if (Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.RegionTickThread) {
++                chains.lockWorker();
++                try {
++                    this.regionWorkerUpdater.addAndRun(pos, update);
++                } finally {
++                    chains.unlockWorker();
++                }
++                return;
 +            }
-+            return;
++            if (!this.chainEntered && this.count == 0 && chains.enterOther()) {
++                this.chainEntered = true;
++                try {
++                    this.addAndRun(pos, update);
++                } finally {
++                    this.chainEntered = false;
++                    chains.exitOther();
++                }
++                return;
++            }
 +        }
 +        // DivineMC end - Regionized Chunk Ticking
          boolean runningAlready = this.count > 0;
          boolean tooManyUpdates = this.maxChainedNeighborUpdates >= 0 && this.count >= this.maxChainedNeighborUpdates;
          this.count++;
+@@ -84,6 +122,17 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+         }
+     }
+ 
++    // DivineMC start - Regionized Chunk Ticking
++    private org.bxteam.divinemc.async.rct.@Nullable NeighborChainLock chainLock() {
++        org.bxteam.divinemc.async.rct.NeighborChainLock chains = this.chainLock;
++        if (chains == null && this.level.getChunkSource() instanceof org.bxteam.divinemc.async.rct.RegionizedChunkTicking regions) {
++            chains = regions.chainLock();
++            this.chainLock = chains;
++        }
++        return chains;
++    }
++    // DivineMC end - Regionized Chunk Ticking
++
+     private void runUpdates() {
+         try {
+             while (!this.stack.isEmpty() || !this.addedThisLayer.isEmpty()) {
 diff --git a/net/minecraft/world/ticks/LevelTicks.java b/net/minecraft/world/ticks/LevelTicks.java
 index c75c7aea9af7023f29da60b7600493be5568932f..75300050590fd0c4dc262f50978928aba18ced78 100644
 --- a/net/minecraft/world/ticks/LevelTicks.java
