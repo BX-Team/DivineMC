@@ -493,7 +493,7 @@ index 7ea72f6843e2a5a2a4b17e589142cd780eb99aec..6c110f8d11117190edc7a40ea33dc1e8
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 34a6304182c392cc8d4c317f1bb2b9cc2546cad3..fab7b2c2a3b6774132a7849fab20bd4d23992941 100644
+index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..b4fd2fb2e510c4b344c7cec72eb3c70c1b93708f 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -209,8 +209,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -698,7 +698,7 @@ index 34a6304182c392cc8d4c317f1bb2b9cc2546cad3..fab7b2c2a3b6774132a7849fab20bd4d
 -            this.entityTickList
 -                .forEach(
 -                    entity -> {
--                        entity.activatedPriorityReset = false; // DivineMC - Dynamic Activation of Brain
+-                        entity.endActivatedPriorityTick(); // DivineMC - Dynamic Activation of Brain
 -                        if (!entity.isRemoved()) {
 -                            if (!tickRateManager.isEntityFrozen(entity)) {
 -                                profiler.push("checkDespawn");
@@ -727,7 +727,7 @@ index 34a6304182c392cc8d4c317f1bb2b9cc2546cad3..fab7b2c2a3b6774132a7849fab20bd4d
 +                this.entityTickList
 +                    .forEach(
 +                        entity -> {
-+                            entity.activatedPriorityReset = false; // DivineMC - Dynamic Activation of Brain
++                            entity.endActivatedPriorityTick(); // DivineMC - Dynamic Activation of Brain
 +                            if (!entity.isRemoved()) {
 +                                if (!tickRateManager.isEntityFrozen(entity)) {
 +                                    profiler.push("checkDespawn");

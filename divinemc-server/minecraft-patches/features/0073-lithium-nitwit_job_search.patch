@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 19 Nov 2026 18:38:24 +0300
+Subject: [PATCH] lithium: nitwit_job_search
+
+
+diff --git a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
+index b849879c7e9be1e2c2af52f918b58695131280bf..e30f28f055e2691b083d78fb176a64a9f18a2154 100644
+--- a/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
++++ b/net/minecraft/world/entity/ai/behavior/AcquirePoi.java
+@@ -91,6 +91,7 @@ public class AcquirePoi {
+ 
+                         nextScheduledStart.setValue(timestamp + 20L + random.nextInt(20));
+                         if (level.paperConfig().entities.behavior.stuckEntityPoiRetryDelay.enabled() && body.getNavigation().isStuck()) nextScheduledStart.add(level.paperConfig().entities.behavior.stuckEntityPoiRetryDelay.intValue()); // Paper - Next stuck check delay config
++                        if (poiType == PoiType.NONE) return true; // DivineMC - lithium: nitwit_job_search - nothing can match, but the schedule above still draws from the level random like vanilla
+                         PoiManager poiManager = level.getPoiManager();
+                         batchCache.long2ObjectEntrySet().removeIf(entry -> !entry.getValue().isStillValid(timestamp));
+                         Predicate<BlockPos> cacheTest = pos -> {

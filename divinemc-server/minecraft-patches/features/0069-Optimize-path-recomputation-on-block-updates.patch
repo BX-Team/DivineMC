@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize path recomputation on block updates
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b1a4886389efd63a08ee4d49faab03b4c0264bf3..b00cbea4ef36492e43087c11bf62c2bf46064bb5 100644
+index 29925ecb0265b7d9b647573f6e984df7347c4c7e..5c65f73adcc38b6d7182011720f25c05055df9bf 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -213,6 +213,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -53,10 +53,10 @@ index b1a4886389efd63a08ee4d49faab03b4c0264bf3..b00cbea4ef36492e43087c11bf62c2bf
              }
  
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 8c7164c71461ddf0dcdeee2f92ee77927bb0eaad..d5fcb026c299d701ba2b5040054db7e8d9188084 100644
+index 9c7ff46ed6da4436e521179c2d130429823742e8..b0e6133b1d094b8d5103f87736d6d559df0e5f76 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3480,6 +3480,7 @@ public abstract class Entity
+@@ -3485,6 +3485,7 @@ public abstract class Entity
  
              this.setPose(Pose.STANDING);
              this.vehicle = entityToRide;
@@ -64,7 +64,7 @@ index 8c7164c71461ddf0dcdeee2f92ee77927bb0eaad..d5fcb026c299d701ba2b5040054db7e8
              this.vehicle.addPassenger(this);
              if (sendEventAndTriggers) {
                  this.level().gameEvent(this, GameEvent.ENTITY_MOUNT, this.vehicle.position);
-@@ -5247,6 +5248,7 @@ public abstract class Entity
+@@ -5252,6 +5253,7 @@ public abstract class Entity
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {
              this.position = new Vec3(x, y, z);
