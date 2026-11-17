@@ -16,10 +16,10 @@ As part of: Lithium (https://github.com/CaffeineMC/lithium)
 Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 72b079b1108c5bf6f4489f1f5066ef26904c5a8e..8c7164c71461ddf0dcdeee2f92ee77927bb0eaad 100644
+index 6daa22a61043d56406dba477be9a75b09394e6c9..9c7ff46ed6da4436e521179c2d130429823742e8 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5467,6 +5467,7 @@ public abstract class Entity
+@@ -5472,6 +5472,7 @@ public abstract class Entity
      @Override
      public void setLevelCallback(final EntityInLevelCallback levelCallback) {
          this.levelCallback = levelCallback;

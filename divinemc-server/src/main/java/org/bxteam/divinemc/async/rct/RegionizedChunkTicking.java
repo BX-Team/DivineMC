@@ -731,7 +731,7 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
     }
 
     private void tickEntity(Entity entity) {
-        entity.activatedPriorityReset = false; // DivineMC - Dynamic Activation of Brain - matches the non-RCT entity tick path
+        entity.endActivatedPriorityTick(); // matches the non-RCT entity tick path
         if (!entity.isRemoved() && !level.tickRateManager().isEntityFrozen(entity)) {
             if (entity.moonrise$isUpdatingSectionStatus()) {
                 LOGGER.info("Skipping tick for entity {} as it is in the process of updating section status", entity);

@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 19 Nov 2026 18:38:24 +0300
+Subject: [PATCH] lithium: replace_streams
+
+
+diff --git a/net/minecraft/world/entity/ai/behavior/GateBehavior.java b/net/minecraft/world/entity/ai/behavior/GateBehavior.java
+index 3adfb334068d3722329f91011c41d5e59b1956c9..6fd29793e1ef28dc0236495d5b477a205e3e2d98 100644
+--- a/net/minecraft/world/entity/ai/behavior/GateBehavior.java
++++ b/net/minecraft/world/entity/ai/behavior/GateBehavior.java
+@@ -85,9 +85,14 @@ public class GateBehavior<E extends LivingEntity> implements BehaviorControl<E>
+             }
+         }
+         // Paper end - Perf: Remove streams from hot code
+-        if (this.behaviors.stream().noneMatch(behavior -> behavior.getStatus() == Behavior.Status.RUNNING)) {
+-            this.doStop(level, body, timestamp);
++        // DivineMC start - lithium: replace_streams
++        for (final BehaviorControl<? super E> behavior : this.behaviors) {
++            if (behavior.getStatus() == Behavior.Status.RUNNING) {
++                return;
++            }
+         }
++        this.doStop(level, body, timestamp);
++        // DivineMC end - lithium: replace_streams
+     }
+ 
+     @Override

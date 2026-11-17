@@ -5,10 +5,10 @@ Subject: [PATCH] Dynamic Activation of Brain
 
 
 diff --git a/io/papermc/paper/entity/activation/ActivationRange.java b/io/papermc/paper/entity/activation/ActivationRange.java
-index 829f7685904fd741e00403647ae76d32275c34a3..1d9edbd1b8a71662b71d3d96caa0dc7fd14b6257 100644
+index 829f7685904fd741e00403647ae76d32275c34a3..65abc4e0094c9486687481053919b7d0d90af453 100644
 --- a/io/papermc/paper/entity/activation/ActivationRange.java
 +++ b/io/papermc/paper/entity/activation/ActivationRange.java
-@@ -166,6 +166,21 @@ public final class ActivationRange {
+@@ -166,6 +166,22 @@ public final class ActivationRange {
                  }
  
                  ActivationRange.activateEntity(entity);
@@ -24,6 +24,7 @@ index 829f7685904fd741e00403647ae76d32275c34a3..1d9edbd1b8a71662b71d3d96caa0dc7f
 +                            Math.max(1, Math.min(squaredDistance >> org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabActivationDistanceMod, entity.activatedPriority)) :
 +                            1;
 +                } else {
++                    entity.activatedPriorityReset = true;
 +                    entity.activatedPriority = 1;
 +                }
 +                // DivineMC end - Dynamic Activation of Brain
@@ -31,22 +32,22 @@ index 829f7685904fd741e00403647ae76d32275c34a3..1d9edbd1b8a71662b71d3d96caa0dc7f
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 3d2c7ab697c9b4dde7424aa4f8b6d1ce2204d0e5..7ed9c08e945738471a0006351bddecdfcb6a85bb 100644
+index 3d2c7ab697c9b4dde7424aa4f8b6d1ce2204d0e5..be3a98b1f93b47eb9492863a2b5a23877567f19d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -918,6 +918,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              this.entityTickList
                  .forEach(
                      entity -> {
-+                        entity.activatedPriorityReset = false; // DivineMC - Dynamic Activation of Brain
++                        entity.endActivatedPriorityTick(); // DivineMC - Dynamic Activation of Brain
                          if (!entity.isRemoved()) {
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  profiler.push("checkDespawn");
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a2c88466743278e41342c4d9ff5f4cabc7cee1bb..04e87e66e546a72bbeb26dc1a1cf7fb457c1bd46 100644
+index a2c88466743278e41342c4d9ff5f4cabc7cee1bb..584c967ddd4a5af96b35011557574468e0f6289f 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -389,6 +389,13 @@ public abstract class Entity
+@@ -389,6 +389,18 @@ public abstract class Entity
      public boolean fixedPose = false; // Paper - Expand Pose API
      private final int despawnTime; // Paper - entity despawn time limit
      public int totalEntityAge; // Paper - age-like counter for all entities
@@ -55,6 +56,11 @@ index a2c88466743278e41342c4d9ff5f4cabc7cee1bb..04e87e66e546a72bbeb26dc1a1cf7fb4
 +    public int activatedPriority = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabMaximumActivationFrequency;
 +    public final int dabTickRate() {
 +        return org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabEnabled && this.type.dabEnabled ? this.activatedPriority : 1;
++    }
++    public final void endActivatedPriorityTick() {
++        // no player's activation box reached it this tick: the farthest priority, not the one from when a player was near
++        if (!this.activatedPriorityReset) this.activatedPriority = org.bxteam.divinemc.config.DivineConfig.PerformanceCategory.dabMaximumActivationFrequency;
++        this.activatedPriorityReset = false;
 +    }
 +    // DivineMC end - Dynamic Activation of Brain
      public final io.papermc.paper.entity.activation.ActivationType activationType = io.papermc.paper.entity.activation.ActivationType.activationTypeFor(this); // Paper - EAR 2/tracking ranges

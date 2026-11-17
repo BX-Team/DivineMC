@@ -308,7 +308,7 @@ index e984597384eba6b8ac877f2803bdbed754ac7ba8..e87e356746f15d5fa07807bb226b0a87
          if (!PlatformHooks.get().allowAsyncTicketUpdates() && !isTickThread) {
              TickThread.ensureTickThread("Cannot asynchronously process ticket updates");
 diff --git a/io/papermc/paper/entity/activation/ActivationRange.java b/io/papermc/paper/entity/activation/ActivationRange.java
-index 1d9edbd1b8a71662b71d3d96caa0dc7fd14b6257..e10cae57ec14072f496b175e17bbb9fead90413a 100644
+index 65abc4e0094c9486687481053919b7d0d90af453..d9fa29afc96410cbc17cf7e0a418d968326f58eb 100644
 --- a/io/papermc/paper/entity/activation/ActivationRange.java
 +++ b/io/papermc/paper/entity/activation/ActivationRange.java
 @@ -149,16 +149,18 @@ public final class ActivationRange {
@@ -339,7 +339,7 @@ index 1d9edbd1b8a71662b71d3d96caa0dc7fd14b6257..e10cae57ec14072f496b175e17bbb9fe
              final boolean tickMarkers = world.paperConfig().entities.markers.tick;
              for (final Entity entity : entities) {
                  if (!tickMarkers && entity instanceof Marker) {
-@@ -185,6 +187,16 @@ public final class ActivationRange {
+@@ -186,6 +188,16 @@ public final class ActivationRange {
          }
      }
  
@@ -356,7 +356,7 @@ index 1d9edbd1b8a71662b71d3d96caa0dc7fd14b6257..e10cae57ec14072f496b175e17bbb9fe
      /**
       * Tries to activate an entity.
       *
-@@ -196,7 +208,7 @@ public final class ActivationRange {
+@@ -197,7 +209,7 @@ public final class ActivationRange {
                  entity.activatedTick = MinecraftServer.currentTick;
                  return;
              }
@@ -655,7 +655,7 @@ index c7dfa3225acc9a483b773101073c2987889d0e34..7ea72f6843e2a5a2a4b17e589142cd78
          final CompletableFuture<ChunkAccess> completable = new CompletableFuture<>();
          chunkTaskScheduler.scheduleChunkLoad(
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 7ed9c08e945738471a0006351bddecdfcb6a85bb..a0963c566569e35276a02d128ae401f9c17b8593 100644
+index be3a98b1f93b47eb9492863a2b5a23877567f19d..a5c947acb0943aa0b143234d7790d7f617581e06 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -197,7 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -850,10 +850,10 @@ index a218431bd53512e1073a2df080d522026a541264..06823ffc9d8d5913c34f6d68acedca77
  
      private RandomSequence createSequence(final Identifier key, final long worldSeed) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 04e87e66e546a72bbeb26dc1a1cf7fb457c1bd46..828c6b38c9d445867e0f58a113b155cec49f2c13 100644
+index 584c967ddd4a5af96b35011557574468e0f6289f..186a6b4acca9bc4379f76c14dddc8393af7d357b 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3759,10 +3759,14 @@ public abstract class Entity
+@@ -3764,10 +3764,14 @@ public abstract class Entity
                      ProfilerFiller profiler = Profiler.get();
                      profiler.push("portal");
                      this.setPortalCooldown();
@@ -871,7 +871,7 @@ index 04e87e66e546a72bbeb26dc1a1cf7fb457c1bd46..828c6b38c9d445867e0f58a113b155ce
  
                      profiler.pop();
                  } else if (this.portalProcess.hasExpired()) {
-@@ -4279,6 +4283,7 @@ public abstract class Entity
+@@ -4284,6 +4288,7 @@ public abstract class Entity
      }
  
      public @Nullable Entity teleport(TeleportTransition transition) { // Paper - remove param final
@@ -879,7 +879,7 @@ index 04e87e66e546a72bbeb26dc1a1cf7fb457c1bd46..828c6b38c9d445867e0f58a113b155ce
          // Paper start - Fix item duplication and teleport issues
          if ((!this.isAlive() || !this.valid) && (transition.newLevel() != this.level)) {
              LOGGER.warn("Illegal Entity Teleport {} to {}:{}", this, transition.newLevel(), transition.position(), new Throwable());
-@@ -4368,6 +4373,7 @@ public abstract class Entity
+@@ -4373,6 +4378,7 @@ public abstract class Entity
      }
  
      private @Nullable Entity teleportCrossDimension(final ServerLevel oldLevel, final ServerLevel newLevel, final TeleportTransition transition) {
