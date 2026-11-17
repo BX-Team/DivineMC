@@ -691,7 +691,7 @@ index be3a98b1f93b47eb9492863a2b5a23877567f19d..a5c947acb0943aa0b143234d7790d7f6
          // Paper start - extra debug info
          if (entity.valid) {
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index ffd04fe6f26a0adcb5ec70a613821b896a908968..812797935f833c911ba265a3fe37195995aa4404 100644
+index 309382d61f194d05896ba38fe53d15be889b45a3..bf4b571987c24481f5ef9845888239e38350fb9b 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -279,7 +279,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -703,7 +703,7 @@ index ffd04fe6f26a0adcb5ec70a613821b896a908968..812797935f833c911ba265a3fe371959
      private boolean postEffectsDirty = true;
      private long timeEntitySatOnShoulder;
      private CompoundTag shoulderEntityLeft = new CompoundTag();
-@@ -1564,6 +1564,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1578,6 +1578,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
  
      @Override
      public @Nullable ServerPlayer teleport(TeleportTransition transition) { // Paper - make non-final
@@ -711,7 +711,7 @@ index ffd04fe6f26a0adcb5ec70a613821b896a908968..812797935f833c911ba265a3fe371959
          if (this.isSleeping()) return null; // CraftBukkit - SPIGOT-3154
          if (this.isRemoved()) {
              return null;
-@@ -1611,6 +1612,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -1625,6 +1626,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
              return this;
          }
  

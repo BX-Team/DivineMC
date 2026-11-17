@@ -1,5 +1,33 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -1081,6 +_,12 @@
+     }
+ 
+     public void trackStartFallingPosition() {
++        // DivineMC start - Fix MC-270656
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc270656 && this.currentExplosionImpactPos != null
++            && (this.getAbilities().flying || this.isFallFlying() || this.isAutoSpinAttack() || this.onClimbable() || this.isInLiquid() || this.isPassenger() || this.hasEffect(net.minecraft.world.effect.MobEffects.LEVITATION))) {
++            this.resetExplosionImpactForFall();
++        }
++        // DivineMC end - Fix MC-270656
+         if (this.fallDistance > 0.0 && this.startingToFallPosition == null) {
+             this.startingToFallPosition = this.position();
+             if (this.currentExplosionImpactPos != null && this.currentExplosionImpactPos.y <= this.startingToFallPosition.y) {
+@@ -1092,6 +_,14 @@
+         }
+     }
+ 
++    // DivineMC start - Fix MC-270656
++    public void resetExplosionImpactForFall() {
++        // a launch only counts while it is a free flight: flying, climbing, swimming or a teleport upward is not a fall after the blast
++        this.currentExplosionImpactPos = null;
++        this.currentExplosionCause = null;
++    }
++    // DivineMC end - Fix MC-270656
++
+     public void trackEnteredOrExitedLavaOnVehicle() {
+         if (this.getVehicle() != null && this.getVehicle().isInLava()) {
+             if (this.enteredLavaOnVehiclePosition == null) {
 @@ -3158,7 +_,7 @@
  
      @Override
