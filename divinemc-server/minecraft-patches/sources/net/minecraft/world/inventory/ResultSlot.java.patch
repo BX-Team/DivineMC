@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/inventory/ResultSlot.java
++++ b/net/minecraft/world/inventory/ResultSlot.java
+@@ -29,6 +_,13 @@
+ 
+     @Override
+     public ItemStack remove(final int amount) {
++        // DivineMC start - Fix MC-65198
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc65198) {
++            ItemStack removed = super.remove(amount);
++            this.removeCount += removed.getCount(); // the result container hands out the whole stack, whatever amount was asked for
++            return removed;
++        }
++        // DivineMC end - Fix MC-65198
+         if (this.hasItem()) {
+             this.removeCount = this.removeCount + Math.min(amount, this.getItem().getCount());
+         }

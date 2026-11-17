@@ -24,3 +24,11 @@
              if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.updateEquipmentOnPlayerActions) this.player.detectEquipmentUpdates(); // Paper - Force update attributes.
          }
      }
+@@ -2058,6 +_,7 @@
+         }
+ 
+         this.player.teleportSetPosition(destination, relatives);
++        if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc270656) this.player.resetExplosionImpactForFall(); // DivineMC - Fix MC-270656
+         this.awaitingPositionFromClient = this.player.position();
+         // CraftBukkit start - update last location
+         this.lastPosX = this.awaitingPositionFromClient.x;

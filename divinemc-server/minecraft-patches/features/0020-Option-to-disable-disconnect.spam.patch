@@ -17,7 +17,7 @@ index 52cb9e845bd18a27cbafd432e5339cf3929b1fc7..95fcd8021adf65995cb56ae2246a37e8
                          this.player.connection.disconnect(net.minecraft.network.chat.Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
                          return;
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 3aadd6bd301418dcbd2e3ee4d8efb734c4e94a28..6c2d3aa1459ca0b2fe2551dd8649b93a798a27b6 100644
+index 7106368e5c7eb93f1f378352c227734f37eab107..9289de86722776028ce6a714c6c05e86d736555e 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -888,7 +888,7 @@ public class ServerGamePacketListenerImpl
@@ -46,7 +46,7 @@ index 3aadd6bd301418dcbd2e3ee4d8efb734c4e94a28..6c2d3aa1459ca0b2fe2551dd8649b93a
                  && parse.getExceptions().values().stream().anyMatch(e -> e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException)) {
                  this.player.connection.disconnect(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
                  return;
-@@ -2781,6 +2782,7 @@ public class ServerGamePacketListenerImpl
+@@ -2782,6 +2783,7 @@ public class ServerGamePacketListenerImpl
          // throttler.increment();
          if (!throttler.isIncrementAndUnderThreshold()
          // CraftBukkit end - replaced with thread safe throttle
@@ -54,7 +54,7 @@ index 3aadd6bd301418dcbd2e3ee4d8efb734c4e94a28..6c2d3aa1459ca0b2fe2551dd8649b93a
              && !this.server.getPlayerList().isOp(this.player.nameAndId())
              && !this.server.isSingleplayerOwner(this.player.nameAndId())) {
              this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - kick event cause & add proper async disconnect
-@@ -3531,7 +3533,7 @@ public class ServerGamePacketListenerImpl
+@@ -3532,7 +3534,7 @@ public class ServerGamePacketListenerImpl
      public void handlePlaceRecipe(final ServerboundPlaceRecipePacket packet) {
          // Paper start - auto recipe limit
          if (!org.bukkit.Bukkit.isPrimaryThread()) {

@@ -806,6 +806,9 @@ public class DivineConfig {
         public static boolean fixMc118740 = false;
         public static boolean fixMc28289 = false;
         public static boolean fixMc73719 = false;
+        public static boolean fixMc65198 = false;
+        public static boolean fixMc270656 = false;
+        public static boolean fixMc299642 = false;
 
         public static void load() {
             gameplayFixes();
@@ -855,6 +858,15 @@ public class DivineConfig {
             fixMc73719 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-73719"), fixMc73719,
                 "Fixes MC-73719: https://bugs.mojang.com/browse/MC-73719",
                 "Ender dragons with NoAI don't visually move on the client and keep their hitboxes at the old position.");
+            fixMc65198 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-65198"), fixMc65198,
+                "Fixes MC-65198: https://bugs.mojang.com/browse/MC-65198",
+                "The crafted item statistic counts too few items when the result is dropped, split or shift-clicked out of a stonecutter or smithing table.");
+            fixMc270656 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-270656"), fixMc270656,
+                "Fixes MC-270656: https://bugs.mojang.com/browse/MC-270656",
+                "Teleporting, flying, swimming or climbing upward after an explosion counts toward the \"Who Needs Rockets?\" height.");
+            fixMc299642 = getBoolean(ConfigCategory.FIXES.key("bug.fix-mc-299642"), fixMc299642,
+                "Fixes MC-299642: https://bugs.mojang.com/browse/MC-299642",
+                "Turtles with NoGravity sink when they move out of water.");
         }
     }
 
