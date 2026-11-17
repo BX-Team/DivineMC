@@ -8,167 +8,453 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
-index 7fed43a1e7bcf35c4d7fd3224837a47fedd59860..3bb72315084da393de2084f48d1aec3a6cc268fa 100644
+index 7fed43a1e7bcf35c4d7fd3224837a47fedd59860..76a2895a0913a03c4bfd71d8fbb4083e32876b02 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
-@@ -27,11 +27,11 @@ public final class EntityList implements Iterable<Entity> {
+@@ -27,11 +27,33 @@ public final class EntityList implements Iterable<Entity> {
          return this.count;
      }
  
--    public boolean contains(final Entity entity) {
-+    public synchronized boolean contains(final Entity entity) { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public boolean contains(final Entity entity) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.contains0(entity);
++            }
++        }
++        return this.contains0(entity);
++    }
++
++    private boolean contains0(final Entity entity) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          return this.entityToIndex.containsKey(entity.getId());
      }
  
--    public boolean remove(final Entity entity) {
-+    public synchronized boolean remove(final Entity entity) { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public boolean remove(final Entity entity) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.remove0(entity);
++            }
++        }
++        return this.remove0(entity);
++    }
++
++    private boolean remove0(final Entity entity) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          final int index = this.entityToIndex.remove(entity.getId());
          if (index == Integer.MIN_VALUE) {
              return false;
-@@ -50,7 +50,7 @@ public final class EntityList implements Iterable<Entity> {
+@@ -50,7 +72,18 @@ public final class EntityList implements Iterable<Entity> {
          return true;
      }
  
--    public boolean add(final Entity entity) {
-+    public synchronized boolean add(final Entity entity) { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public boolean add(final Entity entity) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.add0(entity);
++            }
++        }
++        return this.add0(entity);
++    }
++
++    private boolean add0(final Entity entity) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          final int count = this.count;
          final int currIndex = this.entityToIndex.putIfAbsent(entity.getId(), count);
  
-@@ -82,18 +82,18 @@ public final class EntityList implements Iterable<Entity> {
+@@ -82,18 +115,52 @@ public final class EntityList implements Iterable<Entity> {
          return this.entities[index];
      }
  
--    public Entity[] getRawData() {
-+    public synchronized Entity[] getRawData() { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public Entity[] getRawData() {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.getRawData0();
++            }
++        }
++        return this.getRawData0();
++    }
++
++    private Entity[] getRawData0() {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          return this.entities;
      }
  
--    public void clear() {
-+    public synchronized void clear() { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public void clear() {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                this.clear0();
++            }
++            return;
++        }
++        this.clear0();
++    }
++
++    private void clear0() {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          this.entityToIndex.clear();
          Arrays.fill(this.entities, 0, this.count, null);
          this.count = 0;
      }
  
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
      @Override
--    public Iterator<Entity> iterator() {
-+    public synchronized Iterator<Entity> iterator() { // DivineMC - Regionized Chunk Ticking
+     public Iterator<Entity> iterator() {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.iterator0();
++            }
++        }
++        return this.iterator0();
++    }
++
++    private Iterator<Entity> iterator0() {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          return new Iterator<>() {
              private Entity lastRet;
              private int current;
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
-index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..f119177f8476c529696a0694cce79f7835c4ec6e 100644
+index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..fed7cfe73d284178f7b414a3493d633f87338ddf 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
-@@ -10,8 +10,10 @@ public final class ReferenceList<E> implements Iterable<E> {
-     private static final Object[] EMPTY_LIST = new Object[0];
+@@ -13,6 +13,36 @@ public final class ReferenceList<E> implements Iterable<E> {
+     private E[] references;
+     private int count;
  
-     private final Reference2IntOpenHashMap<E> referenceToIndex;
--    private E[] references;
--    private int count;
-+    // DivineMC start - Regionized Chunk Ticking - readers stay lock-free
-+    private volatile E[] references;
-+    private volatile int count;
-+    // DivineMC end - Regionized Chunk Ticking - readers stay lock-free
- 
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
++    // readers stay lock-free: they see count and references through volatile reads
++    private static final java.lang.invoke.VarHandle REFERENCES = ca.spottedleaf.concurrentutil.util.ConcurrentUtil.getVarHandle(ReferenceList.class, "references", Object[].class);
++    private static final java.lang.invoke.VarHandle COUNT = ca.spottedleaf.concurrentutil.util.ConcurrentUtil.getVarHandle(ReferenceList.class, "count", int.class);
++
++    private E[] references() {
++        return org.bxteam.divinemc.concurrent.LevelThreads.SHARED ? (E[])REFERENCES.getVolatile(this) : this.references;
++    }
++
++    private int count() {
++        return org.bxteam.divinemc.concurrent.LevelThreads.SHARED ? (int)COUNT.getVolatile(this) : this.count;
++    }
++
++    private void setReferences(final E[] references) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            REFERENCES.setVolatile(this, references);
++        } else {
++            this.references = references;
++        }
++    }
++
++    private void setCount(final int count) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            COUNT.setVolatile(this, count);
++        } else {
++            this.count = count;
++        }
++    }
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
++
      public ReferenceList() {
          this((E[])EMPTY_LIST);
-@@ -29,7 +31,7 @@ public final class ReferenceList<E> implements Iterable<E> {
+     }
+@@ -29,26 +59,56 @@ public final class ReferenceList<E> implements Iterable<E> {
          this.referenceToIndex = referenceToIndex;
      }
  
--    public ReferenceList<E> copy() {
-+    public synchronized ReferenceList<E> copy() { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public ReferenceList<E> copy() {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.copy0();
++            }
++        }
++        return this.copy0();
++    }
++
++    private ReferenceList<E> copy0() {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          return new ReferenceList<>(this.references.clone(), this.count, this.referenceToIndex.clone());
      }
  
-@@ -37,11 +39,11 @@ public final class ReferenceList<E> implements Iterable<E> {
-         return this.count;
+     public int size() {
+-        return this.count;
++        return this.count(); // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
      }
  
--    public boolean contains(final E obj) {
-+    public synchronized boolean contains(final E obj) { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public boolean contains(final E obj) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.referenceToIndex.containsKey(obj);
++            }
++        }
          return this.referenceToIndex.containsKey(obj);
      }
  
--    public boolean remove(final E obj) {
-+    public synchronized boolean remove(final E obj) { // DivineMC - Regionized Chunk Ticking
+     public boolean remove(final E obj) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.remove0(obj);
++            }
++        }
++        return this.remove0(obj);
++    }
++
++    private boolean remove0(final E obj) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          final int index = this.referenceToIndex.removeInt(obj);
          if (index == Integer.MIN_VALUE) {
              return false;
-@@ -60,7 +62,7 @@ public final class ReferenceList<E> implements Iterable<E> {
+         }
+ 
+         // move the object at the end to this index
+-        final int endIndex = --this.count;
++        // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
++        final int endIndex = this.count - 1;
++        this.setCount(endIndex);
++        // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
+         final E end = (E)this.references[endIndex];
+         if (index != endIndex) {
+             // not empty after this call
+@@ -60,7 +120,18 @@ public final class ReferenceList<E> implements Iterable<E> {
          return true;
      }
  
--    public boolean add(final E obj) {
-+    public synchronized boolean add(final E obj) { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public boolean add(final E obj) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.add0(obj);
++            }
++        }
++        return this.add0(obj);
++    }
++
++    private boolean add0(final E obj) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          final int count = this.count;
          final int currIndex = this.referenceToIndex.putIfAbsent(obj, count);
  
-@@ -100,7 +102,7 @@ public final class ReferenceList<E> implements Iterable<E> {
-         return this.references;
+@@ -72,38 +143,56 @@ public final class ReferenceList<E> implements Iterable<E> {
+ 
+         if (list.length == count) {
+             // resize required
+-            list = this.references = Arrays.copyOf(list, (int)Math.max(4L, count * 2L)); // overflow results in negative
++            // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
++            list = Arrays.copyOf(list, (int)Math.max(4L, count * 2L)); // overflow results in negative
++            this.setReferences(list);
++            // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
+         }
+ 
+         list[count] = obj;
+-        this.count = count + 1;
++        this.setCount(count + 1); // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+ 
+         return true;
      }
  
--    public void clear() {
-+    public synchronized void clear() { // DivineMC - Regionized Chunk Ticking
+     public E getChecked(final int index) {
+-        if (index < 0 || index >= this.count) {
+-            throw new IndexOutOfBoundsException("Index: " + index + " is out of bounds, size: " + this.count);
++        // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
++        final int count = this.count();
++        if (index < 0 || index >= count) {
++            throw new IndexOutOfBoundsException("Index: " + index + " is out of bounds, size: " + count);
+         }
+-        return this.references[index];
++        return this.references()[index];
++        // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
+     }
+ 
+     public E getUnchecked(final int index) {
+-        return this.references[index];
++        return this.references()[index]; // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+     }
+ 
+     public Object[] getRawData() {
+-        return this.references;
++        return this.references(); // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+     }
+ 
+     public E[] getRawDataUnchecked() {
+-        return this.references;
++        return this.references(); // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+     }
+ 
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public void clear() {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                this.clear0();
++            }
++            return;
++        }
++        this.clear0();
++    }
++
++    private void clear0() {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          this.referenceToIndex.clear();
          Arrays.fill(this.references, 0, this.count, null);
-         this.count = 0;
-diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
-index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..0e1120689e3ca0693d7035b6fcaf904843a39f9f 100644
---- a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
-+++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
-@@ -13,17 +13,17 @@ public final class ShortList {
-     private static final short[] EMPTY_LIST = new short[0];
- 
-     private short[] byIndex = EMPTY_LIST;
--    private short count;
-+    private volatile short count; // DivineMC - Regionized Chunk Ticking
- 
-     public int size() {
--        return (int)this.count;
-+        return this.count; // DivineMC - Regionized Chunk Ticking
+-        this.count = 0;
++        this.setCount(0); // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
      }
  
--    public short getRaw(final int index) {
-+    public synchronized short getRaw(final int index) { // DivineMC - Regionized Chunk Ticking
+     @Override
+@@ -114,15 +203,15 @@ public final class ReferenceList<E> implements Iterable<E> {
+ 
+             @Override
+             public boolean hasNext() {
+-                return this.current < ReferenceList.this.count;
++                return this.current < ReferenceList.this.count(); // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+             }
+ 
+             @Override
+             public E next() {
+-                if (this.current >= ReferenceList.this.count) {
++                if (this.current >= ReferenceList.this.count()) { // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+                     throw new NoSuchElementException();
+                 }
+-                return this.lastRet = ReferenceList.this.references[this.current++];
++                return this.lastRet = ReferenceList.this.references()[this.current++]; // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+             }
+ 
+             @Override
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
+index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..dedbabf548dc6328464e8356eda40e919b994bf6 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
+@@ -15,15 +15,51 @@ public final class ShortList {
+     private short[] byIndex = EMPTY_LIST;
+     private short count;
+ 
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
++    // readers stay lock-free: they see count through a volatile read
++    private static final java.lang.invoke.VarHandle COUNT = ca.spottedleaf.concurrentutil.util.ConcurrentUtil.getVarHandle(ShortList.class, "count", short.class);
++
++    private void setCount(final short count) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            COUNT.setVolatile(this, count);
++        } else {
++            this.count = count;
++        }
++    }
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
++
+     public int size() {
+-        return (int)this.count;
++        return org.bxteam.divinemc.concurrent.LevelThreads.SHARED ? (int)(short)COUNT.getVolatile(this) : (int)this.count; // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+     }
+ 
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public short getRaw(final int index) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.getRaw0(index);
++            }
++        }
++        return this.getRaw0(index);
++    }
++
++    private short getRaw0(final int index) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          return this.byIndex[index];
      }
  
--    public void setMinCapacity(final int len) {
-+    public synchronized void setMinCapacity(final int len) { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public void setMinCapacity(final int len) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                this.setMinCapacity0(len);
++            }
++            return;
++        }
++        this.setMinCapacity0(len);
++    }
++
++    private void setMinCapacity0(final int len) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          if (len <= 0) {
              return;
          }
-@@ -34,8 +34,8 @@ public final class ShortList {
+@@ -34,7 +70,18 @@ public final class ShortList {
          this.map.ensureCapacity(len);
      }
  
--    public boolean add(final short value) {
--        final int count = (int)this.count;
-+    public synchronized boolean add(final short value) { // DivineMC - Regionized Chunk Ticking
-+        final int count = this.count; // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public boolean add(final short value) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.add0(value);
++            }
++        }
++        return this.add0(value);
++    }
++
++    private boolean add0(final short value) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
+         final int count = (int)this.count;
          final short currIndex = this.map.putIfAbsent(value, (short)count);
  
-         if (currIndex != Short.MIN_VALUE) {
-@@ -55,7 +55,7 @@ public final class ShortList {
+@@ -50,19 +97,33 @@ public final class ShortList {
+         }
+ 
+         list[count] = value;
+-        this.count = (short)(count + 1);
++        this.setCount((short)(count + 1)); // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
+ 
          return true;
      }
  
--    public boolean remove(final short value) {
-+    public synchronized boolean remove(final short value) { // DivineMC - Regionized Chunk Ticking
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public boolean remove(final short value) {
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                return this.remove0(value);
++            }
++        }
++        return this.remove0(value);
++    }
++
++    private boolean remove0(final short value) {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          final short index = this.map.remove(value);
          if (index == Short.MIN_VALUE) {
              return false;
-@@ -74,7 +74,7 @@ public final class ShortList {
+         }
+ 
+         // move the entry at the end to this index
+-        final short endIndex = --this.count;
++        // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
++        final short endIndex = (short)(this.count - 1);
++        this.setCount(endIndex);
++        // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
+         final short end = this.byIndex[endIndex];
+         if (index != endIndex) {
+             // not empty after this call
+@@ -74,8 +135,20 @@ public final class ShortList {
          return true;
      }
  
--    public void clear() {
-+    public synchronized void clear() { // DivineMC - Regionized Chunk Ticking
-         this.count = (short)0;
++    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
+     public void clear() {
+-        this.count = (short)0;
++        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
++            synchronized (this) {
++                this.clear0();
++            }
++            return;
++        }
++        this.clear0();
++    }
++
++    private void clear0() {
++    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
++        this.setCount((short)0); // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
          this.map.clear();
      }
+ }
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
 index 460e27ab0506c83a28934800ee74ee886d4b025e..be5dca854a6feab23bea5c46a7ef18f6cec3ddb1 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
