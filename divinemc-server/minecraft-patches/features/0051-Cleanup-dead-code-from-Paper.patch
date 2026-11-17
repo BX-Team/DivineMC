@@ -69,7 +69,7 @@ index 1a3b19c786d725eff5e0e343a3f68925fa14e597..8099592bf030dec91f9c515e4aac3f5f
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b4fd2fb2e510c4b344c7cec72eb3c70c1b93708f..a00710648972dd143aeb6a50593ed47fbc6c1cc2 100644
+index 91abad092e1a0fb7574aadc63af7ea325a1ceea4..d486b355c0ccca9ba0ad3d2f6906573e8f713788 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1540,11 +1540,6 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -99,10 +99,10 @@ index b4fd2fb2e510c4b344c7cec72eb3c70c1b93708f..a00710648972dd143aeb6a50593ed47f
  
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 186a6b4acca9bc4379f76c14dddc8393af7d357b..7df1670124a0e3895e75530bf2ce3d32ae232ef2 100644
+index 882a3827b5f0543b1d7eb811ae1afdef0ed892e9..57b4221306cc685092ce136302fb81145c322bbf 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1190,16 +1190,6 @@ public abstract class Entity
+@@ -1210,16 +1210,6 @@ public abstract class Entity
          return this.onGround;
      }
  
@@ -119,7 +119,7 @@ index 186a6b4acca9bc4379f76c14dddc8393af7d357b..7df1670124a0e3895e75530bf2ce3d32
      public void move(final MoverType moverType, Vec3 delta) {
          if (SharedConstants.IS_RUNNING_IN_IDE && !moverType.isServerAndClientSimulated() && !this.canSimulateMovement()) {
              throw (IllegalStateException)Util.pauseInIde(
-@@ -1209,16 +1199,7 @@ public abstract class Entity
+@@ -1229,16 +1219,7 @@ public abstract class Entity
  
          if (!this.boundingBoxChanged && delta.equals(Vec3.ZERO)) return; // DivineMC - VMP: skip entity move if movement is zero
          final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
@@ -136,7 +136,7 @@ index 186a6b4acca9bc4379f76c14dddc8393af7d357b..7df1670124a0e3895e75530bf2ce3d32
          if (this.noPhysics) {
              this.setPos(this.getX() + delta.x, this.getY() + delta.y, this.getZ() + delta.z);
              this.recordMovement(moverType, delta);
-@@ -1341,13 +1322,6 @@ public abstract class Entity
+@@ -1361,13 +1342,6 @@ public abstract class Entity
                  profiler.pop();
              }
          }
@@ -150,7 +150,7 @@ index 186a6b4acca9bc4379f76c14dddc8393af7d357b..7df1670124a0e3895e75530bf2ce3d32
      }
  
      public void recordMovement(final MoverType moverType, final Vec3 movement) {
-@@ -5172,9 +5146,7 @@ public abstract class Entity
+@@ -5192,9 +5166,7 @@ public abstract class Entity
  
      public void setDeltaMovement(final Vec3 deltaMovement) {
          if (deltaMovement.isFinite()) {
@@ -160,7 +160,7 @@ index 186a6b4acca9bc4379f76c14dddc8393af7d357b..7df1670124a0e3895e75530bf2ce3d32
          }
      }
  
-@@ -5279,9 +5251,7 @@ public abstract class Entity
+@@ -5299,9 +5271,7 @@ public abstract class Entity
          }
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {

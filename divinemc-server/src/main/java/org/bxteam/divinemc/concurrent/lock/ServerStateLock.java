@@ -3,7 +3,9 @@ package org.bxteam.divinemc.concurrent.lock;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import org.bxteam.divinemc.async.pwt.LevelHandoff;
 import org.bxteam.divinemc.async.pwt.ParallelWorldTicking;
+import org.bxteam.divinemc.async.rct.NeighborChainLock;
 import org.bxteam.divinemc.async.rct.RegionizedChunkTicking;
+import org.bxteam.divinemc.concurrent.LevelThreads;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.concurrent.locks.ReentrantLock;
@@ -11,8 +13,9 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Serializes writes to server-wide state that levels ticking in parallel reach from their own threads: command
  * execution (scoreboard, command storage, boss bars, functions), scoreboard criteria and loot random sequences.
- * {@link #lock} and {@link #lockLendable} do nothing unless parallel world ticking is enabled; {@link ListenerSerialization}
- * also takes it under regionized chunk ticking.
+ * {@link #lock} and {@link #lockLendable} do nothing unless levels are shared: region workers and the parallel sensor
+ * pool reach the same state from their tick (scoreboard criteria of players and mobs, loot random sequences).
+ * {@link ListenerSerialization} also takes it under regionized chunk ticking.
  * <p>
  * A level thread that waits for the lock in {@link #lockLendable} or {@link #lockAlways} (a command or a plugin
  * listener is about to run) lends its levels to the holder, see {@link LevelHandoff}.
@@ -27,18 +30,24 @@ public final class ServerStateLock {
     public static void lock() {
         if (ParallelWorldTicking.ENABLED) {
             acquire(false);
+        } else if (LevelThreads.SHARED) {
+            lockWaiting();
         }
     }
 
     public static void lockLendable() {
         if (ParallelWorldTicking.ENABLED) {
             acquire(true);
+        } else if (LevelThreads.SHARED) {
+            lockWaiting();
         }
     }
 
     public static void unlock() {
         if (ParallelWorldTicking.ENABLED) {
             release();
+        } else if (LevelThreads.SHARED) {
+            LOCK.unlock();
         }
     }
 
@@ -46,7 +55,19 @@ public final class ServerStateLock {
         if (ParallelWorldTicking.ENABLED) {
             acquire(true);
         } else {
+            lockWaiting();
+        }
+    }
+
+    private static void lockWaiting() {
+        if (LOCK.tryLock()) {
+            return;
+        }
+        final int chainHolds = NeighborChainLock.releaseForWait();
+        try {
             LOCK.lock();
+        } finally {
+            NeighborChainLock.reacquireAfterWait(chainHolds);
         }
     }
 
@@ -86,7 +107,7 @@ public final class ServerStateLock {
         if (ParallelWorldTicking.ENABLED) {
             acquire(true);
         } else {
-            LOCK.lock();
+            lockWaiting();
         }
         for (int i = 1; i < holds; i++) {
             LOCK.lock();
@@ -117,6 +138,7 @@ public final class ServerStateLock {
             RegionizedChunkTicking.beginBlocking();
         }
         boolean finished = !registered;
+        final int chainHolds = NeighborChainLock.releaseForWait();
         try {
             while (true) {
                 if (registered) {
@@ -131,6 +153,7 @@ public final class ServerStateLock {
                 LOCK.unlock();
             }
         } finally {
+            NeighborChainLock.reacquireAfterWait(chainHolds);
             if (worker) {
                 RegionizedChunkTicking.endBlocking();
             }
