@@ -5,10 +5,10 @@ Subject: [PATCH] Player data writer
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 1422eda837fb573f9f1646e12891e688e93c5baf..f229ff67d6da30f4cbcfd01b02d5d673343cd109 100644
+index 26b9bb0915a4a1ce34fb5a08cd2993f539a4ee37..8cc73e4146f1efa38ead4fbd51133eae997b1d50 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -516,6 +516,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -517,6 +517,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          LOGGER.warn("Performing emergency save...");
          LOGGER.info("Saving all players...");
          this.getPlayerList().saveAll();
@@ -16,7 +16,7 @@ index 1422eda837fb573f9f1646e12891e688e93c5baf..f229ff67d6da30f4cbcfd01b02d5d673
          LOGGER.info("Saved all players");
          LOGGER.info("Saving all worlds...");
          for (final ServerLevel world : this.getAllLevels()) {
-@@ -983,6 +984,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -984,6 +985,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          try {
              this.isSaving = true;
              this.getPlayerList().saveAll(); // Paper - Incremental chunk and player saving; diff on change
@@ -24,7 +24,7 @@ index 1422eda837fb573f9f1646e12891e688e93c5baf..f229ff67d6da30f4cbcfd01b02d5d673
              boolean result = this.saveAllChunks(silent, flush, force);
              this.warnOnLowDiskSpace();
              return result;
-@@ -1056,6 +1058,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1057,6 +1059,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.playerList.removeAll(this.isRestarting); // Paper
              this.getConnection().handleAllDisconnections(); // Paper
          }

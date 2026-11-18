@@ -262,10 +262,10 @@ index 3bd459b28aa59ba312de141cdca444bc05773ddd..02759d41005a7537a053f5f76881d009
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 0d4d93bb285ae21d27179e54360e5089302d1e15..0583a02a53b39e03cbb4a6063cf0372e73d0e9fc 100644
+index 2ccc176a2de65993a167aa0b8f59744ff51a57c7..0a3f25a11162d6c43335f4b2645b8a3dad86c2be 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -462,6 +462,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -463,6 +463,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          // DivineMC start - Parallel world ticking
          if (org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED && Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.ServerLevelTickThread levelThread) {
              return this.tickLevelMidTickTasks(levelThread.currentlyTickingServerLevel);
@@ -493,10 +493,10 @@ index 7ea72f6843e2a5a2a4b17e589142cd780eb99aec..6c110f8d11117190edc7a40ea33dc1e8
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea325a1ceea4 100644
+index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06cc35fbed2 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -209,8 +209,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -211,8 +211,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      private final LevelTicks<Block> blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
      private final LevelTicks<Fluid> fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
      private final PathTypeCache pathTypesByPosCache = new PathTypeCache();
@@ -509,7 +509,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
      private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
-@@ -540,6 +542,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -542,6 +544,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
     }
      // Paper end - rewrite chunk system
      // Paper start - chunk tick iteration
@@ -518,7 +518,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
      private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> playerTickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
      private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap playerTickingRequests = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
  
-@@ -550,65 +554,86 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -552,65 +556,86 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
@@ -639,7 +639,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
      // Paper end - chunk tick iteration
  
      // DivineMC start - MSPT Tracking for each world
-@@ -704,19 +729,37 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -706,19 +731,37 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          boolean syncWrites = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          // Paper - rewrite chunk system
@@ -690,7 +690,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
          this.portalForcer = new PortalForcer(this);
          if (this.canHaveWeather()) {
-@@ -920,40 +963,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -922,40 +965,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  profiler.pop();
              }
  
@@ -775,7 +775,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
          }
  
          profiler.push("entityManagement");
-@@ -1008,7 +1067,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1010,7 +1069,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
          final LevelChunkSection[] sections = chunk.getSections();
          final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this); // DivineMC - Optimize level ticking
@@ -784,7 +784,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
          final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
  
          final ChunkPos cpos = chunk.getPos();
-@@ -1051,7 +1110,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1053,7 +1112,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      // Paper end - optimise random ticking
  
      public void tickChunk(final LevelChunk chunk, final int tickSpeed) {
@@ -793,7 +793,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
          ChunkPos chunkPos = chunk.getPos();
          int minX = chunkPos.getMinBlockX();
          int minZ = chunkPos.getMinBlockZ();
-@@ -1720,6 +1779,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1722,6 +1781,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
      private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
@@ -801,7 +801,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
          // DivineMC start - Parallel world ticking
          if (org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED) {
              ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot add entity off-main");
-@@ -1741,10 +1801,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1743,10 +1803,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -815,7 +815,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1948,7 +2011,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1950,7 +2013,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
@@ -824,7 +824,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
          }
-@@ -1961,31 +2024,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1963,31 +2026,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -860,7 +860,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
              }
          }
          } // Paper - option to disable pathfinding updates
-@@ -1994,17 +2049,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1996,17 +2051,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -881,7 +881,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, null, orientation);
      }
  
-@@ -2138,7 +2193,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2140,7 +2195,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void blockEvent(final BlockPos pos, final Block block, final int b0, final int b1) {
@@ -894,7 +894,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
      }
  
      private void runBlockEvents() {
-@@ -3216,7 +3275,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3218,7 +3277,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -903,7 +903,7 @@ index c2b1c0b7d172c0491b223ac62ada090fba02aa7f..91abad092e1a0fb7574aadc63af7ea32
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -3286,7 +3345,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3288,7 +3347,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -1028,7 +1028,7 @@ index bbbcf299cc9a5d5f921c98da7dc5154c6fc4f840..4528885df508826ea22c28f3a3ec6ac9
          for (ServerPlayer player : this.players) {
              this.createConnection(player, waypoint);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 186a6b4acca9bc4379f76c14dddc8393af7d357b..882a3827b5f0543b1d7eb811ae1afdef0ed892e9 100644
+index 33103388d774c312d0893a2e0f8fb71ece83ee1f..34921b559d81bcfc6a4b05a46917c52c14417ad7 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -189,6 +189,26 @@ public abstract class Entity

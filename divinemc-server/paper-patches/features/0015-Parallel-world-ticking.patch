@@ -320,6 +320,40 @@ index 8b7a15af1eb2cc0318e26d7199c8e684de63cd72..781c3fe397429a71f8828e1cbcdd26cf
              }
          }
      }
+diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperPluginInstanceManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperPluginInstanceManager.java
+index 7b520d3955f271d1dc8b38c3c0fdf0acd3a521a5..a75db229cce3a93ef66ae28b6777e3586e0e0ead 100644
+--- a/src/main/java/io/papermc/paper/plugin/manager/PaperPluginInstanceManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/PaperPluginInstanceManager.java
+@@ -269,6 +269,7 @@ class PaperPluginInstanceManager {
+         // Paper start - Folia schedulers
+         try {
+             this.server.getGlobalRegionScheduler().cancelTasks(plugin);
++            if (org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED) org.bxteam.divinemc.async.pwt.LevelSchedulers.cancelTasks(plugin); // DivineMC - Parallel world ticking
+         } catch (Throwable ex) {
+             this.handlePluginException("Error occurred (in the plugin loader) while cancelling global tasks for "
+                 + pluginName + " (Is it up to date?)", ex, plugin); // Paper
+diff --git a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaEntityScheduler.java b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaEntityScheduler.java
+index 8dd612a8c632cbac03cd02bb457fd0605df46d1b..e86aa9264be84d7dbcb4a88514395939f2625386 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaEntityScheduler.java
++++ b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaEntityScheduler.java
+@@ -42,7 +42,7 @@ public final class FoliaEntityScheduler implements EntityScheduler {
+         final Consumer<? extends Entity> runNMS = wrap(plugin, run);
+         final Consumer<? extends Entity> runRetired = retired == null ? null : wrap(plugin, retired);
+ 
+-        return this.entity.taskScheduler.schedule(runNMS, runRetired, delay);
++        return org.bxteam.divinemc.async.pwt.LevelSchedulers.entityScheduler(this.entity, plugin).schedule(runNMS, runRetired, delay); // DivineMC - Parallel world ticking
+     }
+ 
+     @Override
+@@ -108,7 +108,7 @@ public final class FoliaEntityScheduler implements EntityScheduler {
+     }
+ 
+     private boolean scheduleInternal(final EntityScheduledTask ret, final long delay) {
+-        return this.entity.taskScheduler.schedule(ret, ret, delay);
++        return org.bxteam.divinemc.async.pwt.LevelSchedulers.entityScheduler(this.entity, ret.plugin).schedule(ret, ret, delay); // DivineMC - Parallel world ticking
+     }
+ 
+     private final class EntityScheduledTask implements ScheduledTask, Consumer<Entity> {
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
 index 6255006a5397811acc031dbf399cc916606f4dab..4d1de9e36b36a27cc632ea05199f295859118243 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
@@ -441,10 +475,19 @@ index 124420f4adf0bd27e9b84b81f9d5e10eeab2d7e0..964e570c0811a2df8061e4cd11acac02
  
          return !this.getHandle().noCollision(aabb);
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 4bd52a2b122d9757bc6de6a2174b24935b59faf7..54dc32aebc4944edf349d0f59dafe48e0a91c274 100644
+index 4bd52a2b122d9757bc6de6a2174b24935b59faf7..2cfb887b7db94ff685384fb7a23b7bad413c5275 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -3060,4 +3060,11 @@ public final class CraftServer implements Server {
+@@ -289,7 +289,7 @@ public final class CraftServer implements Server {
+     private final ServerConfiguration serverConfig = new PaperServerConfiguration();
+ 
+     // Paper start - Folia region threading API
+-    private final io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler regionizedScheduler = new io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler();
++    private final io.papermc.paper.threadedregions.scheduler.RegionScheduler regionizedScheduler = org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED ? new org.bxteam.divinemc.async.pwt.LevelRegionScheduler() : new io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler(); // DivineMC - Parallel world ticking
+     private final io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler asyncScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler();
+     private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
+ 
+@@ -3060,4 +3060,32 @@ public final class CraftServer implements Server {
          return getServer().lagging;
      }
      // Purpur end - Lagging threshold
@@ -454,10 +497,31 @@ index 4bd52a2b122d9757bc6de6a2174b24935b59faf7..54dc32aebc4944edf349d0f59dafe48e
 +    public boolean isParallelWorldTickingEnabled() {
 +        return org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED;
 +    }
++
++    @Override
++    public boolean isRegionizedChunkTickingEnabled() {
++        return org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking;
++    }
++
++    @Override
++    public boolean isPluginListenerSerializationEnabled() {
++        return org.bxteam.divinemc.concurrent.LevelThreads.SHARED && org.bxteam.divinemc.config.DivineConfig.AsyncCategory.serializePluginListeners;
++    }
++
++    @Override
++    public @Nullable World getCurrentTickingWorld() {
++        final ServerLevel level = org.bxteam.divinemc.concurrent.LevelThreads.current();
++        return level == null ? null : level.getWorld();
++    }
++
++    @Override
++    public boolean isOwnedByCurrentThread(final World world) {
++        return org.bxteam.divinemc.concurrent.LevelThreads.ownsLevel(((CraftWorld) world).getHandle());
++    }
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index c528f5e6fae2dcb4684bf8494da4847676edfdf0..cb1e27cb84d54164004cb7a8e8042e590a3242ae 100644
+index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdcf6d08770 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -226,6 +226,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
@@ -710,7 +774,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..cb1e27cb84d54164004cb7a8e8042e59
          Preconditions.checkArgument(structure != null, "Structure cannot be null");
  
          net.minecraft.core.Registry<net.minecraft.world.level.levelgen.structure.Structure> registry = CraftRegistry.getMinecraftRegistry(Registries.STRUCTURE);
-@@ -2108,4 +2148,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2108,4 +2148,20 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          return POINTERS_SUPPLIER.view(this);
      }
      // Paper end
@@ -723,6 +787,11 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..cb1e27cb84d54164004cb7a8e8042e59
 +    @Override
 +    public double getAverageTickTime() {
 +        return this.world.tickTimes5s.getAverage();
++    }
++
++    @Override
++    public org.bxteam.divinemc.world.WorldTickStatistics getTickStatistics() {
++        return this.world.tickCounters.snapshot();
 +    }
 +    // DivineMC end - Parallel world ticking
  }
@@ -907,6 +976,21 @@ index ec3343ecbe68b1c2a33f85edb3b527363affa9ba..3dfcaaabaaa58d5d6845ef579ed9023c
          this.requirePlaced();
          net.minecraft.world.item.ItemStack item = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(tool);
  
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index b6e29b4cf4451d55d50526003ff91ddf2e17c0ce..3a4553005f230fe51eb14d88f90f1512c6b5a465 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -115,6 +115,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+     private final CraftPersistentDataContainer persistentDataContainer = new CraftPersistentDataContainer(CraftEntity.DATA_TYPE_REGISTRY);
+     // Paper start - Folia shedulers
+     public final io.papermc.paper.threadedregions.EntityScheduler taskScheduler = new io.papermc.paper.threadedregions.EntityScheduler(this);
++    // DivineMC start - Parallel world ticking
++    public final io.papermc.paper.threadedregions.@Nullable EntityScheduler levelTaskScheduler = org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED ? new io.papermc.paper.threadedregions.EntityScheduler(this) : null;
++    public int levelTaskSchedulerTick = -1;
++    // DivineMC end - Parallel world ticking
+     private final io.papermc.paper.threadedregions.scheduler.FoliaEntityScheduler apiScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaEntityScheduler(this);
+ 
+     @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 index cce0fb6d98cd0dd7c6cd02c3513b1a2649ee5ba9..8b3d263cd370f8e92370b0d4cad1c722dae13fa7 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java

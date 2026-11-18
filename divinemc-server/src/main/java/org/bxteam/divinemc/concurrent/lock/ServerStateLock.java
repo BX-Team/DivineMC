@@ -1,12 +1,14 @@
 package org.bxteam.divinemc.concurrent.lock;
 
 import ca.spottedleaf.moonrise.common.util.TickThread;
+import org.bxteam.divinemc.async.LevelTickCounters;
 import org.bxteam.divinemc.async.pwt.LevelHandoff;
 import org.bxteam.divinemc.async.pwt.ParallelWorldTicking;
 import org.bxteam.divinemc.async.rct.NeighborChainLock;
 import org.bxteam.divinemc.async.rct.RegionizedChunkTicking;
 import org.bxteam.divinemc.concurrent.LevelThreads;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -63,11 +65,13 @@ public final class ServerStateLock {
         if (LOCK.tryLock()) {
             return;
         }
+        final long start = System.nanoTime();
         final int chainHolds = NeighborChainLock.releaseForWait();
         try {
             LOCK.lock();
         } finally {
             NeighborChainLock.reacquireAfterWait(chainHolds);
+            countWait(start);
         }
     }
 
@@ -132,6 +136,22 @@ public final class ServerStateLock {
     }
 
     private static void waitForLock(final Thread current, final boolean lendable) {
+        final long start = System.nanoTime();
+        try {
+            waitForLockTimed(current, lendable);
+        } finally {
+            countWait(start);
+        }
+    }
+
+    private static void countWait(final long start) {
+        final @Nullable LevelTickCounters counters = LevelTickCounters.ofCurrentThread();
+        if (counters != null) {
+            counters.addServerStateLockWait(System.nanoTime() - start);
+        }
+    }
+
+    private static void waitForLockTimed(final Thread current, final boolean lendable) {
         final boolean registered = LevelHandoff.waitForStateLock(lendable);
         final boolean worker = registered && current instanceof TickThread.RegionTickThread;
         if (worker) {

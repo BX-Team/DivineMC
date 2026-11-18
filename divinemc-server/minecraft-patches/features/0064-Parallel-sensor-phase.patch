@@ -9,10 +9,10 @@ so the world can't mutate. Sensors unsafe off-thread opt out via
 divinemc$canRunAsync, and TargetingConditions are made thread-local.
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 8045d20de8d6932a77a48519a6bd687e8a00cdf7..b1a4886389efd63a08ee4d49faab03b4c0264bf3 100644
+index b24acf4b7ecb7c4134896f7e2b32a8081b299ef4..b51afbfcb094e0900ef18efa6f66a1df929af176 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -978,6 +978,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -980,6 +980,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  this.spigotConfig.currentPrimedTnt = 0; // Spigot
              } else {
                  io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR

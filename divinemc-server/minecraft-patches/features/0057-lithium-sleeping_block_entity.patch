@@ -71,10 +71,10 @@ index d8cacf975c2c35e5fe7370bd5b007fbe0d4bd031..444428283839c106f4859fcf2cb6ab24
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index d486b355c0ccca9ba0ad3d2f6906573e8f713788..d3b28fd03f7ca75315ab9b87a4bcbf8fa75048b9 100644
+index de1bc8c8bb1017a2f1de01cf6f1e723152d88726..337231728d0a2679e716b166018d78aa66b68c91 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2934,6 +2934,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2936,6 +2936,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
          for (TickingBlockEntity ticker : this.blockEntityTickers) {
              BlockPos blockPos = ticker.getPos();
@@ -96,7 +96,7 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 57b4221306cc685092ce136302fb81145c322bbf..42c329a35549c407b94d821ea13b11c6ba050bd5 100644
+index ef5fa82640210a831cf53df6a0c1532d4836b1cf..1b7c2a40187769d51fd5ed66227566bb3adc9339 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -5305,6 +5305,18 @@ public abstract class Entity

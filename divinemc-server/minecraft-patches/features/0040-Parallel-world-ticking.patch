@@ -436,18 +436,19 @@ index c1257e0413c4ee5e924a5a8db7205514d411b4fb..e6c567f6ede8c7cde651666af506c403
                  // Paper end
                  // CraftBukkit start
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 571f1962cf1637613d24c25b5964b56ce8900cbb..0fc2da0596c4a699e814ae32a91db819d6e3df7f 100644
+index 571f1962cf1637613d24c25b5964b56ce8900cbb..fa1df405635783f3d154f36ad9ec5438443e7169 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -335,6 +335,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -335,6 +335,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      public boolean lagging = false; // Purpur - Lagging threshold
      protected boolean upnp = false; // Purpur - UPnP Port Forwarding
      public gg.pufferfish.pufferfish.util.AsyncExecutor mobSpawnExecutor = new gg.pufferfish.pufferfish.util.AsyncExecutor("Mob Spawning"); // DivineMC - Pufferfish: Optimize mob spawning
 +    public org.bxteam.divinemc.async.pwt.@org.jspecify.annotations.Nullable WorldTickScheduler worldTickScheduler; // DivineMC - Parallel world ticking
++    public @org.jspecify.annotations.Nullable ServerLevel serialTickingLevel; // DivineMC - Parallel world ticking - the level the server thread ticks, read by that thread only
      // Paper start - improve tick loop
      public final ca.spottedleaf.common.time.TickData tickTimes1s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
      public final ca.spottedleaf.common.time.TickData tickTimes5s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
-@@ -438,33 +439,45 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -438,33 +440,45 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      private static final long MAX_CHUNK_EXEC_TIME = 1000L; // 1us
      private static final long TASK_EXECUTION_FAILURE_BACKOFF = 5L * 1000L; // 5us
  
@@ -509,7 +510,7 @@ index 571f1962cf1637613d24c25b5964b56ce8900cbb..0fc2da0596c4a699e814ae32a91db819
              // it's shown to be bad to constantly hit the queue (chunk loads slow to a crawl), even if no tasks are executed.
              // so, backoff to prevent this
              return;
-@@ -477,7 +490,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -477,7 +491,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
              if (!moreTasks || diff >= MAX_CHUNK_EXEC_TIME) {
                  if (!moreTasks) {
@@ -518,7 +519,7 @@ index 571f1962cf1637613d24c25b5964b56ce8900cbb..0fc2da0596c4a699e814ae32a91db819
                  }
  
                  // note: negative values reduce the time
-@@ -490,7 +503,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -490,7 +504,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  final double overuseCount = (double)overuse/(double)MAX_CHUNK_EXEC_TIME;
                  final long extraSleep = (long)Math.round(overuseCount*CHUNK_TASK_QUEUE_BACKOFF_MIN_TIME);
  
@@ -527,7 +528,7 @@ index 571f1962cf1637613d24c25b5964b56ce8900cbb..0fc2da0596c4a699e814ae32a91db819
                  return;
              }
          }
-@@ -1526,6 +1539,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1526,6 +1540,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      @Override
      protected boolean pollTask() {
@@ -539,18 +540,21 @@ index 571f1962cf1637613d24c25b5964b56ce8900cbb..0fc2da0596c4a699e814ae32a91db819
          boolean mayHaveMoreTasks = this.packetProcessor.executeSinglePacket() | this.pollTaskInternal(); // Paper - improve tick loop - process packets while waiting inbetween ticks
          this.mayHaveDelayedTasks = mayHaveMoreTasks;
          return mayHaveMoreTasks;
-@@ -1782,6 +1800,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1782,6 +1801,21 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList(); // Paper - optimise Folia entity scheduler
  
 +    // DivineMC start - Parallel world ticking
 +    public void tickLevel(ServerLevel serverLevel, BooleanSupplier haveTime) {
++        if (this.worldTickScheduler == null) this.serialTickingLevel = serverLevel;
 +        try {
 +            serverLevel.tick(haveTime);
 +        } catch (Throwable levelTickingException) {
 +            CrashReport crashReport = CrashReport.forThrowable(levelTickingException, "Exception ticking world");
 +            serverLevel.fillReportDetails(crashReport);
 +            throw new ReportedException(crashReport);
++        } finally {
++            if (this.worldTickScheduler == null) this.serialTickingLevel = null;
 +        }
 +    }
 +    // DivineMC end - Parallel world ticking
@@ -558,7 +562,7 @@ index 571f1962cf1637613d24c25b5964b56ce8900cbb..0fc2da0596c4a699e814ae32a91db819
      protected void tickChildren(final BooleanSupplier haveTime) {
          ProfilerFiller profiler = Profiler.get();
          this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.suspendFlushing());
-@@ -1838,21 +1868,23 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1838,21 +1872,28 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              level.hasRidableMoveEvent = org.purpurmc.purpur.event.entity.RidableMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Purpur - Ridables
              level.updateLagCompensationTick(); // Paper - lag compensation
              net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents = level.paperConfig().hopper.disableMoveEvent || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper - Perf: Optimize Hoppers
@@ -584,12 +588,17 @@ index 571f1962cf1637613d24c25b5964b56ce8900cbb..0fc2da0596c4a699e814ae32a91db819
              profiler.pop();
 -            level.explosionDensityCache.clear(); // Paper - Optimize explosions
 +            if (this.worldTickScheduler == null) level.explosionDensityCache.clear(); // Paper - Optimize explosions // DivineMC - Parallel world ticking - a level thread clears its own
++        }
++        // DivineMC start - Parallel world ticking
++        if (this.worldTickScheduler != null) {
++            this.worldTickScheduler.tickPrepared();
++            org.bxteam.divinemc.async.pwt.LevelSchedulers.tickMissed(this.tickCount);
          }
-+        if (this.worldTickScheduler != null) this.worldTickScheduler.tickPrepared(); // DivineMC - Parallel world ticking
++        // DivineMC end - Parallel world ticking
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
          profiler.popPush("connection");
-@@ -1943,6 +1975,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1943,6 +1984,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
          Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
          newLevels.remove(level.dimension());
@@ -597,7 +606,7 @@ index 571f1962cf1637613d24c25b5964b56ce8900cbb..0fc2da0596c4a699e814ae32a91db819
          this.levels = Collections.unmodifiableMap(newLevels);
      }
      // CraftBukkit end
-@@ -2371,7 +2404,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2371,7 +2413,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  // Paper end
                  new io.papermc.paper.event.server.ServerResourcesReloadedEvent(cause).callEvent(); // Paper - Add ServerResourcesReloadedEvent; fire after everything has been reloaded
              }, this);
@@ -655,19 +664,21 @@ index c7dfa3225acc9a483b773101073c2987889d0e34..7ea72f6843e2a5a2a4b17e589142cd78
          final CompletableFuture<ChunkAccess> completable = new CompletableFuture<>();
          chunkTaskScheduler.scheduleChunkLoad(
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index be3a98b1f93b47eb9492863a2b5a23877567f19d..a5c947acb0943aa0b143234d7790d7f617581e06 100644
+index be3a98b1f93b47eb9492863a2b5a23877567f19d..e4521c2f9181893c14b559f283137ea10f15bad2 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -197,7 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -197,7 +197,9 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      public final ServerChunkCache chunkSource;
      private final MinecraftServer server;
      public final io.papermc.paper.world.saveddata.PaperLevelOverrides serverLevelData; // Paper - type
 -    public final EntityTickList entityTickList = new EntityTickList();
 +    public final EntityTickList entityTickList = new EntityTickList(this); // DivineMC - Parallel world ticking
++    public final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler pluginRegionTasks = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler(); // DivineMC - Parallel world ticking
++    public final org.bxteam.divinemc.async.LevelTickCounters tickCounters = new org.bxteam.divinemc.async.LevelTickCounters(); // DivineMC - Parallel world ticking
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
      // Paper - rewrite chunk system
-@@ -1701,6 +1701,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1701,6 +1703,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      }
  
      private void addPlayer(final ServerPlayer player) {
@@ -675,7 +686,7 @@ index be3a98b1f93b47eb9492863a2b5a23877567f19d..a5c947acb0943aa0b143234d7790d7f6
          Entity existing = this.getEntity(player.getUUID());
          if (existing != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -1713,7 +1714,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1713,7 +1716,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
      private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
@@ -850,7 +861,7 @@ index a218431bd53512e1073a2df080d522026a541264..06823ffc9d8d5913c34f6d68acedca77
  
      private RandomSequence createSequence(final Identifier key, final long worldSeed) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 584c967ddd4a5af96b35011557574468e0f6289f..186a6b4acca9bc4379f76c14dddc8393af7d357b 100644
+index 584c967ddd4a5af96b35011557574468e0f6289f..33103388d774c312d0893a2e0f8fb71ece83ee1f 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -3764,10 +3764,14 @@ public abstract class Entity
@@ -887,6 +898,20 @@ index 584c967ddd4a5af96b35011557574468e0f6289f..186a6b4acca9bc4379f76c14dddc8393
          List<Entity> oldPassengers = this.getPassengers();
          List<Entity> newPassengers = new ArrayList<>(oldPassengers.size());
          this.ejectPassengers();
+@@ -5473,11 +5479,13 @@ public abstract class Entity
+     public final void retireScheduler() {
+         // we need to force create the bukkit entity so that the scheduler can be retired...
+         this.getBukkitEntity().taskScheduler.retire();
++        org.bxteam.divinemc.async.pwt.LevelSchedulers.retire(this.getBukkitEntity()); // DivineMC - Parallel world ticking
+     }
+     // Paper end - Folia schedulers
+     // Paper start - optimise Folia entity scheduler
+     public final void registerScheduler() {
+         this.getBukkitEntity().taskScheduler.registerTo(net.minecraft.server.MinecraftServer.getServer().entitySchedulerTickList);
++        org.bxteam.divinemc.async.pwt.LevelSchedulers.register(this.getBukkitEntity()); // DivineMC - Parallel world ticking
+     }
+     // Paper end - optimise Folia entity scheduler
+ 
 diff --git a/net/minecraft/world/entity/EntitySelector.java b/net/minecraft/world/entity/EntitySelector.java
 index d449654d21a9d160c1a2825f6c8bee1a166a4a72..a3f5fa170240ad5b81b9ab3fcf8f5e81958c9322 100644
 --- a/net/minecraft/world/entity/EntitySelector.java

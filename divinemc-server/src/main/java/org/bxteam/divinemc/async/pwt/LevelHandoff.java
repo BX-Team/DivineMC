@@ -4,6 +4,7 @@ import ca.spottedleaf.moonrise.common.util.TickThread;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import org.bxteam.divinemc.async.LevelTickCounters;
 import org.bxteam.divinemc.async.rct.RegionizedChunkTicking;
 import org.bxteam.divinemc.concurrent.lock.ServerStateLock;
 import org.jspecify.annotations.NullMarked;
@@ -48,17 +49,29 @@ public final class LevelHandoff {
     static final class Slot {
         final Object level;
         final String name;
+        final @Nullable LevelTickCounters counters;
         @Nullable Thread owner;
         @Nullable Thread lentTo;
         int activeWorkers;
 
         Slot(final ServerLevel level) {
-            this(level, level.getWorld().getName());
+            this(level, level.getWorld().getName(), level.tickCounters);
         }
 
         Slot(final Object level, final String name) {
+            this(level, name, null);
+        }
+
+        private Slot(final Object level, final String name, final @Nullable LevelTickCounters counters) {
             this.level = level;
             this.name = name;
+            this.counters = counters;
+        }
+
+        void countTakeOver() {
+            if (this.counters != null) {
+                this.counters.countTakeOver();
+            }
         }
 
         @Nullable Thread effectiveOwner() {
@@ -158,6 +171,7 @@ public final class LevelHandoff {
         if (slot.owner == null && slot.lentTo == null) {
             slot.owner = thread;
             holder.held.add(slot);
+            slot.countTakeOver();
             return true;
         }
         if (canBorrow(thread, slot)) {
@@ -168,6 +182,17 @@ public final class LevelHandoff {
     }
 
     private static boolean waitAndTake(final Thread thread, final Holder holder, final Object own, final Slot slot) {
+        final long start = System.nanoTime();
+        try {
+            return waitAndTakeTimed(thread, holder, own, slot);
+        } finally {
+            if (own instanceof ServerLevel level) {
+                level.tickCounters.addCrossWorldWait(System.nanoTime() - start);
+            }
+        }
+    }
+
+    private static boolean waitAndTakeTimed(final Thread thread, final Holder holder, final Object own, final Slot slot) {
         boolean compensated = false;
         @Nullable InterruptedException interrupted = null;
         synchronized (MONITOR) {
@@ -219,8 +244,12 @@ public final class LevelHandoff {
     static void beginTick(final LevelTickThread thread, final Slot slot) {
         final Holder holder = thread.handoff;
         boolean interrupted = false;
+        long delayedSince = 0L;
         synchronized (MONITOR) {
             holder.waitingFor = slot;
+            if (slot.owner != null || slot.lentTo != null) {
+                delayedSince = System.nanoTime();
+            }
             try {
                 // an interrupt must not end the wait: taking a held level would give it two owners
                 while (slot.owner != null || slot.lentTo != null) {
@@ -234,6 +263,9 @@ public final class LevelHandoff {
                 holder.waitingFor = null;
             }
             slot.owner = thread;
+        }
+        if (delayedSince != 0L && slot.counters != null) {
+            slot.counters.addTickStartDelay(System.nanoTime() - delayedSince);
         }
         if (interrupted) {
             Thread.currentThread().interrupt();
@@ -442,6 +474,7 @@ public final class LevelHandoff {
         }
         slot.lentTo = thread;
         owner.lent.add(slot);
+        slot.countTakeOver();
         if (owner.waitingFor == STATE_LOCK && stateLockOwner == thread) {
             holder.borrowedForStateLock.add(slot);
         } else {
