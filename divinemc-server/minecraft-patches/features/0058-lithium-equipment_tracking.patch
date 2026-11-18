@@ -16,10 +16,10 @@ As part of: Lithium (https://github.com/CaffeineMC/lithium)
 Licensed under: LGPL-3.0 (https://www.gnu.org/licenses/lgpl-3.0.html)
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 1b7c2a40187769d51fd5ed66227566bb3adc9339..e6884ced42059e5db5b63aeeb0f40bd2b8977199 100644
+index 06bc032b439059eba33c36d7689e2d39b628417a..40969eab2d585223558176b3e47177871120434a 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5494,6 +5494,7 @@ public abstract class Entity
+@@ -5491,6 +5491,7 @@ public abstract class Entity
      @Override
      public void setLevelCallback(final EntityInLevelCallback levelCallback) {
          this.levelCallback = levelCallback;
@@ -223,7 +223,7 @@ index 1aa888376784dfc9ddd9c4e2493031ff2a564b59..681451c2301b1ff04a69385ffc5ce412
 +    // DivineMC end - lithium: equipment_tracking
  }
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 68c91e8cc3a604a579f4347e740411f37e823b5f..0ea884fe7482ce335a68cd54a1a6ca1ecd10cfbd 100644
+index 8bf74e119ee41174b461ea89129e77d38538cb1b..8d8ad8f63c3a65cfe043f5edff3d8cff87ba23a9 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
 @@ -458,9 +458,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
@@ -246,7 +246,7 @@ index 68c91e8cc3a604a579f4347e740411f37e823b5f..0ea884fe7482ce335a68cd54a1a6ca1e
  
          super.baseTick();
          ProfilerFiller profiler = Profiler.get();
-@@ -3651,6 +3659,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3645,6 +3653,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      public void detectEquipmentUpdates() {
          Map<EquipmentSlot, ItemStack> changedItems = this.collectEquipmentChanges(this.lastEquipmentItems);
          if (changedItems != null) {
@@ -254,7 +254,7 @@ index 68c91e8cc3a604a579f4347e740411f37e823b5f..0ea884fe7482ce335a68cd54a1a6ca1e
              this.handleHandSwap(changedItems);
              if (!changedItems.isEmpty()) {
                  this.handleEquipmentChanges(changedItems);
-@@ -3659,6 +3668,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3653,6 +3662,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      }
  
      protected @Nullable Map<EquipmentSlot, ItemStack> collectEquipmentChanges(final Map<EquipmentSlot, ItemStack> lastEquipmentItems) {

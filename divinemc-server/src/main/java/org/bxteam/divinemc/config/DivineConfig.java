@@ -211,7 +211,8 @@ public class DivineConfig {
             ConfigCategory.ASYNC.key("chunk-sending.max-threads"),
             ConfigCategory.ASYNC.key("guru-mode.async-chunk-sending-affinity"),
             ConfigCategory.PERFORMANCE.key("chunks.experimental.enable-density-function-compiler"),
-            ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer")
+            ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer"),
+            ConfigCategory.PERFORMANCE.key("optimizations.skip-useless-secondary-poi-sensor")
         );
     }
 
@@ -609,7 +610,6 @@ public class DivineConfig {
 
         // General optimizations
         public static boolean disableMethodProfiler = true;
-        public static boolean skipUselessSecondaryPoiSensor = true;
         public static boolean clumpOrbs = false;
         public static boolean enableSuffocationOptimization = true;
         public static boolean useCompactBitStorage = false;
@@ -649,6 +649,7 @@ public class DivineConfig {
 
         public static void load() {
             chunkSettings();
+            restartOnly(PerformanceCategory::viewDistanceLimit);
             optimizationSettings();
             dab();
             virtualThreads();
@@ -688,8 +689,6 @@ public class DivineConfig {
 
             chunkDataCacheSoftLimit = getLong(ConfigCategory.PERFORMANCE.key("chunks.chunk-data-cache-soft-limit"), chunkDataCacheSoftLimit);
             chunkDataCacheLimit = getLong(ConfigCategory.PERFORMANCE.key("chunks.chunk-data-cache-limit"), chunkDataCacheLimit);
-            maxViewDistance = getInt(ConfigCategory.PERFORMANCE.key("chunks.max-view-distance"), maxViewDistance,
-                "Changes the maximum view distance for the server, allowing clients to have render distances higher than 32");
             playerNearChunkDetectionRange = getInt(ConfigCategory.PERFORMANCE.key("chunks.player-near-chunk-detection-range"), playerNearChunkDetectionRange,
                 "In certain checks, like if a player is near a chunk(primarily used for spawning), it checks if the player is within a certain",
                 "circular range of the chunk. This configuration allows configurability of the distance(in blocks) the player must be to pass the check.",
@@ -708,10 +707,14 @@ public class DivineConfig {
             }
         }
 
+        private static void viewDistanceLimit() {
+            maxViewDistance = getInt(ConfigCategory.PERFORMANCE.key("chunks.max-view-distance"), maxViewDistance,
+                "Changes the maximum view distance for the server, allowing clients to have render distances higher than 32");
+        }
+
         private static void optimizationSettings() {
             disableMethodProfiler = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.disable-method-profiler"), disableMethodProfiler,
                 "Disables the method profiler to save some performance. Mainly used for debugging purposes.");
-            skipUselessSecondaryPoiSensor = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.skip-useless-secondary-poi-sensor"), skipUselessSecondaryPoiSensor);
             clumpOrbs = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.clump-orbs"), clumpOrbs,
                 "Clumps experience orbs together to reduce entity count");
             enableSuffocationOptimization = getBoolean(ConfigCategory.PERFORMANCE.key("optimizations.enable-suffocation-optimization"), enableSuffocationOptimization,

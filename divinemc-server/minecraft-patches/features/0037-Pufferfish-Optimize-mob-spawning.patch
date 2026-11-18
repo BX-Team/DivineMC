@@ -9,7 +9,7 @@ Original project: https://github.com/pufferfish-gg/Pufferfish
 This patch reduces the main-thread impact of mob spawning by moving spawning work to other threads
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 10f4636b861971c9bb9be430c78902523019f2f9..571f1962cf1637613d24c25b5964b56ce8900cbb 100644
+index 5564c31d273b43b0d064105ed877cb592066a6ec..8d96d76f60ad7ef69243af856a67d3e668ca75cf 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -334,6 +334,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -21,10 +21,10 @@ index 10f4636b861971c9bb9be430c78902523019f2f9..571f1962cf1637613d24c25b5964b56c
      public final ca.spottedleaf.common.time.TickData tickTimes1s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
      public final ca.spottedleaf.common.time.TickData tickTimes5s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index c04b5370935f8eed8923e5c2d90d0ea0e6f63639..81a5dd6899f84d62bb1d15e47d536393b006ea41 100644
+index ccc3e73271e1c6a96ecf9380b52ae3e0336f6193..81eac59556c716d7538b28d630e572b68781030e 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -430,7 +430,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -410,7 +410,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
  
          org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur - Implement TPSBar
          if (org.purpurmc.purpur.PurpurConfig.beeCountPayload) org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur - Give bee counts in beehives to Purpur clients

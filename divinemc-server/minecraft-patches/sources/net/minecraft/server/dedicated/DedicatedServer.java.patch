@@ -1,32 +1,5 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -261,6 +_,26 @@
-         org.purpurmc.purpur.PurpurConfig.registerCommands();
-         // Purpur end - Purpur config files
-         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
-+ 
-+        // DivineMC start - Pufferfish: SIMD Support
-+        try {
-+            gg.pufferfish.pufferfish.simd.SIMDDetection.isEnabled = gg.pufferfish.pufferfish.simd.SIMDDetection.canEnable(LOGGER);
-+            gg.pufferfish.pufferfish.simd.SIMDDetection.versionLimited = gg.pufferfish.pufferfish.simd.SIMDDetection.getJavaVersion() < gg.pufferfish.pufferfish.simd.SIMDDetection.MIN_JAVA_VERSION || gg.pufferfish.pufferfish.simd.SIMDDetection.getJavaVersion() > gg.pufferfish.pufferfish.simd.SIMDDetection.MAX_JAVA_VERSION;
-+        } catch (final NoClassDefFoundError | Exception ignored) {
-+            ignored.printStackTrace();
-+        }
-+
-+        if (gg.pufferfish.pufferfish.simd.SIMDDetection.isEnabled) {
-+            LOGGER.info("SIMD operations detected as functional. Will replace some operations with faster versions.");
-+        } else if (gg.pufferfish.pufferfish.simd.SIMDDetection.versionLimited) {
-+            LOGGER.warn("Will not enable SIMD! These optimizations are only safely supported on Java {}-{}", gg.pufferfish.pufferfish.simd.SIMDDetection.MIN_JAVA_VERSION, gg.pufferfish.pufferfish.simd.SIMDDetection.MAX_JAVA_VERSION);
-+        } else {
-+            LOGGER.warn("SIMD operations are available for your server, but are not configured!");
-+            LOGGER.warn("To enable additional optimizations, add \"--add-modules=jdk.incubator.vector\" to your startup flags, BEFORE the \"-jar\".");
-+            LOGGER.warn("If you have already added this flag, then SIMD operations are not supported on your JVM or CPU.");
-+            LOGGER.warn("Debug: Java: {}, test run: {}", System.getProperty("java.version"), gg.pufferfish.pufferfish.simd.SIMDDetection.testRun);
-+        }
-+        // DivineMC end - Pufferfish: SIMD Support
- 
-         // this.worldData.setGameType(properties.gameMode.get()); // CraftBukkit - moved to world loading
-         LOGGER.info("Default game type: {}", properties.gameMode.get());
 @@ -337,7 +_,7 @@
          String proxyFlavor = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "Velocity" : "BungeeCord";
          String proxyLink = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "https://docs.papermc.io/velocity/security" : "http://www.spigotmc.org/wiki/firewall-guide/";

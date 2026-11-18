@@ -262,7 +262,7 @@ index 3bd459b28aa59ba312de141cdca444bc05773ddd..02759d41005a7537a053f5f76881d009
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 2ccc176a2de65993a167aa0b8f59744ff51a57c7..0a3f25a11162d6c43335f4b2645b8a3dad86c2be 100644
+index c036bfe20dfbf773cdb21c31250f68952f2d865e..772d408f7c816884e3d4fb3dcefe7965c0a235c4 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -463,6 +463,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -493,7 +493,7 @@ index 7ea72f6843e2a5a2a4b17e589142cd780eb99aec..6c110f8d11117190edc7a40ea33dc1e8
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06cc35fbed2 100644
+index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3ad270289b 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -211,8 +211,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -775,16 +775,16 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
          }
  
          profiler.push("entityManagement");
-@@ -1010,7 +1069,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1009,7 +1068,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
          final LevelChunkSection[] sections = chunk.getSections();
-         final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this); // DivineMC - Optimize level ticking
+         final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection((ServerLevel)(Object)this);
 -        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
 +        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = org.bxteam.divinemc.async.rct.UnitRandoms.simpleRandom(this, this.simpleRandom); // DivineMC - Regionized Chunk Ticking
          final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
  
          final ChunkPos cpos = chunk.getPos();
-@@ -1053,7 +1112,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1056,7 +1115,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      // Paper end - optimise random ticking
  
      public void tickChunk(final LevelChunk chunk, final int tickSpeed) {
@@ -793,7 +793,7 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
          ChunkPos chunkPos = chunk.getPos();
          int minX = chunkPos.getMinBlockX();
          int minZ = chunkPos.getMinBlockZ();
-@@ -1722,6 +1781,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1725,6 +1784,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
      private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
@@ -801,7 +801,7 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
          // DivineMC start - Parallel world ticking
          if (org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED) {
              ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot add entity off-main");
-@@ -1743,10 +1803,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1746,10 +1806,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -815,7 +815,7 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1950,7 +2013,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1953,7 +2016,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
@@ -824,7 +824,7 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
          }
-@@ -1963,31 +2026,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1966,31 +2029,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -860,7 +860,7 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
              }
          }
          } // Paper - option to disable pathfinding updates
-@@ -1996,17 +2051,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1999,17 +2054,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -881,7 +881,7 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, null, orientation);
      }
  
-@@ -2140,7 +2195,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2143,7 +2198,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void blockEvent(final BlockPos pos, final Block block, final int b0, final int b1) {
@@ -894,7 +894,7 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
      }
  
      private void runBlockEvents() {
-@@ -3218,7 +3277,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3221,7 +3280,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -903,7 +903,7 @@ index df77a2eb391973a567ad4d3563ba6092cc28add4..219bdff969ecb6388ec5fc222c81f06c
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -3288,7 +3347,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3291,7 +3350,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -1028,7 +1028,7 @@ index bbbcf299cc9a5d5f921c98da7dc5154c6fc4f840..4528885df508826ea22c28f3a3ec6ac9
          for (ServerPlayer player : this.players) {
              this.createConnection(player, waypoint);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 33103388d774c312d0893a2e0f8fb71ece83ee1f..34921b559d81bcfc6a4b05a46917c52c14417ad7 100644
+index 0f206fd39473a3bed0d730c495e30ca48c73d47c..732de6f5e6f7dbeed3239d05911429ca824833df 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -189,6 +189,26 @@ public abstract class Entity
@@ -1426,10 +1426,10 @@ index 6cabc49464d34cb5282b7fa3bcfee20953d7e347..bf6d1391ca191eddaefda11946ba767c
          }
      }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index adc1a1945010f9cd438221d9b386fec08fcc6799..b9123e7247a6e53092d7671c19b6ff439256357d 100644
+index 5a12b53ebfea736c14fa8ed05d867209e6b9a442..cee813299b4928b2e11dd66f8a2d6bda923b6060 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -436,7 +436,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -429,7 +429,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
              return null;
          }
  
@@ -1438,7 +1438,7 @@ index adc1a1945010f9cd438221d9b386fec08fcc6799..b9123e7247a6e53092d7671c19b6ff43
              state.onPlace(this.level, pos, oldState, movedByPiston);
          }
  
-@@ -480,7 +480,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -473,7 +473,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
  
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos, final LevelChunk.EntityCreationType creationType) {
          // CraftBukkit start
@@ -1447,7 +1447,7 @@ index adc1a1945010f9cd438221d9b386fec08fcc6799..b9123e7247a6e53092d7671c19b6ff43
          if (blockEntity == null) {
              blockEntity = this.blockEntities.get(pos);
          }
-@@ -667,13 +667,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -660,13 +660,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
  
                  org.bukkit.World world = this.level.getWorld();
                  if (world != null) {

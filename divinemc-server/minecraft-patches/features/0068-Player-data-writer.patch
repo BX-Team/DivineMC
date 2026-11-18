@@ -5,7 +5,7 @@ Subject: [PATCH] Player data writer
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 26b9bb0915a4a1ce34fb5a08cd2993f539a4ee37..8cc73e4146f1efa38ead4fbd51133eae997b1d50 100644
+index e39cf1de886b7b906fa261a0d508796b8e7be85f..7c2d38258f40a2ec786e2220c72b4417bd26fbba 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -517,6 +517,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -24,7 +24,7 @@ index 26b9bb0915a4a1ce34fb5a08cd2993f539a4ee37..8cc73e4146f1efa38ead4fbd51133eae
              boolean result = this.saveAllChunks(silent, flush, force);
              this.warnOnLowDiskSpace();
              return result;
-@@ -1057,6 +1059,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1050,6 +1052,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.playerList.removeAll(this.isRestarting); // Paper
              this.getConnection().handleAllDisconnections(); // Paper
          }
@@ -33,7 +33,7 @@ index 26b9bb0915a4a1ce34fb5a08cd2993f539a4ee37..8cc73e4146f1efa38ead4fbd51133eae
          LOGGER.info("Saving worlds");
  
 diff --git a/net/minecraft/server/PlayerAdvancements.java b/net/minecraft/server/PlayerAdvancements.java
-index 14591f7cbe9408e18ce14af0624b46d4d40c2891..8687a07d1a472ca3450ed2d65e16904ae6b168a7 100644
+index f9811af7971cd0d1a04377472211f93f75e0673e..45d67d7b26083a94aa42cf1eb97b0f07efca4cef 100644
 --- a/net/minecraft/server/PlayerAdvancements.java
 +++ b/net/minecraft/server/PlayerAdvancements.java
 @@ -111,6 +111,7 @@ public class PlayerAdvancements {

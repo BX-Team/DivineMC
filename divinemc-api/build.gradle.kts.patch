@@ -98,14 +98,13 @@
      )
      options.tags(projectCustomJavadocTags.map { it.toOptionString() })
  
-@@ -247,7 +_,20 @@
+@@ -247,7 +_,18 @@
              into("build/docs/javadoc")
          }
      }
 -}
 +
 +    options.addStringOption("Xdoclint:none", "-quiet") // DivineMC - Hide unnecessary javadoc warnings
-+    options.addStringOption("-add-modules", "jdk.incubator.vector") // DivineMC - Required for simd
 +}
 +
 +// DivineMC start - Hide unnecessary compilation warnings
@@ -114,7 +113,6 @@
 +    compilerArgs.add("-Xlint:-module")
 +    compilerArgs.add("-Xlint:-removal")
 +    compilerArgs.add("-Xlint:-dep-ann")
-+    compilerArgs.add("--add-modules=jdk.incubator.vector")
 +}
 +// DivineMC end - Hide unnecessary compilation warnings
  
