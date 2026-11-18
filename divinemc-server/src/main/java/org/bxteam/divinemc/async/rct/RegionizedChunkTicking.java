@@ -39,9 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingAffinity;
 import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadCount;
 import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.regionizedChunkTickingExecutorThreadPriority;
-import static org.bxteam.divinemc.config.DivineConfig.GuruMode.regionizedChunkTickingAffinity;
 
 public final class RegionizedChunkTicking extends ServerChunkCache {
     public static final Executor REGION_EXECUTOR = Executors.newFixedThreadPool(regionizedChunkTickingExecutorThreadCount,
