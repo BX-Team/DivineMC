@@ -3,16 +3,20 @@ package org.bxteam.divinemc.config;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.simpleyaml.configuration.ConfigurationSection;
+import org.simpleyaml.configuration.comments.CommentType;
 
 import java.io.IOException;
+import java.util.Objects;
 
-@SuppressWarnings("unused")
+@NullMarked
 public class DivineWorldConfig {
     private final String legacyWorldName;
     private final String worldName;
     private final World.Environment environment;
+    private boolean changed;
 
     public DivineWorldConfig(String legacyWorldName, World.Environment environment, Key worldKey) throws IOException {
         this.legacyWorldName = legacyWorldName;
@@ -22,40 +26,62 @@ public class DivineWorldConfig {
     }
 
     public void init() throws IOException {
+        this.changed = false;
         if (DivineConfig.configVersion < 8) {
             ConfigurationSection section = DivineConfig.config.getConfigurationSection("world-settings." + this.legacyWorldName);
             if (section != null) {
                 DivineConfig.config.set("world-settings." + this.legacyWorldName, null);
                 DivineConfig.config.set("world-settings." + this.worldName, section);
                 Bukkit.getLogger().info("NOTE: Migrated DivineMC world config %s -> %s".formatted(this.legacyWorldName, this.worldName));
+                this.changed = true;
             }
         }
 
-        DivineConfig.readConfig(DivineWorldConfig.class, this);
+        projectilesSettings();
+        reduceProjectileChunkLoading();
+        unsupportedFeatures();
+        worldFeatures();
+
+        // every world shares the defaults, so only the first world of a fresh file has anything to write
+        if (this.changed) {
+            DivineConfig.save();
+        }
+    }
+
+    private String defaultKey(String path, Object def, String... comments) {
+        final String key = "world-settings.default." + path;
+        if (DivineConfig.config.get(key, null) == null) {
+            DivineConfig.config.set(key, def);
+            this.changed = true;
+        }
+        if (comments.length > 0) {
+            final String comment = String.join("\n", comments);
+            if (!Objects.equals(DivineConfig.config.getComment(key, CommentType.BLOCK), comment)) {
+                DivineConfig.config.setComment(key, comment, CommentType.BLOCK);
+                this.changed = true;
+            }
+        }
+        return key;
     }
 
     public @Nullable String getString(String path, String def, String... comments) {
-        DivineConfig.config.addDefault("world-settings.default." + path, def);
-        if (comments.length > 0) DivineConfig.config.setComment("world-settings.default." + path, String.join("\n", comments));
-        return DivineConfig.config.getString("world-settings." + this.worldName + "." + path, DivineConfig.config.getString("world-settings.default." + path));
+        final String key = defaultKey(path, def, comments);
+        return DivineConfig.config.getString("world-settings." + this.worldName + "." + path, DivineConfig.config.getString(key));
     }
 
     public boolean getBoolean(String path, boolean def, String... comments) {
-        DivineConfig.config.addDefault("world-settings.default." + path, def);
-        if (comments.length > 0) DivineConfig.config.setComment("world-settings.default." + path, String.join("\n", comments));
-        return DivineConfig.config.getBoolean("world-settings." + this.worldName + "." + path, DivineConfig.config.getBoolean("world-settings.default." + path));
+        final String key = defaultKey(path, def, comments);
+        return DivineConfig.config.getBoolean("world-settings." + this.worldName + "." + path, DivineConfig.config.getBoolean(key));
     }
 
     public double getDouble(String path, double def, String... comments) {
-        DivineConfig.config.addDefault("world-settings.default." + path, def);
-        if (comments.length > 0) DivineConfig.config.setComment("world-settings.default." + path, String.join("\n", comments));
-        return DivineConfig.config.getDouble("world-settings." + this.worldName + "." + path, DivineConfig.config.getDouble("world-settings.default." + path));
+        final String key = defaultKey(path, def, comments);
+        return DivineConfig.config.getDouble("world-settings." + this.worldName + "." + path, DivineConfig.config.getDouble(key));
     }
 
     public int getInt(String path, int def, String... comments) {
-        DivineConfig.config.addDefault("world-settings.default." + path, def);
-        if (comments.length > 0) DivineConfig.config.setComment("world-settings.default." + path, String.join("\n", comments));
-        return DivineConfig.config.getInt("world-settings." + this.worldName + "." + path, DivineConfig.config.getInt("world-settings.default." + path));
+        final String key = defaultKey(path, def, comments);
+        return DivineConfig.config.getInt("world-settings." + this.worldName + "." + path, DivineConfig.config.getInt(key));
     }
 
     public boolean snowballCanKnockback = true;

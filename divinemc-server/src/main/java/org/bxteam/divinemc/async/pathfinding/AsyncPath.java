@@ -23,7 +23,7 @@ import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static org.bxteam.divinemc.config.DivineConfig.GuruMode.asyncPathfindingAffinity;
+import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfindingAffinity;
 
 @SuppressWarnings("NullableProblems")
 public final class AsyncPath extends Path {

@@ -1,6 +1,5 @@
 package org.bxteam.divinemc.config;
 
-import com.google.common.base.Throwables;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EntityType;
@@ -14,27 +13,27 @@ import org.bxteam.divinemc.region.Flusher;
 import org.bxteam.divinemc.region.buffered.BufferedRegionFileFlusher;
 import org.bxteam.divinemc.region.linear.LinearImplementation;
 import org.bxteam.divinemc.region.linear.LinearRegionFileFlusher;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.simpleyaml.configuration.ConfigurationSection;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlFile;
-import org.simpleyaml.exceptions.InvalidConfigurationException;
 import su.plo.matter.HashingVersion;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 
-@SuppressWarnings({"SameParameterValue", "DataFlowIssue"})
+@NullMarked
+@SuppressWarnings({"SameParameterValue"})
 public class DivineConfig {
     private static final String HEADER = """
         This is the main configuration file for DivineMC.
@@ -52,103 +51,108 @@ public class DivineConfig {
     private static final int maxThreads = Runtime.getRuntime().availableProcessors();
 
     private static File configFile;
-    public static final YamlFile config = new YamlFile();
+    static YamlFile config = new YamlFile();
+    private static boolean loaded;
+    private static boolean readingRestartOnly;
+    private static final Map<String, Object> restartOnlyValues = new LinkedHashMap<>();
 
     public static void init(File configFile) {
+        if (loaded) {
+            reload();
+            return;
+        }
+
+        long begin = System.nanoTime();
+        LOGGER.info("Loading config...");
+        DivineConfig.configFile = configFile;
         try {
-            long begin = System.nanoTime();
-            LOGGER.info("Loading config...");
+            config = read(configFile);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not load " + configFile.getName() + ", please correct your syntax errors", e);
+        }
+        load();
+        save();
+        LOGGER.info("Config loaded in {}ms", (System.nanoTime() - begin) / 1_000_000);
+    }
 
-            DivineConfig.configFile = configFile;
-            if (configFile.exists()) {
-                try {
-                    config.load(configFile);
-                } catch (InvalidConfigurationException e) {
-                    throw new IOException(e);
-                }
-            }
+    public static boolean reload() {
+        final YamlFile reloaded;
+        try {
+            reloaded = read(configFile);
+        } catch (IOException e) {
+            LOGGER.error("Could not reload {}, keeping the current settings", configFile.getName(), e);
+            return false;
+        }
+        config = reloaded;
+        load();
+        save();
+        return true;
+    }
 
-            configVersion = config.getInt("version", CONFIG_VERSION);
+    public static boolean isLoaded() {
+        return loaded;
+    }
 
-            getInt("version", CONFIG_VERSION);
-            config.options().header(HEADER);
+    private static YamlFile read(File file) throws IOException {
+        final YamlFile yaml = new YamlFile();
+        if (file.exists()) {
+            yaml.load(file);
+        }
+        yaml.options().header(HEADER);
+        return yaml;
+    }
 
-            readConfig(DivineConfig.class, null);
-            checkExperimentalFeatures();
+    private static void load() {
+        configVersion = config.getInt("version", CONFIG_VERSION);
+        removedOptions();
+        AsyncCategory.load();
+        PerformanceCategory.load();
+        FixesCategory.load();
+        NetworkCategory.load();
+        MiscCategory.load();
+        RegionSettingsCategory.load();
+        warnChangedRestartOnly();
+        config.set("version", CONFIG_VERSION);
+        loaded = true;
+        checkExperimentalFeatures();
+    }
 
-            config.set("version", CONFIG_VERSION);
+    static void save() {
+        try {
             config.save(configFile);
-
-            LOGGER.info("Config loaded in {}ms", (System.nanoTime() - begin) / 1_000_000);
-        } catch (Exception e) {
-            LOGGER.error("Failed to load config", e);
+        } catch (IOException e) {
+            LOGGER.error("Failed to save {}", configFile.getName(), e);
         }
     }
 
-    static void readConfig(Class<?> clazz, Object instance) throws IOException {
-        for (Method method : clazz.getDeclaredMethods()) {
-            if (Modifier.isPrivate(method.getModifiers()) && 
-                method.getParameterTypes().length == 0 && 
-                method.getReturnType() == Void.TYPE &&
-                !method.getName().equals("checkExperimentalFeatures")) {
-                try {
-                    method.setAccessible(true);
-                    method.invoke(instance);
-                } catch (InvocationTargetException ex) {
-                    throw Throwables.propagate(ex.getCause());
-                } catch (Exception ex) {
-                    LOGGER.error("Error invoking {}", method, ex);
-                }
+    private static void restartOnly(Runnable reader) {
+        if (loaded) {
+            return;
+        }
+        readingRestartOnly = true;
+        try {
+            reader.run();
+        } finally {
+            readingRestartOnly = false;
+        }
+    }
+
+    private static void warnChangedRestartOnly() {
+        if (!loaded) {
+            return;
+        }
+        final List<String> changed = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : restartOnlyValues.entrySet()) {
+            final Object current = config.get(entry.getKey(), null);
+            if (current == null) {
+                config.set(entry.getKey(), entry.getValue());
+            } else if (!String.valueOf(current).equals(String.valueOf(entry.getValue()))) {
+                changed.add(entry.getKey());
             }
         }
-
-        Class<?>[] categories = Arrays.stream(clazz.getDeclaredClasses()).sorted(Comparator.comparingInt(c -> {
-            try {
-                Field category = c.getDeclaredField("category");
-                category.setAccessible(true);
-                return ((ConfigCategory) category.get(null)).ordinal();
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
-        })).toArray(Class<?>[]::new);
-
-        for (Class<?> innerClass : categories) {
-            if (Modifier.isStatic(innerClass.getModifiers())) {
-                try {
-                    Object innerInstance;
-                    Method loadMethod;
-                    try {
-                        loadMethod = innerClass.getDeclaredMethod("load");
-                    } catch (NoSuchMethodException ignored) {
-                        readConfig(innerClass, null);
-                        continue;
-                    }
-
-                    boolean shouldLoad = true;
-                    try {
-                        Method load = innerClass.getDeclaredMethod("shouldLoad");
-                        load.setAccessible(true);
-                        shouldLoad = (Boolean) load.invoke(null);
-                    } catch (NoSuchMethodException _) {
-                    }
-
-                    if (loadMethod != null && shouldLoad) {
-                        try {
-                            innerInstance = innerClass.getDeclaredConstructor().newInstance();
-                        } catch (NoSuchMethodException e) {
-                            innerInstance = null;
-                        }
-
-                        loadMethod.setAccessible(true);
-                        loadMethod.invoke(innerInstance);
-                    }
-                } catch (Exception ex) {
-                    LOGGER.error("Error processing inner class {}", innerClass.getName(), ex);
-                }
-            }
+        if (!changed.isEmpty()) {
+            LOGGER.warn("These options only change on restart: {}", String.join(", ", changed));
         }
-
-        config.save(configFile);
     }
 
     private static void setComment(String key, String... comment) {
@@ -173,6 +177,7 @@ public class DivineConfig {
         }
         if (!config.contains(key)) config.set(key, defaultValue);
         if (comment.length > 0) config.setComment(key, String.join("\n", comment), CommentType.BLOCK);
+        if (readingRestartOnly) restartOnlyValues.put(key, config.get(key));
     }
 
     private static void removedOptions() {
@@ -204,7 +209,9 @@ public class DivineConfig {
             ConfigCategory.NETWORK.key("player-profile-result-caching.timeout"),
             ConfigCategory.ASYNC.key("chunk-sending.enable"),
             ConfigCategory.ASYNC.key("chunk-sending.max-threads"),
-            ConfigCategory.GURU_MODE.key("async-chunk-sending-affinity")
+            ConfigCategory.ASYNC.key("guru-mode.async-chunk-sending-affinity"),
+            ConfigCategory.PERFORMANCE.key("chunks.experimental.enable-density-function-compiler"),
+            ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer")
         );
     }
 
@@ -269,11 +276,7 @@ public class DivineConfig {
     }
 
     private static String getString(String key, String defaultValue, String... comment) {
-        return getOldString(key, null, defaultValue, comment);
-    }
-
-    private static String getOldString(String key, @Nullable String oldKey, String defaultValue, String... comment) {
-        ensureDefault(key, oldKey, defaultValue, comment);
+        ensureDefault(key, defaultValue, comment);
         return config.getString(key, defaultValue);
     }
 
@@ -291,14 +294,12 @@ public class DivineConfig {
     }
 
     private static int[] getIntArray(String key, @Nullable String oldKey, int[] defaultValue, String... comment) {
-        ensureDefault(key, oldKey, defaultValue, comment);
+        ensureDefault(key, oldKey, Arrays.stream(defaultValue).boxed().toList(), comment);
         return config.getIntegerList(key).stream().mapToInt(Integer::intValue).toArray();
     }
 
     public static class AsyncCategory {
-        private static final ConfigCategory category = ConfigCategory.ASYNC;
         private static boolean enableAutoAllocation = false;
-        public static boolean guruMode = false;
 
         // Parallel world ticking settings
         @Experimental("Parallel World Ticking")
@@ -340,17 +341,31 @@ public class DivineConfig {
         public static boolean parallelSensorsEnabled = false;
         public static int parallelSensorsMaxThreads = 0;
 
+        // Guru mode settings
+        public static boolean guruMode = false;
+        public static int[] regionizedChunkTickingAffinity = new int[0];
+        public static int[] asyncPathfindingAffinity = new int[0];
+        public static int[] parallelSensorsAffinity = new int[0];
+        public static int[] parallelEntityTrackerAffinity = new int[0];
+
         public static void load() {
+            restartOnly(AsyncCategory::threadedFeatures);
+            tpsBar();
+            pluginListeners();
+            portalSearchPrefetch();
+            playerDataWriter();
+        }
+
+        private static void threadedFeatures() {
             enableAutoAllocation();
             parallelWorldTicking();
             regionizedChunkTicking();
             asyncPathfinding();
             parallelEntityTracker();
             asyncMobSpawning();
-            portalSearchPrefetch();
             parallelSensors();
-            playerDataWriter();
             autoAllocation();
+            guruMode();
         }
 
         private static void enableAutoAllocation() {
@@ -367,12 +382,6 @@ public class DivineConfig {
                     LOGGER.info("Detected {} CPU threads", maxThreads);
                 }
             }
-
-            guruMode = getBoolean(ConfigCategory.ASYNC.key("guru-mode-enable"), guruMode,
-                "This mode will allow you to cook with thread affinity only enable this when you know exactly what you are doing.",
-                "NO SUPPORT WILL BE GIVEN IF THIS IS ENABLED",
-                "To enable this you need also to set system property 'divinemc.async.guru' to true")
-                       && Boolean.getBoolean("divinemc.async.guru");
         }
 
         private static void autoAllocation() {
@@ -429,10 +438,16 @@ public class DivineConfig {
                 maxConcurrentWorlds,
                 "How many worlds may tick at the same time. Every world has its own tick thread; this limits how many",
                 "of them run at once. A world that waits for another world during its tick keeps its slot while waiting.");
+        }
+
+        private static void tpsBar() {
             usePerWorldTpsBar = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.use-per-world-tps-bar"), usePerWorldTpsBar,
                 "Enables per-world TPS bar, which shows the TPS of the world the player is currently in. TPS bar can be turned on/off with /tpsbar command.");
             showTPSOfServerInsteadOfWorld = getBoolean(ConfigCategory.ASYNC.key("parallel-world-ticking.show-tps-of-server-instead-of-world"), showTPSOfServerInsteadOfWorld,
                 "Enables showing the TPS of the entire server instead of the world in the TPS bar.");
+        }
+
+        private static void pluginListeners() {
             serializePluginListeners = getBoolean(ConfigCategory.ASYNC.key("serialize-plugin-listeners"), serializePluginListeners,
                 "With parallel world ticking or regionized chunk ticking, event listeners run on several threads at once.",
                 "Most plugins keep their own state in plain collections that are not safe for that. When enabled, listeners of",
@@ -548,38 +563,39 @@ public class DivineConfig {
                 "Values <= 0 mean 1/4 of available cores (at least 1).");
 
             if (parallelSensorsMaxThreads < 0) {
-                parallelSensorsMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() + parallelSensorsMaxThreads, 1);
+                parallelSensorsMaxThreads = Math.max(maxThreads + parallelSensorsMaxThreads, 1);
             } else if (parallelSensorsMaxThreads == 0) {
-                parallelSensorsMaxThreads = Math.max(Runtime.getRuntime().availableProcessors() / 4, 1);
+                parallelSensorsMaxThreads = Math.max(maxThreads / 4, 1);
             }
 
             if (parallelSensorsEnabled) {
                 LOGGER.info("Using {} threads for Parallel Sensor Phase", parallelSensorsMaxThreads);
             }
         }
-    }
 
-    public static class GuruMode {
-        private static final ConfigCategory category = ConfigCategory.GURU_MODE;
-        public static int[] regionizedChunkTickingAffinity = new int[0];
-        public static int[] asyncPathfindingAffinity = new int[0];
-        public static int[] parallelSensorsAffinity = new int[0];
-        public static int[] parallelEntityTrackerAffinity = new int[0];
+        private static void guruMode() {
+            guruMode = getBoolean(ConfigCategory.ASYNC.key("guru-mode.enabled"), ConfigCategory.ASYNC.key("guru-mode-enable"), guruMode,
+                "Allows pinning the threads of async features to CPU cores (thread affinity). Only enable this when you know exactly what you are doing.",
+                "NO SUPPORT WILL BE GIVEN IF THIS IS ENABLED",
+                "To enable this you need also to set system property 'divinemc.async.guru' to true.",
+                "The affinity options below are added once this is enabled.")
+                && Boolean.getBoolean("divinemc.async.guru");
+            if (!guruMode) {
+                return;
+            }
 
-        public static boolean shouldLoad() {
-            return AsyncCategory.guruMode;
-        }
-
-        public static void load() {
-            regionizedChunkTickingAffinity = getIntArray(ConfigCategory.GURU_MODE.key("regionized-chunk-ticking-affinity"), regionizedChunkTickingAffinity);
-            asyncPathfindingAffinity = getIntArray(ConfigCategory.GURU_MODE.key("async-pathfinding-affinity"), asyncPathfindingAffinity);
-            parallelSensorsAffinity = getIntArray(ConfigCategory.GURU_MODE.key("parallel-sensors-affinity"), parallelSensorsAffinity);
-            parallelEntityTrackerAffinity = getIntArray(ConfigCategory.GURU_MODE.key("parallel-entity-tracker-affinity"), parallelEntityTrackerAffinity);
+            regionizedChunkTickingAffinity = getIntArray(ConfigCategory.ASYNC.key("guru-mode.regionized-chunk-ticking-affinity"), regionizedChunkTickingAffinity,
+                "CPU cores the regionized chunk ticking threads are pinned to, e.g. [2, 3, 4, 5]. Empty leaves them unpinned.");
+            asyncPathfindingAffinity = getIntArray(ConfigCategory.ASYNC.key("guru-mode.async-pathfinding-affinity"), asyncPathfindingAffinity,
+                "CPU cores the async pathfinding threads are pinned to. Empty leaves them unpinned.");
+            parallelSensorsAffinity = getIntArray(ConfigCategory.ASYNC.key("guru-mode.parallel-sensors-affinity"), parallelSensorsAffinity,
+                "CPU cores the parallel sensor phase threads are pinned to. Empty leaves them unpinned.");
+            parallelEntityTrackerAffinity = getIntArray(ConfigCategory.ASYNC.key("guru-mode.parallel-entity-tracker-affinity"), parallelEntityTrackerAffinity,
+                "CPU cores the parallel entity tracker threads are pinned to. Empty leaves them unpinned.");
         }
     }
 
     public static class PerformanceCategory {
-        private static final ConfigCategory category = ConfigCategory.PERFORMANCE;
         // Chunk settings
         public static boolean nativeAccelerationEnabled = false;
         public static boolean allowAVX512 = false;
@@ -590,7 +606,6 @@ public class DivineConfig {
         public static int playerNearChunkDetectionRange = 128;
         public static boolean endBiomeCacheEnabled = false;
         public static int endBiomeCacheCapacity = 1024;
-        public static boolean smoothBedrockLayer = false;
 
         // General optimizations
         public static boolean disableMethodProfiler = true;
@@ -686,9 +701,6 @@ public class DivineConfig {
                 "Enables the end biome cache, which can accelerate The End worldgen.");
             endBiomeCacheCapacity = getInt(ConfigCategory.PERFORMANCE.key("chunks.end-biome-cache-capacity"), endBiomeCacheCapacity,
                 "The cache capacity for the end biome cache. Only used if end-biome-cache-enabled is true.");
-
-            smoothBedrockLayer = getBoolean(ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer"), smoothBedrockLayer,
-                "Smoothens the bedrock layer at the bottom of overworld, and on the top of nether during the world generation.");
 
             if (playerNearChunkDetectionRange < 0) {
                 LOGGER.warn("Invalid player near chunk detection range: {}, resetting to default (128)", playerNearChunkDetectionRange);
@@ -786,7 +798,6 @@ public class DivineConfig {
     }
 
     public static class FixesCategory {
-        private static final ConfigCategory category = ConfigCategory.FIXES;
         // Gameplay fixes
         public static boolean fixIncorrectBounceLogic = false;
         public static boolean updateSuppressionCrashFix = true;
@@ -871,11 +882,9 @@ public class DivineConfig {
     }
 
     public static class MiscCategory {
-        private static final ConfigCategory category = ConfigCategory.MISC;
         // Secure seed
         public static boolean enableSecureSeed = false;
         public static HashingVersion secureSeedHashingVersion = HashingVersion.BLAKE2B;
-        private static boolean secureSeedLoaded = false;
 
         // Sentry
         public static String sentryDsn = "";
@@ -887,40 +896,29 @@ public class DivineConfig {
         public static boolean crafter1gt = false;
 
         public static void load() {
-            secureSeed();
+            restartOnly(MiscCategory::secureSeed);
             sentrySettings();
             oldFeatures();
         }
 
         private static void secureSeed() {
-            final boolean enable = getBoolean(ConfigCategory.MISC.key("secure-seed.enable"), enableSecureSeed,
+            enableSecureSeed = getBoolean(ConfigCategory.MISC.key("secure-seed.enable"), enableSecureSeed,
                 "This feature is based on Secure Seed mod by Earthcomputer.",
                 "",
                 "Terrain and biome generation remains the same, but all the ores and structures are generated with 1024-bit seed, instead of the usual 64-bit seed.",
                 "This seed is almost impossible to crack, and there are no weird links between structures.");
 
-            HashingVersion hashingVersion;
+            final String hashingVersion = getString(ConfigCategory.MISC.key("secure-seed.hashing-version"), secureSeedHashingVersion.toString(),
+                "Type of hashing algorithm to use for secure seed.",
+                "Valid values:",
+                " - BLAKE2B: Cryptographically secure, well-tested, and reliable (default)",
+                " - BLAKE3: Faster than BLAKE2b with better security guarantees. Requires jdk.incubator.vector module");
             try {
-                hashingVersion = HashingVersion.valueOf(getString(ConfigCategory.MISC.key("secure-seed.hashing-version"), secureSeedHashingVersion.toString(),
-                    "Type of hashing algorithm to use for secure seed.",
-                    "Valid values:",
-                    " - BLAKE2B: Cryptographically secure, well-tested, and reliable (default)",
-                    " - BLAKE3: Faster than BLAKE2b with better security guarantees. Requires jdk.incubator.vector module"));
+                secureSeedHashingVersion = HashingVersion.valueOf(hashingVersion);
             } catch (IllegalArgumentException ignore) {
-                LOGGER.warn("Invalid secure seed hashing version: {}, resetting to default (BLAKE2B)", getString(ConfigCategory.MISC.key("secure-seed.hashing-version"), secureSeedHashingVersion.toString()));
-                hashingVersion = HashingVersion.BLAKE2B;
+                LOGGER.warn("Invalid secure seed hashing version: {}, resetting to default (BLAKE2B)", hashingVersion);
+                secureSeedHashingVersion = HashingVersion.BLAKE2B;
             }
-
-            // world options and generated chunks are bound to the boot-time values
-            if (secureSeedLoaded) {
-                if (enable != enableSecureSeed || hashingVersion != secureSeedHashingVersion) {
-                    LOGGER.warn("Secure seed settings only change on restart");
-                }
-                return;
-            }
-            secureSeedLoaded = true;
-            enableSecureSeed = enable;
-            secureSeedHashingVersion = hashingVersion;
         }
 
         private static void sentrySettings() {
@@ -944,7 +942,6 @@ public class DivineConfig {
     }
 
     public static class NetworkCategory {
-        private static final ConfigCategory category = ConfigCategory.NETWORK;
         // General network settings
         public static boolean optimizeNonFlushPacketSending = false;
         public static boolean disableDisconnectSpam = false;
@@ -1114,12 +1111,11 @@ public class DivineConfig {
     }
 
     public static class RegionSettingsCategory {
-        private static final ConfigCategory category = ConfigCategory.REGION;
         // Region Format
         public static EnumRegionFileExtension regionFileType = EnumRegionFileExtension.MCA;
         public static int compressionLevel = 4;
         public static int threadCount = 4;
-        public static Flusher<?> flusher = null;
+        public static @Nullable Flusher<?> flusher = null;
 
         // Linear region file settings
         public static int linearIoFlushDelayMs = 10000;
@@ -1130,6 +1126,10 @@ public class DivineConfig {
         public static int flushOfWriteTimeoutMs = 3000;
 
         public static void load() {
+            restartOnly(RegionSettingsCategory::regionSettings);
+        }
+
+        private static void regionSettings() {
             regionFileExtension();
             linear();
             buffered();

@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static org.bxteam.divinemc.config.DivineConfig.GuruMode.parallelSensorsAffinity;
+import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.parallelSensorsAffinity;
 
 /**
  * Runs due AI sensors (read-only world scans) on a worker pool right before entity ticking, one

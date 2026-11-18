@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static org.bxteam.divinemc.config.DivineConfig.GuruMode.parallelEntityTrackerAffinity;
+import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.parallelEntityTrackerAffinity;
 
 public class ParallelEntityTracker {
     private static final String THREAD_PREFIX = "Parallel Entity Tracker";

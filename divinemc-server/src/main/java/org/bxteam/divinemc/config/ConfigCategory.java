@@ -1,13 +1,15 @@
 package org.bxteam.divinemc.config;
 
+import org.jspecify.annotations.NullMarked;
+
+@NullMarked
 public enum ConfigCategory {
     ASYNC("async"),
     PERFORMANCE("performance"),
     FIXES("fixes"),
     NETWORK("network"),
     MISC("misc"),
-    REGION("region-settings"),
-    GURU_MODE("async.guru-mode");
+    REGION("region-settings");
 
     private final String name;
 
