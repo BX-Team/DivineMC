@@ -196,6 +196,7 @@ public final class WorldTickScheduler {
                 LevelHandoff.beginTick(this.thread, this.slot);
                 final long start = System.nanoTime();
                 try {
+                    LevelSchedulers.tickLevel(this.level, this.scheduler.server.getTickCount());
                     this.scheduler.server.tickLevel(this.level, this.haveTime);
                     this.level.explosionDensityCache.clear();
                 } catch (final ReportedException failure) {

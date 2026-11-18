@@ -5,10 +5,10 @@ Subject: [PATCH] Optimize path recomputation on block updates
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index e6df4d2fb48948913f7034f8d7eeeb984408b71e..ecb78b203c0df17436790b2223171ad23b8a08e0 100644
+index b51afbfcb094e0900ef18efa6f66a1df929af176..85b38abf172984a610307cc9731f9f1906edd4dd 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -213,6 +213,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -215,6 +215,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      private final Set<Mob> navigatingMobs = java.util.concurrent.ConcurrentHashMap.newKeySet();
      private final ThreadLocal<Boolean> isUpdatingNavigations = new org.bxteam.divinemc.concurrent.state.ThreadLocalFlag();
      // DivineMC end - Regionized Chunk Ticking
@@ -16,7 +16,7 @@ index e6df4d2fb48948913f7034f8d7eeeb984408b71e..ecb78b203c0df17436790b2223171ad2
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
      private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
-@@ -2013,6 +2014,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2015,6 +2016,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -28,7 +28,7 @@ index e6df4d2fb48948913f7034f8d7eeeb984408b71e..ecb78b203c0df17436790b2223171ad2
              // DivineMC start - Regionized Chunk Ticking
              for (Mob navigatingMob : this.navigatingMobs) {
                  PathNavigation pathNavigation = navigatingMob.getNavigation();
-@@ -2021,6 +2027,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2023,6 +2029,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  }
              }
              // DivineMC end - Regionized Chunk Ticking
@@ -36,7 +36,7 @@ index e6df4d2fb48948913f7034f8d7eeeb984408b71e..ecb78b203c0df17436790b2223171ad2
  
              try {
                  this.isUpdatingNavigations.set(Boolean.TRUE); // DivineMC - Regionized Chunk Ticking
-@@ -3272,6 +3279,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3274,6 +3281,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                      );
                  }
  
@@ -44,7 +44,7 @@ index e6df4d2fb48948913f7034f8d7eeeb984408b71e..ecb78b203c0df17436790b2223171ad2
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
-@@ -3342,6 +3350,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3344,6 +3352,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                      );
                  }
  
@@ -53,7 +53,7 @@ index e6df4d2fb48948913f7034f8d7eeeb984408b71e..ecb78b203c0df17436790b2223171ad2
              }
  
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 7518d5804bc3a9d5e8c968d7c3a94d53a12a4b3f..8c48d9b4177bb610c90c021ed9390524ac24972e 100644
+index e6884ced42059e5db5b63aeeb0f40bd2b8977199..ca0c9fff5d831c8f7e2fe8152792a2c0613f0499 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -3505,6 +3505,7 @@ public abstract class Entity

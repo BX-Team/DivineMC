@@ -47,10 +47,10 @@ index de552ee1b59e8dd5b3d7c9ba5c578f28039d5ca5..9dd60d12bf714a6f054df873cbf0d0d5
      // Purpur end - OfflinePlayer API
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 021404c50d2ac0f46742b35f0aa921f61a4fb8cf..d8d7e9ce5c409e01adea1ccd6d05bdac5e3f3626 100644
+index 64f61c904cbafdc34aef26d6c3f81be3ceafebe6..276bbee8d56f3d5fa88e06afc4ae02211676b441 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -2258,6 +2258,7 @@ public final class CraftServer implements Server {
+@@ -2249,6 +2249,7 @@ public final class CraftServer implements Server {
      public OfflinePlayer[] getOfflinePlayers() {
          PlayerDataStorage storage = this.console.getPlayerList().playerIo;
          String[] files = storage.getPlayerDir().list((dir, name) -> name.endsWith(".dat"));

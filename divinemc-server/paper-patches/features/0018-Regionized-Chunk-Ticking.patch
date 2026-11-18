@@ -558,8 +558,84 @@ index 976275d00edc96ec59e09a594a90e4e89d6a231b..dfe6bd16acdfe2c252df1fe064947fb9
 +    }
 +    // DivineMC end - Regionized Chunk Ticking
  }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index d4bc6aafd96e9eb944eba8715702fefbde86ccf1..64f61c904cbafdc34aef26d6c3f81be3ceafebe6 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -310,58 +310,49 @@ public final class CraftServer implements Server {
+ 
+     @Override
+     public final boolean isOwnedByCurrentRegion(World world, io.papermc.paper.math.Position position) {
+-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+-            ((CraftWorld) world).getHandle(), position.blockX() >> 4, position.blockZ() >> 4
+-        );
++        return org.bxteam.divinemc.concurrent.LevelThreads.ownsChunks(((CraftWorld) world).getHandle(), position.blockX() >> 4, position.blockZ() >> 4, position.blockX() >> 4, position.blockZ() >> 4); // DivineMC - Regionized Chunk Ticking - a region worker owns only its unit
+     }
+ 
+     @Override
+     public final boolean isOwnedByCurrentRegion(World world, io.papermc.paper.math.Position position, int squareRadiusChunks) {
+-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+-            ((CraftWorld) world).getHandle(), position.blockX() >> 4, position.blockZ() >> 4, squareRadiusChunks
+-        );
++        return org.bxteam.divinemc.concurrent.LevelThreads.ownsChunks(((CraftWorld) world).getHandle(), (position.blockX() >> 4) - squareRadiusChunks, (position.blockZ() >> 4) - squareRadiusChunks, (position.blockX() >> 4) + squareRadiusChunks, (position.blockZ() >> 4) + squareRadiusChunks); // DivineMC - Regionized Chunk Ticking - a region worker owns only its unit
+     }
+ 
+     @Override
+     public final boolean isOwnedByCurrentRegion(Location location) {
+         World world = location.getWorld();
+-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+-            ((CraftWorld) world).getHandle(), location.getBlockX() >> 4, location.getBlockZ() >> 4
+-        );
++        return org.bxteam.divinemc.concurrent.LevelThreads.ownsChunks(((CraftWorld) world).getHandle(), location.getBlockX() >> 4, location.getBlockZ() >> 4, location.getBlockX() >> 4, location.getBlockZ() >> 4); // DivineMC - Regionized Chunk Ticking - a region worker owns only its unit
+     }
+ 
+     @Override
+     public final boolean isOwnedByCurrentRegion(Location location, int squareRadiusChunks) {
+         World world = location.getWorld();
+-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+-            ((CraftWorld) world).getHandle(), location.getBlockX() >> 4, location.getBlockZ() >> 4, squareRadiusChunks
+-        );
++        return org.bxteam.divinemc.concurrent.LevelThreads.ownsChunks(((CraftWorld) world).getHandle(), (location.getBlockX() >> 4) - squareRadiusChunks, (location.getBlockZ() >> 4) - squareRadiusChunks, (location.getBlockX() >> 4) + squareRadiusChunks, (location.getBlockZ() >> 4) + squareRadiusChunks); // DivineMC - Regionized Chunk Ticking - a region worker owns only its unit
+     }
+ 
+     @Override
+     public final boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ) {
+-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+-            ((CraftWorld) world).getHandle(), chunkX, chunkZ
+-        );
++        return org.bxteam.divinemc.concurrent.LevelThreads.ownsChunks(((CraftWorld) world).getHandle(), chunkX, chunkZ, chunkX, chunkZ); // DivineMC - Regionized Chunk Ticking - a region worker owns only its unit
+     }
+ 
+     @Override
+     public final boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ, int squareRadiusChunks) {
+-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+-            ((CraftWorld) world).getHandle(), chunkX, chunkZ, squareRadiusChunks
+-        );
++        return org.bxteam.divinemc.concurrent.LevelThreads.ownsChunks(((CraftWorld) world).getHandle(), chunkX - squareRadiusChunks, chunkZ - squareRadiusChunks, chunkX + squareRadiusChunks, chunkZ + squareRadiusChunks); // DivineMC - Regionized Chunk Ticking - a region worker owns only its unit
+     }
+ 
+     @Override
+     public final boolean isOwnedByCurrentRegion(World world, int minChunkX, int minChunkZ, int maxChunkX, int maxChunkZ) {
+-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+-            ((CraftWorld) world).getHandle(), minChunkX, minChunkZ, maxChunkX, maxChunkZ
+-        );
++        return org.bxteam.divinemc.concurrent.LevelThreads.ownsChunks(((CraftWorld) world).getHandle(), minChunkX, minChunkZ, maxChunkX, maxChunkZ); // DivineMC - Regionized Chunk Ticking - a region worker owns only its unit
+     }
+ 
+     @Override
+     public final boolean isOwnedByCurrentRegion(Entity entity) {
+-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandleRaw());
++        // DivineMC start - Regionized Chunk Ticking - a region worker owns only its unit
++        final net.minecraft.world.entity.Entity handle = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandleRaw();
++        return handle.level() instanceof ServerLevel level
++            ? org.bxteam.divinemc.concurrent.LevelThreads.ownsChunks(level, handle.chunkPosition().x(), handle.chunkPosition().z(), handle.chunkPosition().x(), handle.chunkPosition().z())
++            : ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(handle);
++        // DivineMC end - Regionized Chunk Ticking - a region worker owns only its unit
+     }
+ 
+     @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index cb1e27cb84d54164004cb7a8e8042e590a3242ae..da7d869f5e58cb01ae870a66c6e871396c466ef9 100644
+index 9104e6ae181a5a7c4c84da1ea1789fdcf6d08770..d0a67da00eeb934a551b05007160e605ad8c3495 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -775,21 +775,22 @@ public class CraftWorld extends CraftRegionAccessor implements World {
