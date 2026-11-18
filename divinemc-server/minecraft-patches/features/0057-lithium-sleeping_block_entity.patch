@@ -71,10 +71,10 @@ index d8cacf975c2c35e5fe7370bd5b007fbe0d4bd031..444428283839c106f4859fcf2cb6ab24
      }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index de1bc8c8bb1017a2f1de01cf6f1e723152d88726..337231728d0a2679e716b166018d78aa66b68c91 100644
+index 7aa9498c215e4075ee3561917e18edc27c3e508a..65d7902cd38b34fa54d7e2e6cdad01a3397ca136 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2936,6 +2936,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2939,6 +2939,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
          for (TickingBlockEntity ticker : this.blockEntityTickers) {
              BlockPos blockPos = ticker.getPos();
@@ -96,10 +96,10 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..6d63cb68c16f7af3cd91bb9ccfa94076
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index ef5fa82640210a831cf53df6a0c1532d4836b1cf..1b7c2a40187769d51fd5ed66227566bb3adc9339 100644
+index e3edb7f1f0b86bab15123507e3d92bcaf71157c5..06bc032b439059eba33c36d7689e2d39b628417a 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -5305,6 +5305,18 @@ public abstract class Entity
+@@ -5302,6 +5302,18 @@ public abstract class Entity
              this.setBoundingBox(this.makeBoundingBox());
          }
          // Paper end - Block invalid positions and bounding box
@@ -2629,10 +2629,10 @@ index 8f504f2a36490e9afcdedfc89b91fc3f420820be..8257d1b8742a59771c65a60a6c4495ab
      }
  
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index d977bbbc2387888f700d21487fb4ac57ff915b2a..7cf4c5f4e77dd34144f9d93f72adaec881307a14 100644
+index 567ca2d0c509ea4999ed9f94aa611b0c74aa4817..dabed54b42e805f166c3b9bb1ea85ce73956c327 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -924,10 +924,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -917,10 +917,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
              this.tickersInLevel.compute(blockEntity.getBlockPos(), (blockPos, existingTicker) -> {
                  TickingBlockEntity actualTicker = this.createTicker(blockEntity, ticker);
                  if (existingTicker != null) {

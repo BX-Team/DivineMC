@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize path recomputation on block updates
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b51afbfcb094e0900ef18efa6f66a1df929af176..85b38abf172984a610307cc9731f9f1906edd4dd 100644
+index 67a2c9f270a61493376852e59d415b8fbf2ab56c..5f71b586d42e8dd6fffad8aa67b329612fac6d1e 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -215,6 +215,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -16,7 +16,7 @@ index b51afbfcb094e0900ef18efa6f66a1df929af176..85b38abf172984a610307cc9731f9f19
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
      private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
-@@ -2015,6 +2016,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2018,6 +2019,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -28,7 +28,7 @@ index b51afbfcb094e0900ef18efa6f66a1df929af176..85b38abf172984a610307cc9731f9f19
              // DivineMC start - Regionized Chunk Ticking
              for (Mob navigatingMob : this.navigatingMobs) {
                  PathNavigation pathNavigation = navigatingMob.getNavigation();
-@@ -2023,6 +2029,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2026,6 +2032,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  }
              }
              // DivineMC end - Regionized Chunk Ticking
@@ -36,7 +36,7 @@ index b51afbfcb094e0900ef18efa6f66a1df929af176..85b38abf172984a610307cc9731f9f19
  
              try {
                  this.isUpdatingNavigations.set(Boolean.TRUE); // DivineMC - Regionized Chunk Ticking
-@@ -3274,6 +3281,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3277,6 +3284,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                      );
                  }
  
@@ -44,7 +44,7 @@ index b51afbfcb094e0900ef18efa6f66a1df929af176..85b38abf172984a610307cc9731f9f19
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
-@@ -3344,6 +3352,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3347,6 +3355,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                      );
                  }
  
@@ -53,10 +53,10 @@ index b51afbfcb094e0900ef18efa6f66a1df929af176..85b38abf172984a610307cc9731f9f19
              }
  
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index e6884ced42059e5db5b63aeeb0f40bd2b8977199..ca0c9fff5d831c8f7e2fe8152792a2c0613f0499 100644
+index 40969eab2d585223558176b3e47177871120434a..b1d81705f69e91a483650ede17779c52d973b22e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3505,6 +3505,7 @@ public abstract class Entity
+@@ -3503,6 +3503,7 @@ public abstract class Entity
  
              this.setPose(Pose.STANDING);
              this.vehicle = entityToRide;
@@ -64,7 +64,7 @@ index e6884ced42059e5db5b63aeeb0f40bd2b8977199..ca0c9fff5d831c8f7e2fe8152792a2c0
              this.vehicle.addPassenger(this);
              if (sendEventAndTriggers) {
                  this.level().gameEvent(this, GameEvent.ENTITY_MOUNT, this.vehicle.position);
-@@ -5272,6 +5273,7 @@ public abstract class Entity
+@@ -5269,6 +5270,7 @@ public abstract class Entity
          // Paper end - Block invalid positions and bounding box
          if (this.position.x != x || this.position.y != y || this.position.z != z) {
              this.position = new Vec3(x, y, z);
