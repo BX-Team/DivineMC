@@ -156,3 +156,18 @@
          )
          for (tld in setOf("net", "com", "org")) {
              attributes("$tld/bukkit", "Sealed" to true)
+@@ -263,6 +_,14 @@
+ tasks.check {
+     dependsOn(scanJarForBadCalls)
+ }
++
++// DivineMC start - Linear region file format
++tasks.processResources {
++    from(rootProject.layout.projectDirectory.dir("linear-format/dicts")) {
++        into("linear/dicts")
++    }
++}
++// DivineMC end - Linear region file format
+ 
+ // Use TCA for console improvements
+ tasks.jar {
