@@ -15,6 +15,8 @@ import org.bxteam.divinemc.async.rct.RollingLongBuffer;
 import org.bxteam.divinemc.command.DivineCommand;
 import org.bxteam.divinemc.command.DivineSubCommandPermission;
 import org.bxteam.divinemc.config.DivineConfig;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.framework.qual.DefaultQualifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
@@ -25,7 +27,8 @@ import static net.kyori.adventure.text.Component.empty;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
-public final class TickTimes extends DivineSubCommandPermission {
+@DefaultQualifier(NonNull.class)
+public final class TickTimesCommand extends DivineSubCommandPermission {
     public static final String LITERAL_ARGUMENT = "ticktimes";
     public static final String PERM = DivineCommand.BASE_PERM + "." + LITERAL_ARGUMENT;
     private static final DecimalFormat DF = new DecimalFormat("########0.0");
@@ -34,7 +37,7 @@ public final class TickTimes extends DivineSubCommandPermission {
 
     private record RegionStatsKey(int chunkSize, int entityAmount, int regionHash) {}
 
-    public TickTimes() {
+    public TickTimesCommand() {
         super(PERM, PermissionDefault.OP);
     }
 

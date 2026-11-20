@@ -8,11 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.async.pathfinding.PathfindTaskRejectPolicy;
 import org.bxteam.divinemc.config.annotations.Experimental;
-import org.bxteam.divinemc.region.EnumRegionFileExtension;
-import org.bxteam.divinemc.region.Flusher;
-import org.bxteam.divinemc.region.buffered.BufferedRegionFileFlusher;
-import org.bxteam.divinemc.region.linear.LinearImplementation;
-import org.bxteam.divinemc.region.linear.LinearRegionFileFlusher;
+import org.bxteam.divinemc.region.RegionFormat;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.simpleyaml.configuration.ConfigurationSection;
@@ -110,7 +106,6 @@ public class DivineConfig {
         FixesCategory.load();
         NetworkCategory.load();
         MiscCategory.load();
-        RegionSettingsCategory.load();
         warnChangedRestartOnly();
         config.set("version", CONFIG_VERSION);
         loaded = true;
@@ -181,6 +176,12 @@ public class DivineConfig {
     }
 
     private static void removedOptions() {
+        for (String typeKey : new String[]{"region-settings.type", ConfigCategory.MISC.key("region-settings.type")}) {
+            if ("B_LINEAR".equalsIgnoreCase(config.getString(typeKey, ""))) {
+                LOGGER.warn("{} B_LINEAR has been replaced by LINEAR; worlds stored as .b_linear must be converted with the region converter", typeKey);
+                config.set(typeKey, "LINEAR");
+            }
+        }
         if (config.getBoolean(ConfigCategory.MISC.key("lag-compensation.enabled"), false)) {
             LOGGER.warn("Lag compensation has been removed from DivineMC; misc.lag-compensation is ignored and will be deleted from the config.");
         }
@@ -212,7 +213,11 @@ public class DivineConfig {
             ConfigCategory.ASYNC.key("guru-mode.async-chunk-sending-affinity"),
             ConfigCategory.PERFORMANCE.key("chunks.experimental.enable-density-function-compiler"),
             ConfigCategory.PERFORMANCE.key("chunks.smooth-bedrock-layer"),
-            ConfigCategory.PERFORMANCE.key("optimizations.skip-useless-secondary-poi-sensor")
+            ConfigCategory.PERFORMANCE.key("optimizations.skip-useless-secondary-poi-sensor"),
+            "region-settings.linear.implementation",
+            "region-settings.b-linear.check-interval-ms",
+            "region-settings.b-linear.flush-of-write-timeout-ms",
+            "region-settings.b-linear.max-sync-delay-ms"
         );
     }
 
@@ -894,14 +899,68 @@ public class DivineConfig {
         public static String logLevel = "WARN";
         public static boolean onlyLogThrown = true;
 
+        // Region format
+        public static RegionFormat regionFormat = RegionFormat.MCA;
+        public static int linearCompressionLevel = 6;
+        public static int linearFlushThreads = 2;
+        public static int linearFlushDelayMs = 10000;
+        public static int linearMaxPendingMb = 256;
+
         // Old features
         public static boolean copperBulb1gt = false;
         public static boolean crafter1gt = false;
 
         public static void load() {
+            restartOnly(MiscCategory::regionSettings);
             restartOnly(MiscCategory::secureSeed);
             sentrySettings();
             oldFeatures();
+        }
+
+        private static void regionSettings() {
+            ensureDefault(ConfigCategory.MISC.key("region-settings.type"), "region-settings.type", (Object) regionFormat.name(),
+                "The format of region, entities and poi files.",
+                " - MCA: Minecraft's Anvil format",
+                " - LINEAR: DivineMC's Linear format (zstd, append-only log; see linear-format/SPEC.md in the repository)",
+                "Worlds are not converted automatically: convert them with the region converter while the server is stopped.");
+            final String type = config.getString(ConfigCategory.MISC.key("region-settings.type"), regionFormat.name());
+            final RegionFormat parsed = RegionFormat.parse(type);
+            if (parsed == null) {
+                LOGGER.warn("Invalid {}: {}, using MCA", ConfigCategory.MISC.key("region-settings.type"), type);
+                regionFormat = RegionFormat.MCA;
+            } else {
+                regionFormat = parsed;
+            }
+
+            linearCompressionLevel = getInt(ConfigCategory.MISC.key("region-settings.linear.compression-level"), "region-settings.compression-level", linearCompressionLevel,
+                "zstd level Linear compresses chunks with (1-22). Higher is smaller and slower; files stay readable at any level.");
+            if (linearCompressionLevel < 1 || linearCompressionLevel > 22) {
+                LOGGER.warn("Invalid Linear compression level {}, using 6", linearCompressionLevel);
+                linearCompressionLevel = 6;
+            }
+            linearFlushThreads = getInt(ConfigCategory.MISC.key("region-settings.linear.flush-threads"), "region-settings.thread-count", linearFlushThreads,
+                "Threads that write Linear regions to disk.");
+            if (linearFlushThreads < 1) {
+                LOGGER.warn("Invalid Linear flush thread count {}, using 2", linearFlushThreads);
+                linearFlushThreads = 2;
+            }
+            linearFlushDelayMs = getInt(ConfigCategory.MISC.key("region-settings.linear.flush-delay-ms"), "region-settings.linear.io-flush-delay-ms", linearFlushDelayMs,
+                "How long written chunks wait in memory before they are flushed to disk.",
+                "Chunks written within this window are lost if the server crashes.");
+            if (linearFlushDelayMs < 1) {
+                LOGGER.warn("Invalid Linear flush delay {}, using 10000", linearFlushDelayMs);
+                linearFlushDelayMs = 10000;
+            }
+            linearMaxPendingMb = getInt(ConfigCategory.MISC.key("region-settings.linear.max-pending-mb"), "region-settings.linear.max-pending-mb", linearMaxPendingMb,
+                "Megabytes of written chunks that may wait for a flush before chunk saving waits for the disk.");
+            if (linearMaxPendingMb < 1) {
+                LOGGER.warn("Invalid Linear max pending {} MB, using 256", linearMaxPendingMb);
+                linearMaxPendingMb = 256;
+            }
+            if (config.contains("region-settings") && config.getConfigurationSection("region-settings") != null
+                && config.getConfigurationSection("region-settings").getKeys(true).isEmpty()) {
+                removeKey("region-settings");
+            }
         }
 
         private static void secureSeed() {
@@ -1110,90 +1169,6 @@ public class DivineConfig {
 
                 EntityType.byString(typeId).ifPresentOrElse(entityType -> entityType.raytraceCullingSkip = true, () -> LOGGER.warn("Unknown entity {}, in {}", name, ConfigCategory.NETWORK.key("raytrace-entity-culling.skipped-entity-types")));
             }
-        }
-    }
-
-    public static class RegionSettingsCategory {
-        // Region Format
-        public static EnumRegionFileExtension regionFileType = EnumRegionFileExtension.MCA;
-        public static int compressionLevel = 4;
-        public static int threadCount = 4;
-        public static @Nullable Flusher<?> flusher = null;
-
-        // Linear region file settings
-        public static int linearIoFlushDelayMs = 10000;
-        public static LinearImplementation linearImplementation = LinearImplementation.V2;
-
-        // Buffered linear region file settings
-        public static int checkIntervalMs = 20;
-        public static int flushOfWriteTimeoutMs = 3000;
-
-        public static void load() {
-            restartOnly(RegionSettingsCategory::regionSettings);
-        }
-
-        private static void regionSettings() {
-            regionFileExtension();
-            linear();
-            buffered();
-            flusher();
-        }
-
-        private static void regionFileExtension() {
-            try {
-                regionFileType = EnumRegionFileExtension.fromString(getString(ConfigCategory.REGION.key("type"), regionFileType.toString(),
-                    "The type of region file format to use for storing chunk data.",
-                    "Valid values:",
-                    " - MCA: Default Minecraft region file format",
-                    " - LINEAR: Linear region file format V2",
-                    " - B_LINEAR: Buffered region file format (just uses Zstd)"));
-            } catch (IllegalArgumentException ignore) {
-                LOGGER.warn("Invalid region file type: {}, resetting to default (MCA)", getString(ConfigCategory.REGION.key("type"), regionFileType.toString()));
-                regionFileType = EnumRegionFileExtension.MCA;
-            }
-
-            threadCount = getInt(ConfigCategory.REGION.key("thread-count"), threadCount,
-                "The number of threads to use for IO operations.");
-
-            if (threadCount < 1) {
-                LOGGER.warn("Invalid thread count: {}, resetting to default (4)", threadCount);
-                threadCount = 4;
-            }
-
-            compressionLevel = getInt(ConfigCategory.REGION.key("compression-level"), compressionLevel,
-                "The compression level to use for the either linear or buffered linear region file format.");
-
-            if (compressionLevel > 23 || compressionLevel < 1) {
-                LOGGER.warn("Invalid compression level: {}, resetting to default (4)", compressionLevel);
-                compressionLevel = 4;
-            }
-        }
-
-        private static void linear() {
-            linearIoFlushDelayMs = getInt(ConfigCategory.REGION.key("linear.io-flush-delay-ms"), linearIoFlushDelayMs,
-                "The delay in milliseconds to wait before flushing IO operations.");
-
-            linearImplementation = LinearImplementation.valueOf(getString(ConfigCategory.REGION.key("linear.implementation"), linearImplementation.name(),
-                "The implementation of the linear region file format to use.",
-                "Valid values:",
-                " - V1: Basic and default linear implementation",
-                " - V2: Introduces a grid-based compression scheme for better data management and flexibility (default)",
-                " - V3: Minor improvements over V2"));
-        }
-
-        private static void buffered() {
-            checkIntervalMs = getInt(ConfigCategory.REGION.key("b-linear.check-interval-ms"), checkIntervalMs,
-                "The interval in milliseconds to check for dirty region files to flush.");
-            flushOfWriteTimeoutMs = getInt(ConfigCategory.REGION.key("b-linear.flush-of-write-timeout-ms"), flushOfWriteTimeoutMs,
-                "The timeout in milliseconds to wait before forcing a flush of a region file that is being written to.");
-        }
-
-        private static void flusher() {
-            flusher = switch (regionFileType) {
-                case MCA -> null;
-                case LINEAR -> new LinearRegionFileFlusher(threadCount, linearIoFlushDelayMs);
-                case B_LINEAR -> new BufferedRegionFileFlusher(threadCount, checkIntervalMs, flushOfWriteTimeoutMs);
-            };
         }
     }
 

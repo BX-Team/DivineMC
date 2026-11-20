@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 import org.bxteam.divinemc.async.entity.ParallelEntityTracker;
 import org.bxteam.divinemc.async.pathfinding.AsyncPath;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.region.Flusher;
+import org.bxteam.divinemc.region.LinearFlusher;
 
 import java.util.concurrent.TimeUnit;
 
@@ -46,10 +46,6 @@ public class ExecutorShutdown {
             org.bxteam.divinemc.culling.EntityCullingManager.shutdown();
         }
 
-        final Flusher<?> flusher = DivineConfig.RegionSettingsCategory.flusher;
-        if (flusher != null) {
-            LOGGER.info("Shutting down region flusher executor...");
-            flusher.shutdown();
-        }
+        LinearFlusher.shutdownIfStarted();
     }
 }

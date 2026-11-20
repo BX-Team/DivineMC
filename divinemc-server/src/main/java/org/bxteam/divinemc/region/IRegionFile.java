@@ -26,6 +26,10 @@ public interface IRegionFile extends ChunkSystemRegionFile, AutoCloseable {
 
     void close() throws IOException;
 
+    default void closeAsync() throws IOException {
+        this.close();
+    }
+
     void write(ChunkPos pos, ByteBuffer buf) throws IOException;
 
     @Override
