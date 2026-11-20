@@ -26,7 +26,7 @@ DivineMC is a multi-functional fork of [Purpur](https://github.com/PurpurMC/Purp
 - **Async Operations** - Pathfinding, entity tracker, mob spawning, joining, chunk sending and portal pre-loading
 - **Raytrace Entity Culling** - Stops sending entities a player provably cannot see, saving bandwidth and blinding entity-ESP cheats
 - **Secure Seed** - Enhanced 1024-bit seed system (vs standard 64-bit) for maximum security
-- **Linear Region File Format** - Optimize your world with the old V1/V2 linear format and the new Buffered format
+- **Linear Region File Format** - Worlds about half the size of Anvil, an append-only log that writes less than Anvil and loses at most the last flush window (10 s by default) of saved chunks in a crash ([spec](linear-format/SPEC.md))
 - **Mod Protocols Support** - Compatible with Syncmatica, Apple Skin, Jade and Xaero's Map
 - **Fully Compatible** - Works seamlessly with Bukkit, Spigot and Paper plugins
 - **Bug Fixes** - Resolves various Minecraft issues (~10)
