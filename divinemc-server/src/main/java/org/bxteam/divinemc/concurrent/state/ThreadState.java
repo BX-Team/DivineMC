@@ -6,6 +6,7 @@ import io.papermc.paper.entity.activation.ActivationType;
 import io.papermc.paper.redstone.RedstoneWireTurbo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.RedstoneWireBlock;
+import net.minecraft.world.level.redstone.CollectingNeighborUpdater;
 import net.minecraft.world.level.levelgen.RandomSupport;
 import net.minecraft.world.phys.AABB;
 import org.bukkit.TreeType;
@@ -34,6 +35,8 @@ public final class ThreadState {
     public @Nullable UnitRandoms unitRandoms;
     public @Nullable NeighborChainLock heldChainLock;
     public @Nullable NeighborChainLock waitingChainLock;
+    public @Nullable CollectingNeighborUpdater neighborChain;
+    public @Nullable CollectingNeighborUpdater neighborChainOwner;
     private @Nullable ThreadUnsafeRandom entityRandom;
 
     public ThreadState() {

@@ -399,6 +399,23 @@ index f7820568b78f630e4d234d3dfb36c2167149777a..7b78b8779a4ccab7cedee626f20f2aed
  
          // The variable 'k' holds the maximum redstone power value of any adjacent blocks.
          // If 'k' has the highest level of all neighbors, then the power level of this
+diff --git a/net/minecraft/advancements/triggers/SimpleCriterionTrigger.java b/net/minecraft/advancements/triggers/SimpleCriterionTrigger.java
+index 1c96dcde68906b7b50f9925b8bfc7360ccb36739..863402c50e9c0a73a186a636df886d2af9c06f6f 100644
+--- a/net/minecraft/advancements/triggers/SimpleCriterionTrigger.java
++++ b/net/minecraft/advancements/triggers/SimpleCriterionTrigger.java
+@@ -19,6 +19,12 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+ public abstract class SimpleCriterionTrigger<T extends SimpleCriterionTrigger.SimpleInstance> implements CriterionTrigger<T> {
+     protected void trigger(final ServerPlayer player, final Predicate<T> matcher) {
+         if (player.isSpectator() && player.level().divineConfig.spectatorDontGetAdvancement) return; // DivineMC - Spectator don't get advancements
++        // DivineMC start - Parallel world ticking - the player's advancements belong to its own level's thread
++        if (org.bxteam.divinemc.async.pwt.CrossWorldTasks.inOtherLevel(player)) {
++            org.bxteam.divinemc.async.pwt.CrossWorldTasks.deferCriterion(player, () -> this.trigger(player, matcher));
++            return;
++        }
++        // DivineMC end - Parallel world ticking - the player's advancements belong to its own level's thread
+         PlayerAdvancements advancements = player.getAdvancements();
+         Map<PlayerAdvancements.TriggerInstanceKey, T> listenersForType = advancements.getTriggerMapForType(this);
+         if (listenersForType != null && !listenersForType.isEmpty()) {
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
 index f5e41658d480e6d85e63e07aa5d69f0993ec2b7d..6eb0f512d106516cf8caa2cbe363697811a4826b 100644
 --- a/net/minecraft/commands/Commands.java
@@ -635,7 +652,7 @@ index 81eac59556c716d7538b28d630e572b68781030e..3aba191316559b2445ba4bed0959ef03
          LOGGER.info("Default game type: {}", properties.gameMode.get());
          // Paper start - Unix domain socket support
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index be2ecec6336a0c0b4bab6ac7319d84f6361c36b7..8727aa26a79f6b2e607a3b5dcdc92e1a25e982cd 100644
+index 97efd665b567d565e22360984bde4d3bebe02662..57f04920d49d725180645aa39d7a24063888844a 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -138,8 +138,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -839,7 +856,7 @@ index b9748a392c9f76e61a1b673085b4dd74c007c70d..bbbcf299cc9a5d5f921c98da7dc5154c
              if (isLocatorBarEnabledFor(player)) {
                  if (!connection.isBroken()) {
 diff --git a/net/minecraft/world/RandomSequences.java b/net/minecraft/world/RandomSequences.java
-index a218431bd53512e1073a2df080d522026a541264..06823ffc9d8d5913c34f6d68acedca77d96c117a 100644
+index a218431bd53512e1073a2df080d522026a541264..811ff370a4f990484e77052cdca33a83a626cc37 100644
 --- a/net/minecraft/world/RandomSequences.java
 +++ b/net/minecraft/world/RandomSequences.java
 @@ -43,8 +43,15 @@ public class RandomSequences extends SavedData {
@@ -852,7 +869,7 @@ index a218431bd53512e1073a2df080d522026a541264..06823ffc9d8d5913c34f6d68acedca77
 +        org.bxteam.divinemc.concurrent.lock.ServerStateLock.lock();
 +        try {
 +            RandomSource random = this.sequences.computeIfAbsent(key, rl -> this.createSequence(rl, worldSeed)).random();
-+            return new RandomSequences.DirtyMarkingRandomSource(random);
++            return new RandomSequences.DirtyMarkingRandomSource(org.bxteam.divinemc.concurrent.LevelThreads.SHARED ? new org.bxteam.divinemc.concurrent.SynchronizedRandomSource(random) : random); // the lock covers the lookup, not the draws
 +        } finally {
 +            org.bxteam.divinemc.concurrent.lock.ServerStateLock.unlock();
 +        }
