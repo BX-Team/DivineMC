@@ -8,6 +8,87 @@ Original project: https://github.com/pufferfish-gg/Pufferfish
 
 This patch reduces the main-thread impact of mob spawning by moving spawning work to other threads
 
+diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
+index fff7a796a61542213bdaa417d44e25cd05f7e774..24a533b12437b8c85bb1e6522f337093151ed1cc 100644
+--- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
++++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
+@@ -68,11 +68,25 @@ public final class NearbyPlayers {
+         }
+     }
+ 
++    private final Object asyncSpawnLock = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning ? new Object() : null; // DivineMC - Pufferfish: Optimize mob spawning - the async spawn pass reads these maps off the level's thread
++
+     public NearbyPlayers(final ServerLevel world) {
+         this.world = world;
+     }
+ 
+     public void addPlayer(final ServerPlayer player) {
++        // DivineMC start - Pufferfish: Optimize mob spawning
++        if (this.asyncSpawnLock != null) {
++            synchronized (this.asyncSpawnLock) {
++                this.addPlayer0(player);
++            }
++            return;
++        }
++        this.addPlayer0(player);
++    }
++
++    private void addPlayer0(final ServerPlayer player) {
++        // DivineMC end - Pufferfish: Optimize mob spawning
+         final TrackedPlayer[] newTrackers = new TrackedPlayer[TOTAL_MAP_TYPES];
+         if (this.players.putIfAbsent(player, newTrackers) != null) {
+             throw new IllegalStateException("Already have player " + player);
+@@ -90,6 +104,18 @@ public final class NearbyPlayers {
+     }
+ 
+     public void removePlayer(final ServerPlayer player) {
++        // DivineMC start - Pufferfish: Optimize mob spawning
++        if (this.asyncSpawnLock != null) {
++            synchronized (this.asyncSpawnLock) {
++                this.removePlayer0(player);
++            }
++            return;
++        }
++        this.removePlayer0(player);
++    }
++
++    private void removePlayer0(final ServerPlayer player) {
++        // DivineMC end - Pufferfish: Optimize mob spawning
+         final TrackedPlayer[] players = this.players.remove(player);
+         if (players == null) {
+             return; // May be called during teleportation before the player is actually placed
+@@ -111,6 +137,18 @@ public final class NearbyPlayers {
+     }
+ 
+     public void tickPlayer(final ServerPlayer player) {
++        // DivineMC start - Pufferfish: Optimize mob spawning
++        if (this.asyncSpawnLock != null) {
++            synchronized (this.asyncSpawnLock) {
++                this.tickPlayer0(player);
++            }
++            return;
++        }
++        this.tickPlayer0(player);
++    }
++
++    private void tickPlayer0(final ServerPlayer player) {
++        // DivineMC end - Pufferfish: Optimize mob spawning
+         final TrackedPlayer[] players = this.players.get(player);
+         if (players == null) {
+             throw new IllegalStateException("Don't have player " + player);
+@@ -126,6 +164,12 @@ public final class NearbyPlayers {
+         players[NearbyMapType.SPAWN_RANGE.ordinal()].update(chunk.x(), chunk.z(), ChunkTickConstants.PLAYER_SPAWN_TRACK_RANGE); // Moonrise - chunk tick iteration
+     }
+ 
++    // DivineMC start - Pufferfish: Optimize mob spawning
++    public Object asyncSpawnLock() {
++        return this.asyncSpawnLock;
++    }
++    // DivineMC end - Pufferfish: Optimize mob spawning
++
+     public TrackedChunk getChunk(final ChunkPos pos) {
+         return this.byChunk.get(CoordinateUtils.getChunkKey(pos));
+     }
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
 index 5564c31d273b43b0d064105ed877cb592066a6ec..8d96d76f60ad7ef69243af856a67d3e668ca75cf 100644
 --- a/net/minecraft/server/MinecraftServer.java
@@ -33,6 +114,49 @@ index ccc3e73271e1c6a96ecf9380b52ae3e0336f6193..81eac59556c716d7538b28d630e572b6
          this.saveEverything(false, true, true);
          this.notificationManager().serverStarted();
          return true;
+diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
+index be2ecec6336a0c0b4bab6ac7319d84f6361c36b7..97efd665b567d565e22360984bde4d3bebe02662 100644
+--- a/net/minecraft/server/level/ChunkMap.java
++++ b/net/minecraft/server/level/ChunkMap.java
+@@ -242,6 +242,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+         if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
+             return;
+         }
++        // DivineMC start - Pufferfish: Optimize mob spawning
++        final Object asyncSpawnLock = this.level.moonrise$getNearbyPlayers().asyncSpawnLock();
++        if (asyncSpawnLock != null) {
++            synchronized (asyncSpawnLock) {
++                this.updatePlayerMobTypeMap0(entity);
++            }
++            return;
++        }
++        this.updatePlayerMobTypeMap0(entity);
++    }
++
++    private void updatePlayerMobTypeMap0(final Entity entity) {
++        // DivineMC end - Pufferfish: Optimize mob spawning
+ 
+         final int index = entity.getType().getCategory().ordinal();
+         final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> inRange =
+@@ -844,6 +857,18 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+     }
+ 
+     public List<ServerPlayer> getPlayersCloseForSpawning(final ChunkPos pos) {
++        // DivineMC start - Pufferfish: Optimize mob spawning
++        final Object asyncSpawnLock = this.level.moonrise$getNearbyPlayers().asyncSpawnLock();
++        if (asyncSpawnLock != null) {
++            synchronized (asyncSpawnLock) {
++                return this.getPlayersCloseForSpawning0(pos);
++            }
++        }
++        return this.getPlayersCloseForSpawning0(pos);
++    }
++
++    private List<ServerPlayer> getPlayersCloseForSpawning0(final ChunkPos pos) {
++        // DivineMC end - Pufferfish: Optimize mob spawning
+         // Paper start - chunk tick iteration optimisation
+         final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> players = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getNearbyPlayers().getPlayers(
+             pos, ca.spottedleaf.moonrise.common.misc.NearbyPlayers.NearbyMapType.SPAWN_RANGE
 diff --git a/net/minecraft/server/level/ServerChunkCache.java b/net/minecraft/server/level/ServerChunkCache.java
 index 38bc494bc18d2ff1c62c4f652a26a48de79d061a..c7dfa3225acc9a483b773101073c2987889d0e34 100644
 --- a/net/minecraft/server/level/ServerChunkCache.java

@@ -10,7 +10,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * Lets one neighbour-update chain of a level run at a time while its region workers tick: workers chain under this
  * lock, and so does the level's thread when it runs chunk tasks for them during the join. Like a monitor's wait, a
  * thread that blocks in the middle of a chain (for a chunk, for the server state lock) lets the lock go and takes it
- * back afterwards, so no thread ever waits while holding it, and the thread it waits for can chain meanwhile.
+ * back afterwards, so no thread ever waits while holding it, and the thread it waits for can chain meanwhile. Each
+ * worker chain keeps its own state, so a chain started meanwhile runs to the end instead of joining the waiting one.
  */
 @NullMarked
 public final class NeighborChainLock {

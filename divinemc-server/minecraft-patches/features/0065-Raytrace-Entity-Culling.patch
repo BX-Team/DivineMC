@@ -10,10 +10,10 @@ improves client FPS and blinds entity-ESP cheats (e.g. freecam/x-ray style hacks
 cannot see mobs, players or items through walls anymore).
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 93cbb03202cbcc20db23f633583789e382caeedb..2e5f62397c0f76bf0ba2ddf8859f2fc0afdf54db 100644
+index 8a4f5c48a09c592bc88de4871b70c2166af84410..ea1ac6a859c36cdba0a7af18ffd06310f1cb198f 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1559,6 +1559,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1584,6 +1584,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                  && this.entity.broadcastToPlayer(player)
                  && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
              // Paper end - Configurable entity tracking range by Y
@@ -22,7 +22,7 @@ index 93cbb03202cbcc20db23f633583789e382caeedb..2e5f62397c0f76bf0ba2ddf8859f2fc0
              if (visibleToPlayer && !player.getBukkitEntity().canSeeChunkMapUpdatePlayer(this.entity.getBukkitEntity())) { // Paper - only consider hits // DivineMC - SparklyPaper: Optimize "canSee" checks
                  visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index b54def69b27b9206ca416c9aa78635d93322384f..a7ed7f344ce1de8cf351acb18c125239c2532a37 100644
+index 2d18947df6aa70b7c7f4ac98570faea1b128b56a..1feabc2f9b85482b9f53f3ec2f6ed5ff98c782c5 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -444,6 +444,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -54,7 +54,7 @@ index 8f0893d42dd56d8a3cac5d142f7d2b0d23eb435c..78d0c7af20b1fabc3994d34dab685a42
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index aadb8ff0e9d575f6ad5f05cfb3f5e800b1595824..a70ec4a9b3b94d3fc85ca71076124985f5ddee54 100644
+index 9b085c999c3e983a296095037aae8191d5d33ada..61fff927024f8e38ad0f6506aab2387212956408 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1162,6 +1162,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

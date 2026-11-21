@@ -322,15 +322,15 @@ index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..fed7cfe73d284178f7b414a3493d633f
  
              @Override
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
-index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..dedbabf548dc6328464e8356eda40e919b994bf6 100644
+index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..7744fbea1c7363305bde19558f14050a017ed63a 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
-@@ -15,15 +15,51 @@ public final class ShortList {
+@@ -15,15 +15,40 @@ public final class ShortList {
      private short[] byIndex = EMPTY_LIST;
      private short count;
  
 +    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
-+    // readers stay lock-free: they see count through a volatile read
++    // readers stay lock-free: they see count through a volatile read, and byIndex, which only grows, after it
 +    private static final java.lang.invoke.VarHandle COUNT = ca.spottedleaf.concurrentutil.util.ConcurrentUtil.getVarHandle(ShortList.class, "count", short.class);
 +
 +    private void setCount(final short count) {
@@ -347,18 +347,7 @@ index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..dedbabf548dc6328464e8356eda40e91
 +        return org.bxteam.divinemc.concurrent.LevelThreads.SHARED ? (int)(short)COUNT.getVolatile(this) : (int)this.count; // DivineMC - Regionized Chunk Ticking - locked only while levels are shared
      }
  
-+    // DivineMC start - Regionized Chunk Ticking - locked only while levels are shared
      public short getRaw(final int index) {
-+        if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED) {
-+            synchronized (this) {
-+                return this.getRaw0(index);
-+            }
-+        }
-+        return this.getRaw0(index);
-+    }
-+
-+    private short getRaw0(final int index) {
-+    // DivineMC end - Regionized Chunk Ticking - locked only while levels are shared
          return this.byIndex[index];
      }
  
@@ -378,7 +367,7 @@ index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..dedbabf548dc6328464e8356eda40e91
          if (len <= 0) {
              return;
          }
-@@ -34,7 +70,18 @@ public final class ShortList {
+@@ -34,7 +59,18 @@ public final class ShortList {
          this.map.ensureCapacity(len);
      }
  
@@ -397,7 +386,7 @@ index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..dedbabf548dc6328464e8356eda40e91
          final int count = (int)this.count;
          final short currIndex = this.map.putIfAbsent(value, (short)count);
  
-@@ -50,19 +97,33 @@ public final class ShortList {
+@@ -50,19 +86,33 @@ public final class ShortList {
          }
  
          list[count] = value;
@@ -433,7 +422,7 @@ index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..dedbabf548dc6328464e8356eda40e91
          final short end = this.byIndex[endIndex];
          if (index != endIndex) {
              // not empty after this call
-@@ -74,8 +135,20 @@ public final class ShortList {
+@@ -74,8 +124,20 @@ public final class ShortList {
          return true;
      }
  
@@ -559,7 +548,7 @@ index 976275d00edc96ec59e09a594a90e4e89d6a231b..dfe6bd16acdfe2c252df1fe064947fb9
 +    // DivineMC end - Regionized Chunk Ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index d4bc6aafd96e9eb944eba8715702fefbde86ccf1..64f61c904cbafdc34aef26d6c3f81be3ceafebe6 100644
+index c57b15912580821c4e90c68296beb66b9d357ba7..1e5e5fb4b9a16091f2ebb56ccf9cdd7d523f6ee3 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -310,58 +310,49 @@ public final class CraftServer implements Server {

@@ -8,49 +8,50 @@ This patch adds regionized chunk ticking feature, by grouping adjacent chunks in
 Original idea by Dueris, modified by NONPLAYT and heavily optimized by dan28000
 
 diff --git a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-index fff7a796a61542213bdaa417d44e25cd05f7e774..4a0cd70da12b12aeb4882a3de0d8392fd13e165f 100644
+index 24a533b12437b8c85bb1e6522f337093151ed1cc..dd77e49266001d2def70e77af783bd9464a5e505 100644
 --- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 +++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
-@@ -68,11 +68,23 @@ public final class NearbyPlayers {
+@@ -68,13 +68,24 @@ public final class NearbyPlayers {
          }
      }
  
 +    private final org.bxteam.divinemc.async.rct.DeferredPlayerUpdates deferredUpdates; // DivineMC - Regionized Chunk Ticking
-+
+     private final Object asyncSpawnLock = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableAsyncSpawning ? new Object() : null; // DivineMC - Pufferfish: Optimize mob spawning - the async spawn pass reads these maps off the level's thread
+ 
      public NearbyPlayers(final ServerLevel world) {
          this.world = world;
 +        this.deferredUpdates = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking ? new org.bxteam.divinemc.async.rct.DeferredPlayerUpdates(world, this) : null; // DivineMC - Regionized Chunk Ticking
-+    }
-+
+     }
+ 
 +    // DivineMC start - Regionized Chunk Ticking
 +    public void applyDeferredUpdates() {
 +        if (this.deferredUpdates != null) {
 +            this.deferredUpdates.apply();
 +        }
-     }
++    }
 +    // DivineMC end - Regionized Chunk Ticking
- 
++
      public void addPlayer(final ServerPlayer player) {
 +        if (this.deferredUpdates != null && this.deferredUpdates.defer(org.bxteam.divinemc.async.rct.DeferredPlayerUpdates.Kind.ADD, player)) return; // DivineMC - Regionized Chunk Ticking
-         final TrackedPlayer[] newTrackers = new TrackedPlayer[TOTAL_MAP_TYPES];
-         if (this.players.putIfAbsent(player, newTrackers) != null) {
-             throw new IllegalStateException("Already have player " + player);
-@@ -90,6 +102,7 @@ public final class NearbyPlayers {
+         // DivineMC start - Pufferfish: Optimize mob spawning
+         if (this.asyncSpawnLock != null) {
+             synchronized (this.asyncSpawnLock) {
+@@ -104,6 +115,7 @@ public final class NearbyPlayers {
      }
  
      public void removePlayer(final ServerPlayer player) {
 +        if (this.deferredUpdates != null && this.deferredUpdates.defer(org.bxteam.divinemc.async.rct.DeferredPlayerUpdates.Kind.REMOVE, player)) return; // DivineMC - Regionized Chunk Ticking
-         final TrackedPlayer[] players = this.players.remove(player);
-         if (players == null) {
-             return; // May be called during teleportation before the player is actually placed
-@@ -111,6 +124,7 @@ public final class NearbyPlayers {
+         // DivineMC start - Pufferfish: Optimize mob spawning
+         if (this.asyncSpawnLock != null) {
+             synchronized (this.asyncSpawnLock) {
+@@ -137,6 +149,7 @@ public final class NearbyPlayers {
      }
  
      public void tickPlayer(final ServerPlayer player) {
 +        if (this.deferredUpdates != null && this.deferredUpdates.defer(org.bxteam.divinemc.async.rct.DeferredPlayerUpdates.Kind.TICK, player)) return; // DivineMC - Regionized Chunk Ticking
-         final TrackedPlayer[] players = this.players.get(player);
-         if (players == null) {
-             throw new IllegalStateException("Don't have player " + player);
+         // DivineMC start - Pufferfish: Optimize mob spawning
+         if (this.asyncSpawnLock != null) {
+             synchronized (this.asyncSpawnLock) {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
 index 99b5026d8dfa9668caf15e9ae27619d9d433b441..4e1a1c531f65eb54657e5da90b5389f74e1da38a 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
@@ -275,10 +276,10 @@ index c036bfe20dfbf773cdb21c31250f68952f2d865e..772d408f7c816884e3d4fb3dcefe7965
              boolean executed = false;
              for (final ServerLevel world : this.getAllLevels()) {
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 8727aa26a79f6b2e607a3b5dcdc92e1a25e982cd..08132161f110f41dba0aa787cf0d9dea5eebe747 100644
+index 57f04920d49d725180645aa39d7a24063888844a..32f5b168cc5d8539c0cbc4682f91b24cc25c481c 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -750,25 +750,31 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -763,25 +763,31 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      }
      // Paper end - optimise chunk tick iteration
  
@@ -320,7 +321,7 @@ index 8727aa26a79f6b2e607a3b5dcdc92e1a25e982cd..08132161f110f41dba0aa787cf0d9dea
  
      public void forEachBlockTickingChunk(final Consumer<LevelChunk> tickingChunkConsumer) {
          this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
-@@ -796,11 +802,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -809,11 +815,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
      public boolean anyPlayerCloseEnoughTo(final BlockPos pos, final int maxDistance) {
          Vec3 target = new Vec3(pos);
  
@@ -339,7 +340,7 @@ index 8727aa26a79f6b2e607a3b5dcdc92e1a25e982cd..08132161f110f41dba0aa787cf0d9dea
  
          return false;
      }
-@@ -1116,11 +1126,18 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1141,11 +1151,18 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                  if (tracker == null) {
                      continue;
                  }
@@ -1477,14 +1478,14 @@ index 701c34c640f0406686ddf9b661f5bdc80c5de5ac..74a2bd14aeb11f39c3364ba3b3532849
      // DivineMC start - Parallel world ticking
      @Nullable
 diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..867bb01a47d39829b20f59dfc91a697fa6ab4020 100644
+index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..7be26c13e11d476d34ae8ae5597f4ed1510d06f8 100644
 --- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 @@ -18,6 +18,11 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Level level;
      private final int maxChainedNeighborUpdates;
-+    private final @Nullable CollectingNeighborUpdater regionWorkerUpdater; // DivineMC - Regionized Chunk Ticking
++    private final @Nullable ArrayList<CollectingNeighborUpdater> idleWorkerChains; // DivineMC - Regionized Chunk Ticking
 +    // DivineMC start - Regionized Chunk Ticking
 +    private org.bxteam.divinemc.async.rct.@Nullable NeighborChainLock chainLock;
 +    private boolean chainEntered;
@@ -1492,37 +1493,34 @@ index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..867bb01a47d39829b20f59dfc91a697f
      private final ArrayDeque<CollectingNeighborUpdater.NeighborUpdates> stack = new ArrayDeque<>();
      private final List<CollectingNeighborUpdater.NeighborUpdates> addedThisLayer = new ArrayList<>();
      private int count = 0;
-@@ -26,10 +31,20 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+@@ -26,8 +31,17 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
      public CollectingNeighborUpdater(final Level level, final int maxChainedNeighborUpdates) {
          this.level = level;
          this.maxChainedNeighborUpdates = maxChainedNeighborUpdates;
-+        // DivineMC start - Regionized Chunk Ticking - region workers chain on their own updater, so the level's thread never waits for a worker's chain
-+        this.regionWorkerUpdater = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking ? new CollectingNeighborUpdater(level, maxChainedNeighborUpdates, true) : null;
++        // DivineMC start - Regionized Chunk Ticking - each worker chain has its own state, so the level's thread never waits for a worker's chain
++        this.idleWorkerChains = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking ? new ArrayList<>() : null;
      }
  
 +    private CollectingNeighborUpdater(final Level level, final int maxChainedNeighborUpdates, final boolean regionWorkers) {
 +        this.level = level;
 +        this.maxChainedNeighborUpdates = maxChainedNeighborUpdates;
-+        this.regionWorkerUpdater = null;
++        this.idleWorkerChains = null;
 +    }
 +    // DivineMC end - Regionized Chunk Ticking
 +
      public void setDebugListener(final @Nullable Consumer<BlockPos> debugListener) {
          this.debugListener = debugListener;
-+        if (this.regionWorkerUpdater != null) this.regionWorkerUpdater.setDebugListener(debugListener); // DivineMC - Regionized Chunk Ticking
      }
- 
-     @Override
-@@ -66,6 +81,29 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+@@ -66,6 +80,29 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
      }
  
      private void addAndRun(final BlockPos pos, final CollectingNeighborUpdater.NeighborUpdates update) {
 +        // DivineMC start - Regionized Chunk Ticking - chains are not confined to a region: workers and the level's thread joining them chain one at a time
-+        if (this.regionWorkerUpdater != null && this.chainLock() instanceof org.bxteam.divinemc.async.rct.NeighborChainLock chains) {
++        if (this.idleWorkerChains != null && this.chainLock() instanceof org.bxteam.divinemc.async.rct.NeighborChainLock chains) {
 +            if (Thread.currentThread() instanceof ca.spottedleaf.moonrise.common.util.TickThread.RegionTickThread) {
 +                chains.lockWorker();
 +                try {
-+                    this.regionWorkerUpdater.addAndRun(pos, update);
++                    this.addAndRunOnWorker(pos, update);
 +                } finally {
 +                    chains.unlockWorker();
 +                }
@@ -1543,11 +1541,34 @@ index 1c7862ae4eaeb4d83e0fb423c86489f534e92be5..867bb01a47d39829b20f59dfc91a697f
          boolean runningAlready = this.count > 0;
          boolean tooManyUpdates = this.maxChainedNeighborUpdates >= 0 && this.count >= this.maxChainedNeighborUpdates;
          this.count++;
-@@ -84,6 +122,17 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+@@ -84,6 +121,40 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
          }
      }
  
 +    // DivineMC start - Regionized Chunk Ticking
++    // A worker that waits mid-chain lets the chain lock go; the next worker must start its own chain, not join the waiting one.
++    private void addAndRunOnWorker(final BlockPos pos, final CollectingNeighborUpdater.NeighborUpdates update) {
++        final org.bxteam.divinemc.concurrent.state.ThreadState state = org.bxteam.divinemc.concurrent.state.ThreadState.current();
++        final CollectingNeighborUpdater outer = state.neighborChain;
++        if (outer != null && state.neighborChainOwner == this) {
++            outer.addAndRun(pos, update);
++            return;
++        }
++        final CollectingNeighborUpdater outerOwner = state.neighborChainOwner;
++        final ArrayList<CollectingNeighborUpdater> idle = this.idleWorkerChains;
++        final CollectingNeighborUpdater chain = idle.isEmpty() ? new CollectingNeighborUpdater(this.level, this.maxChainedNeighborUpdates, true) : idle.removeLast();
++        chain.debugListener = this.debugListener;
++        state.neighborChain = chain;
++        state.neighborChainOwner = this;
++        try {
++            chain.addAndRun(pos, update);
++        } finally {
++            state.neighborChain = outer;
++            state.neighborChainOwner = outerOwner;
++            idle.add(chain);
++        }
++    }
++
 +    private org.bxteam.divinemc.async.rct.@Nullable NeighborChainLock chainLock() {
 +        org.bxteam.divinemc.async.rct.NeighborChainLock chains = this.chainLock;
 +        if (chains == null && this.level.getChunkSource() instanceof org.bxteam.divinemc.async.rct.RegionizedChunkTicking regions) {
