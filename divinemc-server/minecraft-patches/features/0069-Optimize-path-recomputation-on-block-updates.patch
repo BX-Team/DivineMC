@@ -1,0 +1,181 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Wed, 18 Nov 2026 02:07:26 +0300
+Subject: [PATCH] Optimize path recomputation on block updates
+
+
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index 67a2c9f270a61493376852e59d415b8fbf2ab56c..5f71b586d42e8dd6fffad8aa67b329612fac6d1e 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -215,6 +215,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+     private final Set<Mob> navigatingMobs = java.util.concurrent.ConcurrentHashMap.newKeySet();
+     private final ThreadLocal<Boolean> isUpdatingNavigations = new org.bxteam.divinemc.concurrent.state.ThreadLocalFlag();
+     // DivineMC end - Regionized Chunk Ticking
++    private final org.bxteam.divinemc.util.@Nullable NavigatingMobIndex navigatingMobIndex = org.bxteam.divinemc.config.DivineConfig.AsyncCategory.enableRegionizedChunkTicking ? null : new org.bxteam.divinemc.util.NavigatingMobIndex(); // DivineMC - Optimize path recomputation on block updates
+     protected final Raids raids;
+     private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
+     private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
+@@ -2018,6 +2019,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+         if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
+             List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
+ 
++            // DivineMC start - Optimize path recomputation on block updates
++            if (this.navigatingMobIndex != null) {
++                this.navigatingMobIndex.collect(pos, navigationsToUpdate);
++            } else {
++            // DivineMC end - Optimize path recomputation on block updates
+             // DivineMC start - Regionized Chunk Ticking
+             for (Mob navigatingMob : this.navigatingMobs) {
+                 PathNavigation pathNavigation = navigatingMob.getNavigation();
+@@ -2026,6 +2032,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+                 }
+             }
+             // DivineMC end - Regionized Chunk Ticking
++            } // DivineMC - Optimize path recomputation on block updates
+ 
+             try {
+                 this.isUpdatingNavigations.set(Boolean.TRUE); // DivineMC - Regionized Chunk Ticking
+@@ -3277,6 +3284,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+                     );
+                 }
+ 
++                if (ServerLevel.this.navigatingMobIndex != null) ServerLevel.this.navigatingMobIndex.add(mob); else // DivineMC - Optimize path recomputation on block updates
+                 ServerLevel.this.navigatingMobs.add(mob);
+             }
+ 
+@@ -3347,6 +3355,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+                     );
+                 }
+ 
++                if (ServerLevel.this.navigatingMobIndex != null) ServerLevel.this.navigatingMobIndex.remove(mob); else // DivineMC - Optimize path recomputation on block updates
+                 ServerLevel.this.navigatingMobs.remove(mob);
+             }
+ 
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index 40969eab2d585223558176b3e47177871120434a..b1d81705f69e91a483650ede17779c52d973b22e 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -3503,6 +3503,7 @@ public abstract class Entity
+ 
+             this.setPose(Pose.STANDING);
+             this.vehicle = entityToRide;
++            if (this instanceof Mob mob) mob.markNavigationIndexDirty(); // DivineMC - Optimize path recomputation on block updates
+             this.vehicle.addPassenger(this);
+             if (sendEventAndTriggers) {
+                 this.level().gameEvent(this, GameEvent.ENTITY_MOUNT, this.vehicle.position);
+@@ -5269,6 +5270,7 @@ public abstract class Entity
+         // Paper end - Block invalid positions and bounding box
+         if (this.position.x != x || this.position.y != y || this.position.z != z) {
+             this.position = new Vec3(x, y, z);
++            if (this instanceof Mob mob) mob.markNavigationIndexDirty(); // DivineMC - Optimize path recomputation on block updates
+             int fx = Mth.floor(x);
+             int fy = Mth.floor(y);
+             int fz = Mth.floor(z);
+diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
+index 8257cec76c6dac15852c0f3cf0d0f8e025b2b2cf..95e3bf593229a1df661d24f692e941aef8fa1c9c 100644
+--- a/net/minecraft/world/entity/Mob.java
++++ b/net/minecraft/world/entity/Mob.java
+@@ -140,6 +140,16 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+     protected JumpControl jumpControl;
+     private final BodyRotationControl bodyRotationControl;
+     protected PathNavigation navigation;
++    // DivineMC start - Optimize path recomputation on block updates
++    public org.bxteam.divinemc.util.@org.jspecify.annotations.Nullable NavigatingMobIndex navigationIndex;
++    public int navigationIndexSlot = -1;
++
++    public final void markNavigationIndexDirty() {
++        if (this.navigationIndex != null) {
++            this.navigationIndex.markDirty(this.navigationIndexSlot);
++        }
++    }
++    // DivineMC end - Optimize path recomputation on block updates
+     protected final GoalSelector goalSelector;
+     public net.minecraft.world.entity.ai.goal.@Nullable FloatGoal goalFloat; // Paper - Allow nerfed mobs to jump and float
+     public GoalSelector targetSelector;
+diff --git a/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
+index 691ede43af8c4c69a2713acb14ee03eca126ec71..a76d2a8c13c80496b70cd7c8265d1f9d2e9c6521 100644
+--- a/net/minecraft/world/entity/ai/navigation/PathNavigation.java
++++ b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
+@@ -107,6 +107,7 @@ public abstract class PathNavigation {
+             this.timeLastRecompute = this.level.getGameTime();
+             this.hasDelayedRecomputation = false;
+         }
++        this.mob.markNavigationIndexDirty(); // DivineMC - Optimize path recomputation on block updates
+     }
+ 
+     public final @Nullable Path createPath(final double x, final double y, final double z, final int reachRange) {
+@@ -268,11 +269,13 @@ public abstract class PathNavigation {
+     public boolean moveTo(final @Nullable Path newPath, final double speedModifier) {
+         if (newPath == null) {
+             this.path = null;
++            this.mob.markNavigationIndexDirty(); // DivineMC - Optimize path recomputation on block updates
+             return false;
+         }
+ 
+         if (!newPath.sameAs(this.path)) {
+             this.path = newPath;
++            this.mob.markNavigationIndexDirty(); // DivineMC - Optimize path recomputation on block updates
+         }
+ 
+         if (this.isDone()) {
+@@ -429,6 +432,7 @@ public abstract class PathNavigation {
+ 
+     public void stop() {
+         this.path = null;
++        this.mob.markNavigationIndexDirty(); // DivineMC - Optimize path recomputation on block updates
+     }
+ 
+     protected abstract Vec3 getTempMobPos();
+@@ -484,6 +488,16 @@ public abstract class PathNavigation {
+         return this.nodeEvaluator.canFloat();
+     }
+ 
++    // DivineMC start - Optimize path recomputation on block updates
++    public Mob getMob() {
++        return this.mob;
++    }
++
++    public boolean hasDelayedRecomputation() {
++        return this.hasDelayedRecomputation;
++    }
++    // DivineMC end - Optimize path recomputation on block updates
++
+     public boolean shouldRecomputePath(final BlockPos pos) {
+         final Path path = this.path; // DivineMC - Regionized Chunk Ticking - another worker may clear the path
+         if (this.hasDelayedRecomputation) {
+diff --git a/net/minecraft/world/level/pathfinder/Path.java b/net/minecraft/world/level/pathfinder/Path.java
+index 78ee202ca9cc1850b7325dc096f6c157c596986d..7d810ff70f1e08a5ef65bf56a1f4f5d75388c19b 100644
+--- a/net/minecraft/world/level/pathfinder/Path.java
++++ b/net/minecraft/world/level/pathfinder/Path.java
+@@ -63,6 +63,7 @@ public class Path {
+     // DivineMC end - Async Pathfinding
+ 
+     public void advance() {
++        org.bxteam.divinemc.util.NavigatingMobIndex.pathChanged(); // DivineMC - Optimize path recomputation on block updates
+         this.nextNodeIndex++;
+     }
+ 
+@@ -83,12 +84,14 @@ public class Path {
+     }
+ 
+     public void truncateNodes(final int index) {
++        org.bxteam.divinemc.util.NavigatingMobIndex.pathChanged(); // DivineMC - Optimize path recomputation on block updates
+         if (this.nodes.size() > index) {
+             this.nodes.subList(index, this.nodes.size()).clear();
+         }
+     }
+ 
+     public void replaceNode(final int index, final Node replaceWith) {
++        org.bxteam.divinemc.util.NavigatingMobIndex.pathChanged(); // DivineMC - Optimize path recomputation on block updates
+         this.nodes.set(index, replaceWith);
+     }
+ 
+@@ -101,6 +104,7 @@ public class Path {
+     }
+ 
+     public void setNextNodeIndex(final int nextNodeIndex) {
++        org.bxteam.divinemc.util.NavigatingMobIndex.pathChanged(); // DivineMC - Optimize path recomputation on block updates
+         this.nextNodeIndex = nextNodeIndex;
+     }
+ 

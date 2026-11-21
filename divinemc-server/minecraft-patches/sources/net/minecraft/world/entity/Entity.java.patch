@@ -1,21 +1,5 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -396,6 +_,7 @@
-     public long activatedTick = Integer.MIN_VALUE;
-     public boolean isTemporarilyActive;
-     public long activatedImmunityTick = Integer.MIN_VALUE;
-+    private boolean boundingBoxChanged = false; // DivineMC - VMP: skip entity move if movement is zero
- 
-     public void inactiveTick() {
-     }
-@@ -1194,6 +_,7 @@
-             );
-         }
- 
-+        if (!this.boundingBoxChanged && delta.equals(Vec3.ZERO)) return; // DivineMC - VMP: skip entity move if movement is zero
-         final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
-         // Paper start - detailed watchdog information
-         ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
 @@ -1362,6 +_,14 @@
                          && !effectState.is(BlockTags.SUPPRESSES_BOUNCE)
                      ? Math.max(restitution, this.getBlockBounciness(effectState.getBlock()))
@@ -51,7 +35,7 @@
          } else if (this.level.purpurConfig.entitiesCanUsePortals || this instanceof ServerPlayer) { // Purpur - Entities can use portals
              if (this.portalProcess == null || !this.portalProcess.isSamePortal(portal)) {
                  this.portalProcess = new PortalProcessor(portal, pos.immutable());
-+                org.bxteam.divinemc.async.world.PortalSearchPrefetcher.onPortalEnter(this, portal); // DivineMC - Async portal pre-search
++                org.bxteam.divinemc.async.pwt.PortalSearchPrefetcher.onPortalEnter(this, portal); // DivineMC - Async portal pre-search
              } else if (!this.portalProcess.isInsidePortalThisTick()) {
                  this.portalProcess.updateEntryPosition(pos.immutable());
                  this.portalProcess.setAsInsidePortalThisTick(true);
@@ -63,11 +47,3 @@
          if (!this.isAlive() || !this.valid) return false; // Paper - Fix item duplication and teleport issues
          if (from.dimension() == Level.END && to.dimension() == Level.OVERWORLD) {
              for (Entity passenger : this.getPassengers()) {
-@@ -4781,6 +_,7 @@
-     }
- 
-     public final void setBoundingBox(final AABB bb) {
-+        if (!this.bb.equals(bb)) this.boundingBoxChanged = true; // DivineMC - VMP: skip entity move if movement is zero
-         // CraftBukkit start - block invalid bounding boxes
-         double minX = bb.minX,
-                 minY = bb.minY,

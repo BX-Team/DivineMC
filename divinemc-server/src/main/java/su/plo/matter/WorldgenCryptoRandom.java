@@ -45,9 +45,13 @@ public class WorldgenCryptoRandom extends WorldgenRandom {
     }
 
     public void setSecureSeed(int x, int z, Globals.Salt typeSalt, long salt) {
+        this.setSecureSeed(x, z, typeSalt, salt, Globals.dimension.get());
+    }
+
+    private void setSecureSeed(int x, int z, Globals.Salt typeSalt, long salt, int dimension) {
         System.arraycopy(Globals.worldSeed, 0, this.worldSeed, 0, Globals.WORLD_SEED_LONGS);
         message[0] = ((long) x << 32) | ((long) z & 0xffffffffL);
-        message[1] = ((long) Globals.dimension.get() << 32) | ((long) salt & 0xffffffffL);
+        message[1] = ((long) dimension << 32) | ((long) salt & 0xffffffffL);
         message[2] = typeSalt.ordinal();
         message[3] = counter = 0;
         randomBitIndex = MAX_RANDOM_BIT_INDEX;
@@ -181,7 +185,9 @@ public class WorldgenCryptoRandom extends WorldgenRandom {
         super.setLargeFeatureWithSalt(worldSeed, regionX, regionZ, salt);
     }
 
-    public static RandomSource seedSlimeChunk(int chunkX, int chunkZ) {
-        return new WorldgenCryptoRandom(chunkX, chunkZ, Globals.Salt.SLIME_CHUNK, 0);
+    public static RandomSource seedSlimeChunk(int chunkX, int chunkZ, int dimension) {
+        final WorldgenCryptoRandom random = new WorldgenCryptoRandom(0, 0, null, 0);
+        random.setSecureSeed(chunkX, chunkZ, Globals.Salt.SLIME_CHUNK, 0, dimension);
+        return random;
     }
 }

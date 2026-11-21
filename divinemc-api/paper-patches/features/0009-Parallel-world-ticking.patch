@@ -1,0 +1,113 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Tue, 28 Oct 2025 16:26:54 +0300
+Subject: [PATCH] Parallel world ticking
+
+Original license: MIT
+Original project (API): https://github.com/Biquaternions/Fish
+Original project: https://github.com/SparklyPower/SparklyPaper
+
+This patch provides an API for performance monitoring plugins.
+
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index 29edd88cb1c4055f90fd05c438263d2a6b619cbe..1c08ada19be4688926e47cda423543ed4feef9f3 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -2966,4 +2966,59 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+     @Deprecated
+     void clearBlockHighlights();
+     // Purpur end - Debug Marker API
++
++    // DivineMC start - Parallel world ticking
++    /**
++     * Returns whether the software has the Parallel World Ticking feature enabled
++     *
++     * @return If the Parallel World Ticking feature is enabled
++     */
++    public default boolean isParallelWorldTickingEnabled() {
++        return false;
++    }
++
++    /**
++     * Returns whether the software has the Regionized Chunk Ticking feature enabled, which ticks the chunks and
++     * entities of one world on several threads at once.
++     *
++     * @return If the Regionized Chunk Ticking feature is enabled
++     */
++    default boolean isRegionizedChunkTickingEnabled() {
++        return false;
++    }
++
++    /**
++     * Returns whether event listeners of plugins that do not declare {@code folia-supported: true} currently run one
++     * at a time across all threads. It is only in effect while worlds tick on several threads (parallel world ticking
++     * or regionized chunk ticking) and can change with a config reload.
++     *
++     * @return If plugin listener serialization is in effect
++     */
++    default boolean isPluginListenerSerializationEnabled() {
++        return false;
++    }
++
++    /**
++     * Returns the world whose tick the current thread is running: the world's own tick thread under parallel world
++     * ticking, a region worker of that world, or the main thread while it ticks the world. Worlds the thread took over
++     * from other worlds during its tick are not returned.
++     *
++     * @return The world ticked by the current thread, or {@code null} outside of a world tick
++     */
++    default @Nullable World getCurrentTickingWorld() {
++        return null;
++    }
++
++    /**
++     * Returns whether the current thread may access and change anything in the given world right now. Unlike
++     * {@link #isOwnedByCurrentRegion(World, int, int)} this asks about the whole world: a region worker of
++     * regionized chunk ticking only owns the chunks it ticks, so it never owns its world as a whole.
++     *
++     * @param world The world to check
++     * @return If the current thread owns the whole world
++     */
++    default boolean isOwnedByCurrentThread(@NotNull World world) {
++        return this.isPrimaryThread();
++    }
++    // DivineMC end - Parallel world ticking
+ }
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index ae2a14f26bf7a03dfd922f9a3b9b303cde20fc8e..4665afee2515867118b1206236a7b814d780ff43 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -4893,4 +4893,33 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+             }
+         }
+     }
++
++    // DivineMC start - Parallel world ticking
++    /**
++     * Get a sample of the world last tick times (in nanos)
++     *
++     * @return A sample of the world last tick times (in nanos)
++     */
++    public default long @NotNull [] getTickTimes() {
++        return new long[0];
++    }
++    /**
++     * Get the world's average tick time (in millis)
++     *
++     * @return World's local average tick time (in millis)
++     */
++    public default double getAverageTickTime() {
++        return 0.0;
++    }
++
++    /**
++     * Get counters of how this world ticks next to other worlds (parallel world ticking) and on region workers
++     * (regionized chunk ticking)
++     *
++     * @return A snapshot of this world's tick statistics, all zero while both features are disabled
++     */
++    default @NotNull org.bxteam.divinemc.world.WorldTickStatistics getTickStatistics() {
++        return org.bxteam.divinemc.world.WorldTickStatistics.EMPTY;
++    }
++    // DivineMC end - Parallel world ticking
+ }

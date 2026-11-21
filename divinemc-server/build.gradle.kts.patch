@@ -73,7 +73,7 @@
      }
  }
  val log4jPlugins = sourceSets.create("log4jPlugins") {
-@@ -146,7 +_,19 @@
+@@ -146,7 +_,18 @@
  }
  
  dependencies {
@@ -87,7 +87,6 @@
 +    implementation("com.github.luben:zstd-jni:1.5.7-12")
 +    implementation("at.yawk.lz4:lz4-java:1.11.2")
 +    implementation("net.openhft:zero-allocation-hashing:2026.0")
-+    implementation("net.objecthunter:exp4j:0.4.8")
 +    implementation("net.openhft:affinity:2026.2")
 +    // DivineMC end - Dependencies
 +
@@ -157,3 +156,18 @@
          )
          for (tld in setOf("net", "com", "org")) {
              attributes("$tld/bukkit", "Sealed" to true)
+@@ -263,6 +_,14 @@
+ tasks.check {
+     dependsOn(scanJarForBadCalls)
+ }
++
++// DivineMC start - Linear region file format
++tasks.processResources {
++    from(rootProject.layout.projectDirectory.dir("linear-format/dicts")) {
++        into("linear/dicts")
++    }
++}
++// DivineMC end - Linear region file format
+ 
+ // Use TCA for console improvements
+ tasks.jar {

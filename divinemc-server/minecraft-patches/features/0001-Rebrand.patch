@@ -18,7 +18,7 @@ index c06d8ab454622d4488b6fb2e925fb52769929c51..6a48eea222a96a817c70c535fa580bbb
      public CrashReport(final String title, final Throwable t) {
          this.title = title;
 diff --git a/net/minecraft/network/protocol/common/custom/BrandPayload.java b/net/minecraft/network/protocol/common/custom/BrandPayload.java
-index 439e2663a297029efc77adef9e8d99a0d8c02f41..b2a42bf642d80df6fb02e2e2e72da585663bbdf7 100644
+index 439e2663a297029efc77adef9e8d99a0d8c02f41..f6b758ef8b9594e0908ee5478ec1804f01870858 100644
 --- a/net/minecraft/network/protocol/common/custom/BrandPayload.java
 +++ b/net/minecraft/network/protocol/common/custom/BrandPayload.java
 @@ -12,7 +12,7 @@ public record BrandPayload(String brand) implements CustomPacketPayload {
@@ -26,7 +26,7 @@ index 439e2663a297029efc77adef9e8d99a0d8c02f41..b2a42bf642d80df6fb02e2e2e72da585
  
      private void write(final FriendlyByteBuf output) {
 -        output.writeUtf(this.brand);
-+        output.writeUtf(org.purpurmc.purpur.PurpurConfig.f3Name + "§r"); // DivineMC - Update Purpur rebrand settings
++        output.writeUtf(org.purpurmc.purpur.PurpurConfig.f3Name + "§r"); // DivineMC - Rebrand
      }
  
      @Override
@@ -123,10 +123,10 @@ index 7b1a8fbbb1d07f4b71f43c288da7d28edfbbe020..d4512910e751a3e198fd3cb2c56d40dc
              }
  
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 033311e01f4d2e81413af431c4b3e965a1a56e08..fab76995e9f9e82fd0234e533b33648e4fee3fe5 100644
+index ca5383fa06233afeba83ac61954e7c934eb43157..9b49e2157d822483f040e6c086e66cc4c590e5ed 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1269,6 +1269,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1262,6 +1262,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      protected void runServer() {
          try {
@@ -135,7 +135,7 @@ index 033311e01f4d2e81413af431c4b3e965a1a56e08..fab76995e9f9e82fd0234e533b33648e
                  throw new IllegalStateException("Failed to initialize server");
              }
 diff --git a/net/minecraft/server/gui/MinecraftServerGui.java b/net/minecraft/server/gui/MinecraftServerGui.java
-index 960454a167ef52eb867da40af1fc5b3de4ea307c..e9b38ad8b9da0d8e502f157de00c917048125860 100644
+index 960454a167ef52eb867da40af1fc5b3de4ea307c..868d033f0d0a44efe4f99ad277d15ba36c857aa1 100644
 --- a/net/minecraft/server/gui/MinecraftServerGui.java
 +++ b/net/minecraft/server/gui/MinecraftServerGui.java
 @@ -53,7 +53,7 @@ public class MinecraftServerGui extends JComponent {
@@ -143,7 +143,7 @@ index 960454a167ef52eb867da40af1fc5b3de4ea307c..e9b38ad8b9da0d8e502f157de00c9170
          }
  
 -        final JFrame frame = new JFrame("Purpur Minecraft server"); // Purpur - Improve GUI
-+        final JFrame frame = new JFrame(org.purpurmc.purpur.PurpurConfig.serverGUIName); // Purpur - Improve GUI // DivineMC - Update Purpur rebrand settings
++        final JFrame frame = new JFrame(org.purpurmc.purpur.PurpurConfig.serverGUIName); // Purpur - Improve GUI // DivineMC - Rebrand
          final MinecraftServerGui gui = new MinecraftServerGui(server);
          frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
          frame.add(gui);
@@ -152,7 +152,7 @@ index 960454a167ef52eb867da40af1fc5b3de4ea307c..e9b38ad8b9da0d8e502f157de00c9170
          frame.setVisible(true);
          // Paper start - Improve ServerGUI
 -        frame.setName("Purpur Minecraft server"); // Purpur - Improve GUI
-+        frame.setName(org.purpurmc.purpur.PurpurConfig.serverGUIName); // Purpur - Improve GUI // DivineMC - Update Purpur rebrand settings
++        frame.setName(org.purpurmc.purpur.PurpurConfig.serverGUIName); // Purpur - Improve GUI // DivineMC - Rebrand
          try {
              frame.setIconImage(javax.imageio.ImageIO.read(java.util.Objects.requireNonNull(MinecraftServerGui.class.getClassLoader().getResourceAsStream("logo.png"))));
          } catch (java.io.IOException ignore) {
@@ -161,7 +161,7 @@ index 960454a167ef52eb867da40af1fc5b3de4ea307c..e9b38ad8b9da0d8e502f157de00c9170
              public void windowClosing(final WindowEvent event) {
                  if (!gui.isClosing.getAndSet(true)) {
 -                    frame.setTitle("Purpur Minecraft server - shutting down!"); // Purpur - Improve GUI
-+                    frame.setTitle(org.purpurmc.purpur.PurpurConfig.serverGUIName + " - shutting down!"); // Purpur - Improve GUI // DivineMC - Update Purpur rebrand settings
++                    frame.setTitle(org.purpurmc.purpur.PurpurConfig.serverGUIName + " - shutting down!"); // Purpur - Improve GUI // DivineMC - Rebrand
                      server.halt(true);
                      gui.runFinalizers();
                  }

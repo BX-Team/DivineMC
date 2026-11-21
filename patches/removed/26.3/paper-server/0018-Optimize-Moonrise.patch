@@ -1,0 +1,227 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Wed, 9 Jul 2025 03:37:51 +0300
+Subject: [PATCH] Optimize Moonrise
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
+index 7fed43a1e7bcf35c4d7fd3224837a47fedd59860..58d2dc471ca424bac62b99d9b5cf62b8e46c0378 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/EntityList.java
+@@ -27,11 +27,11 @@ public final class EntityList implements Iterable<Entity> {
+         return this.count;
+     }
+ 
+-    public boolean contains(final Entity entity) {
++    public synchronized boolean contains(final Entity entity) { // DivineMC - Optimize Moonrise
+         return this.entityToIndex.containsKey(entity.getId());
+     }
+ 
+-    public boolean remove(final Entity entity) {
++    public synchronized boolean remove(final Entity entity) { // DivineMC - Optimize Moonrise
+         final int index = this.entityToIndex.remove(entity.getId());
+         if (index == Integer.MIN_VALUE) {
+             return false;
+@@ -50,7 +50,7 @@ public final class EntityList implements Iterable<Entity> {
+         return true;
+     }
+ 
+-    public boolean add(final Entity entity) {
++    public synchronized boolean add(final Entity entity) { // DivineMC - Optimize Moonrise
+         final int count = this.count;
+         final int currIndex = this.entityToIndex.putIfAbsent(entity.getId(), count);
+ 
+@@ -82,18 +82,18 @@ public final class EntityList implements Iterable<Entity> {
+         return this.entities[index];
+     }
+ 
+-    public Entity[] getRawData() {
++    public synchronized Entity[] getRawData() { // DivineMC - Optimize Moonrise
+         return this.entities;
+     }
+ 
+-    public void clear() {
++    public synchronized void clear() { // DivineMC - Optimize Moonrise
+         this.entityToIndex.clear();
+         Arrays.fill(this.entities, 0, this.count, null);
+         this.count = 0;
+     }
+ 
+     @Override
+-    public Iterator<Entity> iterator() {
++    public synchronized Iterator<Entity> iterator() { // DivineMC - Optimize Moonrise
+         return new Iterator<>() {
+             private Entity lastRet;
+             private int current;
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
+index 2e876b918672e8ef3b5197b7e6b1597247fdeaa1..19011fbc6fb6ec0692e4654afefd346a64a86489 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ReferenceList.java
+@@ -10,8 +10,10 @@ public final class ReferenceList<E> implements Iterable<E> {
+     private static final Object[] EMPTY_LIST = new Object[0];
+ 
+     private final Reference2IntOpenHashMap<E> referenceToIndex;
+-    private E[] references;
+-    private int count;
++    // DivineMC start - Optimize Moonrise - readers stay lock-free
++    private volatile E[] references;
++    private volatile int count;
++    // DivineMC end - Optimize Moonrise - readers stay lock-free
+ 
+     public ReferenceList() {
+         this((E[])EMPTY_LIST);
+@@ -29,7 +31,7 @@ public final class ReferenceList<E> implements Iterable<E> {
+         this.referenceToIndex = referenceToIndex;
+     }
+ 
+-    public ReferenceList<E> copy() {
++    public synchronized ReferenceList<E> copy() { // DivineMC - Optimize Moonrise
+         return new ReferenceList<>(this.references.clone(), this.count, this.referenceToIndex.clone());
+     }
+ 
+@@ -37,11 +39,11 @@ public final class ReferenceList<E> implements Iterable<E> {
+         return this.count;
+     }
+ 
+-    public boolean contains(final E obj) {
++    public synchronized boolean contains(final E obj) { // DivineMC - Optimize Moonrise
+         return this.referenceToIndex.containsKey(obj);
+     }
+ 
+-    public boolean remove(final E obj) {
++    public synchronized boolean remove(final E obj) { // DivineMC - Optimize Moonrise
+         final int index = this.referenceToIndex.removeInt(obj);
+         if (index == Integer.MIN_VALUE) {
+             return false;
+@@ -60,7 +62,7 @@ public final class ReferenceList<E> implements Iterable<E> {
+         return true;
+     }
+ 
+-    public boolean add(final E obj) {
++    public synchronized boolean add(final E obj) { // DivineMC - Optimize Moonrise
+         final int count = this.count;
+         final int currIndex = this.referenceToIndex.putIfAbsent(obj, count);
+ 
+@@ -100,7 +102,7 @@ public final class ReferenceList<E> implements Iterable<E> {
+         return this.references;
+     }
+ 
+-    public void clear() {
++    public synchronized void clear() { // DivineMC - Optimize Moonrise
+         this.referenceToIndex.clear();
+         Arrays.fill(this.references, 0, this.count, null);
+         this.count = 0;
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
+index bd85ba889d3fcc6b7ec8528e4d053ab5419e47e6..5fee420fc3bac4b0cc1196931114f6ca47b0f02b 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/ShortList.java
+@@ -13,17 +13,17 @@ public final class ShortList {
+     private static final short[] EMPTY_LIST = new short[0];
+ 
+     private short[] byIndex = EMPTY_LIST;
+-    private short count;
++    private volatile short count; // DivineMC - Optimize Moonrise
+ 
+     public int size() {
+-        return (int)this.count;
++        return this.count; // DivineMC - Optimize Moonrise
+     }
+ 
+-    public short getRaw(final int index) {
++    public synchronized short getRaw(final int index) { // DivineMC - Optimize Moonrise
+         return this.byIndex[index];
+     }
+ 
+-    public void setMinCapacity(final int len) {
++    public synchronized void setMinCapacity(final int len) { // DivineMC - Optimize Moonrise
+         if (len <= 0) {
+             return;
+         }
+@@ -34,8 +34,8 @@ public final class ShortList {
+         this.map.ensureCapacity(len);
+     }
+ 
+-    public boolean add(final short value) {
+-        final int count = (int)this.count;
++    public synchronized boolean add(final short value) { // DivineMC - Optimize Moonrise
++        final int count = this.count; // DivineMC - Optimize Moonrise
+         final short currIndex = this.map.putIfAbsent(value, (short)count);
+ 
+         if (currIndex != Short.MIN_VALUE) {
+@@ -55,7 +55,7 @@ public final class ShortList {
+         return true;
+     }
+ 
+-    public boolean remove(final short value) {
++    public synchronized boolean remove(final short value) { // DivineMC - Optimize Moonrise
+         final short index = this.map.remove(value);
+         if (index == Short.MIN_VALUE) {
+             return false;
+@@ -74,7 +74,7 @@ public final class ShortList {
+         return true;
+     }
+ 
+-    public void clear() {
++    public synchronized void clear() { // DivineMC - Optimize Moonrise
+         this.count = (short)0;
+         this.map.clear();
+     }
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
+index 460e27ab0506c83a28934800ee74ee886d4b025e..d58468b3d24345a0f163934ddb4ff0b41d25098e 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/misc/Delayed26WayDistancePropagator3D.java
+@@ -38,11 +38,12 @@ public final class Delayed26WayDistancePropagator3D {
+         this.changeCallback = changeCallback;
+     }
+ 
+-    public int getLevel(final long pos) {
++    // DivineMC - Optimize Moonrise - called from region threads
++    public synchronized int getLevel(final long pos) {
+         return this.levels.get(pos);
+     }
+ 
+-    public int getLevel(final int x, final int y, final int z) {
++    public synchronized int getLevel(final int x, final int y, final int z) { // DivineMC - Optimize Moonrise
+         return this.levels.get(CoordinateUtils.getChunkSectionKey(x, y, z));
+     }
+ 
+@@ -50,7 +51,7 @@ public final class Delayed26WayDistancePropagator3D {
+         this.setSource(CoordinateUtils.getChunkSectionKey(x, y, z), level);
+     }
+ 
+-    public void setSource(final long coordinate, final int level) {
++    public synchronized void setSource(final long coordinate, final int level) { // DivineMC - Optimize Moonrise
+         if ((level & 63) != level || level == 0) {
+             throw new IllegalArgumentException("Level must be in (0, 63], not " + level);
+         }
+@@ -70,7 +71,7 @@ public final class Delayed26WayDistancePropagator3D {
+         this.removeSource(CoordinateUtils.getChunkSectionKey(x, y, z));
+     }
+ 
+-    public void removeSource(final long coordinate) {
++    public synchronized void removeSource(final long coordinate) { // DivineMC - Optimize Moonrise
+         if (this.sources.remove(coordinate) != 0) {
+             this.updatedSources.add(coordinate);
+         }
+@@ -116,7 +117,7 @@ public final class Delayed26WayDistancePropagator3D {
+         this.levelRemoveWorkQueueBitset |= (1L << level);
+     }
+ 
+-    public boolean propagateUpdates() {
++    public synchronized boolean propagateUpdates() { // DivineMC - Optimize Moonrise
+         if (this.updatedSources.isEmpty()) {
+             return false;
+         }
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/SingleUserAreaMap.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/SingleUserAreaMap.java
+index 7e85bb58b8a5de17fdab9ad3c574f2f80952e1ca..f0bfa2218b3176d8868aa0616f47cc8881388553 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/misc/SingleUserAreaMap.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/misc/SingleUserAreaMap.java
+@@ -87,6 +87,8 @@ public abstract class SingleUserAreaMap<T> {
+             return false;
+         }
+ 
++        if (fromX == toX && fromZ == toZ && oldViewDistance == newViewDistance) return true; // DivineMC - Optimize Moonrise
++
+         this.lastChunkX = toX;
+         this.lastChunkZ = toZ;
+         this.distance = newViewDistance;

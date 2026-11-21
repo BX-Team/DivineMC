@@ -10,8 +10,8 @@ import net.minecraft.world.level.pathfinder.PathFinder;
 import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bxteam.divinemc.concurrent.executor.NamedAgnosticThreadFactoryAffinity;
 import org.bxteam.divinemc.config.DivineConfig;
-import org.bxteam.divinemc.util.NamedAgnosticThreadFactoryAffinity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,7 +23,7 @@ import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static org.bxteam.divinemc.config.DivineConfig.GuruMode.asyncPathfindingAffinity;
+import static org.bxteam.divinemc.config.DivineConfig.AsyncCategory.asyncPathfindingAffinity;
 
 @SuppressWarnings("NullableProblems")
 public final class AsyncPath extends Path {

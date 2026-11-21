@@ -17,18 +17,12 @@
              return;
          }
          // CraftBukkit end
-@@ -3431,7 +_,13 @@
+@@ -3431,7 +_,7 @@
      }
  
      protected float getFlyingSpeed() {
 -        return this.getControllingPassenger() instanceof Player ? this.getSpeed() * 0.1F : 0.02F;
-+        // DivineMC start - Fix MC-172801
-+        float flyingSpeed = 0.02F;
-+        if (this.getAttributes().hasAttribute(Attributes.FLYING_SPEED)) {
-+            flyingSpeed = (float) (this.getAttribute(Attributes.FLYING_SPEED).getValue() * 0.049999999254942D);
-+        }
-+        return this.getControllingPassenger() instanceof net.minecraft.world.entity.player.Player ? this.getSpeed() * 0.1F : flyingSpeed;
-+        // DivineMC end - Fix MC-172801
++        return this.getControllingPassenger() instanceof Player ? this.getSpeed() * 0.1F : org.bxteam.divinemc.util.FlyingSpeed.airAcceleration(this, 0.02F); // DivineMC - Fix MC-172801
      }
  
      public float getSpeed() {

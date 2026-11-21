@@ -4,11 +4,11 @@ import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.PermissionDefault;
+import org.bxteam.divinemc.command.DivineCommand;
+import org.bxteam.divinemc.command.DivineSubCommandPermission;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.framework.qual.DefaultQualifier;
 import org.jetbrains.annotations.Nullable;
-import org.bxteam.divinemc.command.DivineCommand;
-import org.bxteam.divinemc.command.DivineSubCommandPermission;
 
 @DefaultQualifier(NonNull.class)
 public final class VersionCommand extends DivineSubCommandPermission {

@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/entity/animal/turtle/Turtle.java
++++ b/net/minecraft/world/entity/animal/turtle/Turtle.java
+@@ -576,6 +_,7 @@
+                     this.mob.yBodyRot = this.mob.getYRot();
+                     float targetSpeed = (float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)); // Purpur - Ridables
+                     this.mob.setSpeed(Mth.lerp(0.125F, this.mob.getSpeed(), targetSpeed));
++                    if (!org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc299642 || !this.mob.isNoGravity() || this.mob.isInWater()) // DivineMC - Fix MC-299642 - out of water this vertical push is what sinks a NoGravity turtle
+                     this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(0.0, this.mob.getSpeed() * yd * 0.1, 0.0));
+                 }
+             } else {

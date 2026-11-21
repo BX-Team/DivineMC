@@ -377,7 +377,7 @@ public class OcclusionCullingInstance {
                 int chunkZ = currentZ >> 4;
 
                 if (!provider.prepareChunk(chunkX, chunkZ)) { // Chunk not ready
-                    return false;
+                    return true; // an unloaded chunk tells nothing about occlusion, so the target stays visible
                 }
 
                 if (provider.isOpaqueFullCube(currentX, currentY, currentZ)) {

@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/inventory/StonecutterMenu.java
++++ b/net/minecraft/world/inventory/StonecutterMenu.java
+@@ -271,6 +_,7 @@
+                 return ItemStack.EMPTY;
+             }
+ 
++            if (org.bxteam.divinemc.config.DivineConfig.FixesCategory.fixMc65198 && slotIndex == 1) player.awardStat(net.minecraft.stats.Stats.ITEM_CRAFTED.get(item), clicked.getCount() - stack.getCount()); // DivineMC - Fix MC-65198 - onTake only counts what is left in the slot
+             slot.onTake(player, stack);
+             if (slotIndex == 1) {
+                 player.drop(stack, false, Prediction.PREDICTED);

@@ -13,7 +13,6 @@ import org.bxteam.divinemc.config.DivineConfig;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.framework.qual.DefaultQualifier;
 
-import java.io.File;
 import java.io.IOException;
 
 import static net.kyori.adventure.text.format.NamedTextColor.*;
@@ -39,7 +38,10 @@ public final class ReloadCommand extends DivineSubCommandPermission {
 
         MinecraftServer server = ((CraftServer) sender.getServer()).getServer();
 
-        DivineConfig.init((File) server.options.valueOf("divinemc-settings"));
+        if (!DivineConfig.reload()) {
+            Command.broadcastCommandMessage(sender, Component.text("Could not reload divinemc.yml, the current settings are kept. See the console for the error.", RED));
+            return;
+        }
 
         for (ServerLevel level : server.getAllLevels()) {
             try {

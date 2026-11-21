@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 19 Nov 2026 02:18:38 +0300
+Subject: [PATCH] Brain activity bitsets
+
+
+diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
+index f3e70488154fb8f5de764b985695ce109d7b00eb..a06afc628894345995a6c2fc1acb366f9af4db69 100644
+--- a/net/minecraft/world/entity/ai/Brain.java
++++ b/net/minecraft/world/entity/ai/Brain.java
+@@ -47,6 +47,22 @@ public class Brain<E extends LivingEntity> {
+     private final Map<Activity, Set<MemoryModuleType<?>>> activityMemoriesToEraseWhenStopped = Maps.newHashMap();
+     private Set<Activity> coreActivities = Sets.newHashSet();
+     private final Set<Activity> activeActivities = Sets.newHashSet();
++    // DivineMC start - Brain activity bitsets
++    private long coreActivitiesBitset;
++    private long activeActivitiesBitset;
++
++    private static long activityBit(final Activity activity) {
++        return activity.id < 64 ? (1L << activity.id) : 0L; // ids >= 64 (unrealistic, vanilla has ~26) fall back to set lookups
++    }
++
++    private static long activityBitsetOf(final java.util.Collection<Activity> activities) {
++        long bits = 0L;
++        for (Activity activity : activities) {
++            bits |= activityBit(activity);
++        }
++        return bits;
++    }
++    // DivineMC end - Brain activity bitsets
+     private Activity defaultActivity = Activity.IDLE;
+     private long lastScheduleUpdate = -9999L;
+     // DivineMC start - lithium: brain
+@@ -72,7 +88,7 @@ public class Brain<E extends LivingEntity> {
+         for (Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {
+             for (Map.Entry<Activity, Set<BehaviorControl<? super E>>> entry : map.entrySet()) {
+                 Activity activity = entry.getKey();
+-                if (!this.activeActivities.contains(activity)) {
++                if (!this.isActive(activity)) { // DivineMC - Brain activity bitsets
+                     continue;
+                 }
+                 Set<BehaviorControl<? super E>> set = entry.getValue();
+@@ -325,6 +341,7 @@ public class Brain<E extends LivingEntity> {
+ 
+     public void setCoreActivities(final Set<Activity> activities) {
+         this.coreActivities = activities;
++        this.coreActivitiesBitset = activityBitsetOf(activities); // DivineMC - Brain activity bitsets
+     }
+ 
+     @Deprecated
+@@ -367,6 +384,7 @@ public class Brain<E extends LivingEntity> {
+             this.activeActivities.clear();
+             this.activeActivities.addAll(this.coreActivities);
+             this.activeActivities.add(activity);
++            this.activeActivitiesBitset = this.coreActivitiesBitset | activityBit(activity); // DivineMC - Brain activity bitsets
+             this.onPossibleActivitiesChanged(); // DivineMC - lithium: brain
+         }
+     }
+@@ -388,7 +406,7 @@ public class Brain<E extends LivingEntity> {
+         if (gameTime - this.lastScheduleUpdate > 20L) {
+             this.lastScheduleUpdate = gameTime;
+             Activity scheduledActivity = this.schedule != null ? environmentAttributes.getValue(this.schedule, pos) : Activity.IDLE;
+-            if (!this.activeActivities.contains(scheduledActivity)) {
++            if (!this.isActive(scheduledActivity)) { // DivineMC - Brain activity bitsets
+                 this.setActiveActivityIfPossible(scheduledActivity);
+             }
+         }
+@@ -440,7 +458,7 @@ public class Brain<E extends LivingEntity> {
+     }
+ 
+     public boolean isActive(final Activity activity) {
+-        return this.activeActivities.contains(activity);
++        return activity.id < 64 ? (this.activeActivitiesBitset & (1L << activity.id)) != 0L : this.activeActivities.contains(activity); // DivineMC - Brain activity bitsets
+     }
+ 
+     public void tick(final ServerLevel level, final E body) {
+diff --git a/net/minecraft/world/entity/schedule/Activity.java b/net/minecraft/world/entity/schedule/Activity.java
+index 23a614ea83abf7abdbf4f5b34751d08962c46cee..7b7252a0b2acbea0bb1920e561dde4570418f62c 100644
+--- a/net/minecraft/world/entity/schedule/Activity.java
++++ b/net/minecraft/world/entity/schedule/Activity.java
+@@ -32,10 +32,12 @@ public class Activity {
+     public static final Activity DIG = register("dig");
+     private final String name;
+     private final int hashCode;
++    public final int id; // DivineMC - Brain activity bitsets
+ 
+-    private Activity(final String name) {
++    private Activity(final String name, final int id) {
+         this.name = name;
+         this.hashCode = name.hashCode();
++        this.id = id; // DivineMC - Brain activity bitsets
+     }
+ 
+     public String getName() {
+@@ -43,7 +45,7 @@ public class Activity {
+     }
+ 
+     private static Activity register(final String name) {
+-        return Registry.register(BuiltInRegistries.ACTIVITY, name, new Activity(name));
++        return Registry.register(BuiltInRegistries.ACTIVITY, name, new Activity(name, BuiltInRegistries.ACTIVITY.size())); // DivineMC - Brain activity bitsets
+     }
+ 
+     @Override

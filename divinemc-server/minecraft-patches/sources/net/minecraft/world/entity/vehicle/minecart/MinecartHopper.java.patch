@@ -5,7 +5,7 @@
  
      private void tryConsumeItems() {
 -        if (!this.level().isClientSide() && this.isAlive() && this.isEnabled() && !this.consumedItemThisFrame && this.suckInItems()) {
-+        if (!this.level().isClientSide() && this.isAlive() && this.isEnabled() && !this.consumedItemThisFrame && !org.bxteam.divinemc.util.entity.HopperMinecartHelper.skipPull(this) && this.suckInItems()) { // DivineMC - Skip pulling into a full hopper minecart
++        if (!this.level().isClientSide() && this.isAlive() && this.isEnabled() && !this.consumedItemThisFrame && !org.bxteam.divinemc.util.HopperMinecartHelper.skipPull(this) && this.suckInItems()) { // DivineMC - Skip pulling into a full hopper minecart
              this.consumedItemThisFrame = true;
              this.setChanged();
          }
