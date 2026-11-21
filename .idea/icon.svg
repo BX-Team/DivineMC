@@ -1,1 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="160" height="160" shape-rendering="crispEdges"><path fill="#efebe6" d="M6 0h4v1h-4zM4 1h8v1h-8zM2 2h12v1h-12zM0 3h16v1h-16zM2 4h12v1h-12zM4 5h8v1h-8zM6 6h4v1h-4z"/><path fill="#938d86" d="M0 4h2v1h-2zM0 5h4v1h-4zM0 6h6v1h-6zM0 7h8v1h-8zM0 8h8v1h-8zM0 9h8v1h-8zM0 10h8v1h-8zM0 11h8v1h-8zM0 12h8v1h-8zM2 13h6v1h-6zM4 14h4v1h-4zM6 15h2v1h-2z"/><path fill="#534e48" d="M14 4h2v1h-2zM12 5h4v1h-4zM10 6h6v1h-6zM8 7h8v1h-8zM8 8h8v1h-8zM8 9h8v1h-8zM8 10h8v1h-8zM8 11h8v1h-8zM8 12h8v1h-8zM8 13h6v1h-6zM8 14h4v1h-4zM8 15h2v1h-2z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d2f4d"/><stop offset="1" stop-color="#100c16"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="256" cy="254" r="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffc978" stop-opacity="0.4"/><stop offset="0.55" stop-color="#ffc978" stop-opacity="0.08"/><stop offset="1" stop-color="#ffc978" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f3d9a4"/>
+    </linearGradient>
+    <clipPath id="sq"><rect width="512" height="512" rx="116"/></clipPath>
+  </defs>
+  <g clip-path="url(#sq)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <rect width="512" height="512" fill="url(#glow)"/>
+    <g fill="none" stroke="url(#line)" stroke-width="20" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M256 119 L373 186.5 L373 321.5 L256 389 L139 321.5 L139 186.5 Z"/>
+      <path d="M139 186.5 L256 254 L373 186.5 M256 254 L256 389"/>
+    </g>
+  </g>
+</svg>
