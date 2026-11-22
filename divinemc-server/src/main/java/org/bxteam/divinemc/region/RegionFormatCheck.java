@@ -21,7 +21,7 @@ public final class RegionFormatCheck {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Pattern REGION_FILE = Pattern.compile("^r\\.-?[0-9]+\\.-?[0-9]+\\.([a-z_]+)$");
     private static final String LEGACY_BUFFERED = "b_linear";
-    private static final String CONVERT_HINT = "Convert the world with the DivineMC region converter (region_converter) before starting, or keep running the previous DivineMC version on it.";
+    private static final String CONVERT_HINT = "Convert the world with linear-converter (https://github.com/BX-Team/linear-converter) before starting, or keep running the previous DivineMC version on it.";
 
     private RegionFormatCheck() {
     }

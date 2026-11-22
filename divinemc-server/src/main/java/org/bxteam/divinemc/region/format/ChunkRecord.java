@@ -37,6 +37,19 @@ public final class ChunkRecord {
         return ByteBuffer.wrap(record).getLong(20);
     }
 
+    public static int dictionaryId(byte[] record) {
+        return ByteBuffer.wrap(record).getInt(8);
+    }
+
+    public static int rawLength(byte[] record) {
+        return ByteBuffer.wrap(record).getInt(16);
+    }
+
+    /** True when a writer should put this chunk into a pack instead of keeping it as its own record. */
+    public static boolean packable(byte[] record) {
+        return record.length - LinearFormat.RECORD_HEADER_BYTES <= LinearFormat.PACK_MAX_PAYLOAD && rawLength(record) <= LinearFormat.PACK_MAX_MEMBER_RAW;
+    }
+
     /** Checks a record read for the given chunk and returns its decompressed NBT. */
     public static byte[] decode(byte[] record, int localIndex, LinearDictionaries dictionaries) throws LinearFormatException {
         if (record.length < LinearFormat.RECORD_HEADER_BYTES) {

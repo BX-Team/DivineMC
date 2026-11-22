@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -76,7 +77,8 @@ class LinearGoldenFilesTest {
                                 assertThrows(LinearFormatException.class, () -> file.read(index), name + " chunk " + i);
                                 continue;
                             }
-                            final byte[] raw = file.read(i);
+                            final int index = i;
+                            final byte[] raw = assertDoesNotThrow(() -> file.read(index), name + " chunk " + i);
                             assertNotNull(raw, name + " chunk " + i);
                             assertEquals(expected.get("length").getAsInt(), raw.length, name + " chunk " + i);
                             assertEquals(expected.get("sha256").getAsString(), LinearDictionaries.sha256(raw), name + " chunk " + i);
@@ -103,10 +105,16 @@ class LinearGoldenFilesTest {
     private static void regenerate(Path dir) throws IOException {
         Files.createDirectories(dir);
         try (var old = Files.list(dir)) {
-            for (Path p : old.toList()) Files.delete(p);
+            for (Path p : old.toList()) {
+                // files of older format versions cannot be written any more; they are kept as they are
+                if (!p.getFileName().toString().startsWith("format1-")) Files.delete(p);
+            }
         }
         final JsonArray files = new JsonArray();
         final LinearDictionaries none = LinearDictionaries.none();
+
+        // written by Linear 1.0 from history(): readers of later versions must still read it
+        files.add(entry("format1-history.linear", "ok", expected(history(), history().size())));
 
         write(dir, "empty.linear", none, List.of(), files);
 
@@ -144,13 +152,13 @@ class LinearGoldenFilesTest {
         Arrays.fill(damaged, LinearFormat.SLOT_A_OFFSET + 8, LinearFormat.SLOT_A_OFFSET + 16, (byte) 0x33);
         Arrays.fill(damaged, LinearFormat.SLOT_B_OFFSET + 8, LinearFormat.SLOT_B_OFFSET + 16, (byte) 0x44);
         Files.write(dir.resolve("damaged-slots.linear"), damaged);
-        files.add(entry("damaged-slots.linear", "ok", salvaged(history)));
+        files.add(entry("damaged-slots.linear", "ok", salvagedTimestamps(dir.resolve("damaged-slots.linear"), salvaged(history))));
 
         // the first flush of a new file was cut before its slot: the records are in the log, both slots are empty
         final byte[] firstFlush = Files.readAllBytes(dir.resolve("sparse.linear"));
         Arrays.fill(firstFlush, LinearFormat.SLOT_A_OFFSET, LinearFormat.LOG_START, (byte) 0);
         Files.write(dir.resolve("first-flush-cut.linear"), firstFlush);
-        files.add(entry("first-flush-cut.linear", "ok", expectedOf(dir.resolve("sparse.linear"), files)));
+        files.add(entry("first-flush-cut.linear", "ok", salvagedTimestamps(dir.resolve("first-flush-cut.linear"), expectedOf(dir.resolve("sparse.linear"), files))));
 
         final Path compacted = dir.resolve("compacted.linear");
         Files.write(compacted, historyBytes);
@@ -158,6 +166,37 @@ class LinearGoldenFilesTest {
             assertTrue(file.compact());
         }
         files.add(entry("compacted.linear", "ok", expected(history, history.size())));
+
+        // many small chunks, as in void worlds: packs, plus one chunk too large for a pack
+        final Map<Integer, byte @Nullable []> small = new TreeMap<>();
+        for (int i = 0; i < 300; i++) small.put(i * 3, voidLike(i));
+        small.put(1000, payload(5, 60000));
+        write(dir, "packed.linear", none, List.of(small), files);
+
+        // a pack whose payload is damaged: every chunk in it is an error, the others read
+        {
+            final Path path = dir.resolve("bad-pack.linear");
+            final byte[][] records = new byte[LinearFormat.CHUNKS][];
+            final List<Expect> expect = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                final byte[] raw = voidLike(i);
+                records[i] = ChunkRecord.encode(i, raw, 0, raw.length, TIME, 0, 3, none);
+                expect.add(new Expect(i, raw, TIME, true));
+            }
+            final byte[] good = payload(500, 30000);
+            records[20] = ChunkRecord.encode(20, good, 0, good.length, TIME + 1, 0, 3, none);
+            expect.add(new Expect(20, good, TIME + 1, false));
+            final int packAt;
+            try (LinearFile file = LinearFile.open(path, 0, 0, none)) {
+                file.publish(records, new boolean[LinearFormat.CHUNKS]);
+                packAt = (int) file.index().offsets[0];
+            }
+            final byte[] bytes = Files.readAllBytes(path);
+            assertEquals(LinearFormat.PACK_MAGIC, ByteBuffer.wrap(bytes).getInt(packAt));
+            bytes[packAt + LinearFormat.RECORD_HEADER_BYTES + 3] ^= 0x10;
+            Files.write(path, bytes);
+            files.add(entry("bad-pack.linear", "ok", expect));
+        }
 
         // one file per shipped dictionary, so a dictionary stays covered after newer ones are added
         final LinearDictionaries shipped = LinearDictionaries.shipped();
@@ -194,7 +233,8 @@ class LinearGoldenFilesTest {
         {
             final Path path = dir.resolve("bad-checksum.linear");
             final byte[][] records = new byte[LinearFormat.CHUNKS][];
-            final byte[] good = payload(400, 1000), bad = payload(401, 1000);
+            // large enough to stay records of their own; bad-pack.linear covers a damaged pack
+            final byte[] good = payload(400, 30000), bad = payload(401, 30000);
             records[0] = ChunkRecord.encode(0, bad, 0, bad.length, TIME, 0, 3, none);
             records[1] = ChunkRecord.encode(1, good, 0, good.length, TIME + 1, 0, 3, none);
             try (LinearFile file = LinearFile.open(path, 0, 0, none)) {
@@ -210,7 +250,7 @@ class LinearGoldenFilesTest {
         files.add(entry("legacy.linear", "legacy", List.of()));
 
         final byte[] future = Arrays.copyOf(LinearFormat.header(0, 0), LinearFormat.LOG_START);
-        future[9] = 2;
+        future[9] = (byte) (LinearFormat.MAJOR_VERSION + 1);
         ByteBuffer.wrap(future).putLong(24, LinearFormat.xxh64(future, 0, 24));
         Files.write(dir.resolve("future-major.linear"), future);
         files.add(entry("future-major.linear", "error", List.of()));
@@ -220,6 +260,14 @@ class LinearGoldenFilesTest {
         manifest.addProperty("note", "open: ok | legacy (must be refused as a legacy layout) | error (must be refused). Chunks not listed must not exist; a chunk with error must exist (its timestamp is in the index) but fail to read.");
         manifest.add("files", files);
         Files.writeString(dir.resolve("manifest.json"), GSON.toJson(manifest) + "\n");
+    }
+
+    /** About the size and shape of a chunk of a void world: thousands of bytes that compress to a few hundred. */
+    private static byte[] voidLike(int seed) {
+        final byte[] out = new byte[4000];
+        for (int i = 0; i < out.length; i++) out[i] = (byte) (i % 97 == 0 ? 1 : 0);
+        ByteBuffer.wrap(out).putInt(0, seed).putInt(8, seed * 31);
+        return out;
     }
 
     private static List<Map<Integer, byte @Nullable []>> history() {
@@ -254,6 +302,19 @@ class LinearGoldenFilesTest {
             }
         }
         return new ArrayList<>(state.values());
+    }
+
+    /** Salvage gives a chunk in a pack the pack's timestamp, the newest of its chunks when it was written. */
+    private static List<Expect> salvagedTimestamps(Path file, List<Expect> expect) throws IOException {
+        final List<Expect> out = new ArrayList<>();
+        try (LinearFile linear = LinearFile.openReadOnly(file, LinearDictionaries.none())) {
+            for (Expect e : expect) {
+                final long timestamp = linear.index().timestamp(e.index);
+                assertTrue(timestamp >= e.timestamp, file + " chunk " + e.index);
+                out.add(new Expect(e.index, e.raw, timestamp, e.error, e.length, e.sha256));
+            }
+        }
+        return out;
     }
 
     private static List<Expect> expectedOf(Path written, JsonArray files) {

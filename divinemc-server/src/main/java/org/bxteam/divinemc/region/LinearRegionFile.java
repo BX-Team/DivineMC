@@ -82,8 +82,8 @@ public final class LinearRegionFile implements IRegionFile {
         this.file = file;
         this.flusher = flusher;
         this.dictionaries = dictionaries;
-        final Path folder = path.getParent();
-        this.dictionaryId = folder == null ? 0 : dictionaries.newestFor(folder.getFileName().toString());
+        this.dictionaryId = file.writeDictionaryId();
+        file.compressionLevel(flusher.compressionLevel);
     }
 
     public static LinearRegionFile open(Path path, LinearFlusher flusher) throws IOException {
@@ -184,7 +184,7 @@ public final class LinearRegionFile implements IRegionFile {
                     CLOSING.put(key, done);
                 }
                 try {
-                    compactClosedFile(path);
+                    compactClosedFile(path, flusher.compressionLevel);
                 } finally {
                     synchronized (REGISTRY) {
                         CLOSING.remove(key, done);
@@ -205,10 +205,11 @@ public final class LinearRegionFile implements IRegionFile {
         return pending.size();
     }
 
-    private static void compactClosedFile(Path path) {
+    private static void compactClosedFile(Path path, int compressionLevel) {
         final Matcher m = NAME.matcher(path.getFileName().toString());
         if (!m.matches()) return;
         try (LinearFile file = LinearFile.open(path, Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), LinearDictionaries.shipped())) {
+            file.compressionLevel(compressionLevel);
             if (file.salvage() != LinearFile.Salvage.NONE) {
                 file.publishSalvaged();
             } else {
@@ -407,6 +408,7 @@ public final class LinearRegionFile implements IRegionFile {
                 final IOException persistent = failPublishesForTest;
                 if (persistent != null) throw persistent;
                 this.file.publish(records, deleted);
+                this.logWarnings();
             } catch (Throwable t) {
                 this.setFailing(true);
                 synchronized (this) {
@@ -437,6 +439,12 @@ public final class LinearRegionFile implements IRegionFile {
         }
     }
 
+    private void logWarnings() {
+        for (String warning : this.file.takeWarnings()) {
+            LOGGER.warn("Linear region: {}", warning);
+        }
+    }
+
     // caller holds flushLock
     private void setFailing(boolean failing) {
         if (this.failing != failing) {
@@ -453,7 +461,7 @@ public final class LinearRegionFile implements IRegionFile {
 
     private boolean shouldCompact(double ratio) {
         final long garbage = this.file.garbageBytes();
-        return garbage > MIN_COMPACTION_GARBAGE && garbage > this.file.liveBytes() * ratio;
+        return (garbage > MIN_COMPACTION_GARBAGE && garbage > this.file.liveBytes() * ratio) || this.file.wantsPacking();
     }
 
     void compactFromScheduler() {

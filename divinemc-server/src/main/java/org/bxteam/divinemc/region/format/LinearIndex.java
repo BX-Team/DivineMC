@@ -5,6 +5,8 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 /** One published state of a region: where each chunk's current record is (SPEC.md, "Index"). Immutable. */
 @NullMarked
@@ -16,17 +18,35 @@ public final class LinearIndex {
     final int[] lengths;
     final long[] timestamps;
     final long liveBytes;
+    // how many chunks point at the same record as chunk i: 1 for a record of its own, more for a pack
+    final int[] sharing;
+    final int smallSingles;
 
     LinearIndex(long generation, long[] offsets, int[] lengths, long[] timestamps) {
         this.generation = generation;
         this.offsets = offsets;
         this.lengths = lengths;
         this.timestamps = timestamps;
+        final Map<Long, Integer> counts = new HashMap<>();
         long live = 0;
         for (int i = 0; i < LinearFormat.CHUNKS; i++) {
-            if (offsets[i] != 0) live += lengths[i];
+            if (offsets[i] == 0) continue;
+            if (counts.merge(offsets[i], 1, Integer::sum) == 1) live += lengths[i];
         }
         this.liveBytes = live;
+        this.sharing = new int[LinearFormat.CHUNKS];
+        int small = 0;
+        for (int i = 0; i < LinearFormat.CHUNKS; i++) {
+            if (offsets[i] == 0) continue;
+            this.sharing[i] = counts.get(offsets[i]);
+            if (this.sharing[i] == 1 && lengths[i] - LinearFormat.RECORD_HEADER_BYTES <= LinearFormat.PACK_MAX_PAYLOAD) small++;
+        }
+        this.smallSingles = small;
+    }
+
+    /** True when chunk i shares its record with other chunks, that is, lives in a pack. */
+    public boolean inPack(int localIndex) {
+        return this.sharing[localIndex] > 1;
     }
 
     public long generation() {
@@ -83,12 +103,17 @@ public final class LinearIndex {
         final long[] offsets = new long[LinearFormat.CHUNKS];
         final int[] lengths = new int[LinearFormat.CHUNKS];
         final long[] timestamps = new long[LinearFormat.CHUNKS];
+        final Map<Long, Integer> lengthAt = new HashMap<>();
         for (int i = 0; i < LinearFormat.CHUNKS; i++) {
             offsets[i] = entries.getLong();
             lengths[i] = entries.getInt();
             timestamps[i] = entries.getLong();
             if (offsets[i] == 0) continue;
-            if (offsets[i] < LinearFormat.LOG_START || lengths[i] < LinearFormat.RECORD_HEADER_BYTES || offsets[i] + lengths[i] > indexOffset) return null;
+            if (offsets[i] < LinearFormat.LOG_START || offsets[i] > indexOffset || lengths[i] < LinearFormat.RECORD_HEADER_BYTES
+                || lengths[i] > indexOffset - offsets[i]) return null;
+            // chunks of one pack point at the same record and must agree on its length
+            final Integer known = lengthAt.putIfAbsent(offsets[i], lengths[i]);
+            if (known != null && known != lengths[i]) return null;
         }
         return new LinearIndex(generation, offsets, lengths, timestamps);
     }

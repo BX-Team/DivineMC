@@ -12,7 +12,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -24,6 +30,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @NullMarked
 public final class LinearFile implements AutoCloseable {
     private static final int RENAME_ATTEMPTS = 5;
+    // lone small records a flush could not pack; this many more than after the last compaction make one worth it
+    private static final int PACK_COMPACTION_SINGLES = 32;
 
     private final Path path;
     private final int regionX;
@@ -31,7 +39,7 @@ public final class LinearFile implements AutoCloseable {
     private final LinearDictionaries dictionaries;
     private final ReentrantLock writeLock = new ReentrantLock();
     private final ReentrantReadWriteLock channelLock = new ReentrantReadWriteLock();
-    private final List<String> warnings = new ArrayList<>();
+    private final List<String> warnings = Collections.synchronizedList(new ArrayList<>());
     private @Nullable FileChannel channel;
     private volatile LinearIndex index = LinearIndex.EMPTY;
     private volatile long indexLength;
@@ -42,6 +50,17 @@ public final class LinearFile implements AutoCloseable {
     // the file on disk is intact but its channel could not be opened again after a compaction
     private volatile boolean reopenNeeded;
     private Salvage salvage = Salvage.NONE;
+    private final int writeDictionaryId;
+    private volatile int compressionLevel = 6;
+    // major version of the file on disk; packs are only appended to files of major 2 and later
+    private int fileMajor = LinearFormat.MAJOR_VERSION;
+    private int smallSinglesAfterCompaction;
+    // guarded by channelLock: changes when a compaction swaps the file, so offsets of the old file mean nothing
+    private long epoch;
+    private volatile @Nullable PackCache packCache;
+
+    private record PackCache(long epoch, long offset, ChunkPack.Decoded pack) {
+    }
     // tests make the next reopen after a compaction fail, as a file held by another process does
     static volatile @Nullable IOException failNextReopenForTest;
 
@@ -59,6 +78,23 @@ public final class LinearFile implements AutoCloseable {
         this.regionX = regionX;
         this.regionZ = regionZ;
         this.dictionaries = dictionaries;
+        final Path folder = path.toAbsolutePath().getParent();
+        final Path folderName = folder == null ? null : folder.getFileName();
+        this.writeDictionaryId = folderName == null ? 0 : dictionaries.newestFor(folderName.toString());
+    }
+
+    /** The dictionary this file's new records are compressed with: the newest one for its folder (region, entities, poi). */
+    public int writeDictionaryId() {
+        return this.writeDictionaryId;
+    }
+
+    /** The zstd level of the packs this file writes itself. */
+    public void compressionLevel(int level) {
+        this.compressionLevel = level;
+    }
+
+    public int fileMajor() {
+        return this.fileMajor;
     }
 
     public static LinearFile open(Path path, int regionX, int regionZ, LinearDictionaries dictionaries) throws IOException {
@@ -105,6 +141,15 @@ public final class LinearFile implements AutoCloseable {
         final long size = ch.size();
         this.fileEnd = size;
         if (size < LinearFormat.LOG_START) {
+            final byte[] start = readFully(ch, 0, (int) size);
+            if (size >= 8 && ByteBuffer.wrap(start).getLong() == LinearFormat.LEGACY_MAGIC) {
+                throw new LinearFormatException.Legacy(this.path + " is in a legacy Linear layout; convert it with linear-converter");
+            }
+            final byte[] magic = ByteBuffer.allocate(8).putLong(LinearFormat.MAGIC).array();
+            if (!Arrays.equals(start, 0, Math.min(start.length, 8), magic, 0, Math.min(start.length, 8))) {
+                // recreating it below would destroy a file that is not ours
+                throw new LinearFormatException(this.path + " is not a Linear file");
+            }
             // cut off while being created: holds nothing, the first publish recreates it
             this.fileEnd = 0;
             return;
@@ -113,7 +158,7 @@ public final class LinearFile implements AutoCloseable {
         final ByteBuffer header = ByteBuffer.wrap(head);
         final long magic = header.getLong();
         if (magic == LinearFormat.LEGACY_MAGIC) {
-            throw new LinearFormatException.Legacy(this.path + " is in a legacy Linear layout; convert it with the region converter");
+            throw new LinearFormatException.Legacy(this.path + " is in a legacy Linear layout; convert it with linear-converter");
         }
         if (magic != LinearFormat.MAGIC) {
             throw new LinearFormatException(this.path + " is not a Linear file");
@@ -126,9 +171,10 @@ public final class LinearFile implements AutoCloseable {
         if (header.getLong() != LinearFormat.xxh64(head, 0, 24)) {
             throw new LinearFormatException(this.path + " has a corrupt header");
         }
-        if (major != LinearFormat.MAJOR_VERSION) {
-            throw new LinearFormatException(this.path + " is Linear format " + major + ", this build reads " + LinearFormat.MAJOR_VERSION);
+        if (major < LinearFormat.OLDEST_READABLE_MAJOR || major > LinearFormat.MAJOR_VERSION) {
+            throw new LinearFormatException(this.path + " is Linear format " + major + ", this build reads " + LinearFormat.OLDEST_READABLE_MAJOR + " to " + LinearFormat.MAJOR_VERSION);
         }
+        this.fileMajor = major;
         if (fileRegionX != this.regionX || fileRegionZ != this.regionZ) {
             this.warnings.add(this.path + " says it holds region " + fileRegionX + "," + fileRegionZ);
         }
@@ -161,7 +207,10 @@ public final class LinearFile implements AutoCloseable {
         this.currentSlot = current;
         if (current < 0 && size > LinearFormat.LOG_START) {
             final boolean damaged = slots[0].generation() != 0 || slots[1].generation() != 0;
-            this.index = salvageLog(readFully(ch, 0, Math.toIntExact(size)));
+            if (size > Integer.MAX_VALUE - 16) {
+                throw new LinearFormatException(this.path + " has no valid slot and is too large to salvage");
+            }
+            this.index = salvageLog(readFully(ch, 0, (int) size), this.dictionaries);
             this.salvage = damaged ? Salvage.DAMAGED_SLOTS : Salvage.FIRST_FLUSH_CUT;
             this.warnings.add(this.path + ": no valid slot; salvaged " + this.index.chunkCount() + " chunks by scanning the log"
                 + (damaged ? " (the slots are damaged)" : " (cut off during its first flush)"));
@@ -177,7 +226,7 @@ public final class LinearFile implements AutoCloseable {
     }
 
     /** SPEC.md, "Salvage": the newest checksummed record of every chunk anywhere in the log. */
-    static LinearIndex salvageLog(byte[] bytes) {
+    static LinearIndex salvageLog(byte[] bytes, LinearDictionaries dictionaries) {
         final long[] offsets = new long[LinearFormat.CHUNKS];
         final int[] lengths = new int[LinearFormat.CHUNKS];
         final long[] timestamps = new long[LinearFormat.CHUNKS];
@@ -200,6 +249,20 @@ public final class LinearFile implements AutoCloseable {
                         timestamps[index] = timestamp;
                     }
                     pos = (int) end;
+                    continue;
+                }
+            } else if (magic == LinearFormat.PACK_MAGIC) {
+                final ChunkPack.Decoded pack = ChunkPack.salvage(bytes, pos, dictionaries);
+                if (pack != null) {
+                    final int length = LinearFormat.RECORD_HEADER_BYTES + buf.getInt(pos + 12);
+                    for (int index : pack.indices()) {
+                        if (offsets[index] == 0 || pack.timestamp() >= timestamps[index]) {
+                            offsets[index] = pos;
+                            lengths[index] = length;
+                            timestamps[index] = pack.timestamp();
+                        }
+                    }
+                    pos += length;
                     continue;
                 }
             } else if (magic == LinearFormat.INDEX_MAGIC && pos + LinearFormat.INDEX_HEADER_BYTES <= bytes.length) {
@@ -234,9 +297,11 @@ public final class LinearFile implements AutoCloseable {
     }
 
     public List<String> takeWarnings() {
-        final List<String> out = List.copyOf(this.warnings);
-        this.warnings.clear();
-        return out;
+        synchronized (this.warnings) {
+            final List<String> out = List.copyOf(this.warnings);
+            this.warnings.clear();
+            return out;
+        }
     }
 
     public Path path() {
@@ -263,23 +328,44 @@ public final class LinearFile implements AutoCloseable {
 
     /** The decompressed NBT of a chunk, or null when the chunk does not exist. */
     public byte @Nullable [] read(int localIndex) throws IOException {
-        final byte[] record = this.readRecord(localIndex);
-        return record == null ? null : ChunkRecord.decode(record, localIndex, this.dictionaries);
-    }
-
-    /** The raw record bytes of a chunk as stored, or null when the chunk does not exist. */
-    public byte @Nullable [] readRecord(int localIndex) throws IOException {
         if (this.reopenNeeded) this.reopen();
+        final byte[] record;
+        final long offset;
+        final long epoch;
         this.channelLock.readLock().lock();
         try {
             final LinearIndex idx = this.index;
             if (!idx.exists(localIndex)) return null;
+            offset = idx.offsets[localIndex];
+            epoch = this.epoch;
+            final PackCache cached = this.packCache;
+            if (cached != null && cached.epoch == epoch && cached.offset == offset) {
+                return cached.pack.member(localIndex);
+            }
             final FileChannel ch = this.channel;
             if (ch == null) throw new IOException(this.path + " is closed");
-            return readFully(ch, idx.offsets[localIndex], idx.lengths[localIndex]);
+            record = readFully(ch, offset, idx.lengths[localIndex]);
         } finally {
             this.channelLock.readLock().unlock();
         }
+        if (isPack(record)) {
+            final ChunkPack.Decoded pack = ChunkPack.decode(record, this.dictionaries);
+            // neighbours are usually loaded together: the next one from this pack skips the read and the decompression
+            this.packCache = new PackCache(epoch, offset, pack);
+            return pack.member(localIndex);
+        }
+        return ChunkRecord.decode(record, localIndex, this.dictionaries);
+    }
+
+    private static boolean isPack(byte[] record) {
+        return record.length >= 4 && ByteBuffer.wrap(record).getInt(0) == LinearFormat.PACK_MAGIC;
+    }
+
+    /** True when enough small records sit on their own that a compaction would pack them. */
+    public boolean wantsPacking() {
+        final LinearIndex idx = this.index;
+        if (this.fileMajor < LinearFormat.MAJOR_VERSION) return idx.smallSingles >= 2;
+        return idx.smallSingles - this.smallSinglesAfterCompaction >= PACK_COMPACTION_SINGLES;
     }
 
     /**
@@ -297,30 +383,39 @@ public final class LinearFile implements AutoCloseable {
             final long[] offsets = old.offsets.clone();
             final int[] lengths = old.lengths.clone();
             final long[] timestamps = old.timestamps.clone();
-            int appendBytes = 0;
             for (int i = 0; i < LinearFormat.CHUNKS; i++) {
-                if (records[i] != null) appendBytes += records[i].length;
-            }
-            final ByteBuffer out = ByteBuffer.allocate(appendBytes);
-            long pos = start;
-            for (int i = 0; i < LinearFormat.CHUNKS; i++) {
-                final byte[] record = records[i];
-                if (record != null) {
-                    offsets[i] = pos;
-                    lengths[i] = record.length;
-                    timestamps[i] = ChunkRecord.timestamp(record);
-                    out.put(record);
-                    pos += record.length;
-                } else if (deleted[i]) {
+                if (records[i] == null && deleted[i]) {
                     offsets[i] = 0;
                     lengths[i] = 0;
                     timestamps[i] = 0;
                 }
             }
+            final List<Output> outputs = this.planPublish(ch, old, records, deleted);
+            long total = 0;
+            for (Output output : outputs) total += output.record.length;
+            final ByteBuffer batch = ByteBuffer.allocate((int) Math.min(total, 4 << 20));
+            long pos = start;
+            long batchStart = start;
+            for (Output output : outputs) {
+                if (output.record.length > batch.remaining()) {
+                    batch.flip();
+                    writeFully(ch, batch, batchStart);
+                    batch.clear();
+                    batchStart = pos;
+                }
+                if (output.record.length > batch.capacity()) {
+                    writeFully(ch, ByteBuffer.wrap(output.record), pos);
+                    batchStart = pos + output.record.length;
+                } else {
+                    batch.put(output.record);
+                }
+                output.point(pos, offsets, lengths, timestamps);
+                pos += output.record.length;
+            }
+            batch.flip();
+            writeFully(ch, batch, batchStart);
             final LinearIndex next = new LinearIndex(old.generation + 1, offsets, lengths, timestamps);
             final byte[] indexBytes = next.encode();
-            out.flip();
-            writeFully(ch, out, start);
             writeFully(ch, ByteBuffer.wrap(indexBytes), pos);
             ch.force(false);
             final int slot = this.currentSlot == 0 ? 1 : 0;
@@ -343,6 +438,126 @@ public final class LinearFile implements AutoCloseable {
             throw t;
         } finally {
             this.writeLock.unlock();
+        }
+    }
+
+    /** Chooses the records a flush appends: small chunks go into packs, and so do the rest of every pack a change touches. */
+    private List<Output> planPublish(FileChannel ch, LinearIndex old, byte @Nullable [][] records, boolean[] deleted) throws IOException {
+        final List<Output> outputs = new ArrayList<>();
+        if (this.fileMajor < LinearFormat.MAJOR_VERSION) {
+            for (int i = 0; i < LinearFormat.CHUNKS; i++) {
+                if (records[i] != null) outputs.add(Output.single(i, records[i]));
+            }
+            return outputs;
+        }
+        // a pack stays wholly live: when one of its chunks changes, the others move into this flush's packs
+        final Set<Long> touched = new HashSet<>();
+        for (int i = 0; i < LinearFormat.CHUNKS; i++) {
+            if ((records[i] != null || deleted[i]) && old.exists(i) && old.inPack(i)) touched.add(old.offsets[i]);
+        }
+        final Map<Long, ChunkPack.Decoded> carried = new HashMap<>();
+        final Set<Long> unreadable = new HashSet<>();
+        final PackBuilder packs = new PackBuilder(outputs::add);
+        for (int i = 0; i < LinearFormat.CHUNKS; i++) {
+            final byte[] record = records[i];
+            if (record != null) {
+                if (ChunkRecord.packable(record) && ChunkRecord.dictionaryId(record) == this.writeDictionaryId) {
+                    packs.add(i, ChunkRecord.decode(record, i, this.dictionaries), ChunkRecord.timestamp(record), record);
+                } else {
+                    outputs.add(Output.single(i, record));
+                }
+                continue;
+            }
+            if (deleted[i] || !old.exists(i)) continue;
+            final long offset = old.offsets[i];
+            if (!touched.contains(offset) || unreadable.contains(offset)) continue;
+            final byte[] raw;
+            try {
+                ChunkPack.Decoded pack = carried.get(offset);
+                if (pack == null) {
+                    pack = ChunkPack.decode(readFully(ch, offset, old.lengths[i]), this.dictionaries);
+                    carried.put(offset, pack);
+                }
+                raw = pack.member(i);
+            } catch (LinearFormatException e) {
+                // its chunks keep pointing at the damaged pack, which stays as it is
+                unreadable.add(offset);
+                this.warnings.add(this.path + ": pack at " + offset + " is unreadable and was left in place: " + e.getMessage());
+                continue;
+            }
+            packs.add(i, raw, old.timestamps[i], null);
+        }
+        packs.finish();
+        return outputs;
+    }
+
+    /** One record to write and the chunks that will point at it. */
+    private record Output(byte[] record, int[] members, long[] timestamps) {
+        static Output single(int index, byte[] record) {
+            return new Output(record, new int[]{index}, new long[]{ChunkRecord.timestamp(record)});
+        }
+
+        void point(long offset, long[] offsets, int[] lengths, long[] stamps) {
+            for (int i = 0; i < this.members.length; i++) {
+                offsets[this.members[i]] = offset;
+                lengths[this.members[i]] = this.record.length;
+                stamps[this.members[i]] = this.timestamps[i];
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface Sink {
+        void accept(Output output) throws IOException;
+    }
+
+    /** Groups small chunks, added in ascending local index order, into packs (SPEC.md, "Recommendations for writers"). */
+    private final class PackBuilder {
+        private final Sink sink;
+        private final int[] indices = new int[LinearFormat.PACK_MAX_MEMBERS];
+        private final byte[][] raws = new byte[LinearFormat.PACK_MAX_MEMBERS][];
+        private final long[] stamps = new long[LinearFormat.PACK_MAX_MEMBERS];
+        private final byte @Nullable [][] originals = new byte[LinearFormat.PACK_MAX_MEMBERS][];
+        private int count;
+        private long rawBytes;
+
+        PackBuilder(Sink sink) {
+            this.sink = sink;
+        }
+
+        /** {@code original} is the chunk's own record, written as it is if the chunk ends up alone. */
+        void add(int index, byte[] raw, long timestamp, byte @Nullable [] original) throws IOException {
+            if (this.count == LinearFormat.PACK_MAX_MEMBERS || (this.count > 0 && this.rawBytes + raw.length > LinearFormat.PACK_MAX_RAW)) {
+                this.emit();
+            }
+            this.indices[this.count] = index;
+            this.raws[this.count] = raw;
+            this.stamps[this.count] = timestamp;
+            this.originals[this.count] = original;
+            this.count++;
+            this.rawBytes += raw.length;
+        }
+
+        void finish() throws IOException {
+            if (this.count > 0) this.emit();
+        }
+
+        private void emit() throws IOException {
+            final LinearFile file = LinearFile.this;
+            final Output output;
+            if (this.count == 1) {
+                final byte[] original = this.originals[0];
+                output = original != null ? Output.single(this.indices[0], original)
+                    : Output.single(this.indices[0], ChunkRecord.encode(this.indices[0], this.raws[0], 0, this.raws[0].length, this.stamps[0], file.writeDictionaryId, file.compressionLevel, file.dictionaries));
+            } else {
+                final byte[] pack = ChunkPack.encode(this.indices, this.raws, this.stamps, this.count, file.writeDictionaryId, file.compressionLevel, file.dictionaries);
+                output = new Output(pack, Arrays.copyOf(this.indices, this.count), Arrays.copyOf(this.stamps, this.count));
+            }
+            Arrays.fill(this.raws, null);
+            Arrays.fill(this.originals, null);
+            this.count = 0;
+            this.rawBytes = 0;
+            this.sink.accept(output);
         }
     }
 
@@ -376,6 +591,7 @@ public final class LinearFile implements AutoCloseable {
         this.index = LinearIndex.EMPTY;
         this.indexLength = 0;
         this.fileEnd = LinearFormat.LOG_START;
+        this.fileMajor = LinearFormat.MAJOR_VERSION;
     }
 
     /**
@@ -389,24 +605,70 @@ public final class LinearFile implements AutoCloseable {
     private boolean compactInternal(boolean force) throws IOException {
         this.writeLock.lock();
         try {
-            if (this.closed || this.channel == null || this.fileEnd < LinearFormat.LOG_START || (!force && this.garbageBytes() == 0)) return false;
+            if (this.closed || this.channel == null || this.fileEnd < LinearFormat.LOG_START
+                || (!force && this.garbageBytes() == 0 && !this.wantsPacking())) return false;
             final LinearIndex old = this.index;
+            final FileChannel in = this.channel;
             final Path tmp = compactPath(this.path);
             Files.deleteIfExists(tmp);
             final long[] offsets = new long[LinearFormat.CHUNKS];
-            final int[] lengths = old.lengths.clone();
-            final long[] timestamps = old.timestamps.clone();
+            final int[] lengths = new int[LinearFormat.CHUNKS];
+            final long[] timestamps = new long[LinearFormat.CHUNKS];
             final LinearIndex next;
             final byte[] indexBytes;
-            long pos = LinearFormat.LOG_START;
+            final long pos;
             try (FileChannel out = FileChannel.open(tmp, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+                final long[] end = {LinearFormat.LOG_START};
+                final Sink sink = output -> {
+                    writeFully(out, ByteBuffer.wrap(output.record), end[0]);
+                    output.point(end[0], offsets, lengths, timestamps);
+                    end[0] += output.record.length;
+                };
+                final PackBuilder packs = new PackBuilder(sink);
+                // old offset -> new offset of records kept byte for byte, so every chunk of a kept pack follows it
+                final Map<Long, Long> kept = new HashMap<>();
+                long decodedOffset = -1;
+                ChunkPack.Decoded decoded = null;
                 for (int i = 0; i < LinearFormat.CHUNKS; i++) {
                     if (!old.exists(i)) continue;
-                    final byte[] record = readFully(this.channel, old.offsets[i], old.lengths[i]);
-                    writeFully(out, ByteBuffer.wrap(record), pos);
-                    offsets[i] = pos;
-                    pos += record.length;
+                    final long offset = old.offsets[i];
+                    final Long moved = kept.get(offset);
+                    if (moved != null) {
+                        offsets[i] = moved;
+                        lengths[i] = old.lengths[i];
+                        timestamps[i] = old.timestamps[i];
+                        continue;
+                    }
+                    final boolean cached = decoded != null && decodedOffset == offset;
+                    byte[] record = cached ? null : readFully(in, offset, old.lengths[i]);
+                    byte[] raw = null;
+                    byte[] original = null;
+                    // only the decoding may fail here: a failing packs.add must abort the compaction, not drop chunks
+                    try {
+                        if (record == null) {
+                            raw = decoded.member(i);
+                        } else if (isPack(record)) {
+                            decoded = ChunkPack.decode(record, this.dictionaries);
+                            decodedOffset = offset;
+                            raw = decoded.member(i);
+                        } else if (ChunkRecord.packable(record)) {
+                            raw = ChunkRecord.decode(record, i, this.dictionaries);
+                            original = ChunkRecord.dictionaryId(record) == this.writeDictionaryId ? record : null;
+                        }
+                    } catch (LinearFormatException e) {
+                        // a damaged record is kept as it is: compaction must not turn an unreadable chunk into a missing one
+                        raw = null;
+                    }
+                    if (raw != null) {
+                        packs.add(i, raw, old.timestamps[i], original);
+                        continue;
+                    }
+                    if (record == null) record = readFully(in, offset, old.lengths[i]);
+                    kept.put(offset, end[0]);
+                    sink.accept(new Output(record, new int[]{i}, new long[]{old.timestamps[i]}));
                 }
+                packs.finish();
+                pos = end[0];
                 next = new LinearIndex(old.generation + 1, offsets, lengths, timestamps);
                 indexBytes = next.encode();
                 writeFully(out, ByteBuffer.wrap(indexBytes), pos);
@@ -443,6 +705,10 @@ public final class LinearFile implements AutoCloseable {
                 }
                 if (failure == null) {
                     // the compacted file is in place from here on, whatever fails below
+                    this.epoch++;
+                    this.packCache = null;
+                    this.fileMajor = LinearFormat.MAJOR_VERSION;
+                    this.smallSinglesAfterCompaction = next.smallSingles;
                     this.currentSlot = 0;
                     this.indexLength = indexBytes.length;
                     this.fileEnd = pos + indexBytes.length;

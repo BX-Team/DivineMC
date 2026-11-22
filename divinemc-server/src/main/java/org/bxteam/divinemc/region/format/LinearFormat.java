@@ -10,7 +10,9 @@ import java.nio.ByteBuffer;
 public final class LinearFormat {
     public static final long MAGIC = 0x894C494E0D0A1A0AL;
     public static final long LEGACY_MAGIC = 0xC3FF13183CCA9D9AL;
-    public static final int MAJOR_VERSION = 1;
+    public static final int MAJOR_VERSION = 2;
+    // format 2 only adds pack records; a file of major 1 reads the same and is never given a pack
+    public static final int OLDEST_READABLE_MAJOR = 1;
     public static final int MINOR_VERSION = 0;
 
     public static final int HEADER_BYTES = 32;
@@ -21,6 +23,8 @@ public final class LinearFormat {
 
     public static final int RECORD_MAGIC = 0x4C4E4352;
     public static final int RECORD_HEADER_BYTES = 36;
+    public static final int PACK_MAGIC = 0x4C4E504B;
+    public static final int PACK_MEMBER_BYTES = 6;
     public static final int INDEX_MAGIC = 0x4C4E4958;
     public static final int INDEX_HEADER_BYTES = 28;
     public static final int INDEX_ENTRY_BYTES = 20;
@@ -29,6 +33,12 @@ public final class LinearFormat {
 
     public static final int MAX_RAW_LENGTH = 512 * 1024 * 1024;
     public static final int INDEX_COMPRESSION_LEVEL = 3;
+
+    // writer policy (SPEC.md, "Recommendations for writers"), not format limits
+    public static final int PACK_MAX_PAYLOAD = 1024;
+    public static final int PACK_MAX_MEMBER_RAW = 64 * 1024;
+    public static final int PACK_MAX_MEMBERS = 64;
+    public static final int PACK_MAX_RAW = 1024 * 1024;
 
     private static final LongHashFunction XXH64 = LongHashFunction.xx();
 
@@ -52,8 +62,12 @@ public final class LinearFormat {
     }
 
     public static byte[] header(int regionX, int regionZ) {
+        return header(MAJOR_VERSION, regionX, regionZ);
+    }
+
+    public static byte[] header(int major, int regionX, int regionZ) {
         final ByteBuffer buf = ByteBuffer.allocate(HEADER_BYTES);
-        buf.putLong(MAGIC).putShort((short) MAJOR_VERSION).putShort((short) MINOR_VERSION).putInt(0).putInt(regionX).putInt(regionZ);
+        buf.putLong(MAGIC).putShort((short) major).putShort((short) MINOR_VERSION).putInt(0).putInt(regionX).putInt(regionZ);
         buf.putLong(xxh64(buf.array(), 0, 24));
         return buf.array();
     }

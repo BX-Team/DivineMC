@@ -135,12 +135,20 @@ class LinearFileTest {
 
         final Path future = this.dir.resolve("r.0.2.linear");
         final byte[] head = LinearFormat.header(0, 2);
-        head[9] = 2;
+        head[9] = 3;
         final byte[] rehashed = Arrays.copyOf(head, LinearFormat.LOG_START);
         ByteBuffer.wrap(rehashed).putLong(24, LinearFormat.xxh64(rehashed, 0, 24));
         Files.write(future, rehashed);
         final LinearFormatException e = assertThrows(LinearFormatException.class, () -> LinearFile.open(future, 0, 2, NONE));
-        assertTrue(e.getMessage().contains("format 2"), e.getMessage());
+        assertTrue(e.getMessage().contains("format 3"), e.getMessage());
+
+        // shorter than a header but not the start of one: recreating it would destroy someone else's file
+        final Path tiny = this.dir.resolve("r.0.3.linear");
+        Files.write(tiny, new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9});
+        assertThrows(LinearFormatException.class, () -> LinearFile.open(tiny, 0, 3, NONE));
+        final Path tinyLegacy = this.dir.resolve("r.0.4.linear");
+        Files.write(tinyLegacy, ByteBuffer.allocate(60).putLong(LinearFormat.LEGACY_MAGIC).array());
+        assertThrows(LinearFormatException.Legacy.class, () -> LinearFile.open(tinyLegacy, 0, 4, NONE));
     }
 
     @Test
@@ -161,7 +169,8 @@ class LinearFileTest {
         final Path path = this.dir.resolve("r.0.0.linear");
         final Random random = new Random(3);
         try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
-            publish(file, Map.of(0, payload(random, 3000), 1, payload(random, 3000)), NONE);
+            // large enough to stay records of their own: a damaged pack takes all of its chunks with it
+            publish(file, Map.of(0, payload(random, 30000), 1, payload(random, 30000)), NONE);
         }
         final byte[] bytes = Files.readAllBytes(path);
         bytes[LinearFormat.LOG_START + LinearFormat.RECORD_HEADER_BYTES + 10] ^= 0x40;
@@ -246,6 +255,113 @@ class LinearFileTest {
             file.publishSalvaged();
         }
         assertFalse(Files.exists(fresh.resolveSibling("r.1.0.linear.corrupt")));
+    }
+
+    private static Map<Integer, byte[]> smallChunks(Random random, int count) {
+        final Map<Integer, byte[]> out = new java.util.HashMap<>();
+        for (int i = 0; i < count; i++) {
+            final byte[] raw = new byte[600 + random.nextInt(200)];
+            Arrays.fill(raw, (byte) 7);
+            raw[0] = (byte) i;
+            raw[1] = (byte) random.nextInt();
+            out.put(i * 3, raw);
+        }
+        return out;
+    }
+
+    private static void publishAll(LinearFile file, Map<Integer, byte[]> chunks) throws IOException {
+        publish(file, new java.util.HashMap<>(chunks), NONE);
+    }
+
+    @Test
+    void smallChunksArePackedAndPacksStayWhole() throws IOException {
+        final Path path = this.dir.resolve("r.0.0.linear");
+        final Random random = new Random(11);
+        final Map<Integer, byte[]> chunks = smallChunks(random, 150);
+        long singles = 0;
+        for (Map.Entry<Integer, byte[]> e : chunks.entrySet()) singles += record(e.getKey(), e.getValue(), 0, 0, NONE).length;
+        try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
+            publishAll(file, chunks);
+            assertTrue(file.index().inPack(0) && file.index().inPack(447), "small chunks are packed");
+            assertTrue(file.liveBytes() * 2 < singles, "packs are much smaller than records of their own: " + file.liveBytes() + " vs " + singles);
+
+            // one chunk of a pack changes and one is deleted: the rest of that pack moves into the new flush
+            final byte[] changed = payload(random, 500);
+            final java.util.HashMap<Integer, byte @Nullable []> change = new java.util.HashMap<>();
+            change.put(3, changed);
+            change.put(6, null);
+            publish(file, change, NONE);
+            chunks.put(3, changed);
+            chunks.remove(6);
+            assertTrue(file.garbageBytes() > 0, "the old pack is garbage as a whole");
+            for (int i = 0; i < LinearFormat.CHUNKS; i++) assertArrayEquals(chunks.get(i), file.read(i), "chunk " + i);
+        }
+        try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
+            for (int i = 0; i < LinearFormat.CHUNKS; i++) assertArrayEquals(chunks.get(i), file.read(i), "chunk " + i);
+            assertTrue(file.compact());
+            assertEquals(0, file.garbageBytes());
+            assertFalse(file.wantsPacking());
+            for (int i = 0; i < LinearFormat.CHUNKS; i++) assertArrayEquals(chunks.get(i), file.read(i), "chunk " + i);
+        }
+    }
+
+    @Test
+    void formatOneFilesAreReadAndUpgradedByCompaction() throws IOException {
+        final Path path = this.dir.resolve("r.0.0.linear");
+        final byte[] head = Arrays.copyOf(LinearFormat.header(1, 0, 0), LinearFormat.LOG_START);
+        Files.write(path, head);
+        final Map<Integer, byte[]> chunks = smallChunks(new Random(12), 40);
+        try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
+            assertEquals(1, file.fileMajor());
+            publishAll(file, chunks);
+            assertFalse(file.index().inPack(0), "a format 1 file never gets a pack appended");
+            assertTrue(file.wantsPacking());
+            assertTrue(file.compact());
+            assertEquals(LinearFormat.MAJOR_VERSION, file.fileMajor());
+            assertTrue(file.index().inPack(0));
+        }
+        assertEquals(LinearFormat.MAJOR_VERSION, ByteBuffer.wrap(Files.readAllBytes(path)).getShort(8));
+        try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
+            for (int i = 0; i < LinearFormat.CHUNKS; i++) assertArrayEquals(chunks.get(i), file.read(i), "chunk " + i);
+        }
+    }
+
+    @Test
+    void packsAreSalvagedAndDamagedPacksSurviveCompaction() throws IOException {
+        final Path path = this.dir.resolve("r.0.0.linear");
+        final Map<Integer, byte[]> chunks = smallChunks(new Random(13), 20);
+        final byte[] big = payload(new Random(14), 40000);
+        try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
+            publishAll(file, chunks);
+            publish(file, Map.of(900, big), NONE);
+        }
+        final byte[] bytes = Files.readAllBytes(path);
+        Arrays.fill(bytes, LinearFormat.SLOT_A_OFFSET + 24, LinearFormat.SLOT_B_OFFSET + 32, (byte) 1);
+        Files.write(path, bytes);
+        try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
+            assertEquals(LinearFile.Salvage.DAMAGED_SLOTS, file.salvage());
+            for (Map.Entry<Integer, byte[]> e : chunks.entrySet()) assertArrayEquals(e.getValue(), file.read(e.getKey()));
+            file.publishSalvaged();
+        }
+
+        // flip a payload byte of the pack: its chunks become errors, and stay errors after compaction
+        final int packAt;
+        try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
+            packAt = (int) file.index().offsets[0];
+        }
+        final byte[] damaged = Files.readAllBytes(path);
+        assertEquals(LinearFormat.PACK_MAGIC, ByteBuffer.wrap(damaged).getInt(packAt));
+        damaged[packAt + LinearFormat.RECORD_HEADER_BYTES + 5] ^= 0x20;
+        Files.write(path, damaged);
+        try (LinearFile file = LinearFile.open(path, 0, 0, NONE)) {
+            assertThrows(LinearFormatException.class, () -> file.read(0));
+            publish(file, Map.of(901, big), NONE);
+            assertTrue(file.compact());
+            assertThrows(LinearFormatException.class, () -> file.read(0));
+            assertThrows(LinearFormatException.class, () -> file.read(57));
+            assertArrayEquals(big, file.read(900));
+            assertArrayEquals(big, file.read(901));
+        }
     }
 
     static byte[] withId(byte[] dictionary, int id) {

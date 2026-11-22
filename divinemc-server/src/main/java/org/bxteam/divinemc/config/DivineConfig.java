@@ -178,7 +178,7 @@ public class DivineConfig {
     private static void removedOptions() {
         for (String typeKey : new String[]{"region-settings.type", ConfigCategory.MISC.key("region-settings.type")}) {
             if ("B_LINEAR".equalsIgnoreCase(config.getString(typeKey, ""))) {
-                LOGGER.warn("{} B_LINEAR has been replaced by LINEAR; worlds stored as .b_linear must be converted with the region converter", typeKey);
+                LOGGER.warn("{} B_LINEAR has been replaced by LINEAR; worlds stored as .b_linear must be converted with linear-converter", typeKey);
                 config.set(typeKey, "LINEAR");
             }
         }
@@ -922,7 +922,7 @@ public class DivineConfig {
                 "The format of region, entities and poi files.",
                 " - MCA: Minecraft's Anvil format",
                 " - LINEAR: DivineMC's Linear format (zstd, append-only log; see linear-format/SPEC.md in the repository)",
-                "Worlds are not converted automatically: convert them with the region converter while the server is stopped.");
+                "Worlds are not converted automatically: convert them with linear-converter (https://github.com/BX-Team/linear-converter) while the server is stopped.");
             final String type = config.getString(ConfigCategory.MISC.key("region-settings.type"), regionFormat.name());
             final RegionFormat parsed = RegionFormat.parse(type);
             if (parsed == null) {

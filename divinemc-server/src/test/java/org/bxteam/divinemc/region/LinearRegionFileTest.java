@@ -185,7 +185,8 @@ class LinearRegionFileTest {
         assertEquals(2, LinearRegionFile.compactFolders(List.of(closedPath.getParent()), flusher, true));
         assertEquals(0, open.garbageBytes());
         assertArrayEquals(ByteBuffer.allocate(4000).putInt(99).array(), read(open, new ChunkPos(0, 0)));
-        try (LinearFile file = LinearFile.openReadOnly(closedPath, LinearDictionaries.none())) {
+        // closed files are compacted with the shipped dictionaries, as on a server
+        try (LinearFile file = LinearFile.openReadOnly(closedPath, LinearDictionaries.shipped())) {
             assertEquals(0, file.garbageBytes());
             assertArrayEquals(ByteBuffer.allocate(4000).putInt(13).array(), file.read(3));
         }
