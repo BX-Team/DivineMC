@@ -652,28 +652,46 @@ public final class RegionizedChunkTicking extends ServerChunkCache {
 
     private void logUnits(final String suffix) {
         final StringBuilder sb = new StringBuilder();
-        for (final ObjectArrayList<Tile> phase : this.phases) {
-            for (final Tile unit : phase) {
-                sb.append("Region with ").append(unit.chunkCount()).append(" chunks and ").append(unit.entityCount()).append(" entities ticked for Players:\n");
-                if (unit.members == null) {
-                    this.appendPlayers(sb, unit);
-                } else {
-                    for (final Tile tile : unit.members) {
-                        this.appendPlayers(sb, tile);
+        if (regionMode) {
+            for (final ObjectArrayList<Tile> phase : this.phases) {
+                for (final Tile unit : phase) {
+                    sb.append("Region with ").append(unit.chunkCount()).append(" chunks and ").append(unit.entityCount()).append(" entities ticked for Players:\n");
+                    if (unit.members != null) {
+                        for (final Tile tile : unit.members) {
+                            appendPlayers(sb, tile);
+                        }
+                        continue;
                     }
+                    appendPlayers(sb, unit);
                 }
             }
+        } else {
+            int chunks = 0, entities = 0, amount = 0;
+            ObjectArrayList<ServerPlayer> players = new ObjectArrayList<>();
+            for (final ObjectArrayList<Tile> phase : this.phases) {
+                for (final Tile unit : phase) {
+                    amount++;
+                    chunks += unit.chunkCount();
+                    entities += unit.entityCount();
+                    players.addAll(unit.players);
+                }
+            }
+            sb.append("Ticking ").append(amount).append(" tiles with ").append(chunks).append(" chunks and ").append(entities).append(" entities for Players:\n");
+            appendPlayers(sb, players);
         }
-        if (sb.isEmpty()) {
-            return;
-        }
+
+        if (sb.isEmpty()) return;
         sb.append(suffix);
         final String text = sb.toString();
         REGION_EXECUTOR.execute(() -> this.avgTimeLogger.logTickTime(text));
     }
 
     private void appendPlayers(final StringBuilder sb, final Tile tile) {
-        for (final ServerPlayer player : tile.players) {
+        appendPlayers(sb, tile.players);
+    }
+
+    private void appendPlayers(final StringBuilder sb, final List<ServerPlayer> players) {
+        for (final ServerPlayer player : players) {
             final long avgNanos = Math.round(player.avgTickTimeNanos.average().orElse(0));
             sb.append("- ").append(player.displayName).append(" avg region tick time: ")
                 .append(avgNanos / 1_000_000).append(" ms ")
