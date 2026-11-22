@@ -90,6 +90,28 @@ class LinearFileTest {
     }
 
     @Test
+    void failedReopenAfterCompactionNeverEmptiesTheFile() throws IOException {
+        final Path path = this.dir.resolve("r.3.3.linear");
+        final Random random = new Random(7);
+        final byte[] a = payload(random, 5000), b = payload(random, 6000), c = payload(random, 7000);
+        try (LinearFile file = LinearFile.open(path, 3, 3, NONE)) {
+            publish(file, Map.of(0, a, 1, b), NONE);
+            publish(file, Map.of(1, b), NONE);
+            LinearFile.failNextReopenForTest = new IOException("held by another process");
+            assertThrows(IOException.class, file::compact);
+            assertEquals(0, file.garbageBytes(), "the compacted file is the one in place");
+            assertArrayEquals(a, file.read(0));
+            publish(file, Map.of(2, c), NONE);
+            assertArrayEquals(b, file.read(1));
+        }
+        try (LinearFile file = LinearFile.open(path, 3, 3, NONE)) {
+            assertArrayEquals(a, file.read(0));
+            assertArrayEquals(b, file.read(1));
+            assertArrayEquals(c, file.read(2));
+        }
+    }
+
+    @Test
     void chunksOverAnvilSectorLimitAreOrdinaryRecords() throws IOException {
         final Path path = this.dir.resolve("r.0.0.linear");
         final byte[] big = payload(new Random(2), 3 * 1024 * 1024);

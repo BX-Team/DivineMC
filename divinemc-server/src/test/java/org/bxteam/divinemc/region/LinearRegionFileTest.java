@@ -41,11 +41,17 @@ class LinearRegionFileTest {
 
     @AfterEach
     void stopFlusher() {
+        LinearRegionFile.failPublishesForTest = null;
         if (this.flusher != null) this.flusher.shutdown();
     }
 
     private LinearFlusher flusher(long delayMs, long maxPendingBytes) {
         this.flusher = new LinearFlusher(1, delayMs, 3, maxPendingBytes);
+        return this.flusher;
+    }
+
+    private LinearFlusher flusher(long delayMs, long maxPendingBytes, long retryDelayMs) {
+        this.flusher = new LinearFlusher(1, delayMs, 3, maxPendingBytes, retryDelayMs);
         return this.flusher;
     }
 
@@ -201,5 +207,82 @@ class LinearRegionFileTest {
         writes.get(30, TimeUnit.SECONDS);
         assertTrue(Files.exists(path), "the over-limit writer flushed its region instead of piling up records");
         region.close();
+    }
+
+    @Test
+    void asynchronousCloseKeepsRetryingAFailedFlush() throws Exception {
+        final LinearFlusher flusher = this.flusher(60_000, 1 << 30, 20);
+        final Path path = this.regionPath();
+        final LinearRegionFile region = LinearRegionFile.open(path, flusher, LinearDictionaries.none());
+        write(region, POS, PAYLOAD);
+        LinearRegionFile.failPublishesForTest = new IOException("disk full");
+        region.closeAsync();
+        final CompletableFuture<LinearRegionFile> reopen = CompletableFuture.supplyAsync(() -> {
+            try {
+                return LinearRegionFile.open(path, flusher, LinearDictionaries.none());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        Thread.sleep(200);
+        assertFalse(reopen.isDone(), "the path stays reserved while the close retries");
+        LinearRegionFile.failPublishesForTest = null;
+        final LinearRegionFile reopened = reopen.get(30, TimeUnit.SECONDS);
+        assertArrayEquals(PAYLOAD, read(reopened, POS), "the retried close wrote the chunk");
+        reopened.close();
+    }
+
+    @Test
+    void writersOverTheLimitGetAnErrorWhileFlushesFail() throws Exception {
+        final LinearFlusher flusher = this.flusher(60_000, 1);
+        final Path path = this.regionPath();
+        final LinearRegionFile region = LinearRegionFile.open(path, flusher, LinearDictionaries.none());
+        LinearRegionFile.failPublishesForTest = new IOException("disk full");
+        final CompletableFuture<Void> writes = CompletableFuture.runAsync(() -> {
+            try {
+                write(region, POS, PAYLOAD);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        final Exception failure = assertThrows(Exception.class, () -> writes.get(30, TimeUnit.SECONDS));
+        assertTrue(failure.getCause() instanceof RuntimeException && failure.getCause().getCause() instanceof IOException, "the writer got an error instead of waiting: " + failure);
+        assertArrayEquals(PAYLOAD, read(region, POS), "the chunk stays queued");
+        LinearRegionFile.failPublishesForTest = null;
+        region.flush();
+        region.close();
+        final LinearRegionFile reopened = LinearRegionFile.open(path, flusher, LinearDictionaries.none());
+        assertArrayEquals(PAYLOAD, read(reopened, POS));
+        reopened.close();
+    }
+
+    @Test
+    void queuedCompactionDoesNotHoldBackOpening() throws Exception {
+        final LinearFlusher flusher = this.flusher(60_000, 1 << 30);
+        final Path path = this.regionPath();
+        final LinearRegionFile region = LinearRegionFile.open(path, flusher, LinearDictionaries.none());
+        for (int round = 0; round < 3; round++) {
+            write(region, POS, ByteBuffer.allocate(100_000).putInt(round).array());
+            region.flush();
+        }
+        region.close();
+        final CompletableFuture<Void> blocker = new CompletableFuture<>();
+        flusher.runCompaction(blocker::join);
+        assertEquals(1, flusher.compactNow(List.of(path.getParent())));
+        final CompletableFuture<LinearRegionFile> reopen = CompletableFuture.supplyAsync(() -> {
+            try {
+                return LinearRegionFile.open(path, flusher, LinearDictionaries.none());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        final LinearRegionFile reopened;
+        try {
+            reopened = reopen.get(10, TimeUnit.SECONDS);
+        } finally {
+            blocker.complete(null);
+        }
+        assertArrayEquals(ByteBuffer.allocate(100_000).putInt(2).array(), read(reopened, POS));
+        reopened.close();
     }
 }

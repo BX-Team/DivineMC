@@ -51,6 +51,8 @@ public final class LinearRegionFile implements IRegionFile {
     private static final Object REGISTRY = new Object();
     // tests make the next publish fail: a real failing disk cannot be arranged once the file is open
     static volatile @Nullable IOException failNextPublishForTest;
+    // tests make every publish fail until cleared, like a full disk
+    static volatile @Nullable IOException failPublishesForTest;
 
     private final Path path;
     private final Path key;
@@ -59,6 +61,8 @@ public final class LinearRegionFile implements IRegionFile {
     private final LinearDictionaries dictionaries;
     private final int dictionaryId;
     private final ReentrantLock flushLock = new ReentrantLock();
+    // guarded by flushLock: the last flush failed and the flusher counts this region as failing
+    private boolean failing;
     private final AtomicBoolean compactionQueued = new AtomicBoolean();
 
     // guarded by this
@@ -168,12 +172,17 @@ public final class LinearRegionFile implements IRegionFile {
             final LinearRegionFile open;
             synchronized (REGISTRY) {
                 open = OPEN.get(key);
-                if (open == null) {
-                    if (CLOSING.containsKey(key) || OPENING.contains(key)) continue;
-                    CLOSING.put(key, done);
-                }
+                if (open == null && (CLOSING.containsKey(key) || OPENING.contains(key))) continue;
             }
             final Runnable task = open != null ? open::compactFromScheduler : () -> {
+                // reserved only once its turn comes: a file waiting in the queue must not hold back a chunk load
+                synchronized (REGISTRY) {
+                    if (OPEN.containsKey(key) || CLOSING.containsKey(key) || OPENING.contains(key)) {
+                        done.complete(null);
+                        return;
+                    }
+                    CLOSING.put(key, done);
+                }
                 try {
                     compactClosedFile(path);
                 } finally {
@@ -363,11 +372,11 @@ public final class LinearRegionFile implements IRegionFile {
         try {
             this.flushNow();
         } catch (IOException e) {
-            LOGGER.error("Failed to flush Linear region {}; retrying in {} s", this.path, LinearFlusher.retryDelayMs() / 1000, e);
+            LOGGER.error("Failed to flush Linear region {}; retrying in {} s", this.path, this.flusher.retryDelayMs / 1000, e);
             synchronized (this) {
                 if (!this.closed && this.pendingCount > 0 && !this.flushScheduled) {
                     this.flushScheduled = true;
-                    this.flusher.scheduleFlush(this, LinearFlusher.retryDelayMs());
+                    this.flusher.scheduleFlush(this, this.flusher.retryDelayMs);
                 }
             }
         }
@@ -395,8 +404,11 @@ public final class LinearRegionFile implements IRegionFile {
                     failNextPublishForTest = null;
                     throw injected;
                 }
+                final IOException persistent = failPublishesForTest;
+                if (persistent != null) throw persistent;
                 this.file.publish(records, deleted);
             } catch (Throwable t) {
+                this.setFailing(true);
                 synchronized (this) {
                     // writes made during the failed flush are newer and stay
                     for (int i = 0; i < LinearFormat.CHUNKS; i++) {
@@ -416,11 +428,20 @@ public final class LinearRegionFile implements IRegionFile {
                 this.inFlightDeleted = new boolean[LinearFormat.CHUNKS];
                 this.updateAccounting();
             }
+            this.setFailing(false);
         } finally {
             this.flushLock.unlock();
         }
         if (this.shouldCompact(1.0)) {
             this.requestCompaction();
+        }
+    }
+
+    // caller holds flushLock
+    private void setFailing(boolean failing) {
+        if (this.failing != failing) {
+            this.failing = failing;
+            this.flusher.regionFailing(failing);
         }
     }
 
@@ -500,7 +521,14 @@ public final class LinearRegionFile implements IRegionFile {
         this.flusher.submitClose(() -> {
             try {
                 while (true) {
-                    this.flushNow();
+                    try {
+                        this.flushNow();
+                    } catch (IOException e) {
+                        // the chunks were accepted as saved: keep them and the path reserved until the disk takes them
+                        LOGGER.error("Failed to flush Linear region {} while closing it; retrying in {} s", this.path, this.flusher.retryDelayMs / 1000, e);
+                        if (!this.flusher.awaitRetry()) throw e;
+                        continue;
+                    }
                     synchronized (this) {
                         if (this.pendingCount == 0) {
                             this.closed = true;
@@ -531,6 +559,12 @@ public final class LinearRegionFile implements IRegionFile {
     }
 
     private void release() throws IOException {
+        this.flushLock.lock();
+        try {
+            this.setFailing(false);
+        } finally {
+            this.flushLock.unlock();
+        }
         try {
             this.file.close();
         } finally {

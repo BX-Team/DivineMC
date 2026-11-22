@@ -39,7 +39,11 @@ public final class LinearFile implements AutoCloseable {
     // slot (0 = A, 1 = B) that holds the current generation, -1 when no slot is valid
     private int currentSlot = -1;
     private boolean closed;
+    // the file on disk is intact but its channel could not be opened again after a compaction
+    private volatile boolean reopenNeeded;
     private Salvage salvage = Salvage.NONE;
+    // tests make the next reopen after a compaction fail, as a file held by another process does
+    static volatile @Nullable IOException failNextReopenForTest;
 
     /** How the state was found when no slot was valid (SPEC.md, "Salvage"). */
     public enum Salvage {
@@ -265,6 +269,7 @@ public final class LinearFile implements AutoCloseable {
 
     /** The raw record bytes of a chunk as stored, or null when the chunk does not exist. */
     public byte @Nullable [] readRecord(int localIndex) throws IOException {
+        if (this.reopenNeeded) this.reopen();
         this.channelLock.readLock().lock();
         try {
             final LinearIndex idx = this.index;
@@ -353,6 +358,8 @@ public final class LinearFile implements AutoCloseable {
 
     private void ensureOpenForWrite() throws IOException {
         if (this.closed) throw new IOException(this.path + " is closed");
+        // the file holds published records: it must never be recreated empty below
+        if (this.reopenNeeded) this.reopen();
         if (this.channel != null && this.fileEnd >= LinearFormat.LOG_START) return;
         if (this.channel == null) {
             this.channel = FileChannel.open(this.path, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
@@ -434,16 +441,28 @@ public final class LinearFile implements AutoCloseable {
                         }
                     }
                 }
-                this.channel = FileChannel.open(this.path, StandardOpenOption.READ, StandardOpenOption.WRITE);
+                if (failure == null) {
+                    // the compacted file is in place from here on, whatever fails below
+                    this.currentSlot = 0;
+                    this.indexLength = indexBytes.length;
+                    this.fileEnd = pos + indexBytes.length;
+                    this.index = next;
+                }
+                try {
+                    this.channel = openExisting(this.path);
+                } catch (IOException e) {
+                    this.reopenNeeded = true;
+                    if (failure == null) {
+                        failure = e;
+                    } else {
+                        failure.addSuppressed(e);
+                    }
+                }
                 if (failure != null) {
                     Files.deleteIfExists(tmp);
                     throw failure;
                 }
                 syncDirectory(this.path.toAbsolutePath().getParent());
-                this.currentSlot = 0;
-                this.indexLength = indexBytes.length;
-                this.fileEnd = pos + indexBytes.length;
-                this.index = next;
             } finally {
                 this.channelLock.writeLock().unlock();
             }
@@ -468,6 +487,27 @@ public final class LinearFile implements AutoCloseable {
         } catch (IOException | UnsupportedOperationException ignored) {
             // directories cannot be opened or synced on Windows; NTFS journals the rename itself
         }
+    }
+
+    private void reopen() throws IOException {
+        this.channelLock.writeLock().lock();
+        try {
+            if (this.closed) throw new IOException(this.path + " is closed");
+            if (this.channel != null) return;
+            this.channel = openExisting(this.path);
+            this.reopenNeeded = false;
+        } finally {
+            this.channelLock.writeLock().unlock();
+        }
+    }
+
+    private static FileChannel openExisting(Path path) throws IOException {
+        final IOException injected = failNextReopenForTest;
+        if (injected != null) {
+            failNextReopenForTest = null;
+            throw injected;
+        }
+        return FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE);
     }
 
     @Override

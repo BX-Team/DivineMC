@@ -127,7 +127,7 @@ public final class LinearDictionaries {
     }
 
     ZstdDictCompress compressor(int id, int level) {
-        return this.compressors.computeIfAbsent(((long) id << 8) | level, k -> new ZstdDictCompress(this.dictionaries.get(id), level));
+        return this.compressors.computeIfAbsent(((long) id << 32) | (level & 0xFFFFFFFFL), k -> new ZstdDictCompress(this.dictionaries.get(id), level));
     }
 
     @Nullable ZstdDictDecompress decompressor(int id) {
