@@ -5,10 +5,10 @@ Subject: [PATCH] Paper PR: Player standing on position API
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index cabc844ea47ab6b46cc0640ab99c41499fc65dd1..b6e29b4cf4451d55d50526003ff91ddf2e17c0ce 100644
+index 460f0af94c2c0ae68918f5f178c2245c49028525..c0448ce269cf5e6d269c2ffd4c5ba0c41e93ed59 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-@@ -1460,6 +1460,20 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+@@ -1472,6 +1472,20 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
              .removeIf(entry -> entry.getKey().namespace().equals(nameSpaced.namespace()));
      }
  

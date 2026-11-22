@@ -263,7 +263,7 @@ index 3bd459b28aa59ba312de141cdca444bc05773ddd..02759d41005a7537a053f5f76881d009
              if (e instanceof ClosedChannelException) {
                  LOGGER.info("Connection closed during protocol change");
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index c036bfe20dfbf773cdb21c31250f68952f2d865e..772d408f7c816884e3d4fb3dcefe7965c0a235c4 100644
+index cdfb5dbd91ed4d5975b45c26b6a5d925ebc20ee9..9dd4288ea42951437bdfb6dd9705e9bd2f4f72a2 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -463,6 +463,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -494,7 +494,7 @@ index 7ea72f6843e2a5a2a4b17e589142cd780eb99aec..6c110f8d11117190edc7a40ea33dc1e8
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3ad270289b 100644
+index aa1010497f227266e68448e23c4784c8c4ce99f5..3417a73e728ccb584d23a338ef0b116df056d8c3 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -211,8 +211,10 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -691,7 +691,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
          this.portalForcer = new PortalForcer(this);
          if (this.canHaveWeather()) {
-@@ -922,40 +965,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -923,40 +966,56 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  profiler.pop();
              }
  
@@ -776,7 +776,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
          }
  
          profiler.push("entityManagement");
-@@ -1009,7 +1068,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1010,7 +1069,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
          final LevelChunkSection[] sections = chunk.getSections();
          final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection((ServerLevel)(Object)this);
@@ -785,7 +785,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
          final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
  
          final ChunkPos cpos = chunk.getPos();
-@@ -1056,7 +1115,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1057,7 +1116,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      // Paper end - optimise random ticking
  
      public void tickChunk(final LevelChunk chunk, final int tickSpeed) {
@@ -794,7 +794,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
          ChunkPos chunkPos = chunk.getPos();
          int minX = chunkPos.getMinBlockX();
          int minZ = chunkPos.getMinBlockZ();
-@@ -1725,6 +1784,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1726,6 +1785,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
      private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
@@ -802,7 +802,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
          // DivineMC start - Parallel world ticking
          if (org.bxteam.divinemc.async.pwt.ParallelWorldTicking.ENABLED) {
              ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot add entity off-main");
-@@ -1746,10 +1806,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1747,10 +1807,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -816,7 +816,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
              // Paper end - capture all item additions to the world
              // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
              if (spawnReason != null && !org.bukkit.craftbukkit.event.CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
-@@ -1953,7 +2016,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1954,7 +2017,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
@@ -825,7 +825,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
          }
-@@ -1966,31 +2029,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1967,31 +2030,23 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -861,7 +861,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
              }
          }
          } // Paper - option to disable pathfinding updates
-@@ -1999,17 +2054,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2000,17 +2055,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -882,7 +882,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, null, orientation);
      }
  
-@@ -2143,7 +2198,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2144,7 +2199,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      @Override
      public void blockEvent(final BlockPos pos, final Block block, final int b0, final int b1) {
@@ -895,7 +895,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
      }
  
      private void runBlockEvents() {
-@@ -3221,7 +3280,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3222,7 +3281,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -904,7 +904,7 @@ index 0aae45492fe2fb6f8dc581d83652c42569320cb0..1f97bb15f6cd505eea128fc5652abf3a
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -3291,7 +3350,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3292,7 +3351,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              if (entity instanceof Mob mob) {
@@ -1081,7 +1081,7 @@ index ab310e2b01ab5014d04913fb89b31dbda92f5816..691ede43af8c4c69a2713acb14ee03ec
              return false;
          }
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 555b61b4439f3e5eaa30bb351168c2de0d99a3eb..265433b4daa615ef67ed02ea7c7714d0538ea969 100644
+index e08027717109ebd2bbab62fa3afce6024e587089..563dd97ff3d8315b5bb379199be9d7c64d94bab3 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -384,8 +384,10 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {

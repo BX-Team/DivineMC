@@ -5,10 +5,10 @@ Subject: [PATCH] Paper PR: Player standing on position API
 
 
 diff --git a/src/main/java/org/bukkit/entity/Entity.java b/src/main/java/org/bukkit/entity/Entity.java
-index 8491c390dbe94a1959abe0f9dc03b7518eed0287..44dca136c9db7cc9f425de54aaaf269ee9539544 100644
+index 15df572874b1462f3fc6ec80ef1d425dc2311e3f..95bc4bf26e03f860c64eb49e2e8ee7eb3b1926c9 100644
 --- a/src/main/java/org/bukkit/entity/Entity.java
 +++ b/src/main/java/org/bukkit/entity/Entity.java
-@@ -1451,6 +1451,33 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
+@@ -1474,6 +1474,33 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
       */
      void removeAdditionalAlliedRule(@NotNull Namespaced namespaced);
  
