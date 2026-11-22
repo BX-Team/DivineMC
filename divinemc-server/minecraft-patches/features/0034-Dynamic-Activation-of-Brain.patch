@@ -32,10 +32,10 @@ index 829f7685904fd741e00403647ae76d32275c34a3..65abc4e0094c9486687481053919b7d0
          }
      }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 3d2c7ab697c9b4dde7424aa4f8b6d1ce2204d0e5..be3a98b1f93b47eb9492863a2b5a23877567f19d 100644
+index f32ce8ce68ab453ca38331904ed67a68486473c8..7845da3861d232e0db98357af748419b9272a6c8 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -918,6 +918,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -919,6 +919,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              this.entityTickList
                  .forEach(
                      entity -> {
@@ -44,7 +44,7 @@ index 3d2c7ab697c9b4dde7424aa4f8b6d1ce2204d0e5..be3a98b1f93b47eb9492863a2b5a2387
                              if (!tickRateManager.isEntityFrozen(entity)) {
                                  profiler.push("checkDespawn");
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a2c88466743278e41342c4d9ff5f4cabc7cee1bb..584c967ddd4a5af96b35011557574468e0f6289f 100644
+index ef0c18200f8be8873510ce84c964ceb40d4c0769..d5e349a1d5d2660e76c201f86a3f80b4421b4650 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -389,6 +389,18 @@ public abstract class Entity
@@ -67,7 +67,7 @@ index a2c88466743278e41342c4d9ff5f4cabc7cee1bb..584c967ddd4a5af96b35011557574468
      public @Nullable Boolean immuneToFire = null; // Purpur - Fire immune API
      // Paper start - EAR 2
 diff --git a/net/minecraft/world/entity/EntityType.java b/net/minecraft/world/entity/EntityType.java
-index e4fd3727cdf99bebed91ac195034e988cdc9951b..8f0893d42dd56d8a3cac5d142f7d2b0d23eb435c 100644
+index 0a66ccd39bd3fe3799251d8716f676b3ee243f25..4a2d65ef911b0ae216c0bcebff2a9203591f4b71 100644
 --- a/net/minecraft/world/entity/EntityType.java
 +++ b/net/minecraft/world/entity/EntityType.java
 @@ -67,6 +67,7 @@ public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>,

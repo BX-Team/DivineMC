@@ -333,7 +333,7 @@ index 7b520d3955f271d1dc8b38c3c0fdf0acd3a521a5..a75db229cce3a93ef66ae28b6777e358
              this.handlePluginException("Error occurred (in the plugin loader) while cancelling global tasks for "
                  + pluginName + " (Is it up to date?)", ex, plugin); // Paper
 diff --git a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaEntityScheduler.java b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaEntityScheduler.java
-index 8dd612a8c632cbac03cd02bb457fd0605df46d1b..e86aa9264be84d7dbcb4a88514395939f2625386 100644
+index 45cf8599aa5d5c7f1b44702da26fa9869e952eec..aad84b6946bfec54e05c8224a23964600b977bd3 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaEntityScheduler.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaEntityScheduler.java
 @@ -42,7 +42,7 @@ public final class FoliaEntityScheduler implements EntityScheduler {
@@ -475,7 +475,7 @@ index 124420f4adf0bd27e9b84b81f9d5e10eeab2d7e0..964e570c0811a2df8061e4cd11acac02
  
          return !this.getHandle().noCollision(aabb);
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 4bd52a2b122d9757bc6de6a2174b24935b59faf7..2cfb887b7db94ff685384fb7a23b7bad413c5275 100644
+index e77747d806639a721c07c6a892a577401af86267..5e3ed3d225432cd4110d9c5f6d51b36ed7c732e0 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -289,7 +289,7 @@ public final class CraftServer implements Server {
@@ -521,10 +521,10 @@ index 4bd52a2b122d9757bc6de6a2174b24935b59faf7..2cfb887b7db94ff685384fb7a23b7bad
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdcf6d08770 100644
+index 9d0e76bf529ca5c84bfdba4b06577cd48ec45767..e941fc9cdb15d024d5e66d3502cc226904da8c06 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -226,6 +226,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -227,6 +227,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public int getTileEntityCount() {
@@ -532,7 +532,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          // We don't use the full world block entity list, so we must iterate chunks
          int size = 0;
          for (ChunkHolder playerchunk : ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolders(this.world)) {
-@@ -290,6 +291,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -291,6 +292,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      // Paper start - structure check API
      @Override
      public boolean hasStructureAt(final io.papermc.paper.math.Position position, final Structure structure) {
@@ -540,7 +540,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          return this.world.structureManager().getStructureWithPieceAt(
              position.blockX(),
              position.blockY(),
-@@ -467,7 +469,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -468,7 +470,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public boolean unloadChunkRequest(int x, int z) {
@@ -555,7 +555,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          if (this.isChunkLoaded(x, z)) {
              this.world.getChunkSource().removeTicketWithRadius(TicketType.PLUGIN, new ChunkPos(x, z), 1);
          }
-@@ -493,6 +501,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -494,6 +502,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public boolean refreshChunk(int x, int z) {
@@ -563,7 +563,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          ChunkHolder playerChunk = this.world.getChunkSource().chunkMap.getVisibleChunkIfPresent(ChunkPos.pack(x, z));
          if (playerChunk == null) return false;
  
-@@ -520,6 +529,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -521,6 +530,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public Collection<Player> getPlayersSeeingChunk(int x, int z) {
@@ -571,7 +571,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          if (!this.isChunkLoaded(x, z)) {
              return Collections.emptySet();
          }
-@@ -543,7 +553,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -544,7 +554,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public boolean loadChunk(int x, int z, boolean generate) {
@@ -586,7 +586,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          warnUnsafeChunk("loading a faraway chunk", x, z); // Paper
          ChunkAccess chunk = this.world.getChunkSource().getChunk(x, z, generate || isChunkGenerated(x, z) ? ChunkStatus.FULL : ChunkStatus.EMPTY, true); // Paper
  
-@@ -735,6 +751,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -736,6 +752,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      // Paper start - Add methods to find targets for lightning strikes
      @Override
      public Location findLightningRod(Location location) {
@@ -594,7 +594,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          return this.world.findLightningRod(CraftLocation.toBlockPos(location))
              .map(blockPos -> CraftLocation.toBukkit(blockPos, this.world)
                  // get the actual rod pos
-@@ -744,6 +761,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -745,6 +762,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public Location findLightningTarget(Location location) {
@@ -602,7 +602,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          final BlockPos pos = this.world.findLightningTargetAround(CraftLocation.toBlockPos(location), true);
          return pos == null ? null : CraftLocation.toBukkit(pos, this.world);
      }
-@@ -756,6 +774,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -757,6 +775,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
@@ -610,7 +610,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          this.world.captureTreeGeneration = true;
          this.world.captureBlockStates = true;
          List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
-@@ -858,6 +877,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -901,6 +920,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      private boolean createExplosion(double x, double y, double z, float power, boolean setFire, boolean breakBlocks, Entity source, Consumer<net.minecraft.world.level.ServerExplosion> configurator) {
          // Paper end - expand explosion API
@@ -618,7 +618,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          net.minecraft.world.level.Level.ExplosionInteraction explosionType;
          if (!breakBlocks) {
              explosionType = net.minecraft.world.level.Level.ExplosionInteraction.NONE; // Don't break blocks
-@@ -916,6 +936,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -959,6 +979,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public int getHighestBlockYAt(int x, int z, org.bukkit.HeightMap heightMap) {
@@ -626,7 +626,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          warnUnsafeChunk("getting a faraway chunk", x >> 4, z >> 4); // Paper
          // Transient load for this tick
          return this.world.getChunk(x >> 4, z >> 4).getHeight(CraftHeightMap.toNMS(heightMap), x, z);
-@@ -931,6 +952,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -974,6 +995,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      @Override
      public void setBiome(int x, int y, int z, Holder<net.minecraft.world.level.biome.Biome> biome) {
          BlockPos pos = new BlockPos(x, 0, z);
@@ -634,7 +634,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          if (this.world.hasChunkAt(pos)) {
              net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkAt(pos);
  
-@@ -941,12 +963,14 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -984,12 +1006,14 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public double getTemperature(int x, int y, int z) {
@@ -649,7 +649,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          return this.world.getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z)).value().climateSettings.downfall();
      }
  
-@@ -959,6 +983,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1002,6 +1026,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public Iterable<net.minecraft.world.entity.Entity> getNMSEntities() {
@@ -657,7 +657,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          return this.getHandle().getEntities().getAll();
      }
  
-@@ -1047,6 +1072,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1090,6 +1115,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      }
  
      public RayTraceResult rayTraceBlocks(io.papermc.paper.math.Position start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode, BlockCollisionMode blockCollisionMode, Predicate<? super Block> canCollide) {
@@ -665,7 +665,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          Preconditions.checkArgument(start != null, "Location start cannot be null");
          Preconditions.checkArgument(!(start instanceof Location location) || this.equals(location.getWorld()), "Location start cannot be in a different world");
          Preconditions.checkArgument(start.isFinite(), "Location start is not finite");
-@@ -1126,6 +1152,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1169,6 +1195,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public List<Player> getPlayers() {
@@ -673,7 +673,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          List<Player> list = new ArrayList<Player>(this.world.players().size());
  
          for (net.minecraft.world.entity.player.Player human : this.world.players()) {
-@@ -1782,6 +1809,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1825,6 +1852,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      @Deprecated
      @Override
      public Location locateNearestStructure(Location origin, org.bukkit.StructureType structureType, int radius, boolean findUnexplored) {
@@ -681,7 +681,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          StructureSearchResult result = null;
  
          // Manually map the mess of the old StructureType to the new StructureType and normal Structure
-@@ -1828,6 +1856,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1871,6 +1899,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public StructureSearchResult locateNearestStructure(Location origin, StructureType structureType, int radius, boolean findUnexplored) {
@@ -689,7 +689,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          List<Structure> structures = new ArrayList<>();
          for (Structure structure : RegistryAccess.registryAccess().getRegistry(RegistryKey.STRUCTURE)) {
              if (structure.getStructureType() == structureType) {
-@@ -1840,6 +1869,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1883,6 +1912,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public StructureSearchResult locateNearestStructure(Location origin, Structure structure, int radius, boolean findUnexplored) {
@@ -697,7 +697,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          return this.locateNearestStructure(origin, List.of(structure), radius, findUnexplored);
      }
  
-@@ -1876,12 +1906,14 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1919,12 +1949,14 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public void sendGameEvent(Entity sourceEntity, org.bukkit.GameEvent gameEvent, Vector position) {
@@ -712,7 +712,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          BlockPos originPos = CraftLocation.toBlockPos(origin);
          Set<Holder<net.minecraft.world.level.biome.Biome>> holders = new HashSet<>();
  
-@@ -1901,6 +1933,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1944,6 +1976,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public Location locateNearestPoi(@NotNull final Location origin, @NotNull final PoiType poiType, final int radius, final PoiType.@NotNull Occupancy occupancy) {
@@ -720,7 +720,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          Preconditions.checkArgument(origin != null, "Location cannot be null");
          Preconditions.checkArgument(this.equals(origin.getWorld()), "The provided location must be in the same world");
          Preconditions.checkArgument(poiType != null, "PoiType cannot be null");
-@@ -1918,6 +1951,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1961,6 +1994,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public @NotNull List<PoiSearchResult> locateAllPoiInRange(@NotNull final Location origin, @NotNull final Predicate<PoiType> poiTypePredicate, final int radius, final PoiType.@NotNull Occupancy occupancy) {
@@ -728,7 +728,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          Preconditions.checkArgument(origin != null, "Location cannot be null");
          Preconditions.checkArgument(origin.getWorld().equals(this), "The provided location must be in the same world");
          Preconditions.checkArgument(poiTypePredicate != null, "The predicate filter must not be null");
-@@ -1935,6 +1969,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1978,6 +2012,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public Raid locateNearestRaid(Location location, int radius) {
@@ -736,7 +736,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          Preconditions.checkArgument(location != null, "Location cannot be null");
          Preconditions.checkArgument(radius >= 0, "Radius value (%s) cannot be negative", radius);
  
-@@ -1946,6 +1981,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1989,6 +2024,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      // Paper start - more Raid API
      @Override
      public @Nullable Raid getRaid(final int id) {
@@ -744,7 +744,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          final net.minecraft.world.entity.raid.@Nullable Raid nmsRaid = this.world.getRaids().get(id);
          return nmsRaid != null ? new CraftRaid(nmsRaid, this.world) : null;
      }
-@@ -1953,6 +1989,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1996,6 +2032,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public List<Raid> getRaids() {
@@ -752,7 +752,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          Raids persistentRaid = this.world.getRaids();
          return persistentRaid.raidMap.values().stream().map(raid -> new CraftRaid(raid, this.world)).collect(Collectors.toList());
      }
-@@ -1964,6 +2001,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2007,6 +2044,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      // Purpur start - Add local difficulty api
      public float getLocalDifficultyAt(Location location) {
@@ -760,7 +760,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          return getHandle().getCurrentDifficultyAt(org.bukkit.craftbukkit.util.CraftLocation.toBlockPos(location)).getEffectiveDifficulty();
      }
      // Purpur end - Add local difficulty api
-@@ -2010,11 +2048,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2053,11 +2091,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public Collection<GeneratedStructure> getStructures(int x, int z) {
@@ -774,7 +774,7 @@ index c528f5e6fae2dcb4684bf8494da4847676edfdf0..9104e6ae181a5a7c4c84da1ea1789fdc
          Preconditions.checkArgument(structure != null, "Structure cannot be null");
  
          net.minecraft.core.Registry<net.minecraft.world.level.levelgen.structure.Structure> registry = CraftRegistry.getMinecraftRegistry(Registries.STRUCTURE);
-@@ -2108,4 +2148,20 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2151,4 +2191,20 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          return POINTERS_SUPPLIER.view(this);
      }
      // Paper end
@@ -977,10 +977,10 @@ index ec3343ecbe68b1c2a33f85edb3b527363affa9ba..3dfcaaabaaa58d5d6845ef579ed9023c
          net.minecraft.world.item.ItemStack item = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(tool);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index b6e29b4cf4451d55d50526003ff91ddf2e17c0ce..3a4553005f230fe51eb14d88f90f1512c6b5a465 100644
+index c0448ce269cf5e6d269c2ffd4c5ba0c41e93ed59..27d86c603483b01c8070bcd4149a2e09e82bc49c 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-@@ -115,6 +115,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+@@ -117,6 +117,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
      private final CraftPersistentDataContainer persistentDataContainer = new CraftPersistentDataContainer(CraftEntity.DATA_TYPE_REGISTRY);
      // Paper start - Folia shedulers
      public final io.papermc.paper.threadedregions.EntityScheduler taskScheduler = new io.papermc.paper.threadedregions.EntityScheduler(this);
@@ -992,10 +992,10 @@ index b6e29b4cf4451d55d50526003ff91ddf2e17c0ce..3a4553005f230fe51eb14d88f90f1512
  
      @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index cce0fb6d98cd0dd7c6cd02c3513b1a2649ee5ba9..8b3d263cd370f8e92370b0d4cad1c722dae13fa7 100644
+index 567833b4c9891dfb1425ff299c04d4705a72353e..a9c6c050ad741dcbad1b2f667f1e7b58f969193e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-@@ -966,6 +966,7 @@ public class CraftEventFactory {
+@@ -967,6 +967,7 @@ public class CraftEventFactory {
          CraftBlockState snapshot = CraftBlockStates.getBlockState(level, target);
          snapshot.setBlock(state);
  

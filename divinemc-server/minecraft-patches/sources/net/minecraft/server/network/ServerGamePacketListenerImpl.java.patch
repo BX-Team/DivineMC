@@ -24,7 +24,7 @@
              if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.updateEquipmentOnPlayerActions) this.player.detectEquipmentUpdates(); // Paper - Force update attributes.
          }
      }
-@@ -2058,6 +_,7 @@
+@@ -2060,6 +_,7 @@
          }
  
          this.player.teleportSetPosition(destination, relatives);

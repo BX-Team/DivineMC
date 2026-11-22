@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize path recomputation on block updates
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 67a2c9f270a61493376852e59d415b8fbf2ab56c..5f71b586d42e8dd6fffad8aa67b329612fac6d1e 100644
+index 48ec532fe1bce32f7489cd03ba9f33794b5c9ffd..bb6dcce828798bae9778419ebabfcdc0e4963ce0 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -215,6 +215,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -16,7 +16,7 @@ index 67a2c9f270a61493376852e59d415b8fbf2ab56c..5f71b586d42e8dd6fffad8aa67b32961
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
      private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
-@@ -2018,6 +2019,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2019,6 +2020,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
@@ -28,7 +28,7 @@ index 67a2c9f270a61493376852e59d415b8fbf2ab56c..5f71b586d42e8dd6fffad8aa67b32961
              // DivineMC start - Regionized Chunk Ticking
              for (Mob navigatingMob : this.navigatingMobs) {
                  PathNavigation pathNavigation = navigatingMob.getNavigation();
-@@ -2026,6 +2032,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2027,6 +2033,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                  }
              }
              // DivineMC end - Regionized Chunk Ticking
@@ -36,7 +36,7 @@ index 67a2c9f270a61493376852e59d415b8fbf2ab56c..5f71b586d42e8dd6fffad8aa67b32961
  
              try {
                  this.isUpdatingNavigations.set(Boolean.TRUE); // DivineMC - Regionized Chunk Ticking
-@@ -3277,6 +3284,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3278,6 +3285,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                      );
                  }
  
@@ -44,7 +44,7 @@ index 67a2c9f270a61493376852e59d415b8fbf2ab56c..5f71b586d42e8dd6fffad8aa67b32961
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
-@@ -3347,6 +3355,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -3348,6 +3356,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                      );
                  }
  

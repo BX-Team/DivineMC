@@ -74,10 +74,10 @@ index 29edd88cb1c4055f90fd05c438263d2a6b619cbe..1c08ada19be4688926e47cda423543ed
 +    // DivineMC end - Parallel world ticking
  }
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index ae2a14f26bf7a03dfd922f9a3b9b303cde20fc8e..4665afee2515867118b1206236a7b814d780ff43 100644
+index 74c9e764f0fea59087ecbfd1c082ce76a8c2a15a..854d9251086b8743801a06e82dd699ecbb6dc962 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -4893,4 +4893,33 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+@@ -4956,4 +4956,33 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
              }
          }
      }

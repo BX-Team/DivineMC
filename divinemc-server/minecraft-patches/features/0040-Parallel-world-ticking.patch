@@ -453,7 +453,7 @@ index c1257e0413c4ee5e924a5a8db7205514d411b4fb..e6c567f6ede8c7cde651666af506c403
                  // Paper end
                  // CraftBukkit start
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 8d96d76f60ad7ef69243af856a67d3e668ca75cf..291132cbc4950994e530c646e5d999c9d2dcaa9e 100644
+index 924f48b5662f19870eddab395f1494868fa2411d..bc7a150c18bd42a7629fd6642a15095a6cdc88a1 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -335,6 +335,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -623,7 +623,7 @@ index 8d96d76f60ad7ef69243af856a67d3e668ca75cf..291132cbc4950994e530c646e5d999c9
          this.levels = Collections.unmodifiableMap(newLevels);
      }
      // CraftBukkit end
-@@ -2364,7 +2406,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2365,7 +2407,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  // Paper end
                  new io.papermc.paper.event.server.ServerResourcesReloadedEvent(cause).callEvent(); // Paper - Add ServerResourcesReloadedEvent; fire after everything has been reloaded
              }, this);
@@ -681,7 +681,7 @@ index c7dfa3225acc9a483b773101073c2987889d0e34..7ea72f6843e2a5a2a4b17e589142cd78
          final CompletableFuture<ChunkAccess> completable = new CompletableFuture<>();
          chunkTaskScheduler.scheduleChunkLoad(
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b7fbb7bd5ccfe5b534e15dbbe450402c30e7d5ef..5011a47ce884a87fa6b1b85d37021702b1d461c6 100644
+index 7845da3861d232e0db98357af748419b9272a6c8..b1ccfd35c27b378e7d42e6f1ba99cae13d3260aa 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -197,7 +197,9 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -695,7 +695,7 @@ index b7fbb7bd5ccfe5b534e15dbbe450402c30e7d5ef..5011a47ce884a87fa6b1b85d37021702
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
      // Paper - rewrite chunk system
-@@ -1704,6 +1706,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1705,6 +1707,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
      }
  
      private void addPlayer(final ServerPlayer player) {
@@ -703,7 +703,7 @@ index b7fbb7bd5ccfe5b534e15dbbe450402c30e7d5ef..5011a47ce884a87fa6b1b85d37021702
          Entity existing = this.getEntity(player.getUUID());
          if (existing != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -1716,7 +1719,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1717,7 +1720,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
  
      // CraftBukkit start
      private boolean addEntity(final Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
@@ -996,7 +996,7 @@ index 14d4d52c86fa014be034e22deafab68c0eaaacb7..fc145066d91ecfd5dbb78ccb21d532a7
                  Vec3 teleportPos = this.oldPosition();
                  if (owner instanceof ServerPlayer player) {
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index effc0a3a934a6355da5210ed6fcb49d8b106b802..555b61b4439f3e5eaa30bb351168c2de0d99a3eb 100644
+index 7f8d25e3a85c2fbacc2071a799f1aa5e267cffc9..e08027717109ebd2bbab62fa3afce6024e587089 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -404,8 +404,10 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
@@ -1230,13 +1230,13 @@ index 5564a54f23aab158b9506325953ec70cab55c961..96d32cb5578992d080e43075ff051c3f
                      }
                      if (event == null || !event.isCancelled()) {
 diff --git a/net/minecraft/world/level/block/entity/BlockEntity.java b/net/minecraft/world/level/block/entity/BlockEntity.java
-index ef94c0e004d3e72db7899345cc5470afe6581dc4..343feaa48eb5a0bf39165e4caed2261ac49239cf 100644
+index a5c6d585a14bc1621600a51e69a10827207fbc0d..1d424fce9a73588163d6d4fb35077ee3b3825046 100644
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -210,7 +210,7 @@ public abstract class BlockEntity implements DebugValueSource, TypedInstance<Blo
+@@ -211,7 +211,7 @@ public abstract class BlockEntity implements DebugValueSource, TypedInstance<Blo
  
      public void setChanged() {
-         if (this.level != null) {
+         if (this.level != null && this.real) { // Paper - don't broadcast for fake block entities
 -            if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
 +            if (org.bxteam.divinemc.concurrent.LevelThreads.SHARED ? org.bxteam.divinemc.concurrent.state.ThreadState.current().ignoreBlockEntityUpdates : ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers // DivineMC - Parallel world ticking - per-thread copy while levels are shared
              setChanged(this.level, this.worldPosition, this.blockState);
