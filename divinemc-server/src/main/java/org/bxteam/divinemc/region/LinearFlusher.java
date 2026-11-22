@@ -8,6 +8,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -16,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -30,17 +32,25 @@ public final class LinearFlusher {
 
     final long flushDelayMs;
     final int compressionLevel;
+    final long retryDelayMs;
     private final long maxPendingBytes;
     private final ScheduledThreadPoolExecutor flushers;
     private final ExecutorService compactor;
     private final AtomicLong pendingBytes = new AtomicLong();
+    // regions whose last flush failed; while any is, writers over the limit get an error instead of waiting
+    private final AtomicInteger failingRegions = new AtomicInteger();
     private final Object pendingMonitor = new Object();
     private volatile boolean shutdown;
     private volatile List<Path> compactOnShutdown = List.of();
 
     public LinearFlusher(int threads, long flushDelayMs, int compressionLevel, long maxPendingBytes) {
+        this(threads, flushDelayMs, compressionLevel, maxPendingBytes, RETRY_DELAY_MS);
+    }
+
+    LinearFlusher(int threads, long flushDelayMs, int compressionLevel, long maxPendingBytes, long retryDelayMs) {
         this.flushDelayMs = flushDelayMs;
         this.compressionLevel = compressionLevel;
+        this.retryDelayMs = retryDelayMs;
         this.maxPendingBytes = maxPendingBytes;
         this.flushers = new ScheduledThreadPoolExecutor(threads, new ThreadFactoryBuilder().setNameFormat("linear-flusher-%d").setDaemon(true).build());
         this.flushers.setRemoveOnCancelPolicy(true);
@@ -120,10 +130,6 @@ public final class LinearFlusher {
         return !this.compactOnShutdown.isEmpty();
     }
 
-    static long retryDelayMs() {
-        return RETRY_DELAY_MS;
-    }
-
     /** True once the server began stopping: closes then only flush, the next start compacts. */
     static boolean serverStopping() {
         final MinecraftServer server = MinecraftServer.getServer();
@@ -144,13 +150,48 @@ public final class LinearFlusher {
         return this.pendingBytes.get();
     }
 
-    /** Blocks a writer while too many records wait for a flush; the caller's region is flushed right away. */
-    void awaitCapacity(LinearRegionFile region) {
+    void regionFailing(boolean failing) {
+        if (failing) {
+            this.failingRegions.incrementAndGet();
+            synchronized (this.pendingMonitor) {
+                this.pendingMonitor.notifyAll();
+            }
+        } else {
+            this.failingRegions.decrementAndGet();
+        }
+    }
+
+    /**
+     * Waits before a failed close is retried; false once the flusher is shut down, when the close has to give up.
+     */
+    boolean awaitRetry() {
+        final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.retryDelayMs);
+        synchronized (this.pendingMonitor) {
+            long left;
+            while (!this.shutdown && (left = deadline - System.nanoTime()) > 0) {
+                try {
+                    this.pendingMonitor.wait(Math.max(1, TimeUnit.NANOSECONDS.toMillis(left)));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+        return !this.shutdown;
+    }
+
+    /**
+     * Blocks a writer while too many records wait for a flush; the caller's region is flushed right away. While
+     * flushes fail the writer gets an error instead: its record stays queued, but a full disk must not hang the server.
+     */
+    void awaitCapacity(LinearRegionFile region) throws IOException {
         if (this.pendingBytes.get() <= this.maxPendingBytes || this.shutdown) return;
+        this.throwIfFailing();
         this.scheduleFlush(region, 0);
         boolean warned = false;
         synchronized (this.pendingMonitor) {
             while (this.pendingBytes.get() > this.maxPendingBytes && !this.shutdown) {
+                this.throwIfFailing();
                 if (!warned) {
                     LOGGER.warn("Linear region writes are waiting: {} MB of chunks wait for the disk (limit region-settings.linear.max-pending-mb)", this.pendingBytes.get() >> 20);
                     warned = true;
@@ -162,6 +203,12 @@ public final class LinearFlusher {
                     return;
                 }
             }
+        }
+    }
+
+    private void throwIfFailing() throws IOException {
+        if (this.failingRegions.get() > 0) {
+            throw new IOException("Linear region flushes are failing and " + (this.pendingBytes.get() >> 20) + " MB of chunks wait for the disk; the chunk stays queued");
         }
     }
 
