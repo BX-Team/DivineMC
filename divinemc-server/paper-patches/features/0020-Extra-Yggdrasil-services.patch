@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: NONPLAYT <nonplay@bxteam.org>
+Date: Thu, 26 Nov 2026 01:32:20 +0300
+Subject: [PATCH] Extra Yggdrasil services
+
+
+diff --git a/src/main/java/com/destroystokyo/paper/profile/PaperMinecraftSessionService.java b/src/main/java/com/destroystokyo/paper/profile/PaperMinecraftSessionService.java
+index 3556bfa89442a20ad5e9adff7310b29c25c2ca0a..90e68ed121aee197bcaab447eb851c2067e2d914 100644
+--- a/src/main/java/com/destroystokyo/paper/profile/PaperMinecraftSessionService.java
++++ b/src/main/java/com/destroystokyo/paper/profile/PaperMinecraftSessionService.java
+@@ -37,4 +37,11 @@ public class PaperMinecraftSessionService extends MinecraftServicesSessionServic
+     public @Nullable ProfileResult fetchProfile(final UUID profileId, final boolean requireSecure) {
+         return super.fetchProfile(profileId, requireSecure);
+     }
++
++    // DivineMC start - Extra Yggdrasil services
++    @Override
++    public @Nullable ProfileResult hasJoinedServer(final String profileName, final String serverId, final java.net.@Nullable InetAddress address) throws com.mojang.authlib.exceptions.AuthenticationUnavailableException {
++        return org.bxteam.divinemc.profile.ExtraYggdrasil.hasJoined(profileName, serverId, address, () -> super.hasJoinedServer(profileName, serverId, address));
++    }
++    // DivineMC end - Extra Yggdrasil services
+ }

@@ -1018,6 +1018,11 @@ public class DivineConfig {
         public static boolean noChatReportsDemandOnClient = false;
         public static String noChatReportsDisconnectDemandOnClientMessage = "You do not have No Chat Reports, and this server is configured to require it on client!";
 
+        // Extra Yggdrasil services
+        public static boolean extraYggdrasilEnabled = false;
+        public static List<String> extraYggdrasilServices = new ArrayList<>();
+        public static boolean extraYggdrasilProtectKnownNames = true;
+
         // Protocols
         public static boolean protocolsStrictMode = false;
         public static boolean protocolsAppleSkinEnabled = false;
@@ -1047,6 +1052,7 @@ public class DivineConfig {
         public static void load() {
             networkSettings();
             noChatReports();
+            extraYggdrasil();
             protocols();
             raytraceCulling();
         }
@@ -1076,6 +1082,20 @@ public class DivineConfig {
                 "Should the server require No Chat Reports on the client side");
             noChatReportsDisconnectDemandOnClientMessage = getString(ConfigCategory.NETWORK.key("no-chat-reports.disconnect-demand-on-client-message"), noChatReportsDisconnectDemandOnClientMessage,
                 "Message to send to the client when they are disconnected for not having No Chat Reports");
+        }
+
+        private static void extraYggdrasil() {
+            extraYggdrasilEnabled = getBoolean(ConfigCategory.NETWORK.key("extra-yggdrasil.enabled"), extraYggdrasilEnabled,
+                "Lets in players that another Yggdrasil service vouches for when Mojang does not know them.",
+                "Only works with online-mode: true.",
+                "Mojang is always asked first, so a Microsoft account keeps its name.",
+                "",
+                "NOTE: these players have no Mojang chat key, so they can chat only with enforce-secure-profile: false",
+                "in server.properties or with no-chat-reports enabled.");
+            extraYggdrasilServices = getStringList(ConfigCategory.NETWORK.key("extra-yggdrasil.services"), extraYggdrasilServices,
+                "API roots of the services in authlib-injector's layout, asked in order, e.g. https://example.com/api/yggdrasil");
+            extraYggdrasilProtectKnownNames = getBoolean(ConfigCategory.NETWORK.key("extra-yggdrasil.protect-known-names"), extraYggdrasilProtectKnownNames,
+                "Refuses a service's player whose name this server already knows under another UUID");
         }
 
         private static void protocols() {
