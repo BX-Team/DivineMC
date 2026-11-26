@@ -267,10 +267,10 @@ index 5b7ed8e5067683143c99473a126e17baa531903c..5e422eeef3f8b6879250032e3a6ebf51
  
      private static final class BasicEntityList<E extends Entity> {
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index e984597384eba6b8ac877f2803bdbed754ac7ba8..e87e356746f15d5fa07807bb226b0a8705d34eae 100644
+index 4b9b5b4cb02f28978a907cc8dc5ea612e7f077bf..322dd015e5812263b67ba5a13da439342f99a392 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -1168,7 +1168,7 @@ public final class ChunkHolderManager {
+@@ -1169,7 +1169,7 @@ public final class ChunkHolderManager {
          if (changedFullStatus.isEmpty()) {
              return;
          }
@@ -279,7 +279,7 @@ index e984597384eba6b8ac877f2803bdbed754ac7ba8..e87e356746f15d5fa07807bb226b0a87
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
              this.offThreadPendingFullLoadUpdate.addAll(changedFullStatus);
-@@ -1190,7 +1190,13 @@ public final class ChunkHolderManager {
+@@ -1191,7 +1191,13 @@ public final class ChunkHolderManager {
  
      // note: never call while inside the chunk system, this will absolutely break everything
      public void processUnloads() {
@@ -294,7 +294,7 @@ index e984597384eba6b8ac877f2803bdbed754ac7ba8..e87e356746f15d5fa07807bb226b0a87
  
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot unload chunks recursively");
-@@ -1484,7 +1490,11 @@ public final class ChunkHolderManager {
+@@ -1485,7 +1491,11 @@ public final class ChunkHolderManager {
          if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
              throw new IllegalStateException("Cannot update ticket level while unloading chunks or updating entity manager");
          }

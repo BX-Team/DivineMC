@@ -130,10 +130,10 @@ index 706f529a7d1064aad128b1ee8c82f6319daa8d01..ac2321daac5943a026cae858695e5629
      }
  }
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index e87e356746f15d5fa07807bb226b0a8705d34eae..20e44443088e77c61eca1adf1086c35bb5b62289 100644
+index 322dd015e5812263b67ba5a13da439342f99a392..8d82150e72410e0ef27814c6f0adb37a95058243 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -85,7 +85,7 @@ public final class ChunkHolderManager {
+@@ -86,7 +86,7 @@ public final class ChunkHolderManager {
      private final ChunkTaskScheduler taskScheduler;
      private long currentTick;
  
@@ -142,7 +142,7 @@ index e87e356746f15d5fa07807bb226b0a8705d34eae..20e44443088e77c61eca1adf1086c35b
      private final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = new MultiThreadedQueue<>();
      private final ObjectRBTreeSet<NewChunkHolder> autoSaveQueue = new ObjectRBTreeSet<>((final NewChunkHolder c1, final NewChunkHolder c2) -> {
          if (c1 == c2) {
-@@ -230,14 +230,14 @@ public final class ChunkHolderManager {
+@@ -231,14 +231,14 @@ public final class ChunkHolderManager {
          this.taskScheduler.setShutdown(true);
      }
  
@@ -159,7 +159,7 @@ index e87e356746f15d5fa07807bb226b0a8705d34eae..20e44443088e77c61eca1adf1086c35b
          final List<NewChunkHolder> reschedule = new ArrayList<>();
          final long currentTick = this.currentTick;
          final long maxSaveTime = currentTick - Math.max(1L, PlatformHooks.get().configAutoSaveInterval(this.world));
-@@ -1173,14 +1173,14 @@ public final class ChunkHolderManager {
+@@ -1174,14 +1174,14 @@ public final class ChunkHolderManager {
              // which will invoke processTicketUpdates
              this.offThreadPendingFullLoadUpdate.addAll(changedFullStatus);
          } else {
@@ -176,7 +176,7 @@ index e87e356746f15d5fa07807bb226b0a8705d34eae..20e44443088e77c61eca1adf1086c35b
          holder.onUnload();
          this.autoSaveQueue.remove(holder);
          ((ChunkSystemServerChunkCache)this.world.getChunkSource()).moonrise$chunkHolderUnload(holder);
-@@ -1538,7 +1538,7 @@ public final class ChunkHolderManager {
+@@ -1539,7 +1539,7 @@ public final class ChunkHolderManager {
  
      // only call on tick thread
      private void processOffThreadFullUpdates() {
@@ -185,7 +185,7 @@ index e87e356746f15d5fa07807bb226b0a8705d34eae..20e44443088e77c61eca1adf1086c35b
          final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = this.offThreadPendingFullLoadUpdate;
  
          NewChunkHolder toUpdate;
-@@ -1551,7 +1551,7 @@ public final class ChunkHolderManager {
+@@ -1552,7 +1552,7 @@ public final class ChunkHolderManager {
      private boolean processPendingFullUpdate() {
          this.processOffThreadFullUpdates();
  
